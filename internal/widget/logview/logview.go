@@ -16,6 +16,7 @@ const rows = 10
 // newest entries stay in sight as the file grows.
 var Kind = widget.Kind{
 	Name:     "log",
+	Exts:     []string{".log", ".txt", ".out"},
 	Label:    "Log",
 	Icon:     "≣",
 	Blurb:    "One entry per line. The newest entries stay in sight.",

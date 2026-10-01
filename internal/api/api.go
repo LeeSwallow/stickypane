@@ -19,8 +19,8 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
 )
 
-// ErrBadName rejects names that are not a plain Markdown file name.
-var ErrBadName = errors.New(`a note name is a plain file name such as "plan" or "plan.md"`)
+// ErrBadName rejects names that are not a note in the notes folder.
+var ErrBadName = errors.New(`a note name is a file name such as "plan", "build.log" or, for a page of a book, "docs/plan"`)
 
 // waitRetries is how many failed looks in a row Wait rides out.
 const waitRetries = 10
@@ -56,18 +56,31 @@ type API struct {
 // what size a note has when it does not say.
 func New(st *store.Store, reg widget.Registry) *API { return &API{st: st, reg: reg} }
 
-// fileName turns a note name into its file name, adding ".md" when missing.
-// Anything that could leave the notes folder or hide the file is rejected.
+// fileName turns a note name into its file name, adding ".md" when it has
+// no extension. A name may have one folder in front, for a page of a book.
+// Anything that could leave the notes folder or hide the file is rejected,
+// and so is a file the board does not show.
 func fileName(name string) (string, error) {
 	name = strings.TrimSpace(name)
-	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") ||
-		strings.ContainsFunc(name, unicode.IsControl) {
+	if name == "" || strings.Contains(name, `\`) || strings.ContainsFunc(name, unicode.IsControl) {
 		return "", ErrBadName
 	}
-	switch ext := filepath.Ext(name); {
-	case ext == "":
+	parts := strings.Split(name, "/")
+	if len(parts) > 2 {
+		return "", ErrBadName
+	}
+	for _, p := range parts {
+		if p == "" || strings.HasPrefix(p, ".") {
+			return "", ErrBadName
+		}
+	}
+	if len(parts) == 2 && parts[0] == store.ArchiveDir {
+		return "", ErrBadName
+	}
+	if filepath.Ext(name) == "" {
 		name += ".md"
-	case !strings.EqualFold(ext, ".md"):
+	}
+	if !store.IsNote(name) {
 		return "", ErrBadName
 	}
 	return name, nil
@@ -83,21 +96,45 @@ func (a *API) List() ([]Info, error) {
 	if err != nil {
 		return nil, err
 	}
+	views, _ := a.st.Views() // a broken file arranges nothing
 	infos := make([]Info, 0, len(notes))
-	for _, n := range notes {
-		kind := a.reg.Lookup(n.Doc.Type())
-		info := Info{Name: n.Name, Type: kind.Name, Pinned: n.Doc.Pinned()}
-		if info.Title, _ = n.Doc.Get("title"); info.Title == "" {
-			info.Title = strings.TrimSuffix(n.Name, filepath.Ext(n.Name))
+	// describe lists a file. Where it is on the screen is said by
+	// sticky.json for the note it belongs to (a page belongs to its book),
+	// else by the note's own front matter, else by its kind.
+	describe := func(n store.Note, owner store.Note) {
+		kind := a.reg.For(n.Name, n.Doc)
+		v := views[owner.Name]
+		info := Info{Name: n.Name, Type: kind.Name, Pinned: owner.Doc.Pinned()}
+		if v.Pin != nil {
+			info.Pinned = *v.Pin
 		}
-		open, _ := n.Doc.Get("open")
+		if info.Title, _ = n.Doc.Get("title"); info.Title == "" {
+			base := filepath.Base(n.Name)
+			info.Title = strings.TrimSuffix(base, filepath.Ext(base))
+		}
+		open, _ := owner.Doc.Get("open")
 		info.Open = strings.EqualFold(open, "true")
-		if size, _ := n.Doc.Get("size"); validSize(strings.ToLower(size)) {
+		if v.Open != nil {
+			info.Open = *v.Open
+		}
+		size, _ := owner.Doc.Get("size")
+		switch {
+		case validSize(strings.ToLower(v.Size)):
+			info.Size = strings.ToLower(v.Size)
+		case validSize(strings.ToLower(size)):
 			info.Size = strings.ToLower(size)
-		} else if kind.Size != nil {
+		case kind.Size != nil:
 			info.Size = kind.Size(n.Doc)
 		}
 		infos = append(infos, info)
+	}
+	for _, n := range notes {
+		if !n.Book() {
+			describe(n, n)
+		}
+		for _, p := range n.Pages {
+			describe(p, n)
+		}
 	}
 	return infos, nil
 }

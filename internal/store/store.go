@@ -24,7 +24,9 @@ const (
 	// MaxSize is the largest file read in full.
 	MaxSize = 1 << 20
 
-	logTail   = 64 << 10 // how much of an oversized log is shown
+	logTail = 64 << 10 // how much of an oversized log is shown
+	// ViewFile holds how the notes are arranged on the screen.
+	ViewFile  = "sticky.json"
 	slugRunes = 40
 	tmpPrefix = ".stickypane-tmp-"
 )
@@ -36,14 +38,34 @@ var (
 	ErrTooLarge = errors.New("file is larger than 1 MB")
 )
 
-// Note is one file in the notes folder.
+// extensions are the files that are notes. Only Markdown has front matter;
+// the others are shown as they are.
+var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true}
+
+// IsNote reports whether a file name is one the board shows.
+func IsNote(name string) bool {
+	base := filepath.Base(name)
+	return !strings.HasPrefix(base, ".") && extensions[strings.ToLower(filepath.Ext(base))]
+}
+
+// isMarkdown reports whether a file may start with front matter.
+func isMarkdown(name string) bool { return strings.EqualFold(filepath.Ext(name), ".md") }
+
+// Note is one file in the notes folder, or one folder: a book, whose pages
+// are the files in it.
 type Note struct {
-	Name    string // file name, such as "10-plan.md"
+	// Name is the path inside the notes folder: "10-plan.md", "docs" for a
+	// book, "docs/intro.md" for one of its pages.
+	Name    string
 	Path    string
 	Doc     doc.Document
 	ModTime time.Time
-	Err     error // why the note cannot be shown; Doc is empty when set
+	Err     error  // why the note cannot be shown; Doc is empty when set
+	Pages   []Note // a book's pages, by file name; nil for a file
 }
+
+// Book reports whether the note is a folder of pages.
+func (n Note) Book() bool { return n.Pages != nil }
 
 // Store is a notes folder.
 type Store struct{ Dir string }
@@ -84,8 +106,10 @@ func Resolve(arg string) (string, error) {
 	return Find(abs)
 }
 
-// Scan reads every note, sorted by file name. A file that cannot be read
-// still appears, carrying its error.
+// Scan reads every note, sorted by name. A folder with notes in it is one
+// note, a book, with those files as its pages; folders are read one level
+// deep, and the archive and hidden folders are not read. A file that cannot
+// be read still appears, carrying its error.
 func (s *Store) Scan() ([]Note, error) {
 	entries, err := os.ReadDir(s.Dir) // sorted by name
 	if err != nil {
@@ -94,38 +118,76 @@ func (s *Store) Scan() ([]Note, error) {
 	var notes []Note
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || strings.HasPrefix(name, ".") || !strings.EqualFold(filepath.Ext(name), ".md") {
+		if strings.HasPrefix(name, ".") || name == ArchiveDir {
 			continue
 		}
-		notes = append(notes, s.read(name))
+		// Stat follows a link, so a linked folder is a book too.
+		if fi, err := os.Stat(filepath.Join(s.Dir, name)); err == nil && fi.IsDir() {
+			if book, ok := s.book(name); ok {
+				notes = append(notes, book)
+			}
+			continue
+		}
+		if IsNote(name) {
+			notes = append(notes, s.read(name))
+		}
 	}
 	return notes, nil
 }
 
+// book reads a folder as one note. A folder without notes is not a book.
+func (s *Store) book(name string) (Note, bool) {
+	b := Note{Name: name, Path: filepath.Join(s.Dir, name)}
+	entries, err := os.ReadDir(b.Path)
+	if err != nil {
+		return b, false
+	}
+	for _, e := range entries {
+		if e.IsDir() || !IsNote(e.Name()) {
+			continue
+		}
+		// A page is named with "/" on every system: it is a name, not a path.
+		page := s.read(name + "/" + e.Name())
+		b.Pages = append(b.Pages, page)
+		if page.ModTime.After(b.ModTime) {
+			b.ModTime = page.ModTime
+		}
+	}
+	return b, len(b.Pages) > 0
+}
+
 func (s *Store) read(name string) Note {
-	n := Note{Name: name, Path: filepath.Join(s.Dir, name)}
+	n := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
 	fi, err := os.Stat(n.Path)
 	if err != nil {
 		n.Err = err
 		return n
 	}
 	n.ModTime = fi.ModTime()
+	parse := func(b []byte) doc.Document {
+		if isMarkdown(name) {
+			return doc.Parse(displayable(b))
+		}
+		return doc.Document{Body: string(displayable(b))}
+	}
 	if fi.Size() <= MaxSize {
 		b, err := os.ReadFile(n.Path)
 		if err != nil {
 			n.Err = err
 			return n
 		}
-		n.Doc = doc.Parse(displayable(b))
+		n.Doc = parse(b)
 		return n
 	}
+	// Too large to read whole. A log is still worth showing: its end is
+	// what matters.
 	head, tail, err := readEnds(n.Path, fi.Size())
 	if err != nil {
 		n.Err = err
 		return n
 	}
-	d := doc.Parse(displayable(head))
-	if d.Type() != "log" {
+	d := parse(head)
+	if isMarkdown(name) && d.Type() != "log" {
 		n.Err = ErrTooLarge
 		return n
 	}
@@ -169,7 +231,7 @@ func readEnds(path string, size int64) (head, tail []byte, err error) {
 // A note that is a symlink is edited where it really lives: replacing the
 // link itself would silently detach the note from its file.
 func (s *Store) Apply(name string, op doc.Op) error {
-	path := filepath.Join(s.Dir, name)
+	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	}
@@ -189,16 +251,18 @@ func (s *Store) Apply(name string, op doc.Op) error {
 
 // Read returns a note's bytes exactly as they are on disk.
 func (s *Store) Read(name string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(s.Dir, name))
+	return os.ReadFile(filepath.Join(s.Dir, filepath.FromSlash(name)))
 }
 
 // Write replaces a note with content in one step, or creates it. Unlike
 // Apply it does not look at what is there: it is for callers that hand over
 // a whole note, such as the command line and the MCP server.
 func (s *Store) Write(name string, content []byte) error {
-	path := filepath.Join(s.Dir, name)
+	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
+	} else if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err // a new page of a new book needs its folder
 	}
 	return writeAtomic(path, content)
 }
@@ -282,10 +346,12 @@ func (s *Store) Archive(name string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	ext := filepath.Ext(name)
-	base := strings.TrimSuffix(name, ext)
+	// A page leaves its book: the archive is one flat folder.
+	file := filepath.Base(filepath.FromSlash(name))
+	ext := filepath.Ext(file)
+	base := strings.TrimSuffix(file, ext)
 	for i := 1; ; i++ {
-		target := name
+		target := file
 		if i > 1 {
 			target = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
@@ -295,11 +361,11 @@ func (s *Store) Archive(name string) error {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		return os.Rename(filepath.Join(s.Dir, name), dst)
+		return os.Rename(filepath.Join(s.Dir, filepath.FromSlash(name)), dst)
 	}
 }
 
 // Delete removes a note for good.
 func (s *Store) Delete(name string) error {
-	return os.Remove(filepath.Join(s.Dir, name))
+	return os.Remove(filepath.Join(s.Dir, filepath.FromSlash(name)))
 }

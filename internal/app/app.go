@@ -5,7 +5,8 @@ package app
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"image/color"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -61,11 +62,30 @@ var (
 	boardKeys = map[string]func(*Model) tea.Cmd{}
 )
 
-// item is a note with the widget that draws it.
+// item is a note with the widget that draws it. A book, which is a folder,
+// has pages; its kind and widget are those of the page that is shown.
 type item struct {
+	note  store.Note
+	kind  widget.Kind
+	w     widget.Widget
+	pages []page // a book's pages; nil for a file
+	page  int    // the page shown
+}
+
+// page is one file of a book.
+type page struct {
 	note store.Note
 	kind widget.Kind
 	w    widget.Widget
+}
+
+// file is the note whose file the item shows and changes: its own, or the
+// one of the page that is shown.
+func (it item) file() store.Note {
+	if len(it.pages) > 0 {
+		return it.pages[it.page].note
+	}
+	return it.note
 }
 
 // Model is the Bubble Tea model.
@@ -84,6 +104,8 @@ type Model struct {
 	seen  map[string]time.Time // modification time last looked at, by file name
 	known map[string]bool      // notes that existed at the previous scan
 	peek  map[string]bool      // notes shown open for this run without an "open" key
+	views store.Views          // how the user arranged the notes, from sticky.json
+	shown map[string]string    // the page each book shows, by the page's file name
 
 	width, height int
 	bar           []string       // the title bar, one or more lines
@@ -134,7 +156,7 @@ type reloadMsg struct {
 // New returns a model showing the notes in st. watch may be nil when the
 // folder cannot be watched; the screen then refreshes on "r" and after edits.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, reveal: revealNote}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, shown: map[string]string{}, reveal: revealNote}
 	m.reload()
 	return m
 }
@@ -235,16 +257,23 @@ func (m *Model) changed(it item) bool {
 	return !ok || !seen.Equal(it.note.ModTime)
 }
 
-// isOpen reports whether a note is drawn on the main screen. The note's
-// "open" key decides. A note without the key is closed, with two exceptions
-// that last for this run and never touch the file: a note that appeared
-// while stickypane was running, so that what an agent just wrote is seen at
-// once, and a note that was open when a rewrite dropped its key, so that an
-// agent rewriting a note does not make it vanish from the screen.
+// How a note is arranged comes from three places, in this order: what the
+// user did on the board, kept in sticky.json; the note's own front matter,
+// which is how an agent proposes an arrangement; and the note's kind.
+
+// isOpen reports whether a note is drawn on the main screen. A note that
+// neither sticky.json nor its front matter opens is closed, with two
+// exceptions that last for this run and are written nowhere: a note that
+// appeared while stickypane was running, so that what an agent just wrote
+// is seen at once, and a note that was open when a rewrite dropped its key,
+// so that an agent rewriting a note does not make it vanish from the screen.
 // A note that cannot be read is always open, to say why.
 func (m *Model) isOpen(it item) bool {
 	if it.note.Err != nil {
 		return true
+	}
+	if v := m.views[it.note.Name]; v.Open != nil {
+		return *v.Open
 	}
 	if v, ok := it.note.Doc.Get("open"); ok {
 		return strings.EqualFold(v, "true")
@@ -252,28 +281,62 @@ func (m *Model) isOpen(it item) bool {
 	return m.peek[it.note.Name]
 }
 
-// sizeOf returns the note's size: its "size" key, or the default of its kind.
+func validSize(v string) bool {
+	return v == widget.SizePage || v == widget.SizeHalf || v == widget.SizeCard
+}
+
+// sizeOf returns the note's size.
 func (m *Model) sizeOf(it item) string {
-	v, _ := it.note.Doc.Get("size")
-	switch v = strings.ToLower(v); v {
-	case widget.SizePage, widget.SizeHalf, widget.SizeCard:
+	if v := strings.ToLower(m.views[it.note.Name].Size); validSize(v) {
 		return v
 	}
+	if v, _ := it.note.Doc.Get("size"); validSize(strings.ToLower(v)) {
+		return strings.ToLower(v)
+	}
 	if it.kind.Size != nil {
-		return it.kind.Size(it.note.Doc)
+		return it.kind.Size(it.file().Doc)
 	}
 	return widget.SizePage
 }
 
-// rowsOf returns the note's fixed height in lines, or 0 when it is as tall
-// as its content: its "rows" key, or the default of its kind.
+// rowsOf returns the height in lines the note asks for, or 0 when it asks
+// for as much as its content takes.
 func (m *Model) rowsOf(it item) int {
+	if n := m.views[it.note.Name].Rows; n > 0 {
+		return n
+	}
 	if v, ok := it.note.Doc.Get("rows"); ok {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}
 	}
 	return it.kind.Rows
+}
+
+// pinned reports whether the note is kept first.
+func (m *Model) pinned(it item) bool {
+	if v := m.views[it.note.Name]; v.Pin != nil {
+		return *v.Pin
+	}
+	return it.note.Doc.Pinned()
+}
+
+// color returns the note's color: the one chosen for it, or one derived
+// from its name so that it keeps its color between runs.
+func (m *Model) color(it item) color.Color {
+	key := m.views[it.note.Name].Color
+	if key == "" {
+		key, _ = it.note.Doc.Get("color")
+	}
+	return palette[colorIndex(it.note.Name, key)].color
+}
+
+// setView changes how a note is arranged and shows the result.
+func (m *Model) setView(name string, change func(*store.View)) {
+	if err := m.store.SetView(name, change); err != nil {
+		m.status = "The arrangement was not saved: " + err.Error()
+	}
+	m.reload()
 }
 
 // widthOf turns a size into cells for the current screen.
@@ -289,43 +352,80 @@ func (m *Model) widthOf(size string) int {
 	return m.width
 }
 
-// reload rescans the folder. Widgets of notes whose body did not change are
-// kept, and changed ones are synced, so cursors survive.
+// widgetFor returns the kind and the widget for a note. The widget of a
+// note that did not change is kept, and one that changed is synced, so
+// cursors survive.
+func (m *Model) widgetFor(n store.Note, old page, had bool) (widget.Kind, widget.Widget) {
+	kind := m.reg.For(n.Name, n.Doc)
+	switch {
+	case !had || old.kind.Name != kind.Name:
+		return kind, kind.Parse(n.Doc)
+	case string(old.note.Doc.Bytes()) == string(n.Doc.Bytes()):
+		// Front matter counts too: a form shows whether it was
+		// submitted and a chart which view it has.
+		return kind, old.w
+	}
+	return kind, old.w.Sync(n.Doc)
+}
+
+// reload rescans the folder and reads the arrangement again.
 func (m *Model) reload() {
 	notes, err := m.store.Scan()
 	if err != nil {
 		m.status = "Cannot read notes: " + err.Error()
 		return
 	}
-	old := make(map[string]item, len(m.items))
+	// What each file showed before, by file name: a note or a book's page.
+	old := map[string]page{}
 	wasOpen := make(map[string]bool, len(m.items))
 	for _, it := range m.items {
-		old[it.note.Name] = it
 		wasOpen[it.note.Name] = m.isOpen(it)
+		if len(it.pages) == 0 {
+			old[it.note.Name] = page{it.note, it.kind, it.w}
+		}
+		for _, p := range it.pages {
+			old[p.note.Name] = p
+		}
 	}
 	prev := m.index(m.focus)
 	first := m.known == nil
 
-	known := make(map[string]bool, len(notes))
-	items := make([]item, 0, len(notes))
-	for _, n := range notes {
+	views, err := m.store.Views()
+	if err != nil {
+		m.status = err.Error() + ". Notes are shown as they arrange themselves."
+	}
+	m.views = views
+
+	unreadable := func(n store.Note) store.Note {
 		if n.Err != nil {
 			n.Doc = doc.Document{Body: "Cannot show this note: " + n.Err.Error()}
 		}
-		it := item{note: n, kind: m.reg.Lookup(n.Doc.Type())}
-		switch o, ok := old[n.Name]; {
-		case !ok || o.kind.Name != it.kind.Name:
-			it.w = it.kind.Parse(n.Doc)
-		case string(o.note.Doc.Bytes()) == string(n.Doc.Bytes()):
-			// Front matter counts too: a form shows whether it was
-			// submitted and a chart which view it has.
-			it.w = o.w
-		default:
-			it.w = o.w.Sync(n.Doc)
+		return n
+	}
+	known := make(map[string]bool, len(notes))
+	items := make([]item, 0, len(notes))
+	for _, n := range notes {
+		it := item{note: unreadable(n)}
+		if n.Book() {
+			for i, pn := range n.Pages {
+				pn = unreadable(pn)
+				o, had := old[pn.Name]
+				kind, w := m.widgetFor(pn, o, had)
+				it.pages = append(it.pages, page{pn, kind, w})
+				if pn.Name == m.shown[n.Name] {
+					it.page = i
+				}
+			}
+			m.shown[n.Name] = it.pages[it.page].note.Name
+			it.kind, it.w = it.pages[it.page].kind, it.pages[it.page].w
+		} else {
+			o, had := old[n.Name]
+			it.kind, it.w = m.widgetFor(it.note, o, had)
 		}
 		items = append(items, it)
 		known[n.Name] = true
-		if _, says := n.Doc.Get("open"); !says && ((!first && !m.known[n.Name]) || wasOpen[n.Name]) {
+		_, says := n.Doc.Get("open")
+		if says = says || views[n.Name].Open != nil; !says && ((!first && !m.known[n.Name]) || wasOpen[n.Name]) {
 			m.peek[n.Name] = true
 		}
 	}
@@ -334,9 +434,30 @@ func (m *Model) reload() {
 			delete(m.peek, name)
 		}
 	}
+	for name := range m.shown {
+		if !known[name] {
+			delete(m.shown, name)
+		}
+	}
 	m.known = known
+	// Notes keep the order of their names, except that the ones the user
+	// moved come first in the order they were given, and pinned ones before
+	// everything.
+	place := map[string]int{}
+	for i, name := range m.store.Order() {
+		place[name] = i + 1
+	}
+	rank := func(it item) int {
+		if p, ok := place[it.note.Name]; ok {
+			return p
+		}
+		return len(place) + 1
+	}
 	sort.SliceStable(items, func(i, j int) bool {
-		return items[i].note.Doc.Pinned() && !items[j].note.Doc.Pinned()
+		if pi, pj := m.pinned(items[i]), m.pinned(items[j]); pi != pj {
+			return pi
+		}
+		return rank(items[i]) < rank(items[j])
 	})
 	m.items = items
 
@@ -360,6 +481,39 @@ func (m *Model) reload() {
 	}
 }
 
+// turn shows another page of a book.
+func (m *Model) turn(i, delta int) {
+	it := &m.items[i]
+	to := max(min(it.page+delta, len(it.pages)-1), 0)
+	if len(it.pages) == 0 || to == it.page {
+		return
+	}
+	it.page = to
+	it.kind, it.w = it.pages[to].kind, it.pages[to].w
+	m.shown[it.note.Name] = it.pages[to].note.Name
+	m.zoomScroll = 0
+}
+
+// setWidget replaces the widget an item shows.
+func (m *Model) setWidget(i int, w widget.Widget) {
+	it := &m.items[i]
+	it.w = w
+	if len(it.pages) > 0 {
+		it.pages[it.page].w = w
+	}
+}
+
+// showing returns the position of the item that shows the file called
+// name, or -1.
+func (m *Model) showing(name string) int {
+	for i, it := range m.items {
+		if it.file().Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
 // zoomed reports whether a note is zoomed, either in front or underneath a
 // prompt, a confirmation or the help screen.
 func (m *Model) zoomed() bool {
@@ -372,7 +526,7 @@ func (m *Model) zoomed() bool {
 	return false
 }
 
-// apply writes an intent to a note and refreshes the screen. On a conflict
+// apply writes an intent to the file called name and refreshes the screen. On a conflict
 // nothing is written and the screen simply catches up with the file.
 func (m *Model) apply(name string, op doc.Op) {
 	err := m.store.Apply(name, op)
@@ -383,19 +537,23 @@ func (m *Model) apply(name string, op doc.Op) {
 		m.status = "Write failed: " + err.Error()
 	}
 	m.reload()
-	if i := m.index(name); err != nil && i >= 0 {
+	i := m.showing(name)
+	if i < 0 {
+		return
+	}
+	if err != nil {
 		// The widget may already show the change that did not happen.
 		// Rebuild it from the file so the screen never claims otherwise.
-		m.items[i].w = m.items[i].w.Sync(m.items[i].note.Doc)
+		m.setWidget(i, m.items[i].w.Sync(m.items[i].file().Doc))
 	}
-	m.markSeen(name)
+	m.markSeen(m.items[i].note.Name)
 }
 
 // toWidget sends a key to a note's widget and carries out what it asks for.
 func (m *Model) toWidget(i int, key string) {
-	name := m.items[i].note.Name
+	name := m.items[i].file().Name
 	w, res := m.items[i].w.Update(key)
-	m.items[i].w = w
+	m.setWidget(i, w)
 	m.reveal = revealCursor
 	m.act(name, res)
 }
@@ -414,23 +572,46 @@ func (m *Model) act(name string, res widget.Result) {
 	}
 }
 
-// label names a note in the title bar and in prompts: its title, or its file
-// name without ".md".
-func label(it item) string {
-	if t, _ := it.note.Doc.Get("title"); t != "" {
+// nameOf names a file: its title, or its file name without the folder and
+// the extension.
+func nameOf(n store.Note) string {
+	if t, _ := n.Doc.Get("title"); t != "" {
 		return widget.Clean(t)
 	}
-	return widget.Clean(strings.TrimSuffix(it.note.Name, filepath.Ext(it.note.Name)))
+	base := path.Base(n.Name)
+	return widget.Clean(strings.TrimSuffix(base, path.Ext(base)))
 }
 
+// label names a note in the title bar and in prompts: its title, or its
+// name without the extension. A book goes by its folder's name.
+func label(it item) string { return nameOf(it.note) }
+
 // heading is the text in a note's top border. A plain note without a title
-// has none, like a sticky note; other shapes fall back to the file name.
+// has none, like a sticky note; other shapes fall back to the file name. A
+// book shows its name and the page it is on.
 func (m *Model) heading(it item) string {
+	if len(it.pages) > 0 {
+		return label(it) + " · " + nameOf(it.file())
+	}
 	t, _ := it.note.Doc.Get("title")
 	if t == "" && (it.kind.Name != m.reg[0].Name || it.note.Err != nil) {
 		return label(it)
 	}
 	return widget.Clean(t)
+}
+
+// summary is the text at the right end of a note's top border: what its
+// widget counts and, for a book, which page it is on.
+func summary(it item) string {
+	s := it.w.Summary()
+	if len(it.pages) == 0 {
+		return s
+	}
+	at := fmt.Sprintf("%d/%d", it.page+1, len(it.pages))
+	if s == "" {
+		return at
+	}
+	return at + " · " + s
 }
 
 // show returns the scroll offset that brings a span into a window of the
@@ -458,7 +639,8 @@ const minPane = 10
 // pane is an open note in its place: a fixed rectangle on one of the
 // screens, showing a window of the note's lines.
 type pane struct {
-	name   string
+	name   string // the note
+	file   string // the file shown: the note's, or a page's. Scrolling is kept by file
 	screen int
 	rect   layout.Rect
 	total  int // lines the note has
@@ -526,22 +708,22 @@ func (m *Model) relayout() {
 	for i, it := range open {
 		slot := slots[cells[i].Row]
 		p := pane{
-			name: it.note.Name, screen: slot.Screen, total: len(lines[i]),
+			name: it.note.Name, file: it.file().Name, screen: slot.Screen, total: len(lines[i]),
 			rect: layout.Rect{X: cells[i].X, Y: slot.Y, W: cells[i].W, H: slot.H},
 		}
 		// Where the user left it; a log that was never scrolled shows its end.
-		offset, scrolled := m.offsets[p.name]
+		offset, scrolled := m.offsets[p.file]
 		if !scrolled && it.kind.Tail {
 			offset = p.total
 		}
 		focused := p.name == m.focus
 		if focused && m.reveal == revealCursor && spans[i].Ok() {
 			offset = show(spans[i], offset, p.rows())
-			m.offsets[p.name] = offset
+			m.offsets[p.file] = offset
 		}
 		p.offset = widget.ClampOffset(offset, p.total, p.rows())
 		if scrolled && it.kind.Tail && p.offset >= p.total-p.rows() {
-			delete(m.offsets, p.name) // back at the end: follow the log again
+			delete(m.offsets, p.file) // back at the end: follow the log again
 		}
 		m.panes = append(m.panes, p)
 		if p.screen != m.screen || p.rect.H < 2 {
@@ -553,8 +735,8 @@ func (m *Model) relayout() {
 		}
 		rects = append(rects, p.rect)
 		boxes = append(boxes, frame(box{
-			title: m.heading(it), icon: it.kind.Icon, summary: it.w.Summary(),
-			body: strings.Join(body, "\n"), width: p.rect.W, color: noteColor(it), focused: focused,
+			title: m.heading(it), icon: it.kind.Icon, summary: summary(it),
+			body: strings.Join(body, "\n"), width: p.rect.W, color: m.color(it), focused: focused,
 			offset: p.offset, total: p.total,
 		}))
 	}
@@ -590,8 +772,8 @@ func (m *Model) paneOf(name string) (pane, bool) {
 
 // scrollPane moves the window of an open note to offset. Out of range
 // values are fixed when the screen is drawn.
-func (m *Model) scrollPane(name string, offset int) {
-	m.offsets[name] = max(offset, 0)
+func (m *Model) scrollPane(p pane, offset int) {
+	m.offsets[p.file] = max(offset, 0)
 }
 
 // flip shows the next or previous screen of notes and moves the focus to

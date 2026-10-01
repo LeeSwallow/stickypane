@@ -25,12 +25,13 @@ func init() {
 		if !m.editable(it) {
 			return nil
 		}
-		b, err := m.store.Read(it.note.Name)
+		name := it.file().Name
+		b, err := m.store.Read(name)
 		if err != nil {
 			m.status = "Cannot read the note: " + err.Error()
 			return nil
 		}
-		m.edit, m.editName, m.editDisk = editor.New(string(b)), it.note.Name, string(b)
+		m.edit, m.editName, m.editDisk = editor.New(string(b)), name, string(b)
 		m.editBack, m.mode = m.mode, modeEdit
 		return nil
 	})
@@ -100,8 +101,8 @@ func editBody(m *Model, h int) []string {
 		title += " [+]"
 	}
 	color := neutral
-	if i := m.index(m.editName); i >= 0 {
-		color = noteColor(m.items[i])
+	if i := m.showing(m.editName); i >= 0 {
+		color = m.color(m.items[i])
 	}
 	_, where := m.edit.Status()
 	lines := m.edit.View(max(m.width-4, 1), max(h-2, 1))

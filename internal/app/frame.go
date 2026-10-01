@@ -39,11 +39,6 @@ func colorIndex(name, key string) int {
 	return int(h.Sum32() % uint32(len(palette)))
 }
 
-func noteColor(it item) color.Color {
-	key, _ := it.note.Doc.Get("color")
-	return palette[colorIndex(it.note.Name, key)].color
-}
-
 // box is everything a frame shows.
 type box struct {
 	title   string // in the top border, after the icon

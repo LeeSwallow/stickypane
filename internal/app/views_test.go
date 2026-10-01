@@ -1,0 +1,106 @@
+package app
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
+	const note = "---\ntitle: Plan\n---\nthe plan\n"
+	m, dir := newModel(t, map[string]string{"a.md": note})
+	press(m, "o", "+", "p", "c")
+	if got := readFile(t, dir, "a.md"); got != note {
+		t.Fatalf("opening, sizing, pinning and coloring must not rewrite the note: %q", got)
+	}
+	v := viewsOf(t, dir)["a.md"]
+	if v.Open == nil || !*v.Open || v.Pin == nil || !*v.Pin || v.Size == "" || v.Color == "" {
+		t.Errorf("the arrangement goes to sticky.json: %+v", v)
+	}
+	if s := screen(m); !strings.Contains(s, "● ✎ Plan 📌") || !strings.Contains(s, "the plan") {
+		t.Errorf("the screen should show the arrangement:\n%s", s)
+	}
+	press(m, "o", "p")
+	if v := viewsOf(t, dir)["a.md"]; v.Open == nil || *v.Open || v.Pin == nil || *v.Pin {
+		t.Errorf("closing and unpinning are remembered too: %+v", v)
+	}
+}
+
+func TestStickyJSONWinsOverFrontMatter(t *testing.T) {
+	m, dir := newModel(t, map[string]string{
+		"a.md": "---\nopen: true\nsize: page\npin: true\ncolor: blue\n---\nnote a\n",
+		"b.md": "---\nopen: true\n---\nnote b\n",
+	})
+	if s := screen(m); !strings.Contains(s, "note a") || !strings.Contains(s, "📌") {
+		t.Fatalf("front matter arranges a note until the user says otherwise:\n%s", s)
+	}
+	writeView(t, dir, `{"notes":{"a.md":{"open":false,"pin":false}}}`)
+	press(m, "r")
+	if s := screen(m); strings.Contains(s, "note a") || strings.Contains(s, "📌") || !strings.Contains(s, "note b") {
+		t.Errorf("what sticky.json says wins:\n%s", s)
+	}
+}
+
+func TestStickyJSONIsReadAgainWhenItChanges(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
+	if s := screen(m); strings.Contains(s, "note a") {
+		t.Fatalf("the note starts closed:\n%s", s)
+	}
+	writeView(t, dir, `{"notes":{"a.md":{"open":true}}}`)
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "note a") {
+		t.Errorf("an agent opening a note through sticky.json should show at once:\n%s", s)
+	}
+}
+
+func TestABrokenStickyJSONIsSaidAndNotOverwritten(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
+	writeView(t, dir, "{ broken")
+	press(m, "r")
+	if s := screen(m); !strings.Contains(s, "sticky.json") || !strings.Contains(s, "note a") {
+		t.Fatalf("the board should say the file is broken and still show the notes:\n%s", s)
+	}
+	press(m, "o")
+	if got := readFile(t, dir, "sticky.json"); got != "{ broken" {
+		t.Errorf("a broken file must not be overwritten: %q", got)
+	}
+	if s := screen(m); !strings.Contains(s, "sticky.json") {
+		t.Errorf("the failed change should be explained:\n%s", s)
+	}
+}
+
+func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n"), "c.md": opened("note c\n")})
+	order := func() string {
+		var names []string
+		for _, it := range m.items {
+			names = append(names, it.note.Name)
+		}
+		return strings.Join(names, " ")
+	}
+	press(m, "}")
+	if got := order(); got != "b.md a.md c.md" || m.focus != "a.md" {
+		t.Fatalf("} should move the focused note one place later: %s (focus %s)", got, m.focus)
+	}
+	press(m, "}", "}")
+	if got := order(); got != "b.md c.md a.md" {
+		t.Errorf("} stops at the end: %s", got)
+	}
+	press(m, "{")
+	if got := order(); got != "b.md a.md c.md" {
+		t.Errorf("{ should move it back: %s", got)
+	}
+	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"order"`) {
+		t.Errorf("the order is kept in sticky.json:\n%s", got)
+	}
+	// A new note takes its place by name after the ones that were moved.
+	writeFile(t, dir, "0-new.md", "new\n")
+	press(m, "r")
+	if got := order(); got != "b.md a.md c.md 0-new.md" {
+		t.Errorf("order with a new note: %s", got)
+	}
+	// A pinned note stays first and moves only among pinned notes.
+	press(m, "p", "{")
+	if got := order(); got != "a.md b.md c.md 0-new.md" {
+		t.Errorf("a pinned note is first and does not trade places with an unpinned one: %s", got)
+	}
+}

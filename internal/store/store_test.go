@@ -43,14 +43,6 @@ func read(t *testing.T, s *Store, name string) string {
 	return string(b)
 }
 
-func names(notes []Note) string {
-	var out []string
-	for _, n := range notes {
-		out = append(out, n.Name)
-	}
-	return strings.Join(out, ",")
-}
-
 type failOp struct{}
 
 func (failOp) Apply(d doc.Document) (doc.Document, error) { return d, doc.ErrConflict }
@@ -75,13 +67,13 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestScanListsOnlyTopLevelMarkdown(t *testing.T) {
+func TestScanListsNotesAndSkipsTheRest(t *testing.T) {
 	s := newStore(t)
 	write(t, s, "b.md", "---\ntype: board\n---\n## A\n")
 	write(t, s, "a.md", "hello\n")
 	write(t, s, "UPPER.MD", "x\n")
 	write(t, s, ".hidden.md", "x\n")
-	write(t, s, "notes.txt", "x\n")
+	write(t, s, "picture.png", "x\n")
 	write(t, s, "archive/old.md", "x\n")
 	notes, err := s.Scan()
 	if err != nil {

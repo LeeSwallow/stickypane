@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
@@ -32,7 +34,7 @@ type shaped struct {
 }
 
 func (s shaped) Apply(d doc.Document) (doc.Document, error) {
-	if have := s.api.reg.Lookup(d.Type()).Name; !slices.Contains(s.kinds, have) {
+	if have := s.api.reg.For(s.file, d).Name; !slices.Contains(s.kinds, have) {
 		return d, fmt.Errorf("%s is a %s, not a %s", s.file, have, s.kinds[0])
 	}
 	return s.op.Apply(d)
@@ -47,8 +49,15 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		return "", doc.Document{}, err
 	}
 	if _, err := a.st.Read(file); errors.Is(err, fs.ErrNotExist) {
-		title := strings.TrimSuffix(file, filepath.Ext(file))
-		d := doc.Parse(a.reg.Lookup(kinds[0]).Template(title)).Set("open", "true")
+		// Only Markdown says in front matter what it is and that it is
+		// open. Another file is what its extension makes it.
+		var d doc.Document
+		if strings.EqualFold(filepath.Ext(file), ".md") {
+			base := filepath.Base(file)
+			d = doc.Parse(a.reg.Lookup(kinds[0]).Template(strings.TrimSuffix(base, filepath.Ext(base)))).Set("open", "true")
+		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
+			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
+		}
 		if d, err = op.Apply(d); err != nil {
 			return file, d, err
 		}
@@ -63,7 +72,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 
 // status is the line an edit returns: the file and its summary.
 func (a *API) status(file string, d doc.Document) string {
-	if s := a.reg.Lookup(d.Type()).Parse(d).Summary(); s != "" {
+	if s := a.reg.For(file, d).Parse(d).Summary(); s != "" {
 		return file + ": " + s
 	}
 	return file
@@ -188,8 +197,56 @@ func (o setKeys) Apply(d doc.Document) (doc.Document, error) {
 	return d, nil
 }
 
-// Set changes front matter keys of an existing note and nothing else. Each
-// pair is "key=value"; "key=" removes the key.
+// arrange returns the change a key about the arrangement makes to a view,
+// or false when the key is about something else. An empty value takes the
+// key back out, so the note arranges itself again.
+func arrange(key, value string) (func(*store.View), bool, error) {
+	flag := func(set func(*store.View, *bool)) (func(*store.View), bool, error) {
+		switch strings.ToLower(value) {
+		case "":
+			return func(v *store.View) { set(v, nil) }, true, nil
+		case "true", "false":
+			b := strings.EqualFold(value, "true")
+			return func(v *store.View) { set(v, &b) }, true, nil
+		}
+		return nil, true, fmt.Errorf("%s is true or false, not %q", key, value)
+	}
+	switch key {
+	case "open":
+		return flag(func(v *store.View, b *bool) { v.Open = b })
+	case "pin":
+		return flag(func(v *store.View, b *bool) { v.Pin = b })
+	case "size":
+		if value != "" && !validSize(value) {
+			return nil, true, fmt.Errorf("unknown size %q: use page, half or card", value)
+		}
+		return func(v *store.View) { v.Size = value }, true, nil
+	case "rows":
+		n := 0
+		if value != "" {
+			var err error
+			if n, err = strconv.Atoi(value); err != nil || n < 1 {
+				return nil, true, fmt.Errorf("rows is a number of lines, not %q", value)
+			}
+		}
+		return func(v *store.View) { v.Rows = n }, true, nil
+	case "color":
+		if value != "" && !slices.Contains(colors, strings.ToLower(value)) {
+			return nil, true, fmt.Errorf("unknown color %q: use %s", value, strings.Join(colors, ", "))
+		}
+		return func(v *store.View) { v.Color = strings.ToLower(value) }, true, nil
+	}
+	return nil, false, nil
+}
+
+// colors are the note colors.
+var colors = []string{"yellow", "pink", "blue", "green", "purple", "orange"}
+
+// Set changes keys of an existing note and nothing else. Each pair is
+// "key=value"; "key=" removes the key. Keys about where the note is on the
+// screen (open, size, rows, color, pin) go to sticky.json, where the user's
+// own arrangement is kept; the others go to the note's front matter. A book
+// is named by its folder and takes only the first kind.
 func (a *API) Set(name string, pairs []string) (string, error) {
 	file, err := fileName(name)
 	if err != nil {
@@ -198,8 +255,15 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 	if len(pairs) == 0 {
 		return "", errors.New("nothing to set: give key=value pairs")
 	}
+	book := false
+	if fi, err := os.Stat(filepath.Join(a.st.Dir, strings.TrimSpace(name))); err == nil && fi.IsDir() && !strings.Contains(name, "/") {
+		file, book = strings.TrimSpace(name), true
+	} else if _, err := a.st.Read(file); err != nil {
+		return "", fmt.Errorf("there is no note %s", file)
+	}
 	var op setKeys
-	var set []string
+	var views []func(*store.View)
+	var set, removed []string
 	for _, p := range pairs {
 		key, value, ok := strings.Cut(p, "=")
 		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
@@ -207,17 +271,42 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 			return "", fmt.Errorf("%q is not key=value", p)
 		}
 		if value == "" {
-			op.remove = append(op.remove, key)
-			continue
+			removed = append(removed, key)
+		} else {
+			set = append(set, key)
 		}
-		op.set = append(op.set, [2]string{key, value})
-		set = append(set, key)
+		change, isView, err := arrange(key, value)
+		switch {
+		case err != nil:
+			return "", err
+		case isView:
+			views = append(views, change)
+		case book:
+			return "", fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
+		case !strings.EqualFold(filepath.Ext(file), ".md"):
+			return "", fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
+		case value == "":
+			op.remove = append(op.remove, key)
+		default:
+			op.set = append(op.set, [2]string{key, value})
+		}
 	}
-	if err := a.st.Apply(file, op); errors.Is(err, doc.ErrConflict) {
-		return "", fmt.Errorf("there is no note %s", file)
-	} else if err != nil {
-		return "", err
+	if len(views) > 0 {
+		err := a.st.SetView(file, func(v *store.View) {
+			for _, change := range views {
+				change(v)
+			}
+		})
+		if err != nil {
+			return "", err
+		}
 	}
+	if len(op.set)+len(op.remove) > 0 {
+		if err := a.st.Apply(file, op); err != nil {
+			return "", err
+		}
+	}
+	op.remove = removed
 	var parts []string
 	if len(set) > 0 {
 		parts = append(parts, "set "+strings.Join(set, ", "))

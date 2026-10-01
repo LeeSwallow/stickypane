@@ -4,6 +4,7 @@
 package widget
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -74,7 +75,10 @@ type Prompt struct {
 
 // Kind registers one shape of note.
 type Kind struct {
-	Name  string // the front matter "type" value
+	Name string // the front matter "type" value
+	// Exts are the file extensions, such as ".log", whose files are this
+	// kind whatever they contain. Such files have no front matter.
+	Exts  []string
 	Label string // shown in the catalog
 	Icon  string // one cell, shown before the note's title
 	// Hint names the keys of Keys for the bottom line, as alternating
@@ -131,4 +135,18 @@ func NewFile(kind, title, body string) []byte {
 		d = d.Set("title", title)
 	}
 	return d.Bytes()
+}
+
+// For returns the kind of the note in the file called name: the kind that
+// owns the file's extension, or else the kind its front matter names.
+func (r Registry) For(name string, d doc.Document) Kind {
+	ext := strings.ToLower(filepath.Ext(name))
+	for _, k := range r {
+		for _, e := range k.Exts {
+			if e == ext {
+				return k
+			}
+		}
+	}
+	return r.Lookup(d.Type())
 }

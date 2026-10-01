@@ -267,8 +267,11 @@ func TestSmallEdits(t *testing.T) {
 	if got := call(t, byID(t, rs, 8)); !got.IsError || !strings.Contains(got.Content[0].Text, "write tests") {
 		t.Errorf("a failed edit should say what there is: %+v", got)
 	}
-	b, _ := os.ReadFile(filepath.Join(dir, "plan.md"))
-	if s := string(b); !strings.Contains(s, "open: false\n") || !strings.Contains(s, "size: card\n") || !strings.Contains(s, "rows: 8\n") || !strings.Contains(s, "- [x] write tests\n") {
-		t.Errorf("plan.md = %q", s)
+	if b, _ := os.ReadFile(filepath.Join(dir, "plan.md")); !strings.Contains(string(b), "- [x] write tests\n") {
+		t.Errorf("plan.md = %q", b)
+	}
+	views, err := store.Open(dir).Views()
+	if v := views["plan.md"]; err != nil || v.Open == nil || *v.Open || v.Size != "card" || v.Rows != 8 {
+		t.Errorf("the arrangement goes to sticky.json: %+v, %v", v, err)
 	}
 }

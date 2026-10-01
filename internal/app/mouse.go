@@ -40,7 +40,7 @@ func (m *Model) wheel(e tea.Mouse) {
 	case modeBoard:
 		// The wheel scrolls the note under the pointer, focused or not.
 		if p, ok := m.paneAt(e.X, e.Y); ok {
-			m.scrollPane(p.name, p.offset+delta)
+			m.scrollPane(p, p.offset+delta)
 		}
 	case modeZoom:
 		m.zoomScroll += delta

@@ -3,11 +3,13 @@ package app
 import (
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -23,31 +25,41 @@ func init() {
 	boardKeys["+"] = grow
 	boardKeys["="] = grow // the same key without shift
 	boardKeys["-"] = onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })
+	boardKeys["}"] = func(m *Model) tea.Cmd { m.move(1); return nil }
+	boardKeys["{"] = func(m *Model) tea.Cmd { m.move(-1); return nil }
 
+	// Pin and color are part of how the screen is arranged: they go to
+	// sticky.json, like open and size.
 	boardKeys["p"] = onFocused(func(m *Model, it item) tea.Cmd {
-		value := "true"
-		if it.note.Doc.Pinned() {
-			value = "false"
-		}
-		m.apply(it.note.Name, doc.SetKey{Key: "pin", Value: value})
+		pin := !m.pinned(it)
+		m.setView(it.note.Name, func(v *store.View) { v.Pin = &pin })
 		return nil
 	})
 	boardKeys["c"] = onFocused(func(m *Model, it item) tea.Cmd {
-		current, _ := it.note.Doc.Get("color")
+		current := m.views[it.note.Name].Color
+		if current == "" {
+			current, _ = it.note.Doc.Get("color")
+		}
 		next := palette[(colorIndex(it.note.Name, current)+1)%len(palette)].name
-		m.apply(it.note.Name, doc.SetKey{Key: "color", Value: next})
+		m.setView(it.note.Name, func(v *store.View) { v.Color = next })
 		return nil
 	})
+	// The title, the archive and delete act on the file that is shown: a
+	// note's own, or the page of a book.
 	boardKeys["R"] = onFocused(func(m *Model, it item) tea.Cmd {
-		name := it.note.Name
-		current, _ := it.note.Doc.Get("title")
+		file := it.file()
+		if !strings.EqualFold(path.Ext(file.Name), ".md") {
+			m.status = "Only a Markdown note has a title."
+			return nil
+		}
+		current, _ := file.Doc.Get("title")
 		m.ask("Title", current, func(title string) {
-			m.apply(name, doc.SetKey{Key: "title", Value: title})
+			m.apply(file.Name, doc.SetKey{Key: "title", Value: title})
 		})
 		return nil
 	})
 	boardKeys["x"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if err := m.store.Archive(it.note.Name); err != nil {
+		if err := m.store.Archive(it.file().Name); err != nil {
 			m.status = "Cannot archive the note: " + err.Error()
 		} else {
 			m.status = "Moved to archive/."
@@ -56,9 +68,9 @@ func init() {
 		return nil
 	})
 	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
-		name := it.note.Name
-		m.confirm("Delete "+label(it)+"? (y/n)", func() {
-			if err := m.store.Delete(name); err != nil {
+		file := it.file()
+		m.confirm("Delete "+nameOf(file)+"? (y/n)", func() {
+			if err := m.store.Delete(file.Name); err != nil {
 				m.status = "Cannot delete the note: " + err.Error()
 			}
 			m.reload()
@@ -66,7 +78,7 @@ func init() {
 		return nil
 	})
 	boardKeys["E"] = onFocused(func(_ *Model, it item) tea.Cmd {
-		return tea.ExecProcess(editorCommand(it.note.Path), func(err error) tea.Msg {
+		return tea.ExecProcess(editorCommand(it.file().Path), func(err error) tea.Msg {
 			return reloadMsg{what: "Editor failed", err: err}
 		})
 	})
@@ -76,7 +88,7 @@ func init() {
 // nothing where nothing would show: on a closed note, and at either end of
 // the sizes.
 func (m *Model) resize(it item, delta int) {
-	if !m.isOpen(it) || !m.editable(it) {
+	if !m.isOpen(it) {
 		return
 	}
 	current := m.sizeOf(it)
@@ -90,7 +102,28 @@ func (m *Model) resize(it item, delta int) {
 	if next == current {
 		return
 	}
-	m.apply(it.note.Name, doc.SetKey{Key: "size", Value: next})
+	m.setView(it.note.Name, func(v *store.View) { v.Size = next })
+	m.reveal = revealNote
+}
+
+// move swaps the focused note with its neighbor in the order of the notes,
+// which is the order of the title bar and of the panes. A pinned note moves
+// among the pinned ones, the others among themselves.
+func (m *Model) move(delta int) {
+	i := m.index(m.focus)
+	j := i + delta
+	if i < 0 || j < 0 || j >= len(m.items) || m.pinned(m.items[i]) != m.pinned(m.items[j]) {
+		return
+	}
+	names := make([]string, len(m.items))
+	for k, it := range m.items {
+		names[k] = it.note.Name
+	}
+	names[i], names[j] = names[j], names[i]
+	if err := m.store.SetOrder(names); err != nil {
+		m.status = "The arrangement was not saved: " + err.Error()
+	}
+	m.reload()
 	m.reveal = revealNote
 }
 

@@ -194,18 +194,31 @@ func TestFocusCyclesThroughEveryNote(t *testing.T) {
 	}
 }
 
-func TestOTogglesOpenInTheFile(t *testing.T) {
+// isOpenIn reports what sticky.json says about a note being open: "true",
+// "false", or "" when it says nothing.
+func isOpenIn(t *testing.T, dir, name string) string {
+	t.Helper()
+	switch v := viewsOf(t, dir)[name].Open; {
+	case v == nil:
+		return ""
+	case *v:
+		return "true"
+	}
+	return "false"
+}
+
+func TestOTogglesOpen(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "o")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" {
-		t.Fatalf("file = %q", got)
+	if got := isOpenIn(t, dir, "a.md"); got != "true" || readFile(t, dir, "a.md") != "one\n" {
+		t.Fatalf("open = %q, file = %q", got, readFile(t, dir, "a.md"))
 	}
 	if s := screen(m); !strings.Contains(s, "one") || !strings.Contains(s, "● ✎ a") {
 		t.Errorf("the note should be open now:\n%s", s)
 	}
 	press(m, "o")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: false\n---\none\n" {
-		t.Errorf("file = %q", got)
+	if got := isOpenIn(t, dir, "a.md"); got != "false" {
+		t.Errorf("open = %q", got)
 	}
 	if s := screen(m); !strings.Contains(s, "○ ✎ a") || !strings.Contains(s, "Nothing is open") {
 		t.Errorf("the note should be closed again:\n%s", s)
@@ -215,8 +228,8 @@ func TestOTogglesOpenInTheFile(t *testing.T) {
 func TestEnterOpensAClosedNoteThenZooms(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "enter")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" || m.mode != modeBoard {
-		t.Fatalf("enter on a closed note should open it: file = %q, mode = %v", got, m.mode)
+	if got := isOpenIn(t, dir, "a.md"); got != "true" || m.mode != modeBoard {
+		t.Fatalf("enter on a closed note should open it: open = %q, mode = %v", got, m.mode)
 	}
 	press(m, "enter")
 	if m.mode != modeZoom {
@@ -372,8 +385,8 @@ func TestSizeKeysWriteTheSize(t *testing.T) {
 	steps := []struct{ key, size string }{{"+", "half"}, {"+", "page"}, {"+", "page"}, {"-", "half"}, {"-", "card"}, {"-", "card"}}
 	for _, step := range steps {
 		press(m, step.key)
-		if got := readFile(t, dir, "a.md"); got != "---\nopen: true\nsize: "+step.size+"\n---\none\n" {
-			t.Fatalf("after %s: file = %q, want size %s", step.key, got, step.size)
+		if got := viewsOf(t, dir)["a.md"].Size; got != step.size || readFile(t, dir, "a.md") != opened("one\n") {
+			t.Fatalf("after %s: size = %q, want %s (file %q)", step.key, got, step.size, readFile(t, dir, "a.md"))
 		}
 	}
 }

@@ -107,11 +107,11 @@ func TestLogAppends(t *testing.T) {
 }
 
 func TestSetChangesKeysAndNothingElse(t *testing.T) {
-	a, dir := newAPI(t, map[string]string{"n.md": "---\ntitle: Old\ncolor: blue\n---\nbody stays\n"})
-	if got, err := a.Set("n", []string{"title=New title", "open=true", "color="}); err != nil || got != "n.md: set title, open; removed color" {
+	a, dir := newAPI(t, map[string]string{"n.md": "---\ntitle: Old\nview: spark\n---\nbody stays\n"})
+	if got, err := a.Set("n", []string{"title=New title", "type=chart", "view="}); err != nil || got != "n.md: set title, type; removed view" {
 		t.Fatalf("Set = %q, %v", got, err)
 	}
-	if got := read(t, dir, "n.md"); got != "---\ntitle: New title\nopen: true\n---\nbody stays\n" {
+	if got := read(t, dir, "n.md"); got != "---\ntitle: New title\ntype: chart\n---\nbody stays\n" {
 		t.Errorf("file = %q", got)
 	}
 	for _, bad := range [][]string{{"no equals"}, {"Bad Key=1"}, {"=1"}, nil} {
