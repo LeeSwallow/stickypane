@@ -23,7 +23,8 @@ h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 ```
 
 Your agent jots things down as plain Markdown files. stickypane shows them in
-a pane next to it: plain notes, kanban boards, checklists and logs. The line
+a pane next to it: plain notes, kanban boards, checklists, logs, charts and
+Mermaid diagrams. The line
 at the top lists every note (`●` open, `○` folded away); the ones you open are
 drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
 so the agent sees it too.
@@ -80,7 +81,7 @@ to type one: the keys in the next section change them for you.
 
 | Key     | Values                                                 |
 | ------- | ------------------------------------------------------ |
-| `type`  | `note` (default), `board`, `checklist`, `log`           |
+| `type`  | `note` (default), `board`, `checklist`, `log`, `chart`  |
 | `title` | shown in the title bar and the note's border            |
 | `open`  | `true` draws the note on the screen, `false` folds it away |
 | `size`  | `page` (whole width), `half`, `card`                    |
@@ -116,6 +117,45 @@ open: true
 
 **Log.** One entry per line. The note shows the latest ten lines and follows
 along as the file grows.
+
+**Chart.** Each `label: number` line is a value; any other line is shown as
+text above the chart. `view` picks the drawing: `bar` (default), `spark` for
+a one-line trend, or `heat` for a calendar of days when the labels are dates.
+
+```markdown
+---
+type: chart
+title: Tokens per day
+view: heat
+---
+2026-09-28: 41,200
+2026-09-29: 8,900
+2026-09-30: 0
+```
+
+```
+app       ████████████████████████ 61        9 10
+board     ████████████▏            31   Mon  █ ·
+checklist ████████▎                21        ▒ ▓
+store     ██████▎                  16   Wed  ·
+```
+
+**Diagrams.** A `mermaid` code block in a plain note is drawn as a diagram
+instead of being shown as source. Flowcharts (`graph`, `flowchart`) and
+sequence diagrams are drawn; a block that cannot be drawn keeps its source.
+
+````markdown
+```mermaid
+graph LR
+  agent --> file --> board
+```
+````
+
+```
+┌───────┐     ┌──────┐     ┌───────┐
+│ agent ├────►│ file ├────►│ board │
+└───────┘     └──────┘     └───────┘
+```
 
 Notes are ordered by file name, pinned ones first. Prefix a number
 (`10-plan.md`) to control the order. A file that does not fit its shape is

@@ -37,7 +37,7 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if n := strings.Count(g, "\n"); n > 40 {
 		t.Errorf("the guide is %d lines, want at most 40", n)
 	}
-	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
+	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}

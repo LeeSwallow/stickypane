@@ -19,7 +19,7 @@ func TestDefaultRegistry(t *testing.T) {
 			t.Errorf("kind %q is incomplete", k.Name)
 		}
 	}
-	if got := strings.Join(names, ","); got != "note,board,checklist,log" {
+	if got := strings.Join(names, ","); got != "note,board,checklist,log,chart" {
 		t.Errorf("kinds = %s", got)
 	}
 	if reg.Lookup("mystery").Name != "note" {

@@ -91,11 +91,11 @@ var tools = []tool{
 	},
 	{
 		Name:        "write_note",
-		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists and logs.",
+		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists, logs and charts.",
 		InputSchema: object([]string{"name", "content"}, map[string]any{
 			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
 			"content": str("The whole note as Markdown."),
-			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log"}, "description": "The note's shape. Omit for a plain note."},
+			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart"}, "description": "The note's shape. Omit for a plain note."},
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
 			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},

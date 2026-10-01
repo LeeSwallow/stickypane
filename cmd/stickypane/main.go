@@ -110,7 +110,7 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 	case "list":
 		asJSON = flags.Bool("json", false, "print the list as JSON")
 	case "write":
-		flags.StringVar(&opts.Type, "type", "", "note, board, checklist or log")
+		flags.StringVar(&opts.Type, "type", "", "note, board, checklist, log or chart")
 		flags.StringVar(&opts.Title, "title", "", "the note's title")
 		flags.StringVar(&opts.Size, "size", "", "page, half or card")
 		flags.BoolVar(&opts.Open, "open", false, "put the note on the screen now")
