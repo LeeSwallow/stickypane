@@ -1,0 +1,30 @@
+<!-- stickypane:start -->
+## stickypane notes
+
+The user keeps a note board open in a terminal pane next to you. It shows the
+Markdown files in `.stickypane/`: one file is one note. Create a file to stick a
+note, edit it to update the note, delete it to take the note down.
+
+Jot freely: decisions, things to remember, progress. A one-line file is a
+complete note. Add front matter only when a note needs a shape:
+
+- Plain note: any Markdown. Optional keys: `title`, `pin: true`, and `color`
+  (yellow, pink, blue, green, purple, orange).
+- Board: `type: board`. Each `## Heading` is a column, each top-level `- item`
+  below it is a card, and indented lines under a card are its details. Move a
+  card by moving its lines under another heading.
+- Checklist: `type: checklist`. Items are `- [ ]` and `- [x]` lines.
+- Log: `type: log`. Append one line per entry at the end of the file.
+
+    ---
+    type: checklist
+    title: Login API
+    ---
+    - [x] Add endpoint
+    - [ ] Write tests
+
+Keep notes short. When progress changes, update the matching note instead of
+adding a new one. The user can edit notes from the board, so read a note again
+before you change it. Notes are ordered by file name; prefix a number
+(`10-plan.md`) to control the order.
+<!-- stickypane:end -->
