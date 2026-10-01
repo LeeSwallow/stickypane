@@ -1,0 +1,127 @@
+package app
+
+import (
+	"strings"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/editor"
+	"github.com/LeeSwallow/stickypane/internal/widget"
+)
+
+func init() {
+	handlers[modeEdit] = editUpdate
+	bodies[modeEdit] = editBody
+	footers[modeEdit] = editFooter
+
+	// e edits the note's file here, the way vi would. It works on the
+	// focused note from the main screen and from a zoomed note.
+	boardKeys["e"] = onFocused(func(m *Model, it item) tea.Cmd {
+		if m.zoomed() {
+			if i := m.index(m.zoomName); i >= 0 {
+				it = m.items[i]
+			}
+		}
+		if !m.editable(it) {
+			return nil
+		}
+		b, err := m.store.Read(it.note.Name)
+		if err != nil {
+			m.status = "Cannot read the note: " + err.Error()
+			return nil
+		}
+		m.edit, m.editName, m.editDisk = editor.New(string(b)), it.note.Name, string(b)
+		m.editBack, m.mode = m.mode, modeEdit
+		return nil
+	})
+}
+
+func editUpdate(m *Model, msg tea.Msg) tea.Cmd {
+	k, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return nil
+	}
+	switch m.edit.Key(k.String(), k.Text) {
+	case editor.Save:
+		m.save(false)
+	case editor.ForceSave:
+		m.save(true)
+	case editor.SaveQuit:
+		if m.save(false) {
+			m.leaveEditor()
+		}
+	case editor.Quit, editor.ForceQuit:
+		m.leaveEditor()
+	case editor.Reload:
+		b, err := m.store.Read(m.editName)
+		if err != nil {
+			m.edit.SetMessage("Cannot read the file: " + err.Error())
+			break
+		}
+		m.edit.Load(string(b))
+		m.editDisk = string(b)
+	}
+	return nil
+}
+
+// save writes the buffer to the note's file and reports whether it did. A
+// file that changed since it was loaded is someone else's work, usually the
+// agent's: it is overwritten only when the user insists.
+func (m *Model) save(force bool) bool {
+	if now, err := m.store.Read(m.editName); !force && (err != nil || string(now) != m.editDisk) {
+		m.edit.SetMessage("The file changed on disk. :w! overwrites it, :e! loads it again.")
+		return false
+	}
+	text := m.edit.Text()
+	if err := m.store.Write(m.editName, []byte(text)); err != nil {
+		m.edit.SetMessage("Write failed: " + err.Error())
+		return false
+	}
+	m.edit.Saved()
+	m.editDisk = text
+	m.reload()
+	return true
+}
+
+func (m *Model) leaveEditor() {
+	m.mode, m.edit = m.editBack, nil
+	m.reload()
+	if m.zoomed() && m.index(m.zoomName) < 0 {
+		m.mode = modeBoard
+	}
+	m.reveal = revealNote
+}
+
+// editBody shows the editor in a frame that fills the screen. The border
+// names the file, marks unsaved changes, and shows the cursor's place.
+func editBody(m *Model, h int) []string {
+	title := m.editName
+	if m.edit.Dirty() {
+		title += " [+]"
+	}
+	color := neutral
+	if i := m.index(m.editName); i >= 0 {
+		color = noteColor(m.items[i])
+	}
+	_, where := m.edit.Status()
+	lines := m.edit.View(max(m.width-4, 1), max(h-2, 1))
+	return strings.Split(frame(box{
+		title: title, icon: "✎", summary: where,
+		body: strings.Join(lines, "\n"), width: m.width, color: color, focused: true,
+	}), "\n")
+}
+
+// editFooter is the editor's own line: the mode, the command being typed or
+// a message. When it has nothing to say it shows the keys to get started.
+func editFooter(m *Model) string {
+	left, _ := m.edit.Status()
+	switch {
+	case m.edit.Mode() == editor.Command:
+		return left + widget.Selected.Render(" ")
+	case m.edit.Message() != "":
+		return widget.Warn.Render(widget.Truncate(left, m.width))
+	case left != "":
+		return widget.Bold.Render(widget.Truncate(left, m.width))
+	}
+	return hints(m.width, "i", "insert", ":w", "save", ":q", "quit", ":wq", "save and quit", "u", "undo", "/", "search", "ctrl+f ctrl+b", "page")
+}

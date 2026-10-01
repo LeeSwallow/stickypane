@@ -44,7 +44,7 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case key == "esc" || key == "q":
 		m.mode = modeBoard
 		m.reveal = revealCursor
-	case key == "e" || key == "?":
+	case key == "e" || key == "E" || key == "?":
 		if f, ok := boardKeys[key]; ok {
 			return f(m)
 		}

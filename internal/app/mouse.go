@@ -50,6 +50,8 @@ func (m *Model) wheel(e tea.Mouse) {
 		m.zoomScroll += delta
 	case modeHelp:
 		m.helpScroll += delta
+	case modeEdit:
+		m.edit.Scroll(delta)
 	}
 }
 

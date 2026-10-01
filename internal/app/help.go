@@ -19,7 +19,8 @@ const helpText = `Notes
   + -              bigger, smaller
   N                jot a note
   a                add by shape
-  e                edit in $EDITOR
+  e                edit here (like vi)
+  E                edit in $EDITOR
   p                pin
   c                change color
   R                rename
@@ -33,6 +34,15 @@ const helpText = `Notes
 Zoomed note
   esc              back
   j k g G          scroll
+
+Editing a note
+  i a o            insert text
+  esc              back to commands
+  h j k l w b      move
+  x dd D u         delete, undo
+  /text  n         search
+  ctrl+f ctrl+b    next, previous page
+  :w  :q  :wq      save, quit, both
 
 Open board
   h l              change column

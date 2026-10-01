@@ -232,7 +232,7 @@ still shown, never hidden.
 | `a`                 | add by shape            | `n`                     | new card or item     |
 | `p` / `c` / `R`     | pin, color, rename      |                         |                      |
 | `x` / `D`           | archive, delete         | **Zoomed note**         |                      |
-| `e`                 | edit in `$EDITOR`       | `esc`                   | back                 |
+| `e` / `E`           | edit here, in `$EDITOR` | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
 | `z`                 | zoom                    | **Open form**           |                      |
 |                     |                         | `j` `k`                 | change control       |
@@ -242,6 +242,27 @@ The focused open note takes the keys in the right-hand column where it is;
 you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
 when the focused note has no cursor of its own. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Editing a note
+
+`e` opens the focused note's file in a small editor that works like vi, so
+you can fix a note without leaving the board. `E` hands the file to `$EDITOR`
+instead.
+
+| Keys                          | Do                                     |
+| ----------------------------- | -------------------------------------- |
+| `i` `a` `I` `A` `o` `O`       | insert text; `esc` goes back           |
+| `h` `j` `k` `l` `w` `b` `e` `0` `^` `$` `gg` `G` | move                |
+| `ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u` | a page, half a page             |
+| `x` `dd` `dw` `D` `cc` `cw` `C` `r` `J` | delete, change, replace, join |
+| `yy` `p` `P`, `u` `ctrl+r`    | copy and paste, undo and redo          |
+| `/text` `n` `N`, `:12`        | search, go to a line                   |
+| `:w` `:q` `:wq` `ZZ` `:q!`    | save, quit, both, quit without saving  |
+
+The border shows the cursor's line and column and which page of the file it
+is on. If the file changed on disk while you were editing, usually because
+your agent wrote to it, `:w` does not overwrite it: `:w!` does, and `:e!`
+loads the file again. Counts (`3dd`) and visual mode are not there.
 
 ## Mouse
 

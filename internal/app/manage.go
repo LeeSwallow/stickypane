@@ -65,7 +65,7 @@ func init() {
 		})
 		return nil
 	})
-	boardKeys["e"] = onFocused(func(_ *Model, it item) tea.Cmd {
+	boardKeys["E"] = onFocused(func(_ *Model, it item) tea.Cmd {
 		return tea.ExecProcess(editorCommand(it.note.Path), func(err error) tea.Msg {
 			return reloadMsg{what: "Editor failed", err: err}
 		})

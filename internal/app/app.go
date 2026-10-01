@@ -14,6 +14,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/editor"
 	"github.com/LeeSwallow/stickypane/internal/layout"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -28,6 +29,7 @@ const (
 	modeCatalog             // choosing a shape for a new note
 	modeConfirm             // a yes/no question over the previous screen
 	modeHelp                // the key reference
+	modeEdit                // edit.go: a note in the built-in editor
 )
 
 // reveal says what the next layout should scroll into view.
@@ -109,6 +111,11 @@ type Model struct {
 
 	catalogIdx int // create.go
 
+	edit     *editor.Editor // edit.go
+	editName string         // file name of the note being edited
+	editDisk string         // the file as it was when loaded or last saved
+	editBack mode           // where the editor returns to
+
 	confirmMsg string // manage.go
 	onConfirm  func()
 }
@@ -173,7 +180,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.items = nil // rebuild every widget so it redraws with the new colors
 		m.reload()
 	case tea.KeyPressMsg:
-		if msg.String() == "ctrl+c" {
+		// In the editor ctrl+c leaves insert mode, as it does in vi:
+		// quitting there would drop what was typed.
+		if msg.String() == "ctrl+c" && m.mode != modeEdit {
 			return m, tea.Quit
 		}
 		m.status = ""
