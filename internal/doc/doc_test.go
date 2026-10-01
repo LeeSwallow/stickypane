@@ -140,3 +140,20 @@ func TestLinesJoinEOL(t *testing.T) {
 		t.Error("ErrConflict must be comparable with errors.Is")
 	}
 }
+
+func TestUnsetRemovesOnlyThatKey(t *testing.T) {
+	d := Parse([]byte("---\ntype: form\nsubmitted: Send\ntitle: Q\n---\nbody\n"))
+	if got := string(d.Unset("submitted").Bytes()); got != "---\ntype: form\ntitle: Q\n---\nbody\n" {
+		t.Errorf("Unset = %q", got)
+	}
+	if got := string(d.Unset("missing").Bytes()); got != string(d.Bytes()) {
+		t.Errorf("Unset of a missing key changed the file: %q", got)
+	}
+	plain := Parse([]byte("just text\n"))
+	if got := string(plain.Unset("open").Bytes()); got != "just text\n" {
+		t.Errorf("Unset must not add front matter: %q", got)
+	}
+	if _, ok := d.Get("submitted"); !ok {
+		t.Error("Unset must not change the document it was called on")
+	}
+}

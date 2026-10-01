@@ -51,6 +51,13 @@ type Widget interface {
 	Sync(d doc.Document) Widget
 }
 
+// Clicker is implemented by widgets that can be worked with the mouse. Click
+// is told which line and cell of the widget's last Draw was pressed. It
+// reports whether anything was there; a press on plain text is not a hit.
+type Clicker interface {
+	Click(line, col int) (w Widget, res Result, hit bool)
+}
+
 // Result is what a key press asks the app to do. Both fields may be nil.
 type Result struct {
 	Op     doc.Op  // apply to the file now
@@ -59,8 +66,10 @@ type Result struct {
 
 // Prompt asks the app for a line of text and turns it into an Op.
 type Prompt struct {
-	Label  string
-	Submit func(text string) doc.Op
+	Label   string
+	Initial string // the text the line starts with
+	Empty   bool   // an empty line is an answer too, not a cancel
+	Submit  func(text string) doc.Op
 }
 
 // Kind registers one shape of note.

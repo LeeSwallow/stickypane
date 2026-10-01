@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -20,6 +22,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
@@ -40,8 +43,24 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane show <name>         print a note's file
   stickypane write <name> [--type T] [--title X] [--open] [--size S]
                                  create or replace a note from standard input
+  stickypane answers <name> [--json]
+                                 print what the user answered in a form
+  stickypane wait <name> [--timeout 5m] [--json]
+                                 wait until the user presses a button of a form,
+                                 then print the answers (exit code 3 on timeout)
   stickypane mcp                 serve the notes over MCP on standard input/output
 `
+
+// waitEvery is how often wait looks at the form's file.
+const waitEvery = 200 * time.Millisecond
+
+// fileOf names a note's file in messages.
+func fileOf(name string) string {
+	if filepath.Ext(name) == "" {
+		return name + ".md"
+	}
+	return name
+}
 
 const noBoard = "No .stickypane directory found. Run `stickypane init` in your project first."
 
@@ -70,7 +89,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		case "help", "--help", "-h":
 			fmt.Fprint(stdout, usage)
 			return 0
-		case "list", "show", "write", "mcp":
+		case "list", "show", "write", "answers", "wait", "mcp":
 			return notes(args[0], args[1:], stdin, stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
@@ -104,26 +123,35 @@ func report(stderr io.Writer, err error) int {
 func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("stickypane "+cmd, flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	asJSON := new(bool)
+	asJSON, timeout := new(bool), new(time.Duration)
 	var opts api.Options
 	switch cmd {
 	case "list":
 		asJSON = flags.Bool("json", false, "print the list as JSON")
+	case "answers", "wait":
+		asJSON = flags.Bool("json", false, "print the answers as JSON")
+		if cmd == "wait" {
+			timeout = flags.Duration("timeout", 0, "give up after this long, such as 5m (default: wait for good)")
+		}
 	case "write":
-		flags.StringVar(&opts.Type, "type", "", "note, board, checklist or log")
+		flags.StringVar(&opts.Type, "type", "", "note, board, checklist, log, chart or form")
 		flags.StringVar(&opts.Title, "title", "", "the note's title")
 		flags.StringVar(&opts.Size, "size", "", "page, half or card")
 		flags.BoolVar(&opts.Open, "open", false, "put the note on the screen now")
 	}
 	// The note name comes first, flags after it.
 	var name string
-	if (cmd == "show" || cmd == "write") && len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+	needsName := cmd != "list" && cmd != "mcp"
+	if needsName && len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		name, args = args[0], args[1:]
 	}
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
-	needsName := cmd == "show" || cmd == "write"
+	if *timeout < 0 {
+		fmt.Fprintln(stderr, "stickypane: --timeout cannot be negative")
+		return 2
+	}
 	if flags.NArg() > 0 || (needsName && name == "") {
 		fmt.Fprint(stderr, usage)
 		return 2
@@ -176,6 +204,33 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 			return report(stderr, err)
 		}
 		fmt.Fprintln(stdout, "wrote", file)
+		return 0
+	case "answers", "wait":
+		ctx := context.Background()
+		if *timeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, *timeout)
+			defer cancel()
+		}
+		var got form.Answers
+		if cmd == "wait" {
+			got, err = a.Wait(ctx, name, waitEvery)
+		} else {
+			got, err = a.Answers(name)
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			fmt.Fprintf(stderr, "stickypane: no button was pressed on %s within %s\n", fileOf(name), *timeout)
+			return 3
+		}
+		if err != nil {
+			return report(stderr, err)
+		}
+		if *asJSON {
+			enc := json.NewEncoder(stdout)
+			enc.SetEscapeHTML(false)
+			return report(stderr, enc.Encode(got))
+		}
+		fmt.Fprint(stdout, got.String())
 		return 0
 	default: // mcp
 		server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: version}

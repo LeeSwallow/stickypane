@@ -8,7 +8,9 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
+	"github.com/LeeSwallow/stickypane/internal/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
+	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -21,6 +23,8 @@ func Default(render note.Renderer) widget.Registry {
 		board.Kind,
 		checklist.Kind,
 		logview.Kind,
+		chart.Kind,
+		form.NewKind(render),
 	}
 }
 
@@ -29,10 +33,13 @@ func Default(render note.Renderer) widget.Registry {
 // to block on a terminal query before the first draw.
 type Theme struct{ Dark bool }
 
-// Markdown returns a renderer that styles Markdown for the theme as it is at
-// each call. It drops Glamour's page margins so short notes stay compact, and
-// falls back to plain wrapping if Glamour fails.
-func Markdown(theme *Theme) note.Renderer {
+// Markdown returns the renderer for plain notes: Markdown styled for the
+// theme as it is at each call, with Mermaid blocks drawn as diagrams.
+func Markdown(theme *Theme) note.Renderer { return WithMermaid(styled(theme)) }
+
+// styled renders Markdown with Glamour. It drops Glamour's page margins so
+// short notes stay compact, and falls back to plain wrapping if Glamour fails.
+func styled(theme *Theme) note.Renderer {
 	type key struct {
 		dark  bool
 		width int

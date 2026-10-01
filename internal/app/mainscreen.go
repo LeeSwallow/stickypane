@@ -33,6 +33,13 @@ func init() {
 		}
 		return nil
 	})
+	// z zooms too. It is the way in for a note that uses enter itself.
+	boardKeys["z"] = onFocused(func(m *Model, it item) tea.Cmd {
+		if m.isOpen(it) {
+			m.zoom(it)
+		}
+		return nil
+	})
 	boardKeys["o"] = onFocused(func(m *Model, it item) tea.Cmd {
 		m.setOpen(it, !m.isOpen(it))
 		return nil
@@ -82,7 +89,11 @@ func mainFooter(m *Model) string {
 	case !m.isOpen(m.items[i]):
 		return hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
 	case len(m.items[i].kind.Hint) > 0:
-		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), "enter", "zoom", "o", "close", "tab", "next")...)
+		zoom := "enter"
+		if m.items[i].kind.Handles("enter") {
+			zoom = "z"
+		}
+		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom", "o", "close", "tab", "next")...)
 	}
 	return hintsThen(m.width, "?", "help", "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot")
 }
@@ -97,6 +108,7 @@ func (m *Model) titleBar() []string {
 	var lines []string
 	var line strings.Builder
 	used, focusLine := 0, 0
+	m.tabs = m.tabs[:0]
 	for _, it := range m.items {
 		open := m.isOpen(it)
 		text := "○ "
@@ -131,6 +143,7 @@ func (m *Model) titleBar() []string {
 			text = " " + widget.Faint.Render(text) + " "
 		}
 		line.WriteString(text)
+		m.tabs = append(m.tabs, tab{name: it.note.Name, y: len(lines), x0: used, x1: used + w})
 		used += w
 	}
 	if used > 0 {
@@ -139,6 +152,9 @@ func (m *Model) titleBar() []string {
 	if limit := max((m.height-1)/3, 1); len(lines) > limit {
 		start := widget.ClampOffset(focusLine-limit/2, len(lines), limit)
 		lines = lines[start : start+limit]
+		for i := range m.tabs {
+			m.tabs[i].y -= start // a tab scrolled out of the bar gets a line that is not there
+		}
 	}
 	if len(lines) > 0 && m.height >= ruleHeight {
 		lines = append(lines, widget.Faint.Render(strings.Repeat("─", m.width)))

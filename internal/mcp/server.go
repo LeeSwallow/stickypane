@@ -7,15 +7,23 @@ package mcp
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"sync"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 )
 
 // defaultProtocol is answered when the client does not name a version.
 const defaultProtocol = "2025-06-18"
+
+const (
+	maxWait   = 600 // seconds read_answers waits at most
+	waitEvery = 200 * time.Millisecond
+)
 
 // JSON-RPC error codes.
 const (
@@ -91,14 +99,22 @@ var tools = []tool{
 	},
 	{
 		Name:        "write_note",
-		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists and logs.",
+		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists, logs, charts and forms.",
 		InputSchema: object([]string{"name", "content"}, map[string]any{
 			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
 			"content": str("The whole note as Markdown."),
-			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log"}, "description": "The note's shape. Omit for a plain note."},
+			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form"}, "description": "The note's shape. Omit for a plain note."},
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
 			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},
+		}),
+	},
+	{
+		Name:        "read_answers",
+		Description: "Read what the user chose and wrote in a form note (type: form) and which button they pressed. With wait_seconds it waits up to that long for a button to be pressed, then returns the answers so far.",
+		InputSchema: object([]string{"name"}, map[string]any{
+			"name":         str(`The form's file name, such as "deploy" or "deploy.md".`),
+			"wait_seconds": map[string]any{"type": "number", "description": "How long to wait for a button, at most 600. Omit to read the answers now."},
 		}),
 	},
 	{
@@ -110,30 +126,101 @@ var tools = []tool{
 
 // Serve answers requests from in until it ends. A bad line gets an error
 // response and does not stop the server.
+//
+// Requests are answered in order, except a call that waits for the user
+// (read_answers): it runs on the side, so other requests are answered while
+// it waits. Such a call ends early, with the answers so far, when the client
+// cancels it or the input ends.
 func (s *Server) Serve(in io.Reader, out io.Writer) error {
 	r := bufio.NewReader(in)
 	enc := json.NewEncoder(out)
 	enc.SetEscapeHTML(false)
+
+	var mu sync.Mutex // guards enc, werr and waits
+	var werr error
+	send := func(resp *response) {
+		mu.Lock()
+		defer mu.Unlock()
+		if resp != nil && werr == nil {
+			werr = enc.Encode(resp)
+		}
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	waits := map[string]context.CancelFunc{} // running waits by request id
+	var running sync.WaitGroup
+	finish := func() error {
+		stop()
+		running.Wait()
+		mu.Lock()
+		defer mu.Unlock()
+		return werr
+	}
+
 	for {
 		line, err := r.ReadBytes('\n')
 		if len(bytes.TrimSpace(line)) > 0 {
-			if resp := s.handle(line); resp != nil {
-				if werr := enc.Encode(resp); werr != nil {
-					return werr
+			var req request
+			_ = json.Unmarshal(line, &req)
+			id := string(bytes.TrimSpace(req.ID))
+			switch {
+			case req.Method == "notifications/cancelled":
+				var p struct {
+					RequestID json.RawMessage `json:"requestId"`
 				}
+				_ = json.Unmarshal(req.Params, &p)
+				mu.Lock()
+				if cancel, ok := waits[string(bytes.TrimSpace(p.RequestID))]; ok {
+					cancel()
+				}
+				mu.Unlock()
+			case req.ID != nil && mayWait(req):
+				wctx, cancel := context.WithCancel(ctx)
+				mu.Lock()
+				waits[id] = cancel
+				mu.Unlock()
+				running.Add(1)
+				go func() {
+					defer running.Done()
+					resp := s.handle(wctx, line)
+					mu.Lock()
+					delete(waits, id)
+					mu.Unlock()
+					cancel()
+					send(resp)
+				}()
+			default:
+				send(s.handle(ctx, line))
 			}
 		}
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
+		mu.Lock()
+		failed := werr
+		mu.Unlock()
+		switch {
+		case failed != nil:
+			return finish()
+		case err == io.EOF:
+			return finish()
+		case err != nil:
+			_ = finish()
 			return err
 		}
 	}
 }
 
+// mayWait reports whether a request is a tool call that may wait for the user.
+func mayWait(req request) bool {
+	if req.Method != "tools/call" {
+		return false
+	}
+	var p struct {
+		Name string `json:"name"`
+	}
+	_ = json.Unmarshal(req.Params, &p)
+	return p.Name == "read_answers"
+}
+
 // handle answers one message. Notifications, which carry no id, get no answer.
-func (s *Server) handle(line []byte) *response {
+func (s *Server) handle(ctx context.Context, line []byte) *response {
 	var req request
 	if err := json.Unmarshal(line, &req); err != nil {
 		return &response{JSONRPC: "2.0", ID: json.RawMessage("null"), Error: &rpcError{codeParse, "the message is not valid JSON"}}
@@ -161,7 +248,7 @@ func (s *Server) handle(line []byte) *response {
 	case "tools/list":
 		resp.Result = map[string]any{"tools": tools}
 	case "tools/call":
-		result, rpcErr := s.call(req.Params)
+		result, rpcErr := s.call(ctx, req.Params)
 		resp.Result, resp.Error = result, rpcErr
 		if rpcErr != nil {
 			resp.Result = nil
@@ -175,7 +262,7 @@ func (s *Server) handle(line []byte) *response {
 // call runs a tool. A tool that fails returns a result marked isError, which
 // the agent can read and act on; only an unknown tool or unreadable
 // arguments is a protocol error.
-func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
+func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult, *rpcError) {
 	var p struct {
 		Name      string `json:"name"`
 		Arguments struct {
@@ -185,6 +272,7 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 			Title   string  `json:"title"`
 			Size    string  `json:"size"`
 			Open    bool    `json:"open"`
+			Wait    float64 `json:"wait_seconds"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -210,6 +298,14 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 		}
 		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
+	case "read_answers":
+		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
+		got, aerr := s.API.Wait(wctx, a.Name, waitEvery)
+		cancel()
+		if errors.Is(aerr, context.DeadlineExceeded) || errors.Is(aerr, context.Canceled) {
+			aerr = nil // the answers so far are the result
+		}
+		text, err = got.String(), aerr
 	case "guide":
 		text = s.Guide
 	default:

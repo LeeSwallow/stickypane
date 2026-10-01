@@ -47,8 +47,9 @@ type entry struct {
 // Checklist is the widget for a checklist note.
 type Checklist struct {
 	entries []entry
-	items   []int // indexes of the checkbox entries
-	cursor  int   // index into items
+	items   []int         // indexes of the checkbox entries
+	cursor  int           // index into items
+	drawn   []widget.Span // the lines of each item in the last Draw
 }
 
 func parse(d doc.Document) *Checklist {
@@ -125,6 +126,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 	c.clamp()
 	lines := []string{bar(done, total, width), ""}
 	at := widget.NoSpan
+	c.drawn = c.drawn[:0]
 	for i, e := range c.entries {
 		if !e.item {
 			for _, l := range widget.Wrap(widget.Clean(e.text), max(width, 1)) {
@@ -141,6 +143,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 			mark, done = "☑ ", func(s string) string { return widget.Struck.Render(s) }
 		}
 		selected := active && c.items[c.cursor] == i
+		from := len(lines)
 		for j, l := range widget.Wrap(widget.Clean(e.text), max(width-4, 1)) {
 			switch {
 			case j == 0 && selected:
@@ -157,6 +160,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		if selected {
 			at.End = len(lines) // every wrapped line of the item
 		}
+		c.drawn = append(c.drawn, widget.Span{Start: from, End: len(lines)})
 	}
 	return widget.Fit(strings.Join(lines, "\n"), width), at
 }
@@ -188,6 +192,18 @@ func (c *Checklist) Update(key string) (widget.Widget, widget.Result) {
 	}
 	c.clamp()
 	return c, res
+}
+
+// Click implements widget.Clicker: a press on an item ticks or unticks it.
+func (c *Checklist) Click(line, _ int) (widget.Widget, widget.Result, bool) {
+	for i, s := range c.drawn {
+		if i < len(c.items) && line >= s.Start && line < s.End {
+			c.cursor = i
+			w, res := c.Update("space")
+			return w, res, true
+		}
+	}
+	return c, widget.Result{}, false
 }
 
 // Sync implements widget.Widget.

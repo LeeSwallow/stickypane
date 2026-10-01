@@ -9,7 +9,7 @@ below it in full; the rest stay folded away.
 
 - **tab** moves between notes, **enter** opens one and then zooms into it
 - **o** closes a note, **+** and **-** change its size
-- **N** jots a note, **a** adds a board, checklist or log
+- **N** jots a note, **a** adds a board, checklist, log, chart or form
 - **p** pins, **c** changes color, **x** moves a note to `archive/`
 - **?** lists every key
 

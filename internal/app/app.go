@@ -84,7 +84,10 @@ type Model struct {
 
 	width, height int
 	bar           []string      // the title bar, one or more lines
+	tabs          []tab         // mouse.go: where each note's title is in the bar
 	rects         []layout.Rect // of the open notes
+	placed        []placed      // mouse.go: which note is in each rect
+	lastClick     lastClick     // mouse.go
 	canvas        []string      // the open notes, laid out
 	scroll        int
 	reveal        reveal
@@ -101,6 +104,7 @@ type Model struct {
 
 	input      textinput.Model // input.go
 	inputLabel string
+	inputEmpty bool // an empty line is submitted too
 	onSubmit   func(string)
 
 	catalogIdx int // create.go
@@ -174,6 +178,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = ""
 		cmd = m.dispatch(msg)
+	case tea.MouseClickMsg:
+		m.click(msg.Mouse())
+	case tea.MouseWheelMsg:
+		m.wheel(msg.Mouse())
 	default:
 		cmd = m.dispatch(msg)
 	}
@@ -297,7 +305,9 @@ func (m *Model) reload() {
 		switch o, ok := old[n.Name]; {
 		case !ok || o.kind.Name != it.kind.Name:
 			it.w = it.kind.Parse(n.Doc)
-		case o.note.Doc.Body == n.Doc.Body:
+		case string(o.note.Doc.Bytes()) == string(n.Doc.Bytes()):
+			// Front matter counts too: a form shows whether it was
+			// submitted and a chart which view it has.
 			it.w = o.w
 		default:
 			it.w = o.w.Sync(n.Doc)
@@ -376,14 +386,20 @@ func (m *Model) toWidget(i int, key string) {
 	w, res := m.items[i].w.Update(key)
 	m.items[i].w = w
 	m.reveal = revealCursor
+	m.act(name, res)
+}
+
+// act carries out what a widget asked for.
+func (m *Model) act(name string, res widget.Result) {
 	if res.Op != nil {
 		m.apply(name, res.Op)
 	}
 	if p := res.Prompt; p != nil {
-		m.ask(p.Label, "", func(text string) {
+		m.ask(p.Label, p.Initial, func(text string) {
 			m.apply(name, p.Submit(text))
 			m.reveal = revealCursor
 		})
+		m.inputEmpty = p.Empty
 	}
 }
 
@@ -410,14 +426,13 @@ func (m *Model) heading(it item) string {
 // the selection within them. A note with a fixed height shows a window of
 // its content: around the selection if it has one, the end for a log, the
 // start otherwise.
-func (m *Model) lines(it item, width int, active bool) ([]string, widget.Span) {
+func (m *Model) lines(it item, width int, active bool) (shown []string, at widget.Span, start int) {
 	out, at := it.w.Draw(width, active)
 	lines := strings.Split(out, "\n")
 	rows := m.rowsOf(it)
 	if rows <= 0 || len(lines) <= rows {
-		return lines, at
+		return lines, at, 0
 	}
-	start := 0
 	switch {
 	case at.Ok():
 		start = show(at, at.Start-rows/2, rows)
@@ -428,7 +443,7 @@ func (m *Model) lines(it item, width int, active bool) ([]string, widget.Span) {
 	if at.Ok() {
 		at = widget.Span{Start: at.Start - start, End: min(at.End-start, rows)}
 	}
-	return lines[start : start+rows], at
+	return lines[start : start+rows], at, start
 }
 
 // show returns the scroll offset that brings a span into a window of the
@@ -452,7 +467,7 @@ func (m *Model) bodyHeight() int {
 // relayout redraws the title bar and every open note and places them. It
 // runs after every update, then scrolls to whatever the update asked to see.
 func (m *Model) relayout() {
-	m.bar, m.rects, m.canvas, m.zoomLines = nil, nil, nil, nil
+	m.bar, m.rects, m.canvas, m.zoomLines, m.placed = nil, nil, nil, nil, nil
 	if m.width <= 0 {
 		return
 	}
@@ -467,10 +482,11 @@ func (m *Model) relayout() {
 		}
 		focused := it.note.Name == m.focus
 		w := m.widthOf(m.sizeOf(it))
-		lines, sel := m.lines(it, max(w-4, 1), focused)
+		lines, sel, start := m.lines(it, max(w-4, 1), focused)
 		if focused {
 			focusRect, at = len(boxes), sel
 		}
+		m.placed = append(m.placed, placed{name: it.note.Name, start: start})
 		boxes = append(boxes, frame(box{
 			title: m.heading(it), icon: it.kind.Icon, summary: it.w.Summary(),
 			body: strings.Join(lines, "\n"), width: w, color: noteColor(it), focused: focused,
