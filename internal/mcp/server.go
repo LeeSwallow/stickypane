@@ -10,7 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -107,6 +110,51 @@ var tools = []tool{
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
 			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},
+		}),
+	},
+	{
+		Name:        "todo",
+		Description: "Change a checklist without reading or rewriting it: add an item, or check or uncheck one. A checklist that does not exist yet is made. Returns the progress, such as \"plan.md: 2/5\".",
+		InputSchema: object([]string{"name", "action", "item"}, map[string]any{
+			"name":   str(`The checklist's file name, such as "plan".`),
+			"action": map[string]any{"type": "string", "enum": []string{"add", "check", "uncheck"}},
+			"item":   str(`For add, the new item's text. For check and uncheck, the item's text, a part of it that no other item has, or its position such as "#2".`),
+		}),
+	},
+	{
+		Name:        "card",
+		Description: "Change a board without reading or rewriting it: add a card to a column, or move a card to another column. A board that does not exist yet is made.",
+		InputSchema: object([]string{"name", "action", "card"}, map[string]any{
+			"name":   str(`The board's file name, such as "work".`),
+			"action": map[string]any{"type": "string", "enum": []string{"add", "move"}},
+			"card":   str(`For add, the new card's text. For move, the card's text, a part of it that no other card has, or its position such as "#2".`),
+			"to":     str("The column, by its heading or a part of it. Needed for move; for add the first column is used when it is left out, and a column that does not exist is made."),
+		}),
+	},
+	{
+		Name:        "chart",
+		Description: "Change one value of a chart without reading or rewriting it: set a value, or count it up or down. A chart or a label that does not exist yet is made.",
+		InputSchema: object([]string{"name", "action", "label", "value"}, map[string]any{
+			"name":   str(`The chart's file name, such as "tokens".`),
+			"action": map[string]any{"type": "string", "enum": []string{"set", "add"}, "description": "set writes the value; add counts the current value up by it, or down when it is negative."},
+			"label":  str("Which value."),
+			"value":  map[string]any{"type": []string{"number", "string"}, "description": "The number."},
+		}),
+	},
+	{
+		Name:        "log",
+		Description: "Add one line at the end of a log note. A log that does not exist yet is made.",
+		InputSchema: object([]string{"name", "line"}, map[string]any{
+			"name": str(`The log's file name, such as "worklog".`),
+			"line": str("The entry, one line."),
+		}),
+	},
+	{
+		Name:        "set_keys",
+		Description: "Change front matter keys of an existing note and nothing else: title, open, size, rows, color, pin, view. An empty value removes the key.",
+		InputSchema: object([]string{"name", "keys"}, map[string]any{
+			"name": str("The note's file name."),
+			"keys": map[string]any{"type": "object", "description": `Keys and their new values, such as {"open": true, "size": "half"}.`},
 		}),
 	},
 	{
@@ -207,6 +255,20 @@ func (s *Server) Serve(in io.Reader, out io.Writer) error {
 	}
 }
 
+// plain writes a JSON value the way a note's file would: a number without
+// an exponent, true and false as words, null as nothing.
+func plain(v any) string {
+	switch v := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	}
+	return fmt.Sprint(v)
+}
+
 // mayWait reports whether a request is a tool call that may wait for the user.
 func mayWait(req request) bool {
 	if req.Method != "tools/call" {
@@ -266,13 +328,21 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 	var p struct {
 		Name      string `json:"name"`
 		Arguments struct {
-			Name    string  `json:"name"`
-			Content *string `json:"content"`
-			Type    string  `json:"type"`
-			Title   string  `json:"title"`
-			Size    string  `json:"size"`
-			Open    bool    `json:"open"`
-			Wait    float64 `json:"wait_seconds"`
+			Name    string         `json:"name"`
+			Content *string        `json:"content"`
+			Type    string         `json:"type"`
+			Title   string         `json:"title"`
+			Size    string         `json:"size"`
+			Open    bool           `json:"open"`
+			Wait    float64        `json:"wait_seconds"`
+			Action  string         `json:"action"`
+			Item    string         `json:"item"`
+			Card    string         `json:"card"`
+			To      string         `json:"to"`
+			Label   string         `json:"label"`
+			Value   any            `json:"value"`
+			Line    string         `json:"line"`
+			Keys    map[string]any `json:"keys"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -298,6 +368,25 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		}
 		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
+	case "todo":
+		text, err = s.API.Todo(a.Name, a.Action, a.Item)
+	case "card":
+		text, err = s.API.Card(a.Name, a.Action, a.Card, a.To)
+	case "chart":
+		text, err = s.API.Chart(a.Name, a.Action, a.Label, plain(a.Value))
+	case "log":
+		text, err = s.API.Log(a.Name, a.Line)
+	case "set_keys":
+		keys := make([]string, 0, len(a.Keys))
+		for k := range a.Keys {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		pairs := make([]string, len(keys))
+		for i, k := range keys {
+			pairs[i] = k + "=" + plain(a.Keys[k])
+		}
+		text, err = s.API.Set(a.Name, pairs)
 	case "read_answers":
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
 		got, aerr := s.API.Wait(wctx, a.Name, waitEvery)

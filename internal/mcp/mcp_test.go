@@ -128,7 +128,7 @@ func TestInitializeAndListTools(t *testing.T) {
 			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
 		}
 	}
-	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,read_answers,guide" {
+	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,todo,card,chart,log,set_keys,read_answers,guide" {
 		t.Errorf("tools = %s", got)
 	}
 	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
@@ -244,5 +244,31 @@ func TestAWaitCanBeCancelled(t *testing.T) {
 	)
 	if len(rs) != 3 {
 		t.Fatalf("responses = %+v", rs)
+	}
+}
+
+func TestSmallEdits(t *testing.T) {
+	rs, dir := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"todo","arguments":{"name":"plan","action":"add","item":"write tests"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"todo","arguments":{"name":"plan","action":"check","item":"tests"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"card","arguments":{"name":"work","action":"add","card":"login API","to":"Doing"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"chart","arguments":{"name":"tests","action":"set","label":"app","value":67}}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"chart","arguments":{"name":"tests","action":"add","label":"app","value":"3"}}}`,
+		`{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"log","arguments":{"name":"worklog","line":"tests passed"}}}`,
+		`{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"set_keys","arguments":{"name":"plan","keys":{"open":false,"size":"card","rows":8}}}}`,
+		`{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"todo","arguments":{"name":"plan","action":"check","item":"nothing"}}}`,
+	)
+	want := map[int]string{1: "plan.md: 0/1", 2: "plan.md: 1/1", 3: "work.md: 1 card", 4: "tests.md: app = 67", 5: "tests.md: app = 70", 6: "worklog.md: 1 line", 7: "plan.md: set open, rows, size"}
+	for id, text := range want {
+		if got := call(t, byID(t, rs, id)); got.IsError || got.Content[0].Text != text {
+			t.Errorf("request %d = %+v, want %q", id, got, text)
+		}
+	}
+	if got := call(t, byID(t, rs, 8)); !got.IsError || !strings.Contains(got.Content[0].Text, "write tests") {
+		t.Errorf("a failed edit should say what there is: %+v", got)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "plan.md"))
+	if s := string(b); !strings.Contains(s, "open: false\n") || !strings.Contains(s, "size: card\n") || !strings.Contains(s, "rows: 8\n") || !strings.Contains(s, "- [x] write tests\n") {
+		t.Errorf("plan.md = %q", s)
 	}
 }

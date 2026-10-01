@@ -277,3 +277,37 @@ func (o AddItem) Apply(d doc.Document) (doc.Document, error) {
 	d.Body = doc.Join(append(out, lines[at:]...))
 	return d, nil
 }
+
+// Check sets an item to state Checked for a caller that names the item
+// instead of pointing at it: Item is the item's text, a part of it, or its
+// position ("#2"). An item already in that state is left as it is.
+type Check struct {
+	Item    string
+	Checked bool
+}
+
+// Apply implements doc.Op.
+func (o Check) Apply(d doc.Document) (doc.Document, error) {
+	lines := doc.Lines(d.Body)
+	var names []string
+	var at []int
+	for i, line := range lines {
+		if m := itemRe.FindStringSubmatch(strings.TrimSuffix(line, "\r")); m != nil {
+			names = append(names, strings.TrimSpace(m[4]))
+			at = append(at, i)
+		}
+	}
+	n, err := widget.Pick(names, o.Item, "item")
+	if err != nil {
+		return d, err
+	}
+	raw := strings.TrimSuffix(lines[at[n]], "\r")
+	m := itemRe.FindStringSubmatch(raw)
+	mark := " "
+	if o.Checked {
+		mark = "x"
+	}
+	lines[at[n]] = m[1] + mark + m[3] + m[4] + lines[at[n]][len(raw):]
+	d.Body = doc.Join(lines)
+	return d, nil
+}

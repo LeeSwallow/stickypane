@@ -144,3 +144,53 @@ func TestWaitRejectsANegativeTimeout(t *testing.T) {
 		t.Errorf("code = %d, stderr = %q", code, errOut)
 	}
 }
+
+func TestSmallEditsFromTheCommandLine(t *testing.T) {
+	root := project(t)
+	steps := []struct {
+		args []string
+		out  string
+	}{
+		{[]string{"todo", "plan", "add", "write", "tests"}, "plan.md: 0/1\n"},
+		{[]string{"todo", "plan", "check", "tests"}, "plan.md: 1/1\n"},
+		{[]string{"card", "work", "add", "login API", "--to", "Doing"}, "work.md: 1 card\n"},
+		{[]string{"card", "work", "add", "--to", "Done", "schema"}, "work.md: 2 cards\n"},
+		{[]string{"card", "work", "move", "login", "--to", "Done"}, "work.md: 2 cards\n"},
+		{[]string{"chart", "tokens", "set", "input", "tokens", "1,200"}, "tokens.md: input tokens = 1,200\n"},
+		{[]string{"chart", "tokens", "add", "input tokens", "800"}, "tokens.md: input tokens = 2,000\n"},
+		{[]string{"log", "worklog", "tests", "passed"}, "worklog.md: 1 line\n"},
+		{[]string{"set", "plan", "size=card", "title=The plan"}, "plan.md: set size, title\n"},
+	}
+	for _, s := range steps {
+		if code, out, errOut := exec(t, s.args...); code != 0 || out != s.out {
+			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
+		t.Errorf("work.md = %q", b)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
+		t.Errorf("plan.md = %q", b)
+	}
+	for _, bad := range [][]string{{"todo"}, {"todo", "plan"}, {"todo", "plan", "add"}, {"card", "work", "move", "login"}, {"chart", "tokens", "set", "input"}, {"log", "worklog"}, {"set", "plan"}} {
+		if code, _, errOut := exec(t, bad...); code != 2 || errOut == "" {
+			t.Errorf("%v: code = %d, stderr = %q, want a usage error", bad, code, errOut)
+		}
+	}
+	if code, _, errOut := exec(t, "todo", "plan", "check", "nothing like this"); code != 1 || !strings.Contains(errOut, "write tests") {
+		t.Errorf("an item that is not there: code = %d, stderr = %q", code, errOut)
+	}
+}
+
+func TestLogCanStampTheTime(t *testing.T) {
+	root := project(t)
+	if code, _, errOut := exec(t, "log", "worklog", "--time", "deployed"); code != 0 {
+		t.Fatalf("code = %d, stderr = %q", code, errOut)
+	}
+	b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "worklog.md"))
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+	last := lines[len(lines)-1]
+	if len(last) < 6 || last[2] != ':' || !strings.HasSuffix(last, " deployed") {
+		t.Errorf("--time should put the time before the entry: %q", last)
+	}
+}

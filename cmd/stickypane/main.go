@@ -34,7 +34,8 @@ const usage = `stickypane - a note board for you and your coding agent
 Usage:
   stickypane [path]      open the board of the project at path (default: here)
   stickypane init        create .stickypane/ and add the agent guide to
-                         AGENTS.md or CLAUDE.md (--no-agent-docs skips that)
+                         AGENTS.md or CLAUDE.md (--no-agent-docs skips that;
+                         --skill installs it as a Claude Code skill instead)
   stickypane guide       print the agent guide
   stickypane version     print the version
 
@@ -43,6 +44,14 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane show <name>         print a note's file
   stickypane write <name> [--type T] [--title X] [--open] [--size S]
                                  create or replace a note from standard input
+  stickypane todo <name> add|check|uncheck <item>
+  stickypane card <name> add|move <card> [--to <column>]
+  stickypane chart <name> set|add <label> <number>
+  stickypane log <name> [--time] <text>
+  stickypane set <name> key=value ...
+                                 change one thing without reading or rewriting
+                                 the note; a missing note is made. An item or
+                                 card is named by its text, a part of it, or #2
   stickypane answers <name> [--json]
                                  print what the user answered in a form
   stickypane wait <name> [--timeout 5m] [--json]
@@ -76,10 +85,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			flags := flag.NewFlagSet("stickypane init", flag.ContinueOnError)
 			flags.SetOutput(stderr)
 			noDocs := flags.Bool("no-agent-docs", false, "leave AGENTS.md and CLAUDE.md alone")
+			skill := flags.Bool("skill", false, "install the guide as a Claude Code skill instead")
 			if err := flags.Parse(args[1:]); err != nil {
 				return 2
 			}
-			return report(stderr, initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs}, stdout))
+			return report(stderr, initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, stdout))
 		case "guide":
 			fmt.Fprint(stdout, initcmd.Guide())
 			return 0
@@ -91,6 +101,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return 0
 		case "list", "show", "write", "answers", "wait", "mcp":
 			return notes(args[0], args[1:], stdin, stdout, stderr)
+		case "todo", "card", "chart", "log", "set":
+			return edit(args[0], args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			fmt.Fprint(stderr, usage)
@@ -116,6 +128,85 @@ func report(stderr io.Writer, err error) int {
 		fmt.Fprintln(stderr, "stickypane:", err)
 		return 1
 	}
+	return 0
+}
+
+// open returns the API for the notes folder of the project here, or the
+// exit code to stop with.
+func open(stderr io.Writer) (*api.API, int) {
+	dir, err := store.Resolve(".")
+	if errors.Is(err, store.ErrNotFound) {
+		fmt.Fprintln(stderr, noBoard)
+		return nil, 1
+	}
+	if err != nil {
+		return nil, report(stderr, err)
+	}
+	return api.New(store.Open(dir), kinds.Default(note.Plain)), 0
+}
+
+// edit runs the commands that change one thing in a note.
+func edit(cmd string, args []string, stdout, stderr io.Writer) int {
+	// --to and --time may come anywhere after the note's name.
+	var to string
+	stamp := false
+	var words []string
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "--to" && i+1 < len(args):
+			to = args[i+1]
+			i++
+		case strings.HasPrefix(args[i], "--to="):
+			to = strings.TrimPrefix(args[i], "--to=")
+		case args[i] == "--time" && cmd == "log":
+			stamp = true
+		default:
+			words = append(words, args[i])
+		}
+	}
+	bad := func() int {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+	if len(words) < 2 {
+		return bad()
+	}
+	name, rest := words[0], words[1:]
+	a, code := open(stderr)
+	if a == nil {
+		return code
+	}
+	var out string
+	var err error
+	switch cmd {
+	case "todo":
+		if len(rest) < 2 {
+			return bad()
+		}
+		out, err = a.Todo(name, rest[0], strings.Join(rest[1:], " "))
+	case "card":
+		if len(rest) < 2 || (rest[0] == "move" && to == "") {
+			return bad()
+		}
+		out, err = a.Card(name, rest[0], strings.Join(rest[1:], " "), to)
+	case "chart":
+		if len(rest) < 3 {
+			return bad()
+		}
+		out, err = a.Chart(name, rest[0], strings.Join(rest[1:len(rest)-1], " "), rest[len(rest)-1])
+	case "log":
+		line := strings.Join(rest, " ")
+		if stamp {
+			line = time.Now().Format("15:04") + " " + line
+		}
+		out, err = a.Log(name, line)
+	default: // set
+		out, err = a.Set(name, rest)
+	}
+	if err != nil {
+		return report(stderr, err)
+	}
+	fmt.Fprintln(stdout, out)
 	return 0
 }
 

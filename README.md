@@ -57,6 +57,9 @@ stickypane         # opens the board
 
 `init` adds a short guide to `AGENTS.md` and `CLAUDE.md` (whichever exist; it
 creates `AGENTS.md` if neither does), so your agent knows the board is there.
+`init --skill` installs the guide as a Claude Code skill instead
+(`.claude/skills/stickypane/SKILL.md`), which is read only when a task calls
+for it.
 Then ask it for anything: "keep a checklist of this refactor on the board",
 "explain the structure on the board as a page".
 
@@ -304,8 +307,30 @@ stickypane wait deploy --timeout 10m         # the same, once a button is presse
 
 `wait` exits with code 3 when its time runs out. Both take `--json`.
 
+**Small changes without reading the note.** An agent that ticks an item by
+rewriting the whole checklist has to read it first, and may write it back
+wrong. These commands change one thing and print where the note stands:
+
+```sh
+stickypane todo plan add "write tests"       # plan.md: 0/1
+stickypane todo plan check tests             # plan.md: 1/1
+stickypane card work add "login API" --to Doing
+stickypane card work move login --to Done    # work.md: 2 cards
+stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
+stickypane chart tokens add input 800        # tokens.md: input = 2,000
+stickypane log worklog --time "tests passed" # worklog.md: 12 lines
+stickypane set plan open=true size=half      # front matter keys only
+```
+
+A note that does not exist yet is made, open on the screen, so an agent never
+has to know the file format for these. An item, a card or a column is named
+by its text, by a part of it that nothing else has, or by its position
+(`#2`). When the name fits nothing, or more than one thing, the error lists
+what there is.
+
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
-input and output, with five tools: `list_notes`, `read_note`, `write_note`,
+input and output. Its tools are the commands above: `list_notes`,
+`read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `set_keys`,
 `read_answers` and `guide`.
 
 ```sh

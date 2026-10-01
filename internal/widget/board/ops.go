@@ -1,9 +1,11 @@
 package board
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 // cardSpan is a card's place in the body: its first line and the detail
@@ -186,4 +188,87 @@ func (o AddCard) Apply(d doc.Document) (doc.Document, error) {
 	}
 	d.Body = doc.Join(splice(lines, insertAt(cols[ci]), "- "+o.Text+doc.EOL(d.Body)))
 	return d, nil
+}
+
+// firstColumn is the column an empty board gets when a card is added.
+const firstColumn = "To do"
+
+// Move moves a card to the end of another column for a caller that names
+// both instead of pointing at them: Card and To are the text, a part of it,
+// or a position ("#2"; cards count across the whole board). A card already
+// in that column stays where it is.
+type Move struct{ Card, To string }
+
+// Apply implements doc.Op.
+func (o Move) Apply(d doc.Document) (doc.Document, error) {
+	cols := scan(doc.Lines(d.Body))
+	var titles, texts []string
+	var owner []int
+	for ci, c := range cols {
+		titles = append(titles, c.title)
+		for _, cd := range c.cards {
+			texts = append(texts, cd.text)
+			owner = append(owner, ci)
+		}
+	}
+	n, err := widget.Pick(texts, o.Card, "card")
+	if err != nil {
+		return d, err
+	}
+	to, err := widget.Pick(titles, o.To, "column")
+	if err != nil {
+		return d, err
+	}
+	if owner[n] == to {
+		return d, nil
+	}
+	nth := 0
+	for i := 0; i < n; i++ {
+		if owner[i] == owner[n] && texts[i] == texts[n] {
+			nth++
+		}
+	}
+	return MoveCard{From: titles[owner[n]], To: titles[to], Text: texts[n], Nth: nth}.Apply(d)
+}
+
+// Add puts a new card at the end of column To, named like Move names it.
+// Without To the card goes to the first column. A column that does not
+// exist yet is added at the end of the board.
+type Add struct{ Card, To string }
+
+// Apply implements doc.Op.
+func (o Add) Apply(d doc.Document) (doc.Document, error) {
+	cols := scan(doc.Lines(d.Body))
+	var titles []string
+	for _, c := range cols {
+		titles = append(titles, c.title)
+	}
+	col := o.To
+	switch {
+	case col == "" && len(cols) > 0:
+		col = titles[0]
+	case col == "":
+		col = firstColumn
+	default:
+		i, err := widget.Pick(titles, col, "column")
+		switch {
+		case err == nil:
+			col = titles[i]
+		case !errors.Is(err, widget.ErrNoMatch):
+			return d, err
+		}
+	}
+	if findCol(cols, col) < 0 {
+		eol := doc.EOL(d.Body)
+		if d.Body != "" && !strings.HasSuffix(d.Body, "\n") {
+			d.Body += eol + "\n"
+		}
+		d.Body += "## " + strings.TrimSpace(col) + eol + "\n"
+	}
+	return AddCard{Col: strings.TrimSpace(col), Text: oneLine(o.Card)}.Apply(d)
+}
+
+// oneLine keeps text that becomes a line of the file to one line.
+func oneLine(s string) string {
+	return strings.Join(strings.Fields(strings.NewReplacer("\r", " ", "\n", " ").Replace(s)), " ")
 }
