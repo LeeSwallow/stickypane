@@ -218,6 +218,18 @@ title: 작업 로그
 
 **빈 화면**: 노트가 하나도 없으면 "아직 붙은 노트가 없어요. n을 눌러 끄적여 보세요."를 보여 준다.
 
+### 띄우는 방법
+
+일반 터미널 프로그램이라 어디서든 실행하면 된다. 터미널 종류별 연동 코드는 두지 않고, README에 다음 사용법을 안내한다.
+
+| 방식 | 명령 |
+|---|---|
+| tmux에서 옆 pane에 상주 | `tmux split-window -h corkboard` |
+| tmux에서 팝업으로 잠깐 열기 | `tmux display-popup -E corkboard` |
+| wezterm에서 옆 pane에 상주 | `wezterm cli split-pane --right -- corkboard` |
+
+pane 크기가 바뀌면 그 폭에 맞춰 배치를 다시 계산한다.
+
 ### 키
 
 보드 화면에서는 노트를 고르고 관리한다.
