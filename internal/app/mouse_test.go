@@ -134,19 +134,6 @@ func TestClickingACardSelectsIt(t *testing.T) {
 	}
 }
 
-func TestTheWheelScrollsTheScreen(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(60))})
-	wheel(m, 10, 10, true)
-	if m.scroll == 0 || !strings.Contains(screen(m), "line 05") || strings.Contains(screen(m), "line 01") {
-		t.Fatalf("wheel down should scroll, scroll = %d:\n%s", m.scroll, screen(m))
-	}
-	wheel(m, 10, 10, false)
-	wheel(m, 10, 10, false)
-	if m.scroll != 0 {
-		t.Errorf("wheel up should scroll back to the top, scroll = %d", m.scroll)
-	}
-}
-
 func TestADoubleClickZoomsAndTheWheelScrollsTheZoomedNote(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(60))})
 	x, y := find(t, m, "line 03")

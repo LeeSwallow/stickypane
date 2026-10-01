@@ -27,7 +27,9 @@ const helpText = `Notes
   x                move to archive
   D                delete
   r                reload
-  j k g G          scroll the screen
+  j k g G          scroll in the note
+  pgdn pgup        a page down, up
+  [ ]              previous, next screen
   ?                this help
   q                quit
 
@@ -64,7 +66,7 @@ Mouse
   click a title    open, focus, close
   click a note     focus; tick, choose
   double click     zoom
-  wheel            scroll`
+  wheel            scroll that note`
 
 // helpWidth is the dialog that holds helpText: its widest line plus the frame.
 const helpWidth = 44
@@ -88,7 +90,7 @@ func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	if offset, scrolled := widget.ScrollKey(m.helpScroll, k.String()); scrolled {
+	if offset, scrolled := widget.ScrollKey(m.helpScroll, k.String(), max(m.height-4, 1)); scrolled {
 		m.helpScroll = offset
 		return nil
 	}

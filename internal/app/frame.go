@@ -53,6 +53,22 @@ type box struct {
 	width   int
 	color   color.Color
 	focused bool
+	// When the body is a window on more lines than it shows, offset is its
+	// first line and total how many there are. The right border then
+	// carries a scroll bar.
+	offset, total int
+}
+
+// thumb returns which lines of a window of rows lines the scroll bar's
+// thumb covers, as [from, to). With nothing to scroll it covers none.
+func thumb(offset, total, rows int) (from, to int) {
+	if rows <= 0 || total <= rows {
+		return 0, 0
+	}
+	size := max(rows*rows/total, 1)
+	from = offset * (rows - size) / (total - rows)
+	from = max(min(from, rows-size), 0)
+	return from, from + size
 }
 
 // frame draws a box: a rounded border in its color, or a double border when
@@ -100,8 +116,14 @@ func frame(b box) string {
 	top.WriteString(st.Render(tr))
 
 	lines := []string{top.String()}
-	for _, l := range strings.Split(b.body, "\n") {
-		lines = append(lines, st.Render(vt)+" "+widget.Pad(l, width-4)+" "+st.Render(vt))
+	body := strings.Split(b.body, "\n")
+	from, to := thumb(b.offset, b.total, len(body))
+	for i, l := range body {
+		right := st.Render(vt)
+		if i >= from && i < to {
+			right = st.Render("█")
+		}
+		lines = append(lines, st.Render(vt)+" "+widget.Pad(l, width-4)+" "+right)
 	}
 	lines = append(lines, st.Render(bl+strings.Repeat(hz, width-2)+br))
 	return strings.Join(lines, "\n")

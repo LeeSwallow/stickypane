@@ -4,6 +4,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -85,13 +86,14 @@ type Model struct {
 	peek  map[string]bool      // notes shown open for this run without an "open" key
 
 	width, height int
-	bar           []string      // the title bar, one or more lines
-	tabs          []tab         // mouse.go: where each note's title is in the bar
-	rects         []layout.Rect // of the open notes
-	placed        []placed      // mouse.go: which note is in each rect
-	lastClick     lastClick     // mouse.go
-	canvas        []string      // the open notes, laid out
-	scroll        int
+	bar           []string       // the title bar, one or more lines
+	tabs          []tab          // mouse.go: where each note's title is in the bar
+	panes         []pane         // the open notes, each in its place
+	screen        int            // which screen of panes is shown
+	screens       int            // how many screens the open notes take
+	offsets       map[string]int // how far the user scrolled inside a note, by file name
+	lastClick     lastClick      // mouse.go
+	canvas        []string       // the panes of the current screen, drawn
 	reveal        reveal
 
 	mode   mode
@@ -132,7 +134,7 @@ type reloadMsg struct {
 // New returns a model showing the notes in st. watch may be nil when the
 // folder cannot be watched; the screen then refreshes on "r" and after edits.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, reveal: revealNote}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, reveal: revealNote}
 	m.reload()
 	return m
 }
@@ -431,30 +433,6 @@ func (m *Model) heading(it item) string {
 	return widget.Clean(t)
 }
 
-// lines draws a note for the main screen at width and returns its lines and
-// the selection within them. A note with a fixed height shows a window of
-// its content: around the selection if it has one, the end for a log, the
-// start otherwise.
-func (m *Model) lines(it item, width int, active bool) (shown []string, at widget.Span, start int) {
-	out, at := it.w.Draw(width, active)
-	lines := strings.Split(out, "\n")
-	rows := m.rowsOf(it)
-	if rows <= 0 || len(lines) <= rows {
-		return lines, at, 0
-	}
-	switch {
-	case at.Ok():
-		start = show(at, at.Start-rows/2, rows)
-	case it.kind.Tail:
-		start = len(lines) - rows
-	}
-	start = widget.ClampOffset(start, len(lines), rows)
-	if at.Ok() {
-		at = widget.Span{Start: at.Start - start, End: min(at.End-start, rows)}
-	}
-	return lines[start : start+rows], at, start
-}
-
 // show returns the scroll offset that brings a span into a window of the
 // given height, moving as little as possible from offset. A span taller than
 // the window is shown from its start.
@@ -473,51 +451,162 @@ func (m *Model) bodyHeight() int {
 	return max(m.height-1-min(len(m.bar), max(m.height-1, 0)), 0)
 }
 
-// relayout redraws the title bar and every open note and places them. It
-// runs after every update, then scrolls to whatever the update asked to see.
+// minPane is the least a note gets on the screen, borders included, before
+// the notes after it go to the next screen.
+const minPane = 10
+
+// pane is an open note in its place: a fixed rectangle on one of the
+// screens, showing a window of the note's lines.
+type pane struct {
+	name   string
+	screen int
+	rect   layout.Rect
+	total  int // lines the note has
+	offset int // the first line shown
+}
+
+// rows is how many lines of the note fit in the pane.
+func (p pane) rows() int { return max(p.rect.H-2, 0) }
+
+// relayout redraws the title bar and the open notes. The notes tile the
+// screen: each has a fixed place and shows as much of itself as fits there,
+// and the rest is reached by scrolling inside the note. Notes that do not
+// fit on one screen go to the next, and the screen with the focused note is
+// the one shown when the update asked to see it.
 func (m *Model) relayout() {
-	m.bar, m.rects, m.canvas, m.zoomLines, m.placed = nil, nil, nil, nil, nil
+	m.bar, m.panes, m.canvas, m.zoomLines = nil, nil, nil, nil
 	if m.width <= 0 {
 		return
 	}
 	m.bar = m.titleBar()
+	h := m.bodyHeight()
 
-	var boxes []string
-	var sizes []layout.Item
-	focusRect, at := -1, widget.NoSpan
+	var open []item
+	var widths []int
 	for _, it := range m.items {
-		if !m.isOpen(it) {
+		if m.isOpen(it) {
+			open = append(open, it)
+			widths = append(widths, m.widthOf(m.sizeOf(it)))
+		}
+	}
+	cells := layout.Rows(m.width, widths)
+
+	// Draw every note at the width its place gives it. A row asks for the
+	// height of its tallest note, or for the height a note fixes.
+	lines := make([][]string, len(open))
+	spans := make([]widget.Span, len(open))
+	var need []int
+	for i, it := range open {
+		out, at := it.w.Draw(max(cells[i].W-4, 1), it.note.Name == m.focus)
+		lines[i], spans[i] = strings.Split(out, "\n"), at
+		want := len(lines[i]) + 2
+		if rows := m.rowsOf(it); rows > 0 {
+			want = rows + 2
+		}
+		if cells[i].Row == len(need) {
+			need = append(need, 0)
+		}
+		need[cells[i].Row] = max(need[cells[i].Row], want)
+	}
+	slots := layout.Stack(h, need, minPane)
+
+	m.screens = 1
+	for _, s := range slots {
+		m.screens = max(m.screens, s.Screen+1)
+	}
+	for i, it := range open {
+		if it.note.Name == m.focus && m.reveal != revealNothing {
+			m.screen = slots[cells[i].Row].Screen
+		}
+	}
+	m.screen = max(min(m.screen, m.screens-1), 0)
+
+	var rects []layout.Rect
+	var boxes []string
+	for i, it := range open {
+		slot := slots[cells[i].Row]
+		p := pane{
+			name: it.note.Name, screen: slot.Screen, total: len(lines[i]),
+			rect: layout.Rect{X: cells[i].X, Y: slot.Y, W: cells[i].W, H: slot.H},
+		}
+		// Where the user left it; a log that was never scrolled shows its end.
+		offset, scrolled := m.offsets[p.name]
+		if !scrolled && it.kind.Tail {
+			offset = p.total
+		}
+		focused := p.name == m.focus
+		if focused && m.reveal == revealCursor && spans[i].Ok() {
+			offset = show(spans[i], offset, p.rows())
+			m.offsets[p.name] = offset
+		}
+		p.offset = widget.ClampOffset(offset, p.total, p.rows())
+		if scrolled && it.kind.Tail && p.offset >= p.total-p.rows() {
+			delete(m.offsets, p.name) // back at the end: follow the log again
+		}
+		m.panes = append(m.panes, p)
+		if p.screen != m.screen || p.rect.H < 2 {
 			continue
 		}
-		focused := it.note.Name == m.focus
-		w := m.widthOf(m.sizeOf(it))
-		lines, sel, start := m.lines(it, max(w-4, 1), focused)
-		if focused {
-			focusRect, at = len(boxes), sel
+		body := append([]string(nil), widget.Window(lines[i], p.offset, p.rows())...)
+		for len(body) < p.rows() {
+			body = append(body, "")
 		}
-		m.placed = append(m.placed, placed{name: it.note.Name, start: start})
+		rects = append(rects, p.rect)
 		boxes = append(boxes, frame(box{
 			title: m.heading(it), icon: it.kind.Icon, summary: it.w.Summary(),
-			body: strings.Join(lines, "\n"), width: w, color: noteColor(it), focused: focused,
+			body: strings.Join(body, "\n"), width: p.rect.W, color: noteColor(it), focused: focused,
+			offset: p.offset, total: p.total,
 		}))
-		sizes = append(sizes, layout.Item{W: max(w, 8), H: len(lines) + 2})
 	}
-	m.rects = layout.Shelf(m.width, sizes)
-	m.canvas = layout.Compose(m.rects, boxes)
-
-	h := m.bodyHeight()
-	if focusRect >= 0 && h > 0 && m.reveal != revealNothing {
-		r := m.rects[focusRect]
-		target := widget.Span{Start: r.Y, End: r.Y + r.H}
-		if m.reveal == revealCursor && at.Ok() {
-			target = at.Shift(r.Y + 1) // the frame's top border is one line
-		}
-		m.scroll = show(target, m.scroll, h)
-	}
-	m.scroll = widget.ClampOffset(m.scroll, len(m.canvas), h)
+	m.canvas = layout.Compose(rects, boxes)
+	m.markScreen()
 
 	if m.zoomed() {
 		m.layoutZoom()
 	}
 	m.reveal = revealNothing
+}
+
+// markScreen writes "2/3" at the end of the rule under the title bar when
+// the open notes take more than one screen.
+func (m *Model) markScreen() {
+	if m.screens < 2 || len(m.bar) == 0 || m.height < ruleHeight {
+		return
+	}
+	mark := fmt.Sprintf(" %d/%d ", m.screen+1, m.screens)
+	rule := strings.Repeat("─", max(m.width-widget.Width(mark)-1, 0))
+	m.bar[len(m.bar)-1] = widget.Faint.Render(rule) + widget.Bold.Render(mark) + widget.Faint.Render("─")
+}
+
+// paneOf returns the pane of an open note.
+func (m *Model) paneOf(name string) (pane, bool) {
+	for _, p := range m.panes {
+		if p.name == name {
+			return p, true
+		}
+	}
+	return pane{}, false
+}
+
+// scrollPane moves the window of an open note to offset. Out of range
+// values are fixed when the screen is drawn.
+func (m *Model) scrollPane(name string, offset int) {
+	m.offsets[name] = max(offset, 0)
+}
+
+// flip shows the next or previous screen of notes and moves the focus to
+// its first note.
+func (m *Model) flip(delta int) {
+	to := max(min(m.screen+delta, m.screens-1), 0)
+	if to == m.screen {
+		return
+	}
+	m.screen = to
+	for _, p := range m.panes {
+		if p.screen == to {
+			m.focus = p.name
+			m.markSeen(p.name)
+			break
+		}
+	}
 }

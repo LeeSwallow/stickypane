@@ -25,9 +25,11 @@ h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 Your agent jots things down as plain Markdown files. stickypane shows them in
 a pane next to it: plain notes, kanban boards, checklists, logs, charts,
 Mermaid diagrams, and forms you answer with a key press. The line
-at the top lists every note (`●` open, `○` folded away); the ones you open are
-drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
-so the agent sees it too.
+at the top lists every note (`●` open, `○` folded away). The ones you open
+tile the screen below it, each in a pane of its own: a note longer than its
+pane scrolls inside it, and when more notes are open than fit, the rest are
+on the next screen. Move a card or tick a box and the change lands in the
+same file, so the agent sees it too.
 
 - **Nothing to configure.** No config file, no server, no hooks.
 - **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
@@ -85,7 +87,7 @@ to type one: the keys in the next section change them for you.
 | `title` | shown in the title bar and the note's border            |
 | `open`  | `true` draws the note on the screen, `false` folds it away |
 | `size`  | `page` (whole width), `half`, `card`                    |
-| `rows`  | a fixed height in lines; zoom in to see the rest        |
+| `rows`  | the height in lines the note asks for                   |
 | `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange`   |
 | `pin`   | `true` keeps the note first                             |
 
@@ -235,12 +237,23 @@ still shown, never hidden.
 | `e` / `E`           | edit here, in `$EDITOR` | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
 | `z`                 | zoom                    | **Open form**           |                      |
+| `[` / `]`           | previous, next screen   |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
 |                     |                         | `enter` / `space`       | choose, type, press  |
 
 The focused open note takes the keys in the right-hand column where it is;
-you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
-when the focused note has no cursor of its own. A form uses `enter` itself,
+you do not have to zoom in first. When the focused note has no cursor of its
+own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
+`ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
+a cursor scrolls to keep the cursor in view.
+
+**How the screen is shared.** Open notes are placed left to right by `size`
+(`page` takes a row, two `half` notes share one, `card`s sit three or more
+to a row) and each row is stretched to the full width. The rows then share
+the height: a short note takes what it needs and the long ones split the
+rest, so the screen is always full and never scrolls as a whole. A note gets
+at least ten lines; notes that would get less go to the next screen, shown
+as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
 ## Editing a note
@@ -272,7 +285,7 @@ loads the file again. Counts (`3dd`) and visual mode are not there.
 | click a note               | it takes the focus                              |
 | click an item, option, button or card | it is ticked, chosen, pressed or selected |
 | double-click a note        | zoom                                            |
-| wheel                      | scroll the screen, or the zoomed note           |
+| wheel                      | scroll the note under the pointer               |
 
 In tmux the mouse reaches stickypane only with `set -g mouse on`.
 

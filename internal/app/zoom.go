@@ -53,7 +53,7 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	default:
 		// Keys the note does not use scroll freely, so every line of a
 		// zoomed note can be reached even when it has a cursor.
-		if offset, ok := widget.ScrollKey(m.zoomScroll, key); ok {
+		if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
 			m.zoomScroll = offset
 		}
 	}

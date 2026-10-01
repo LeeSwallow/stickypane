@@ -529,21 +529,29 @@ func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
 	}
 }
 
-func TestALogShowsItsLastTenLines(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"log.md": "---\ntype: log\ntitle: Work log\nopen: true\n---\n" + numbered(30)})
+// longNote is a note that takes all the room it is given.
+var longNote = "---\nopen: true\nsize: page\n---\n" + strings.Repeat("filler\n", 80)
+
+func TestALogAsksForTenLines(t *testing.T) {
+	m, _ := newModel(t, map[string]string{
+		"log.md": "---\ntype: log\ntitle: Work log\nopen: true\nsize: page\n---\n" + numbered(30),
+		"z.md":   longNote,
+	})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
 	s := screen(m)
 	if !strings.Contains(s, "line 30") || !strings.Contains(s, "line 21") || strings.Contains(s, "line 20") {
-		t.Errorf("a log should show its last ten lines:\n%s", s)
+		t.Errorf("next to a note that wants the room, a log shows its last ten lines:\n%s", s)
 	}
 }
 
-func TestRowsFixTheHeightAndKeepTheCursorVisible(t *testing.T) {
+func TestRowsSetTheHeightANoteAsksFor(t *testing.T) {
 	var sb strings.Builder
-	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nrows: 6\n---\n")
+	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nsize: page\nrows: 6\n---\n")
 	for i := 1; i <= 20; i++ {
 		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
 	}
-	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
+	m, _ := newModel(t, map[string]string{"c.md": sb.String(), "z.md": longNote})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
 	if n := strings.Count(screen(m), "☐"); n > 6 {
 		t.Errorf("rows: 6 should limit the height, %d items visible:\n%s", n, screen(m))
 	}
