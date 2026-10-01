@@ -11,18 +11,23 @@ func init() {
 	bodies[modeCatalog] = catalogBody
 	footers[modeCatalog] = func(*Model) string { return "enter choose  esc cancel" }
 
-	// Jot: one line becomes a plain note. No shape, no title.
-	boardKeys["n"] = func(m *Model) tea.Cmd {
+	// Jot: one line becomes a plain note. No shape, no title. N always
+	// jots; n jots too unless the focused open note uses n itself (a board
+	// adds a card, a checklist an item).
+	jot := func(m *Model) tea.Cmd {
 		m.ask("Jot", "", func(text string) { m.create(text, []byte(text+"\n")) })
 		return nil
 	}
+	boardKeys["N"] = jot
+	boardKeys["n"] = jot
 	boardKeys["a"] = func(m *Model) tea.Cmd {
 		m.catalogIdx, m.mode = 0, modeCatalog
 		return nil
 	}
 }
 
-// create writes a new note named after text and focuses it.
+// create writes a new note named after text and focuses it. The note shows
+// at once: a note that appears while running is open for this run.
 func (m *Model) create(text string, content []byte) {
 	name, err := m.store.Create(text, content, m.now())
 	if err != nil {

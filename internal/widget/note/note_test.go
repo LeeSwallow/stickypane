@@ -24,80 +24,76 @@ func numbered(n int) string {
 	return b.String()
 }
 
-func TestPreviewShowsShortNoteAsIs(t *testing.T) {
-	if got := parse("check env before deploy\n").Preview(30); got != "check env before deploy" {
-		t.Errorf("Preview = %q", got)
+func TestDrawShowsTheWholeNote(t *testing.T) {
+	out, cursor := parse(numbered(40)).Draw(60, true)
+	lines := strings.Split(out, "\n")
+	if len(lines) != 40 || lines[39] != "l"+strings.Repeat("i", 40) {
+		t.Errorf("got %d lines, last %q; want all 40 lines", len(lines), lines[len(lines)-1])
+	}
+	if cursor != -1 {
+		t.Errorf("cursor = %d, want -1: a plain note has no cursor", cursor)
 	}
 }
 
-func TestPreviewHidesFrontMatter(t *testing.T) {
-	if got := parse("---\ntitle: T\n---\nhello\n").Preview(30); got != "hello" {
-		t.Errorf("Preview = %q", got)
+func TestDrawHidesFrontMatter(t *testing.T) {
+	if got, _ := parse("---\ntitle: T\n---\nhello\n").Draw(30, false); got != "hello" {
+		t.Errorf("Draw = %q", got)
 	}
 }
 
-func TestPreviewCapsAtSixLines(t *testing.T) {
-	lines := strings.Split(ansi.Strip(parse(numbered(10)).Preview(30)), "\n")
-	if len(lines) != 6 {
-		t.Fatalf("got %d lines, want 6", len(lines))
-	}
-	if lines[4] != "liiiii" || lines[5] != "…" {
-		t.Errorf("last lines = %q, %q", lines[4], lines[5])
+func TestDrawOfEmptyNote(t *testing.T) {
+	if got, _ := parse("").Draw(30, false); ansi.Strip(got) != "(empty)" {
+		t.Errorf("Draw = %q", got)
 	}
 }
 
-func TestPreviewOfEmptyNote(t *testing.T) {
-	if got := ansi.Strip(parse("").Preview(30)); got != "(empty)" {
-		t.Errorf("Preview = %q", got)
+func TestDrawDropsControlCharacters(t *testing.T) {
+	if got, _ := parse("a\tb\x1b[31m red\x1b[0m\x07\n").Draw(30, false); got != "a    b red" {
+		t.Errorf("Draw = %q", got)
 	}
 }
 
-func TestPreviewDropsControlCharacters(t *testing.T) {
-	if got := parse("a\tb\x1b[31m red\x1b[0m\x07\n").Preview(30); got != "a    b red" {
-		t.Errorf("Preview = %q", got)
-	}
-}
-
-func TestPreviewWrapsToWidth(t *testing.T) {
-	for _, line := range strings.Split(parse("토큰은 세션 쿠키로 보관한다 and some more words here\n").Preview(12), "\n") {
+func TestDrawWrapsToWidth(t *testing.T) {
+	out, _ := parse("토큰은 세션 쿠키로 보관한다 and some more words here\n").Draw(12, false)
+	for _, line := range strings.Split(out, "\n") {
 		if w := widget.Width(line); w > 12 {
 			t.Errorf("line %q is %d cells wide, want at most 12", line, w)
 		}
 	}
-}
-
-func TestViewScrolls(t *testing.T) {
-	w := parse(numbered(6))
-	if got := w.View(20, 2); got != "li\nlii" {
-		t.Fatalf("View = %q", got)
-	}
-	w, _ = w.Update("j")
-	if got := w.View(20, 2); got != "lii\nliii" {
-		t.Errorf("after j: %q", got)
-	}
-	w, _ = w.Update("G")
-	if got := w.View(20, 2); got != "liiiii\nliiiiii" {
-		t.Errorf("after G: %q", got)
-	}
-	w, _ = w.Update("k")
-	if got := w.View(20, 2); got != "liiii\nliiiii" {
-		t.Errorf("after G then k: %q", got)
+	if !strings.Contains(strings.ReplaceAll(out, "\n", " "), "words here") {
+		t.Errorf("wrapping lost text: %q", out)
 	}
 }
 
-func TestSyncKeepsScrollPosition(t *testing.T) {
-	w := parse(numbered(6))
-	w, _ = w.Update("j")
-	w.View(20, 2)
-	w = w.Sync(doc.Parse([]byte("a\nb\nc\nd\n")))
-	if got := w.View(20, 2); got != "b\nc" {
-		t.Errorf("View after Sync = %q", got)
+func TestSyncReplacesContent(t *testing.T) {
+	w := parse("old\n").Sync(doc.Parse([]byte("new\n")))
+	if got, _ := w.Draw(30, false); got != "new" {
+		t.Errorf("Draw after Sync = %q", got)
+	}
+}
+
+func TestSizeFollowsLength(t *testing.T) {
+	k := NewKind(Plain)
+	cases := []struct {
+		body string
+		want string
+	}{
+		{"one line\n", widget.SizeCard},
+		{"a\n\nb\n\nc\n", widget.SizeCard}, // blank lines do not count
+		{numbered(4), widget.SizeHalf},
+		{numbered(12), widget.SizeHalf},
+		{numbered(13), widget.SizePage},
+	}
+	for _, c := range cases {
+		if got := k.Size(doc.Document{Body: c.body}); got != c.want {
+			t.Errorf("Size of %d lines = %q, want %q", strings.Count(c.body, "\n"), got, c.want)
+		}
 	}
 }
 
 func TestKind(t *testing.T) {
 	k := NewKind(Plain)
-	if k.Name != "note" || k.FullRow {
+	if k.Name != "note" || k.Keys != "" || k.Tail || k.Rows != 0 {
 		t.Errorf("kind = %+v", k)
 	}
 	if got := string(k.Template("Plan")); got != "---\ntitle: Plan\n---\n" {

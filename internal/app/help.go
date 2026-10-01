@@ -12,11 +12,13 @@ import (
 // readable in a narrow side pane. It scrolls when the pane is short.
 const helpText = `stickypane keys
 
-Board
-  arrows h j k l   move focus
+Notes
   tab              next note
-  enter            open note
-  n                jot a note
+  shift+tab        previous note
+  enter            open, then zoom
+  o                open or close
+  + -              bigger, smaller
+  N                jot a note
   a                add by shape
   e                edit in $EDITOR
   p                pin
@@ -28,19 +30,19 @@ Board
   ?                this help
   q                quit
 
-Open note
-  esc              close
-  e                edit in $EDITOR
-  j k              move or scroll
-  G                jump to the end
+Zoomed note
+  esc              back
+  j k g G          scroll
 
 Open board
   h l              change column
+  j k              change card
   H L              move a card sideways
   J K              reorder a card
   n                new card
 
 Open checklist
+  j k              change item
   space            tick an item
   n                new item`
 
@@ -49,7 +51,7 @@ func init() {
 	bodies[modeHelp] = helpBody
 	footers[modeHelp] = func(*Model) string { return "j k scroll  any other key closes" }
 
-	// Also reachable from an open note, which it returns to.
+	// Also reachable from a zoomed note, which it returns to.
 	boardKeys["?"] = func(m *Model) tea.Cmd {
 		m.back, m.mode, m.helpScroll = m.mode, modeHelp, 0
 		return nil

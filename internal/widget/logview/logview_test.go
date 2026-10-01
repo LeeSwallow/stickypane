@@ -12,74 +12,51 @@ import (
 
 func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
 
-func numbered(n int) string {
-	var sb strings.Builder
-	for i := 1; i <= n; i++ {
-		sb.WriteString("line ")
-		sb.WriteString(strings.Repeat("i", i))
-		sb.WriteString("\n")
+func TestDrawShowsEveryEntry(t *testing.T) {
+	out, cursor := parseBody("one\ntwo\n\nthree\n\n\n").Draw(40, true)
+	if out != "one\ntwo\n\nthree" {
+		t.Errorf("Draw = %q, want every entry and no trailing blank lines", out)
 	}
-	return sb.String()
-}
-
-func TestPreviewShowsLastFiveLines(t *testing.T) {
-	got := parseBody(numbered(8) + "\n\n").Preview(40)
-	want := "line iiii\nline iiiii\nline iiiiii\nline iiiiiii\nline iiiiiiii"
-	if got != want {
-		t.Errorf("Preview = %q, want %q", got, want)
+	if cursor != -1 {
+		t.Errorf("cursor = %d, want -1", cursor)
 	}
 }
 
-func TestPreviewOfEmptyLog(t *testing.T) {
-	if got := ansi.Strip(parseBody("\n").Preview(40)); got != "(no entries yet)" {
-		t.Errorf("Preview = %q", got)
+func TestDrawOfEmptyLog(t *testing.T) {
+	if got, _ := parseBody("\n").Draw(40, false); ansi.Strip(got) != "(no entries yet)" {
+		t.Errorf("Draw = %q", got)
 	}
 }
 
-func TestPreviewTruncatesAndCleans(t *testing.T) {
-	got := parseBody("14:02 \x1b[32mtests passed\x1b[0m and a very long tail\r\n").Preview(18)
-	if got != "14:02 tests passe…" {
-		t.Errorf("Preview = %q", got)
+func TestDrawWrapsAndCleans(t *testing.T) {
+	out, _ := parseBody("14:02 \x1b[32mtests passed\x1b[0m and a very long tail that goes on\r\n").Draw(18, false)
+	if strings.Contains(out, "\x1b") || strings.Contains(out, "\r") {
+		t.Errorf("control characters were kept: %q", out)
 	}
-}
-
-func TestViewFollowsTheEnd(t *testing.T) {
-	w := parseBody(numbered(6))
-	if got := w.View(40, 2); got != "line iiiii\nline iiiiii" {
-		t.Fatalf("View = %q", got)
-	}
-	w = w.Sync(doc.Document{Body: numbered(7)})
-	if got := w.View(40, 2); got != "line iiiiii\nline iiiiiii" {
-		t.Errorf("after a new line: %q", got)
-	}
-}
-
-func TestScrollingStopsFollowingAndGResumes(t *testing.T) {
-	w := parseBody(numbered(6))
-	w.View(40, 2)
-	w, _ = w.Update("k")
-	if got := w.View(40, 2); got != "line iiii\nline iiiii" {
-		t.Fatalf("after k: %q", got)
-	}
-	w = w.Sync(doc.Document{Body: numbered(7)})
-	if got := w.View(40, 2); got != "line iiii\nline iiiii" {
-		t.Errorf("should stay put while not following: %q", got)
-	}
-	w, _ = w.Update("G")
-	if got := w.View(40, 2); got != "line iiiiii\nline iiiiiii" {
-		t.Errorf("after G: %q", got)
-	}
-}
-
-func TestViewWrapsLongLines(t *testing.T) {
-	for _, line := range strings.Split(parseBody("a very long log line that does not fit\n").View(10, 20), "\n") {
-		if w := widget.Width(line); w > 10 {
+	for _, line := range strings.Split(out, "\n") {
+		if w := widget.Width(line); w > 18 {
 			t.Errorf("line %q is %d cells wide", line, w)
 		}
 	}
+	if !strings.Contains(strings.ReplaceAll(out, "\n", " "), "goes on") {
+		t.Errorf("wrapping lost the end of the line: %q", out)
+	}
 }
 
-func TestKindTemplate(t *testing.T) {
+func TestSyncReplacesContent(t *testing.T) {
+	w := parseBody("a\n").Sync(doc.Document{Body: "a\nb\n"})
+	if got, _ := w.Draw(40, false); got != "a\nb" {
+		t.Errorf("Draw after Sync = %q", got)
+	}
+}
+
+func TestKind(t *testing.T) {
+	if Kind.Name != "log" || !Kind.Tail || Kind.Rows != 10 || Kind.Keys != "" {
+		t.Errorf("Kind = %+v", Kind)
+	}
+	if got := Kind.Size(doc.Document{}); got != widget.SizeHalf {
+		t.Errorf("Size = %q", got)
+	}
 	if got := string(Kind.Template("Work log")); got != "---\ntype: log\ntitle: Work log\n---\n" {
 		t.Errorf("Template = %q", got)
 	}

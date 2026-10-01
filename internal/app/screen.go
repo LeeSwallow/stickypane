@@ -5,6 +5,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 // View implements tea.Model.
@@ -14,21 +16,25 @@ func (m *Model) View() tea.View {
 	return v
 }
 
-// render draws the screen: the current body above one bottom line. No line
-// is wider than the terminal and there are never more lines than rows.
+// render draws the screen: on the main screen the title bar, then the
+// current body, then one bottom line. No line is wider than the terminal and
+// there are never more lines than rows.
 func (m *Model) render() string {
 	if m.width <= 0 || m.height <= 0 {
 		return ""
 	}
-	h := m.height - 1
 	var lines []string
-	if body, ok := bodies[m.bodyMode()]; ok {
-		lines = append(lines, body(m, h)...)
+	if m.bodyMode() == modeBoard {
+		lines = append(lines, m.bar[:min(len(m.bar), m.height-1)]...)
 	}
-	for len(lines) < h {
+	h := m.height - 1 - len(lines)
+	if body, ok := bodies[m.bodyMode()]; ok && h > 0 {
+		lines = append(lines, widget.Window(body(m, h), 0, h)...)
+	}
+	for len(lines) < m.height-1 {
 		lines = append(lines, "")
 	}
-	lines = append(lines[:h], m.footer())
+	lines = append(lines, m.footer())
 	for i, l := range lines {
 		lines[i] = ansi.Truncate(l, m.width, "")
 	}

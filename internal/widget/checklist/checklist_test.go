@@ -2,6 +2,7 @@ package checklist
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -13,7 +14,14 @@ import (
 
 const body = "## Login API\n- [x] Add endpoint\n- [x] Validate input\n- [ ] Write tests\n"
 
+const sameItems = "## Backend\n- [ ] tests\n## Frontend\n- [ ] tests\n"
+
 func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+
+func draw(w widget.Widget, width int, active bool) ([]string, int) {
+	out, cursor := w.Draw(width, active)
+	return strings.Split(ansi.Strip(out), "\n"), cursor
+}
 
 func apply(t *testing.T, op doc.Op, body string) string {
 	t.Helper()
@@ -24,39 +32,71 @@ func apply(t *testing.T, op doc.Op, body string) string {
 	return d.Body
 }
 
-func TestPreviewShowsProgressAndOpenItems(t *testing.T) {
-	got := ansi.Strip(parseBody(body).Preview(30))
-	want := "▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3\n☐ Write tests"
-	if got != want {
-		t.Errorf("Preview = %q, want %q", got, want)
+func TestDrawShowsProgressAndEveryLine(t *testing.T) {
+	lines, cursor := draw(parseBody(body), 30, false)
+	want := []string{
+		"▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3",
+		"",
+		"## Login API",
+		"  ☑ Add endpoint",
+		"  ☑ Validate input",
+		"  ☐ Write tests",
+	}
+	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
+		t.Errorf("Draw:\n%s\nwant:\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
+	}
+	if cursor != -1 {
+		t.Errorf("cursor = %d, want -1 when inactive", cursor)
 	}
 }
 
-func TestPreviewWhenAllDone(t *testing.T) {
-	got := ansi.Strip(parseBody("- [x] a\n- [X] b\n").Preview(30))
-	if !strings.HasSuffix(got, " 2/2\n✓ all done") {
-		t.Errorf("Preview = %q", got)
+func TestDrawDoesNotFoldItems(t *testing.T) {
+	var sb strings.Builder
+	for i := 1; i <= 12; i++ {
+		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
+	}
+	lines, _ := draw(parseBody(sb.String()), 40, false)
+	text := strings.Join(lines, "\n")
+	if strings.Contains(text, "more") || !strings.Contains(text, "item 01") || !strings.Contains(text, "item 12") {
+		t.Errorf("every item should be visible:\n%s", text)
 	}
 }
 
-func TestPreviewLimitsOpenItems(t *testing.T) {
-	got := ansi.Strip(parseBody("- [ ] 1\n- [ ] 2\n- [ ] 3\n- [ ] 4\n- [ ] 5\n- [ ] 6\n").Preview(30))
-	if !strings.HasSuffix(got, "☐ 4\n+2 more") {
-		t.Errorf("Preview = %q", got)
-	}
-}
-
-func TestPreviewWithoutItemsExplainsFormat(t *testing.T) {
-	if got := ansi.Strip(parseBody("nothing here\n").Preview(40)); !strings.Contains(got, `"- [ ] task"`) {
-		t.Errorf("Preview = %q", got)
-	}
-}
-
-func TestPreviewFitsNarrowWidth(t *testing.T) {
-	for _, line := range strings.Split(parseBody("- [ ] 아주 긴 한글 항목 이름입니다 정말로\n").Preview(12), "\n") {
-		if w := widget.Width(line); w > 12 {
-			t.Errorf("line %q is %d cells wide", ansi.Strip(line), w)
+func TestDrawWrapsLongItems(t *testing.T) {
+	lines, _ := draw(parseBody("- [ ] 아주 긴 한글 항목 이름입니다 정말로 길어서 여러 줄이 됩니다\n- [ ] short\n"), 20, true)
+	for _, line := range lines {
+		if w := widget.Width(line); w > 20 {
+			t.Errorf("line %q is %d cells wide", line, w)
 		}
+	}
+	joined := strings.Join(strings.Fields(strings.Join(lines, " ")), " ")
+	if !strings.Contains(joined, "여러 줄이 됩니다") && !strings.Contains(strings.ReplaceAll(joined, " ", ""), "여러줄이됩니다") {
+		t.Errorf("wrapping lost the end of the item: %q", lines)
+	}
+}
+
+func TestCursorShowsOnlyWhenActive(t *testing.T) {
+	w := parseBody(body)
+	w, _ = w.Update("j")
+	lines, cursor := draw(w, 40, true)
+	if cursor < 0 || lines[cursor] != "› ☑ Validate input" {
+		t.Errorf("cursor = %d, lines = %q", cursor, lines)
+	}
+	if lines, cursor := draw(w, 40, false); cursor != -1 || strings.Contains(strings.Join(lines, "\n"), "›") {
+		t.Errorf("an inactive checklist must not show a cursor: %q", lines)
+	}
+}
+
+func TestChecklistWithoutItemsStillShowsItsText(t *testing.T) {
+	lines, cursor := draw(parseBody("# Steps\n1. [ ] one\n[ ] another\n"), 50, true)
+	text := strings.Join(lines, "\n")
+	for _, want := range []string{`"- [ ] task"`, "# Steps", "1. [ ] one", "[ ] another"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("Draw should contain %q:\n%s", want, text)
+		}
+	}
+	if cursor != -1 {
+		t.Errorf("cursor = %d, want -1 without items", cursor)
 	}
 }
 
@@ -82,6 +122,7 @@ func TestToggleConflicts(t *testing.T) {
 	for _, op := range []doc.Op{
 		Toggle{Text: "gone", Checked: true},
 		Toggle{Text: "Add endpoint", Checked: true}, // already checked
+		Toggle{Text: "tests", Checked: true, Nth: 2},
 	} {
 		d, err := op.Apply(doc.Document{Body: body})
 		if !errors.Is(err, doc.ErrConflict) || d.Body != body {
@@ -90,9 +131,17 @@ func TestToggleConflicts(t *testing.T) {
 	}
 }
 
+func TestTogglePicksTheRightDuplicate(t *testing.T) {
+	got := apply(t, Toggle{Text: "tests", Checked: true, Nth: 1}, sameItems)
+	if want := "## Backend\n- [ ] tests\n## Frontend\n- [x] tests\n"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
 func TestAddItem(t *testing.T) {
 	cases := []struct{ body, want string }{
 		{"- [x] a\n- [ ] b\n\nnotes\n", "- [x] a\n- [ ] b\n- [ ] new\n\nnotes\n"},
+		{"- [ ] a\n  detail of a\n\nnotes\n", "- [ ] a\n  detail of a\n- [ ] new\n\nnotes\n"},
 		{"", "- [ ] new\n"},
 		{"intro\n", "intro\n- [ ] new\n"},
 		{"intro", "intro\n- [ ] new"},
@@ -114,8 +163,24 @@ func TestSpaceTogglesItemUnderCursor(t *testing.T) {
 	if want := (Toggle{Text: "Write tests", Checked: true}); res.Op != want {
 		t.Fatalf("Op = %+v, want %+v", res.Op, want)
 	}
-	if view := ansi.Strip(w.View(40, 10)); !strings.Contains(view, "› ☑ Write tests") {
-		t.Errorf("the item should look checked right away:\n%s", view)
+	if lines, cursor := draw(w, 40, true); lines[cursor] != "› ☑ Write tests" {
+		t.Errorf("the item should look checked right away: %q", lines)
+	}
+}
+
+func TestSpaceCarriesTheDuplicateIndex(t *testing.T) {
+	w := parseBody(sameItems)
+	w, _ = w.Update("j")
+	_, res := w.Update("space")
+	if want := (Toggle{Text: "tests", Checked: true, Nth: 1}); res.Op != want {
+		t.Errorf("Op = %+v, want %+v", res.Op, want)
+	}
+}
+
+func TestXIsNotAToggleKey(t *testing.T) {
+	_, res := parseBody(body).Update("x")
+	if res.Op != nil || Kind.Handles("x") {
+		t.Error("x belongs to the screen (archive), not to the checklist")
 	}
 }
 
@@ -129,38 +194,25 @@ func TestNewItemPrompt(t *testing.T) {
 	}
 }
 
-func TestViewKeepsCursorVisible(t *testing.T) {
-	var sb strings.Builder
-	for i := 0; i < 20; i++ {
-		sb.WriteString("- [ ] item ")
-		sb.WriteString(strings.Repeat("x", i+1))
-		sb.WriteString("\n")
-	}
-	w := parseBody(sb.String())
-	for i := 0; i < 19; i++ {
-		w, _ = w.Update("j")
-	}
-	view := ansi.Strip(w.View(40, 5))
-	if !strings.Contains(view, "› ☐ item "+strings.Repeat("x", 20)) {
-		t.Errorf("cursor line is not visible:\n%s", view)
-	}
-	if n := strings.Count(view, "\n") + 1; n > 5 {
-		t.Errorf("View is %d lines tall, want at most 5", n)
-	}
-}
-
 func TestSyncClampsCursor(t *testing.T) {
 	w := parseBody(body)
 	w, _ = w.Update("j")
 	w, _ = w.Update("j")
 	w = w.Sync(doc.Document{Body: "- [ ] only\n"})
-	if view := ansi.Strip(w.View(40, 5)); !strings.Contains(view, "› ☐ only") {
-		t.Errorf("View = %q", view)
+	if lines, cursor := draw(w, 40, true); cursor < 0 || lines[cursor] != "› ☐ only" {
+		t.Errorf("Draw = %q", lines)
 	}
 }
 
-func TestKindTemplate(t *testing.T) {
+func TestKind(t *testing.T) {
 	if got := string(Kind.Template("Release")); got != "---\ntype: checklist\ntitle: Release\n---\n" {
 		t.Errorf("Template = %q", got)
+	}
+	if Kind.Size(doc.Document{}) != widget.SizeHalf {
+		t.Errorf("Size = %q", Kind.Size(doc.Document{}))
+	}
+	w := Kind.Parse(doc.Parse(Kind.Template("Release")))
+	if lines, _ := draw(w, 50, false); strings.Contains(strings.Join(lines, "\n"), "0/1") {
+		t.Errorf("a new checklist must not contain a blank item: %q", lines)
 	}
 }

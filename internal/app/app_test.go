@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -18,9 +19,23 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
-const boardFile = "---\ntype: board\ntitle: Auth\n---\n## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n"
+const boardFile = "---\ntype: board\ntitle: Auth\nopen: true\n---\n## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n"
 
-// newModel builds a board over a temporary notes folder, sized 80x24.
+const checklistFile = "---\ntype: checklist\ntitle: Release\nopen: true\n---\n- [x] build\n- [ ] ship\n"
+
+// opened returns a plain note that is open on the screen.
+func opened(body string) string { return "---\nopen: true\n---\n" + body }
+
+// numbered returns n lines "line 01" .. "line NN".
+func numbered(n int) string {
+	var sb strings.Builder
+	for i := 1; i <= n; i++ {
+		fmt.Fprintf(&sb, "line %02d\n", i)
+	}
+	return sb.String()
+}
+
+// newModel builds the screen over a temporary notes folder, sized 80x24.
 func newModel(t *testing.T, files map[string]string) (*Model, string) {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), store.DirName)
@@ -87,44 +102,67 @@ func typeText(m *Model, s string) {
 func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
-	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?"} {
+	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-"} {
 		if got := key(k).String(); got != k {
 			t.Errorf("key(%q).String() = %q", k, got)
 		}
 	}
 }
 
-func TestBoardShowsEveryNote(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": "check env\n", "b.md": boardFile})
+func TestTitleBarListsEveryNoteAndOnlyOpenOnesAreDrawn(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"a.md": "closed note body\n", "b.md": boardFile})
 	s := screen(m)
-	for _, want := range []string{"check env", "Auth", "To do (1)", "payments", "n jot"} {
-		if !strings.Contains(s, want) {
-			t.Errorf("screen should contain %q:\n%s", want, s)
-		}
+	bar := strings.Split(s, "\n")[0]
+	if !strings.Contains(bar, "▸ a") || !strings.Contains(bar, "▾ Auth") {
+		t.Errorf("the title bar should list both notes with their state: %q", bar)
+	}
+	if !strings.Contains(s, "payments") || !strings.Contains(s, "To do (1)") {
+		t.Errorf("the open board should be drawn:\n%s", s)
+	}
+	if strings.Contains(s, "closed note body") {
+		t.Errorf("a closed note must not be drawn:\n%s", s)
 	}
 	if n := strings.Count(s, "\n") + 1; n != 24 {
 		t.Errorf("screen is %d lines tall, want 24", n)
 	}
 }
 
-func TestEmptyBoardInvitesToJot(t *testing.T) {
+func TestEmptyStatesExplainWhatToDo(t *testing.T) {
 	m, _ := newModel(t, nil)
 	if s := screen(m); !strings.Contains(s, "No notes yet") {
 		t.Errorf("screen = %q", s)
 	}
+	m, _ = newModel(t, map[string]string{"a.md": "one\n"})
+	if s := screen(m); !strings.Contains(s, "Nothing is open") {
+		t.Errorf("screen = %q", s)
+	}
 }
 
-func TestFocusStartsOnFirstNoteAndCycles(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
+func TestOpenNotesAreNotCut(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("---\ntype: checklist\ntitle: Many\nopen: true\n---\n")
+	for i := 1; i <= 12; i++ {
+		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
+	}
+	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
+	s := screen(m)
+	if !strings.Contains(s, "item 01") || !strings.Contains(s, "item 12") || strings.Contains(s, "more") {
+		t.Errorf("every item of an open note should be visible:\n%s", s)
+	}
+}
+
+func TestFocusCyclesThroughEveryNote(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": boardFile})
 	if m.focus != "a.md" {
 		t.Fatalf("focus = %q, want a.md", m.focus)
 	}
-	if n := strings.Count(screen(m), "╔"); n != 1 {
-		t.Errorf("exactly one note should have the focus border, got %d", n)
+	if strings.Contains(screen(m), "╔") {
+		t.Error("the focused note is closed, so no frame should be focused")
 	}
 	press(m, "tab")
-	if m.focus != "b.md" {
-		t.Errorf("after tab: focus = %q", m.focus)
+	if m.focus != "b.md" || strings.Count(screen(m), "╔") != 1 {
+		t.Errorf("after tab: focus = %q, focused frames = %d", m.focus, strings.Count(screen(m), "╔"))
 	}
 	press(m, "tab")
 	if m.focus != "a.md" {
@@ -136,26 +174,165 @@ func TestFocusStartsOnFirstNoteAndCycles(t *testing.T) {
 	}
 }
 
-func TestArrowKeysFollowTheLayout(t *testing.T) {
-	// 80 cells wide gives two columns: a and c on the left, b on the right.
-	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n", "c.md": "three\n"})
-	for _, step := range []struct{ key, want string }{
-		{"l", "b.md"}, {"h", "a.md"}, {"j", "c.md"}, {"k", "a.md"}, {"k", "a.md"},
-	} {
+func TestOTogglesOpenInTheFile(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
+	press(m, "o")
+	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" {
+		t.Fatalf("file = %q", got)
+	}
+	if s := screen(m); !strings.Contains(s, "one") || !strings.Contains(s, "▾ a") {
+		t.Errorf("the note should be open now:\n%s", s)
+	}
+	press(m, "o")
+	if got := readFile(t, dir, "a.md"); got != "---\nopen: false\n---\none\n" {
+		t.Errorf("file = %q", got)
+	}
+	if s := screen(m); !strings.Contains(s, "▸ a") || !strings.Contains(s, "Nothing is open") {
+		t.Errorf("the note should be closed again:\n%s", s)
+	}
+}
+
+func TestEnterOpensAClosedNoteThenZooms(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
+	press(m, "enter")
+	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" || m.mode != modeBoard {
+		t.Fatalf("enter on a closed note should open it: file = %q, mode = %v", got, m.mode)
+	}
+	press(m, "enter")
+	if m.mode != modeZoom {
+		t.Fatalf("enter on an open note should zoom, mode = %v", m.mode)
+	}
+	press(m, "esc")
+	if m.mode != modeBoard {
+		t.Errorf("esc should leave the zoom, mode = %v", m.mode)
+	}
+}
+
+func TestNotesFromTheAgentOpenWithoutTouchingTheFile(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
+	writeFile(t, dir, "explain.md", "written by the agent\n")
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "written by the agent") {
+		t.Errorf("a note that appears while running should be shown:\n%s", s)
+	}
+	if got := readFile(t, dir, "explain.md"); got != "written by the agent\n" {
+		t.Errorf("showing it must not edit the file, got %q", got)
+	}
+	if strings.Contains(screen(m), "\n│ one") {
+		t.Error("notes that were there at startup stay closed")
+	}
+	writeFile(t, dir, "quiet.md", "---\nopen: false\n---\nhidden on purpose\n")
+	m.Update(changedMsg{})
+	if strings.Contains(screen(m), "hidden on purpose") {
+		t.Error("a new note that says open: false stays closed")
+	}
+}
+
+func TestBackgroundReportDoesNotReopenNotes(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"a.md": "closed body\n", "b.md": opened("open body\n")})
+	press(m, "tab")
+	var reports []bool
+	m.OnBackground = func(dark bool) { reports = append(reports, dark) }
+	before := m.items[0].w
+	m.Update(tea.BackgroundColorMsg{Color: color.White})
+	if len(reports) != 1 || reports[0] {
+		t.Errorf("OnBackground calls = %v, want one call with dark=false", reports)
+	}
+	if m.items[0].w == before {
+		t.Error("widgets should be rebuilt so they redraw with the new colors")
+	}
+	s := screen(m)
+	if m.focus != "b.md" || strings.Contains(s, "closed body") || !strings.Contains(s, "open body") {
+		t.Errorf("focus and open state must survive the redraw, focus = %q:\n%s", m.focus, s)
+	}
+}
+
+func TestSizeKeysWriteTheSize(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
+	steps := []struct{ key, size string }{{"+", "half"}, {"+", "page"}, {"+", "page"}, {"-", "half"}, {"-", "card"}, {"-", "card"}}
+	for _, step := range steps {
 		press(m, step.key)
-		if m.focus != step.want {
-			t.Fatalf("after %s: focus = %q, want %q", step.key, m.focus, step.want)
+		if got := readFile(t, dir, "a.md"); got != "---\nopen: true\nsize: "+step.size+"\n---\none\n" {
+			t.Fatalf("after %s: file = %q, want size %s", step.key, got, step.size)
 		}
+	}
+}
+
+func TestSizesDecideTheLayout(t *testing.T) {
+	second := strings.Replace(checklistFile, "Release", "Second", 1)
+	m, _ := newModel(t, map[string]string{"1.md": checklistFile, "2.md": second, "3.md": boardFile})
+	// frameTop reports whether line is the top border of a frame naming every title.
+	frameTop := func(line string, titles ...string) bool {
+		if !strings.ContainsAny(line, "╭╔") {
+			return false
+		}
+		for _, title := range titles {
+			if !strings.Contains(line, " "+title+" ") {
+				return false
+			}
+		}
+		return true
+	}
+	var sameRow, boardAlone bool
+	for _, line := range strings.Split(screen(m), "\n") {
+		if frameTop(line, "Release", "Second") {
+			sameRow = true
+		}
+		if frameTop(line, "Auth") && !frameTop(line, "Release") && widget.Width(strings.TrimRight(line, " ")) == 80 {
+			boardAlone = true
+		}
+	}
+	if !sameRow {
+		t.Errorf("two half-size notes should sit side by side:\n%s", screen(m))
+	}
+	if !boardAlone {
+		t.Errorf("a page-size note should take the whole width:\n%s", screen(m))
+	}
+	m.Update(tea.WindowSizeMsg{Width: 60, Height: 30})
+	for _, line := range strings.Split(screen(m), "\n") {
+		if frameTop(line, "Release", "Second") {
+			t.Errorf("in a narrow pane half-size notes take the full width:\n%s", screen(m))
+		}
+	}
+}
+
+func TestKeysReachTheFocusedOpenNote(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"b.md": boardFile})
+	press(m, "L")
+	want := "---\ntype: board\ntitle: Auth\nopen: true\n---\n## To do\n## Doing\n- login API\n- payments\n## Done\n- schema\n"
+	if got := readFile(t, dir, "b.md"); got != want {
+		t.Errorf("file = %q\nwant  %q", got, want)
+	}
+	if s := screen(m); !strings.Contains(s, "› payments") || m.mode != modeBoard {
+		t.Errorf("the card should move without zooming in:\n%s", s)
+	}
+}
+
+func TestSpaceTogglesAChecklistItemInPlace(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
+	press(m, "j", "space")
+	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [x] build\n- [x] ship\n") {
+		t.Errorf("file = %q", got)
+	}
+	if s := screen(m); !strings.Contains(s, "2/2") {
+		t.Errorf("the progress should update:\n%s", s)
+	}
+}
+
+func TestClosedNotesDoNotTakeWidgetKeys(t *testing.T) {
+	closed := strings.Replace(boardFile, "open: true\n", "", 1)
+	m, dir := newModel(t, map[string]string{"b.md": closed})
+	press(m, "L", "J", "space")
+	if got := readFile(t, dir, "b.md"); got != closed {
+		t.Errorf("a closed note must not be edited by widget keys, file = %q", got)
 	}
 }
 
 func TestPinnedNotesComeFirst(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "z.md": "---\npin: true\n---\npinned\n"})
-	if m.items[0].note.Name != "z.md" {
-		t.Errorf("first note = %q, want the pinned one", m.items[0].note.Name)
-	}
-	if !strings.Contains(screen(m), "📌") {
-		t.Error("a pinned note should show the pin")
+	bar := strings.Split(screen(m), "\n")[0]
+	if m.items[0].note.Name != "z.md" || strings.Index(bar, "z") > strings.Index(bar, "▸ a") || !strings.Contains(bar, "📌") {
+		t.Errorf("the pinned note should come first and show its pin: %q", bar)
 	}
 }
 
@@ -169,14 +346,13 @@ func TestChangedNotesAreMarkedUntilFocused(t *testing.T) {
 	if err := os.Chtimes(filepath.Join(dir, "b.md"), future, future); err != nil {
 		t.Fatal(err)
 	}
-	writeFile(t, dir, "c.md", "new from the agent\n")
 	m.Update(changedMsg{})
-	if n := strings.Count(screen(m), "●"); n != 2 {
-		t.Fatalf("the edited note and the new note should be marked, got %d marks:\n%s", n, screen(m))
+	if bar := strings.Split(screen(m), "\n")[0]; strings.Count(bar, "●") != 1 {
+		t.Fatalf("the edited note should be marked in the title bar: %q", bar)
 	}
-	press(m, "tab", "tab")
+	press(m, "tab")
 	if strings.Contains(screen(m), "●") {
-		t.Errorf("marks should clear once the notes were focused:\n%s", screen(m))
+		t.Errorf("the mark should clear once the note was focused:\n%s", screen(m))
 	}
 }
 
@@ -198,26 +374,72 @@ func TestUnreadableNoteShowsWhy(t *testing.T) {
 	}
 }
 
-func TestScrollKeepsFocusedNoteVisible(t *testing.T) {
-	files := map[string]string{}
-	for i := 0; i < 30; i++ {
-		files[string(rune('a'+i%26))+strings.Repeat("x", i/26)+".md"] = "note\n"
+func TestScrollFollowsTheCursorInATallNote(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("---\ntype: checklist\ntitle: Long\nopen: true\n---\n")
+	for i := 1; i <= 60; i++ {
+		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
 	}
-	m, _ := newModel(t, files)
-	m.Update(tea.WindowSizeMsg{Width: 40, Height: 10})
-	for i := 0; i < 29; i++ {
-		press(m, "tab")
-		if !strings.Contains(screen(m), "╔") {
-			t.Fatalf("focused note scrolled out of view after %d tabs", i+1)
+	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
+	m.Update(tea.WindowSizeMsg{Width: 60, Height: 12})
+	for i := 0; i < 50; i++ {
+		press(m, "j")
+		if !strings.Contains(screen(m), "› ☐ item") {
+			t.Fatalf("the cursor scrolled out of view after %d steps:\n%s", i+1, screen(m))
 		}
+	}
+	if !strings.Contains(screen(m), "› ☐ item 51") {
+		t.Errorf("the cursor should be on item 51:\n%s", screen(m))
+	}
+}
+
+func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"long.md": opened(numbered(40))})
+	m.Update(tea.WindowSizeMsg{Width: 60, Height: 12})
+	if s := screen(m); !strings.Contains(s, "line 01") || strings.Contains(s, "line 40") {
+		t.Fatalf("the top of the note should show first:\n%s", s)
+	}
+	press(m, "G")
+	if s := screen(m); !strings.Contains(s, "line 40") || strings.Contains(s, "line 01") {
+		t.Errorf("G should scroll to the end:\n%s", s)
+	}
+	press(m, "g")
+	if !strings.Contains(screen(m), "line 01") {
+		t.Errorf("g should scroll back to the top:\n%s", screen(m))
+	}
+}
+
+func TestALogShowsItsLastTenLines(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"log.md": "---\ntype: log\ntitle: Work log\nopen: true\n---\n" + numbered(30)})
+	s := screen(m)
+	if !strings.Contains(s, "line 30") || !strings.Contains(s, "line 21") || strings.Contains(s, "line 20") {
+		t.Errorf("a log should show its last ten lines:\n%s", s)
+	}
+}
+
+func TestRowsFixTheHeightAndKeepTheCursorVisible(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nrows: 6\n---\n")
+	for i := 1; i <= 20; i++ {
+		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
+	}
+	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
+	if n := strings.Count(screen(m), "☐"); n > 6 {
+		t.Errorf("rows: 6 should limit the height, %d items visible:\n%s", n, screen(m))
+	}
+	for i := 0; i < 15; i++ {
+		press(m, "j")
+	}
+	if !strings.Contains(screen(m), "› ☐ item 16") {
+		t.Errorf("the cursor should stay visible inside a fixed-height note:\n%s", screen(m))
 	}
 }
 
 func TestTinyTerminalDoesNotPanic(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": "한글 메모입니다\n", "b.md": boardFile})
+	m, _ := newModel(t, map[string]string{"a.md": opened("한글 메모입니다\n"), "b.md": boardFile, "c.md": checklistFile})
 	for _, size := range [][2]int{{0, 0}, {1, 1}, {5, 1}, {5, 3}, {10, 3}, {35, 2}, {200, 2}} {
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		press(m, "tab", "j", "l")
+		press(m, "tab", "j", "l", "enter", "j", "esc", "?", "j", "esc")
 		out := m.render()
 		if out == "" {
 			continue
@@ -243,24 +465,6 @@ func TestStatusShowsUntilNextKey(t *testing.T) {
 	press(m, "tab")
 	if strings.Contains(screen(m), "File watching is unavailable.") {
 		t.Error("status should clear on the next key")
-	}
-}
-
-func TestBackgroundReportRedrawsNotes(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
-	press(m, "tab")
-	var reports []bool
-	m.OnBackground = func(dark bool) { reports = append(reports, dark) }
-	before := m.items[0].w
-	m.Update(tea.BackgroundColorMsg{Color: color.White})
-	if len(reports) != 1 || reports[0] {
-		t.Errorf("OnBackground calls = %v, want one call with dark=false", reports)
-	}
-	if m.items[0].w == before {
-		t.Error("widgets should be rebuilt so they redraw with the new colors")
-	}
-	if m.focus != "b.md" || strings.Contains(screen(m), "●") {
-		t.Errorf("focus and change marks must survive the redraw, focus = %q", m.focus)
 	}
 }
 

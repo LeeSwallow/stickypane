@@ -11,21 +11,16 @@ import (
 )
 
 const (
-	previewCards   = 5  // cards shown per column on the board
-	stackedCards   = 3  // cards shown per column when columns are stacked
-	minPreviewCol  = 12 // narrower than this, the preview stacks columns
-	minModalCol    = 16 // narrower than this, the open board scrolls sideways
-	detailRows     = 4  // separator plus three lines about the selected card
-	descRows       = 2  // lines of the board's description shown when open
-	minDetailModal = 8  // shorter than this, the open board shows cards only
-	formatHint     = `no columns yet: add "## Name" headings`
+	minCol     = 16 // narrower than this, columns are stacked instead of side by side
+	formatHint = `no columns yet: add "## Name" headings`
 )
 
 // Kind registers the board.
 var Kind = widget.Kind{
-	Name:    "board",
-	Label:   "Board (kanban)",
-	FullRow: true,
+	Name:  "board",
+	Label: "Board (kanban)",
+	Keys:  "h l j k H L J K n left right up down",
+	Size:  func(doc.Document) string { return widget.SizePage },
 	Template: func(title string) []byte {
 		return widget.NewFile("board", title, "## To do\n\n## Doing\n\n## Done\n")
 	},
@@ -68,7 +63,8 @@ func parse(d doc.Document) *Board {
 			cd := card{text: cs.text}
 			for _, l := range lines[cs.start+1 : cs.end] {
 				if !isBlank(l) {
-					cd.detail = append(cd.detail, strings.TrimSpace(l))
+					// A detail is often a nested list item; its marker is noise here.
+					cd.detail = append(cd.detail, cardText(strings.TrimSpace(l)))
 				}
 			}
 			c.cards = append(c.cards, cd)
@@ -76,29 +72,6 @@ func parse(d doc.Document) *Board {
 		b.cols = append(b.cols, c)
 	}
 	return b
-}
-
-// nth is how many cards above the cursor share the selected card's text. It
-// tells an Op which of several identical cards is meant.
-func (b *Board) nth() int {
-	cards := b.cols[b.col].cards
-	n := 0
-	for _, c := range cards[:b.row] {
-		if c.text == cards[b.row].text {
-			n++
-		}
-	}
-	return n
-}
-
-// unshaped draws a board that has no columns: the format hint followed by
-// the text that is there, so a note that does not fit the shape stays visible.
-func (b *Board) unshaped(width, height int) string {
-	lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
-	for _, d := range b.desc {
-		lines = append(lines, widget.Truncate(widget.Clean(d), width))
-	}
-	return strings.Join(widget.Window(lines, 0, height), "\n")
 }
 
 func (b *Board) clamp() {
@@ -117,52 +90,125 @@ func (b *Board) current() (card, bool) {
 	return card{}, false
 }
 
-func header(c column) string {
-	return fmt.Sprintf("%s (%d)", widget.Clean(c.title), len(c.cards))
-}
-
-// Preview implements widget.Widget.
-func (b *Board) Preview(width int) string {
-	if len(b.cols) == 0 {
-		return b.unshaped(width, previewCards)
-	}
-	cw := width / len(b.cols)
-	if cw < minPreviewCol {
-		return b.stacked(width)
-	}
-	cells := make([][]string, len(b.cols))
-	rows := 0
-	for i, c := range b.cols {
-		cells[i] = []string{widget.Bold.Render(widget.Truncate(header(c), cw-1))}
-		for j, cd := range c.cards {
-			if j == previewCards {
-				cells[i] = append(cells[i], widget.Faint.Render(fmt.Sprintf("+%d more", len(c.cards)-j)))
-				break
-			}
-			cells[i] = append(cells[i], widget.Truncate(widget.Clean(cd.text), cw-1))
+// nth is how many cards above the cursor share the selected card's text. It
+// tells an Op which of several identical cards is meant.
+func (b *Board) nth() int {
+	cards := b.cols[b.col].cards
+	n := 0
+	for _, c := range cards[:b.row] {
+		if c.text == cards[b.row].text {
+			n++
 		}
-		rows = max(rows, len(cells[i]))
 	}
-	return joinColumns(cells, rows, cw)
+	return n
 }
 
-func (b *Board) stacked(width int) string {
+// wrapped returns s cleaned and wrapped to width, each line styled.
+func wrapped(s string, width int, style func(...string) string) []string {
+	lines := widget.Wrap(widget.Clean(s), max(width, 1))
+	if style != nil {
+		for i, l := range lines {
+			lines[i] = style(l)
+		}
+	}
+	return lines
+}
+
+// Draw implements widget.Widget. Every card is shown and long cards wrap.
+// The selected card, marked only while the board is active, shows its
+// details right below it.
+func (b *Board) Draw(width int, active bool) (string, int) {
 	var out []string
-	for _, c := range b.cols {
-		out = append(out, widget.Bold.Render(widget.Truncate(header(c), width)))
-		for j, cd := range c.cards {
-			if j == stackedCards {
-				out = append(out, widget.Faint.Render(fmt.Sprintf("  +%d more", len(c.cards)-j)))
-				break
+	for _, d := range b.desc {
+		out = append(out, wrapped(d, width, widget.Faint.Render)...)
+	}
+	if len(b.cols) == 0 {
+		hint := widget.Faint.Render(widget.Truncate(formatHint, width))
+		lines := []string{hint}
+		for _, d := range b.desc {
+			lines = append(lines, wrapped(d, width, nil)...)
+		}
+		return widget.Fit(strings.Join(lines, "\n"), width), -1
+	}
+	if len(out) > 0 {
+		out = append(out, "")
+	}
+	b.clamp()
+
+	cw := width / len(b.cols)
+	var body []string
+	cursor := -1
+	if cw < minCol {
+		for i := range b.cols {
+			if i > 0 {
+				body = append(body, "")
 			}
-			out = append(out, "  "+widget.Truncate(widget.Clean(cd.text), width-2))
+			lines, at := b.column(i, width, active)
+			if at >= 0 {
+				cursor = len(body) + at
+			}
+			body = append(body, lines...)
+		}
+	} else {
+		cells := make([][]string, len(b.cols))
+		rows := 0
+		for i := range b.cols {
+			var at int
+			cells[i], at = b.column(i, cw-1, active)
+			if at >= 0 {
+				cursor = at
+			}
+			rows = max(rows, len(cells[i]))
+		}
+		body = joinColumns(cells, rows, cw)
+	}
+	if cursor >= 0 {
+		cursor += len(out)
+	}
+	return widget.Fit(strings.Join(append(out, body...), "\n"), width), cursor
+}
+
+// column draws one column at width: its heading, then every card with a
+// blank line between cards. It returns the line of the selected card, or -1
+// when the selection is in another column or the board is not active.
+func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
+	c := b.cols[i]
+	cursor = -1
+	head := widget.Truncate(fmt.Sprintf("%s (%d)", widget.Clean(c.title), len(c.cards)), width)
+	if active && i == b.col {
+		lines = append(lines, widget.Bold.Underline(true).Render(head))
+	} else {
+		lines = append(lines, widget.Bold.Render(head))
+	}
+	for r, cd := range c.cards {
+		if r > 0 {
+			lines = append(lines, "")
+		}
+		selected := active && i == b.col && r == b.row
+		for j, l := range wrapped(cd.text, width-2, nil) {
+			switch {
+			case selected && j == 0:
+				cursor = len(lines)
+				lines = append(lines, widget.Selected.Render("› "+l))
+			case selected:
+				lines = append(lines, widget.Selected.Render("  "+l))
+			default:
+				lines = append(lines, "  "+l)
+			}
+		}
+		if selected {
+			for _, d := range cd.detail {
+				for _, l := range wrapped(d, width-4, widget.Faint.Render) {
+					lines = append(lines, "    "+l)
+				}
+			}
 		}
 	}
-	return strings.Join(out, "\n")
+	return lines, cursor
 }
 
 // joinColumns lays cells out side by side, each column cw cells wide.
-func joinColumns(cells [][]string, rows, cw int) string {
+func joinColumns(cells [][]string, rows, cw int) []string {
 	out := make([]string, rows)
 	for r := range out {
 		var sb strings.Builder
@@ -175,79 +221,7 @@ func joinColumns(cells [][]string, rows, cw int) string {
 		}
 		out[r] = strings.TrimRight(sb.String(), " ")
 	}
-	return strings.Join(out, "\n")
-}
-
-// View implements widget.Widget.
-func (b *Board) View(width, height int) string {
-	if len(b.cols) == 0 {
-		return b.unshaped(width, height)
-	}
-	b.clamp()
-	detail, desc := 0, 0
-	if height >= minDetailModal {
-		detail, desc = detailRows, min(len(b.desc), descRows)
-	}
-	listH := max(height-detail-desc-1, 1)
-
-	cw, first, visible := width/len(b.cols), 0, len(b.cols)
-	if cw < minModalCol {
-		cw = max(min(minModalCol, width), 1)
-		visible = max(width/cw, 1)
-		first = max(b.col-visible+1, 0)
-	}
-
-	var cells [][]string
-	for i := first; i < first+visible && i < len(b.cols); i++ {
-		c := b.cols[i]
-		head := widget.Bold.Render(widget.Truncate(header(c), cw-1))
-		if i == b.col {
-			head = widget.Bold.Underline(true).Render(widget.Truncate(header(c), cw-1))
-		}
-		lines := []string{head}
-		offset := 0
-		if i == b.col {
-			offset = max(b.row-listH+1, 0)
-		}
-		for r := offset; r < len(c.cards) && r < offset+listH; r++ {
-			text := widget.Truncate(widget.Clean(c.cards[r].text), cw-3)
-			if i == b.col && r == b.row {
-				lines = append(lines, widget.Selected.Render("› "+text))
-			} else {
-				lines = append(lines, "  "+text)
-			}
-		}
-		cells = append(cells, lines)
-	}
-	var out []string
-	for i, d := range b.desc[:desc] {
-		if i == desc-1 && len(b.desc) > desc {
-			d += " …"
-		}
-		out = append(out, widget.Faint.Render(widget.Truncate(widget.Clean(d), width)))
-	}
-	out = append(out, joinColumns(cells, listH+1, cw))
-	if detail > 0 {
-		out = append(out, widget.Faint.Render(strings.Repeat("─", width)))
-		out = append(out, b.detail(width, detail-1)...)
-	}
-	return strings.Join(out, "\n")
-}
-
-// detail describes the selected card in at most n lines.
-func (b *Board) detail(width, n int) []string {
-	c, ok := b.current()
-	if !ok {
-		return []string{widget.Faint.Render("no card selected")}
-	}
-	lines := []string{widget.Bold.Render(widget.Truncate(widget.Clean(c.text), width))}
-	for _, d := range c.detail {
-		lines = append(lines, widget.Truncate(widget.Clean(d), width))
-	}
-	if len(c.detail) == 0 {
-		lines = append(lines, widget.Faint.Render("(no details)"))
-	}
-	return lines[:min(len(lines), n)]
+	return out
 }
 
 // Update implements widget.Widget.

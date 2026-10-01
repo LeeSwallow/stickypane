@@ -50,6 +50,28 @@ func Pad(s string, w int) string {
 	return s
 }
 
+// Wrap breaks s into lines of at most w cells. Words longer than a line are
+// split, so no line is ever wider than w.
+func Wrap(s string, w int) []string {
+	if w <= 0 {
+		return []string{s}
+	}
+	return strings.Split(ansi.Wrap(s, w, ""), "\n")
+}
+
+// Fit cuts every line of s to at most w cells, without an ellipsis. It is the
+// last safeguard for widths too small for the content, such as a pane
+// narrower than one wide character.
+func Fit(s string, w int) string {
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if Width(l) > w {
+			lines[i] = ansi.Truncate(l, max(w, 0), "")
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // ClampOffset keeps a scroll offset inside [0, total-height].
 func ClampOffset(offset, total, height int) int {
 	if m := total - height; offset > m {

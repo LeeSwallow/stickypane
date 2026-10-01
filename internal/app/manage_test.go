@@ -6,6 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestPinToggles(t *testing.T) {
@@ -46,7 +50,7 @@ func TestRenameEditsTheTitle(t *testing.T) {
 		t.Errorf("file = %q", got)
 	}
 	if !strings.Contains(screen(m), "Older") {
-		t.Error("the new title should show")
+		t.Error("the new title should show in the title bar")
 	}
 }
 
@@ -84,9 +88,9 @@ func TestDeleteAsksFirst(t *testing.T) {
 	}
 }
 
-func TestManageKeysDoNothingOnAnEmptyBoard(t *testing.T) {
+func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
 	m, _ := newModel(t, nil)
-	press(m, "p", "c", "R", "x", "D", "e", "enter")
+	press(m, "p", "c", "R", "x", "D", "e", "enter", "o", "+", "-", "tab", "j", "G")
 	if m.mode != modeBoard {
 		t.Errorf("mode = %v", m.mode)
 	}
@@ -111,17 +115,49 @@ func TestEditorFailureIsReported(t *testing.T) {
 	}
 }
 
-func TestHelpOpensAndCloses(t *testing.T) {
+func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
-	press(m, "?")
-	s := screen(m)
-	for _, want := range []string{"jot a note", "move to archive", "any other key closes"} {
-		if !strings.Contains(s, want) {
-			t.Fatalf("help should mention %q:\n%s", want, s)
+	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
+	for _, line := range strings.Split(helpText, "\n") {
+		if w := widget.Width(line); w > 40 {
+			t.Errorf("help line %q is %d cells wide, want at most 40", line, w)
 		}
 	}
-	press(m, "x") // any key closes help and must not archive
+	press(m, "?")
+	seen := screen(m)
+	if !strings.Contains(seen, "any other key closes") {
+		t.Fatalf("help should say how to close it:\n%s", seen)
+	}
+	for i := 0; i < 60; i++ {
+		press(m, "j")
+		seen += "\n" + screen(m)
+	}
+	if m.mode != modeHelp {
+		t.Fatalf("j should scroll the help, mode = %v", m.mode)
+	}
+	for _, want := range []string{"open or close", "jot a note", "move to archive", "quit", "reorder a card", "tick an item", "bigger"} {
+		if !strings.Contains(seen, want) {
+			t.Errorf("scrolling the help should reveal %q", want)
+		}
+	}
+	press(m, "x") // any other key closes help and must not archive
 	if m.mode != modeBoard || len(m.items) != 1 {
 		t.Errorf("mode = %v, notes = %d", m.mode, len(m.items))
+	}
+}
+
+func TestHelpFromAZoomedNoteReturnsToIt(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"b.md": boardFile})
+	press(m, "enter")
+	if s := screen(m); !strings.Contains(s, "? keys") {
+		t.Errorf("the zoomed note should point to the key help:\n%s", s)
+	}
+	press(m, "?")
+	if m.mode != modeHelp {
+		t.Fatalf("mode = %v, want help", m.mode)
+	}
+	press(m, "x")
+	if m.mode != modeZoom {
+		t.Errorf("mode = %v, want the zoomed note again", m.mode)
 	}
 }

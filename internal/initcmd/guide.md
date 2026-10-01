@@ -8,8 +8,11 @@ note, edit it to update the note, delete it to take the note down.
 Jot freely: decisions, things to remember, progress. A one-line file is a
 complete note. Add front matter only when a note needs a shape:
 
-- Plain note: any Markdown. Optional keys: `title`, `pin: true`, and `color`
-  (yellow, pink, blue, green, purple, orange).
+- Plain note: any Markdown, from one line to a full page.
+- Any note takes these optional keys: `title`; `open: true` to put it on the
+  screen now (`open: false` to keep it folded away); `size` (`page` for the
+  whole width, `half`, or `card`); `pin: true`; `color` (yellow, pink, blue,
+  green, purple, orange).
 - Board: `type: board`. Each `## Heading` is a column, each top-level `- item`
   below it is a card, and indented lines under a card are its details. Move a
   card by moving its lines under another heading.
@@ -23,8 +26,9 @@ complete note. Add front matter only when a note needs a shape:
     - [x] Add endpoint
     - [ ] Write tests
 
-Keep notes short. When progress changes, update the matching note instead of
-adding a new one. The user can edit notes from the board, so read a note again
+The screen shows open notes in full and lists the others by title, so open
+what the user should read now. When progress changes, update the matching
+note instead of adding a new one. The user can edit notes from the board, so read a note again
 before you change it. Notes are ordered by file name; prefix a number
 (`10-plan.md`) to control the order.
 <!-- stickypane:end -->
