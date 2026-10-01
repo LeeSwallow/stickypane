@@ -2,34 +2,36 @@
 package logview
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// previewLines is how many of the latest entries the board shows.
-const previewLines = 5
+// rows is how tall a log is on the board unless the note says otherwise.
+const rows = 10
 
-// Kind registers the log.
+// Kind registers the log. Its fixed-height view shows the end, so the
+// newest entries stay in sight as the file grows.
 var Kind = widget.Kind{
 	Name:     "log",
 	Label:    "Log",
+	Icon:     "≣",
+	Blurb:    "One entry per line. The newest entries stay in sight.",
+	Example:  "14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
+	Tail:     true,
+	Rows:     rows,
+	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("log", title, "") },
-	Parse:    func(d doc.Document) widget.Widget { return parse(d, 0, true) },
+	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
 }
 
 // Log is the widget for a log note.
-type Log struct {
-	lines  []string
-	offset int
-	follow bool // stay at the end as lines arrive
-}
+type Log struct{ lines []string }
 
-func parse(d doc.Document, offset int, follow bool) *Log {
-	l := &Log{offset: offset, follow: follow}
+func parse(d doc.Document) *Log {
+	l := &Log{}
 	for _, line := range doc.Lines(d.Body) {
 		l.lines = append(l.lines, strings.TrimRight(widget.Clean(line), " "))
 	}
@@ -39,45 +41,39 @@ func parse(d doc.Document, offset int, follow bool) *Log {
 	return l
 }
 
-// Preview implements widget.Widget.
-func (l *Log) Preview(width int) string {
+// Draw implements widget.Widget. A log has no cursor.
+func (l *Log) Draw(width int, _ bool) (string, widget.Span) {
+	if len(l.lines) == 0 {
+		return widget.Faint.Render("(no entries yet)"), widget.NoSpan
+	}
 	var out []string
-	for i := len(l.lines) - 1; i >= 0 && len(out) < previewLines; i-- {
-		if l.lines[i] != "" {
-			out = append([]string{widget.Truncate(l.lines[i], width)}, out...)
-		}
-	}
-	if len(out) == 0 {
-		return widget.Faint.Render("(no entries yet)")
-	}
-	return strings.Join(out, "\n")
-}
-
-// View implements widget.Widget.
-func (l *Log) View(width, height int) string {
-	var wrapped []string
+	// A log shows the file as it is: no styling, only wrapping so that
+	// nothing is cut.
 	for _, line := range l.lines {
-		if width > 0 {
-			line = ansi.Wrap(line, width, "")
-		}
-		wrapped = append(wrapped, strings.Split(line, "\n")...)
+		out = append(out, widget.Wrap(line, width)...)
 	}
-	if l.follow {
-		l.offset = len(wrapped)
-	}
-	l.offset = widget.ClampOffset(l.offset, len(wrapped), height)
-	return strings.Join(widget.Window(wrapped, l.offset, height), "\n")
+	return strings.Join(out, "\n"), widget.NoSpan
 }
 
-// Update implements widget.Widget.
-func (l *Log) Update(key string) (widget.Widget, widget.Result) {
-	if key == "G" {
-		l.follow = true
-	} else if off, ok := widget.ScrollKey(l.offset, key); ok {
-		l.offset, l.follow = off, false
+// Summary implements widget.Widget: how many entries the log has.
+func (l *Log) Summary() string {
+	n := 0
+	for _, line := range l.lines {
+		if line != "" {
+			n++
+		}
 	}
-	return l, widget.Result{}
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return "1 line"
+	}
+	return fmt.Sprintf("%d lines", n)
 }
+
+// Update implements widget.Widget. A log takes no keys.
+func (l *Log) Update(string) (widget.Widget, widget.Result) { return l, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d, l.offset, l.follow) }
+func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d) }

@@ -12,8 +12,14 @@ import (
 
 func exec(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
+	return execIn(t, "", args...)
+}
+
+// execIn runs the command line with the given standard input.
+func execIn(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
+	t.Helper()
 	var out, errOut bytes.Buffer
-	code = run(args, &out, &errOut)
+	code = run(args, strings.NewReader(stdin), &out, &errOut)
 	return code, out.String(), errOut.String()
 }
 

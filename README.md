@@ -1,30 +1,34 @@
 # stickypane
 
-A sticky-note board in your terminal, for you and your coding agent.
+A note board in your terminal, for you and your coding agent.
 
 ```
-╔ 📌 Auth work ════════════════════════════════════════════════════════════════╗
-║ To do (1)                Doing (1)                Done (1)                   ║
-║ payments                 login API                schema                     ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-╭ Login API ───────────────────────────╮╭ Auth design ─────────────────────────╮
-│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3             ││ Decisions                            │
-│ ☐ Write tests                        ││                                      │
-╰──────────────────────────────────────╯│ Tokens live in a session cookie.     │
-╭──────────────────────────────────────╮╰──────────────────────────────────────╯
-│ check env before deploy              │╭ ● Work log ──────────────────────────╮
-╰──────────────────────────────────────╯│ 14:02 tests passed                   │
-                                        │ 14:10 started on review feedback     │
-                                        ╰──────────────────────────────────────╯
-n jot  enter open  a add  ? help  q quit
+ ● ▦ Auth work  ● ☑ Login API  ● ≣ Work log  ○ ✎ Auth design  ○ ✎ memo
+──────────────────────────────────────────────────────────────────────────────
+╔ ▦ Auth work ══════════════════════════════════════════════════════ 4 cards ╗
+║ To do (1)               Doing (1)               Done (2)                   ║
+║ ──────────────────────  ──────────────────────  ──────────────────────     ║
+║ ▎ payments              › login API             ▎ schema                   ║
+║                             refresh tokens                                 ║
+║                             come later          ▎ CI setup                 ║
+╚════════════════════════════════════════════════════════════════════════════╝
+╭ ☑ Login API ─────────────────── 2/3 ╮╭ ≣ Work log ──────────────── 2 lines ╮
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3            ││ 14:02 tests passed                  │
+│                                     ││ 14:10 started on review feedback    │
+│   ☑ Add endpoint                    │╰─────────────────────────────────────╯
+│   ☑ Validate input                  │
+│   ☐ Write tests                     │
+╰─────────────────────────────────────╯
+h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 ```
 
-Your agent jots things down as plain Markdown files. stickypane shows them as
-notes in a pane next to it: plain notes, kanban boards, checklists and logs.
-Move a card or tick a box on the board and the change lands in the same file,
+Your agent jots things down as plain Markdown files. stickypane shows them in
+a pane next to it: plain notes, kanban boards, checklists and logs. The line
+at the top lists every note (`●` open, `○` folded away); the ones you open are
+drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
 so the agent sees it too.
 
-- **Nothing to configure.** No config file, no server, no MCP, no hooks.
+- **Nothing to configure.** No config file, no server, no hooks.
 - **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
   and others.
 - **Any terminal.** A plain window, tmux, WezTerm, Zellij. stickypane is a
@@ -48,9 +52,10 @@ stickypane init    # creates .stickypane/ and tells your agent about it
 stickypane         # opens the board
 ```
 
-`init` adds a short guide to `AGENTS.md` (or `CLAUDE.md` if you have one), so
-your agent knows the board exists. Then ask it for anything: "keep a checklist
-of this refactor on the board", "jot down what we decided".
+`init` adds a short guide to `AGENTS.md` and `CLAUDE.md` (whichever exist; it
+creates `AGENTS.md` if neither does), so your agent knows the board is there.
+Then ask it for anything: "keep a checklist of this refactor on the board",
+"explain the structure on the board as a page".
 
 Keep the board next to your agent:
 
@@ -70,14 +75,22 @@ file is a complete note:
 check env before deploy
 ```
 
-Front matter gives a note a shape. Every key is optional.
+Front matter says how a note looks. Every key is optional, and you never have
+to type one: the keys in the next section change them for you.
 
-| Key     | Values                                           |
-| ------- | ------------------------------------------------ |
-| `type`  | `note` (default), `board`, `checklist`, `log`    |
-| `title` | shown in the note's border                       |
-| `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange` |
-| `pin`   | `true` keeps the note at the top                 |
+| Key     | Values                                                 |
+| ------- | ------------------------------------------------------ |
+| `type`  | `note` (default), `board`, `checklist`, `log`           |
+| `title` | shown in the title bar and the note's border            |
+| `open`  | `true` draws the note on the screen, `false` folds it away |
+| `size`  | `page` (whole width), `half`, `card`                    |
+| `rows`  | a fixed height in lines; zoom in to see the rest        |
+| `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange`   |
+| `pin`   | `true` keeps the note first                             |
+
+A note without `open` is folded away, except that a note that appears while
+stickypane is running is shown for that run. What your agent just wrote is in
+front of you at once, and the file is left alone.
 
 **Board.** Each `## Heading` is a column and each top-level list item is a
 card. Indented lines under a card are its details. Any other line under a
@@ -88,6 +101,7 @@ board's description.
 ---
 type: board
 title: Auth work
+open: true
 ---
 ## To do
 - payments
@@ -100,7 +114,7 @@ title: Auth work
 
 **Checklist.** `- [ ]` and `- [x]` lines, shown with a progress bar.
 
-**Log.** One entry per line. The board shows the latest lines and follows
+**Log.** One entry per line. The note shows the latest ten lines and follows
 along as the file grows.
 
 Notes are ordered by file name, pinned ones first. Prefix a number
@@ -109,16 +123,44 @@ still shown, never hidden.
 
 ## Keys
 
-| Board                 |                    | Open note |                         |
-| --------------------- | ------------------ | --------- | ----------------------- |
-| arrows, `h j k l`     | move focus         | `esc`     | close                   |
-| `enter`               | open note          | `j` `k`   | move or scroll          |
-| `n`                   | jot a note         | `G`       | jump to the end         |
-| `a`                   | add by shape       | `H` `L`   | move a card sideways    |
-| `p` / `c` / `R`       | pin, color, rename | `J` `K`   | reorder a card          |
-| `x` / `D`             | archive, delete    | `space`   | tick a checklist item   |
-| `e`                   | edit in `$EDITOR`  | `n`       | new card or item        |
-| `?`                   | help               | `e`       | edit in `$EDITOR`       |
+| Any note            |                         | Open board or checklist |                      |
+| ------------------- | ----------------------- | ----------------------- | -------------------- |
+| `tab` / `shift+tab` | next, previous note     | `h` `l`                 | change column        |
+| `enter`             | open, then zoom         | `j` `k`                 | change card or item  |
+| `o`                 | open or close           | `H` `L`                 | move a card sideways |
+| `+` / `-`           | bigger, smaller         | `J` `K`                 | reorder a card       |
+| `N`                 | jot a note              | `space`                 | tick an item         |
+| `a`                 | add by shape            | `n`                     | new card or item     |
+| `p` / `c` / `R`     | pin, color, rename      |                         |                      |
+| `x` / `D`           | archive, delete         | **Zoomed note**         |                      |
+| `e`                 | edit in `$EDITOR`       | `esc`                   | back                 |
+| `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
+
+The focused open note takes the keys in the right-hand column where it is;
+you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
+when the focused note has no cursor of its own.
+
+## Command line and MCP
+
+Editing the files is all an agent needs. For scripts, and for agents that
+would rather call a tool, the same notes are reachable two more ways.
+
+```sh
+stickypane list --json                       # every note: name, title, type, open, size
+stickypane show plan                         # print a note's file
+echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
+```
+
+`stickypane mcp` serves the notes over the Model Context Protocol on standard
+input and output, with four tools: `list_notes`, `read_note`, `write_note`
+and `guide`.
+
+```sh
+claude mcp add stickypane -- stickypane mcp
+```
+
+`write` and `write_note` replace the whole note, exactly as overwriting the
+file would. Read a note before rewriting it.
 
 ## How edits are written
 

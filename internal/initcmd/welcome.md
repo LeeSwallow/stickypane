@@ -1,14 +1,17 @@
 ---
 title: Welcome to stickypane
 pin: true
+open: true
 color: yellow
 ---
-This board shows the Markdown files in `.stickypane/`. Each file is a note.
+The line at the top lists every note in `.stickypane/`. Open notes are drawn
+below it in full; the rest stay folded away.
 
-- **n** jots a note, **a** adds a board, checklist or log
-- **enter** opens a note, **esc** closes it
+- **tab** moves between notes, **enter** opens one and then zooms into it
+- **o** closes a note, **+** and **-** change its size
+- **N** jots a note, **a** adds a board, checklist or log
 - **p** pins, **c** changes color, **x** moves a note to `archive/`
 - **?** lists every key
 
-Your agent can stick notes here by writing files. Press **x** to take this
-note down when you are done with it.
+Your agent can stick notes here by writing files. Press **o** to fold this
+note away when you are done with it.

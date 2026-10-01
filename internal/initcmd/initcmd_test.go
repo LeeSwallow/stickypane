@@ -34,10 +34,10 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if !strings.HasPrefix(g, startMark+"\n") || !strings.HasSuffix(g, endMark+"\n") {
 		t.Error("the guide must be wrapped in the markers")
 	}
-	if n := strings.Count(g, "\n"); n > 30 {
-		t.Errorf("the guide is %d lines, want at most 30", n)
+	if n := strings.Count(g, "\n"); n > 40 {
+		t.Errorf("the guide is %d lines, want at most 40", n)
 	}
-	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "- [ ]", "## Heading", "color", "pin: true"} {
+	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}
@@ -48,6 +48,9 @@ func TestRunCreatesBoardWelcomeNoteAndAgentsFile(t *testing.T) {
 	root := t.TempDir()
 	out := run(t, root, Options{})
 	welcome := doc.Parse([]byte(read(t, filepath.Join(root, ".stickypane", "welcome.md"))))
+	if open, _ := welcome.Get("open"); open != "true" {
+		t.Errorf("the welcome note should be open on first run, open = %q", open)
+	}
 	if !welcome.Pinned() || !strings.Contains(welcome.Body, "jots a note") {
 		t.Errorf("the welcome note should be pinned and explain the keys: %q", welcome.Body)
 	}
@@ -116,5 +119,15 @@ func TestNoAgentDocs(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Error("AGENTS.md should not be touched")
+	}
+}
+
+func TestGuideTextHasNoMarkers(t *testing.T) {
+	text := GuideText()
+	if strings.Contains(text, "stickypane:start") || strings.Contains(text, "stickypane:end") {
+		t.Errorf("GuideText should drop the markers: %q", text)
+	}
+	if !strings.HasPrefix(text, "## stickypane notes") || !strings.Contains(text, "type: board") {
+		t.Errorf("GuideText should be the guide itself: %q", text)
 	}
 }

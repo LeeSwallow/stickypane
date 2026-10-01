@@ -8,11 +8,21 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
+
+// sizes lists the note sizes from smallest to largest, the order "+" and
+// "-" step through.
+var sizes = []string{widget.SizeCard, widget.SizeHalf, widget.SizePage}
 
 func init() {
 	handlers[modeConfirm] = confirmUpdate
-	footers[modeConfirm] = func(m *Model) string { return m.confirmMsg }
+	footers[modeConfirm] = func(m *Model) string { return widget.Warn.Bold(true).Render(m.confirmMsg) }
+
+	grow := onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })
+	boardKeys["+"] = grow
+	boardKeys["="] = grow // the same key without shift
+	boardKeys["-"] = onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })
 
 	boardKeys["p"] = onFocused(func(m *Model, it item) tea.Cmd {
 		value := "true"
@@ -62,15 +72,26 @@ func init() {
 	})
 }
 
-// onFocused runs f for the focused note and does nothing on an empty board.
-func onFocused(f func(*Model, item) tea.Cmd) func(*Model) tea.Cmd {
-	return func(m *Model) tea.Cmd {
-		i := m.index(m.focus)
-		if i < 0 {
-			return nil
-		}
-		return f(m, m.items[i])
+// resize steps an open note's size up or down and writes it. It writes
+// nothing where nothing would show: on a closed note, and at either end of
+// the sizes.
+func (m *Model) resize(it item, delta int) {
+	if !m.isOpen(it) || !m.editable(it) {
+		return
 	}
+	current := m.sizeOf(it)
+	i := 0
+	for j, s := range sizes {
+		if s == current {
+			i = j
+		}
+	}
+	next := sizes[max(min(i+delta, len(sizes)-1), 0)]
+	if next == current {
+		return
+	}
+	m.apply(it.note.Name, doc.SetKey{Key: "size", Value: next})
+	m.reveal = revealNote
 }
 
 // confirm asks a yes/no question on the bottom line.

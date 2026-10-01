@@ -10,8 +10,11 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// previewLines is the tallest a plain note gets on the board.
-const previewLines = 6
+// A note's default size follows its length, counted in non-blank lines.
+const (
+	cardLines = 3  // up to this many lines, a note is a small card
+	halfLines = 12 // up to this many, it takes half the width; longer notes get the page
+)
 
 // Renderer turns Markdown into terminal text no wider than width.
 type Renderer func(markdown string, width int) string
@@ -29,9 +32,29 @@ func NewKind(render Renderer) widget.Kind {
 	return widget.Kind{
 		Name:     "note",
 		Label:    "Note",
+		Icon:     "✎",
+		Blurb:    "Anything in Markdown, from one line to a full page.",
+		Example:  "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
+		Size:     size,
 		Template: func(title string) []byte { return widget.NewFile("note", title, "") },
-		Parse:    func(d doc.Document) widget.Widget { return newNote(d.Body, render, 0) },
+		Parse:    func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
 	}
+}
+
+func size(d doc.Document) string {
+	n := 0
+	for _, line := range doc.Lines(d.Body) {
+		if strings.TrimSpace(line) != "" {
+			n++
+		}
+	}
+	switch {
+	case n <= cardLines:
+		return widget.SizeCard
+	case n <= halfLines:
+		return widget.SizeHalf
+	}
+	return widget.SizePage
 }
 
 // Note is the widget for a plain note.
@@ -39,11 +62,10 @@ type Note struct {
 	body   string
 	render Renderer
 	cache  map[int][]string // rendered lines by width
-	offset int
 }
 
-func newNote(body string, render Renderer, offset int) *Note {
-	return &Note{body: body, render: render, cache: map[int][]string{}, offset: offset}
+func newNote(body string, render Renderer) *Note {
+	return &Note{body: body, render: render, cache: map[int][]string{}}
 }
 
 // lines renders the body at width and trims blank lines from both ends.
@@ -63,32 +85,20 @@ func (n *Note) lines(width int) []string {
 	return l
 }
 
-// Preview implements widget.Widget.
-func (n *Note) Preview(width int) string {
+// Draw implements widget.Widget. A plain note has no cursor.
+func (n *Note) Draw(width int, _ bool) (string, widget.Span) {
 	l := n.lines(width)
 	if len(l) == 0 {
-		return widget.Faint.Render("(empty)")
+		return widget.Faint.Render("(empty)"), widget.NoSpan
 	}
-	if len(l) > previewLines {
-		l = append(append([]string(nil), l[:previewLines-1]...), widget.Faint.Render("…"))
-	}
-	return strings.Join(l, "\n")
+	return strings.Join(l, "\n"), widget.NoSpan
 }
 
-// View implements widget.Widget.
-func (n *Note) View(width, height int) string {
-	l := n.lines(width)
-	n.offset = widget.ClampOffset(n.offset, len(l), height)
-	return strings.Join(widget.Window(l, n.offset, height), "\n")
-}
+// Summary implements widget.Widget. A plain note has nothing to count.
+func (n *Note) Summary() string { return "" }
 
-// Update implements widget.Widget. A plain note only scrolls.
-func (n *Note) Update(key string) (widget.Widget, widget.Result) {
-	n.offset, _ = widget.ScrollKey(n.offset, key)
-	return n, widget.Result{}
-}
+// Update implements widget.Widget. A plain note takes no keys.
+func (n *Note) Update(string) (widget.Widget, widget.Result) { return n, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (n *Note) Sync(d doc.Document) widget.Widget {
-	return newNote(d.Body, n.render, n.offset)
-}
+func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render) }

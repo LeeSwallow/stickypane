@@ -11,7 +11,9 @@ import (
 
 func init() {
 	handlers[modeInput] = inputUpdate
-	footers[modeInput] = func(m *Model) string { return m.inputLabel + ": " + m.input.View() }
+	footers[modeInput] = func(m *Model) string {
+		return widget.Bold.Render(m.inputLabel) + ": " + m.input.View()
+	}
 }
 
 // ask collects one line of text on the bottom line. Enter calls submit with

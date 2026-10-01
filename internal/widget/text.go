@@ -13,6 +13,9 @@ var (
 	Bold     = lipgloss.NewStyle().Bold(true)
 	Faint    = lipgloss.NewStyle().Faint(true)
 	Selected = lipgloss.NewStyle().Reverse(true)
+	Good     = lipgloss.NewStyle().Foreground(lipgloss.Color("#8FD694"))
+	Warn     = lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A962"))
+	Struck   = lipgloss.NewStyle().Faint(true).Strikethrough(true)
 )
 
 // Clean prepares file text for the screen: escape sequences and control
@@ -48,6 +51,28 @@ func Pad(s string, w int) string {
 		s += strings.Repeat(" ", gap)
 	}
 	return s
+}
+
+// Wrap breaks s into lines of at most w cells. Words longer than a line are
+// split, so no line is ever wider than w.
+func Wrap(s string, w int) []string {
+	if w <= 0 {
+		return []string{s}
+	}
+	return strings.Split(ansi.Wrap(s, w, ""), "\n")
+}
+
+// Fit cuts every line of s to at most w cells, without an ellipsis. It is the
+// last safeguard for widths too small for the content, such as a pane
+// narrower than one wide character.
+func Fit(s string, w int) string {
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if Width(l) > w {
+			lines[i] = ansi.Truncate(l, max(w, 0), "")
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // ClampOffset keeps a scroll offset inside [0, total-height].

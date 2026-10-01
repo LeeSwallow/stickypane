@@ -1,29 +1,49 @@
 package app
 
 import (
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
+)
+
+// The catalog is a dialog with the shapes on the left and, when the screen
+// is wide enough, an example of the selected one on the right.
+const (
+	catalogWidth = 76 // the dialog at its widest
+	catalogList  = 22 // the column of shape names
+	catalogSplit = 60 // narrower than this, the example goes below the list
 )
 
 func init() {
 	handlers[modeCatalog] = catalogUpdate
 	bodies[modeCatalog] = catalogBody
-	footers[modeCatalog] = func(*Model) string { return "enter choose  esc cancel" }
+	footers[modeCatalog] = func(m *Model) string {
+		return hints(m.width, "j k", "choose", "enter", "pick", "esc", "cancel")
+	}
 
-	// Jot: one line becomes a plain note. No shape, no title.
-	boardKeys["n"] = func(m *Model) tea.Cmd {
+	// Jot: one line becomes a plain note. No shape, no title. N always
+	// jots; n jots too unless the focused open note uses n itself (a board
+	// adds a card, a checklist an item).
+	jot := func(m *Model) tea.Cmd {
 		m.ask("Jot", "", func(text string) { m.create(text, []byte(text+"\n")) })
 		return nil
 	}
+	boardKeys["N"] = jot
+	boardKeys["n"] = jot
 	boardKeys["a"] = func(m *Model) tea.Cmd {
 		m.catalogIdx, m.mode = 0, modeCatalog
 		return nil
 	}
 }
 
-// create writes a new note named after text and focuses it.
+// create writes a new note named after text and focuses it. A note made
+// here is marked open, so it is still on the screen after a restart: it is
+// the user's own note, and no agent is in the middle of editing it.
 func (m *Model) create(text string, content []byte) {
+	content = doc.Parse(content).Set("open", "true").Bytes()
 	name, err := m.store.Create(text, content, m.now())
 	if err != nil {
 		m.status = "Cannot create the note: " + err.Error()
@@ -53,14 +73,54 @@ func catalogUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func catalogBody(m *Model, _ int) []string {
-	lines := []string{"", "  Add a note", ""}
+// catalogBody draws the shape picker: every shape by name, what the selected
+// one is for, and a small example of it drawn by its own widget.
+func catalogBody(m *Model, h int) []string {
+	kind := m.reg[m.catalogIdx]
+	var list []string
 	for i, k := range m.reg {
+		name := strings.TrimSpace(k.Icon + " " + k.Label)
 		if i == m.catalogIdx {
-			lines = append(lines, "  "+widget.Selected.Render("› "+k.Label))
+			list = append(list, widget.Selected.Render(widget.Pad("› "+name, catalogList-1)))
 		} else {
-			lines = append(lines, "    "+k.Label)
+			list = append(list, "  "+name)
 		}
 	}
-	return lines
+
+	boxW := min(catalogWidth, m.width)
+	inner := boxW - 4
+	side := inner - catalogList
+	if m.width < catalogSplit {
+		side = inner
+	}
+	var detail []string
+	if side >= 16 {
+		for _, l := range widget.Wrap(kind.Blurb, side) {
+			detail = append(detail, widget.Faint.Render(l))
+		}
+		if kind.Example != "" && kind.Parse != nil {
+			example, _ := kind.Parse(doc.Parse([]byte(kind.Example))).Draw(side-4, false)
+			detail = append(detail, "")
+			detail = append(detail, strings.Split(frame(box{
+				title: "example", icon: kind.Icon, body: example, width: side, color: palette[m.catalogIdx%len(palette)].color,
+			}), "\n")...)
+		}
+	}
+
+	var body []string
+	if m.width < catalogSplit {
+		body = append(append(list, ""), detail...)
+	} else {
+		for r := 0; r < max(len(list), len(detail)); r++ {
+			left, right := "", ""
+			if r < len(list) {
+				left = list[r]
+			}
+			if r < len(detail) {
+				right = detail[r]
+			}
+			body = append(body, widget.Pad(left, catalogList)+right)
+		}
+	}
+	return dialog("Add a note", body, boxW, m.width, h)
 }

@@ -187,6 +187,22 @@ func (s *Store) Apply(name string, op doc.Op) error {
 	return writeAtomic(path, out.Bytes())
 }
 
+// Read returns a note's bytes exactly as they are on disk.
+func (s *Store) Read(name string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(s.Dir, name))
+}
+
+// Write replaces a note with content in one step, or creates it. Unlike
+// Apply it does not look at what is there: it is for callers that hand over
+// a whole note, such as the command line and the MCP server.
+func (s *Store) Write(name string, content []byte) error {
+	path := filepath.Join(s.Dir, name)
+	if target, err := filepath.EvalSymlinks(path); err == nil {
+		path = target
+	}
+	return writeAtomic(path, content)
+}
+
 func writeAtomic(path string, data []byte) error {
 	mode := fs.FileMode(0o644)
 	if fi, err := os.Stat(path); err == nil {

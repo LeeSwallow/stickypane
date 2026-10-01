@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	previewOpen = 4  // open items shown on the board
-	barWidth    = 20 // widest the progress bar gets
-	formatHint  = `no items yet: add "- [ ] task" lines`
+	barWidth   = 20 // widest the progress bar gets
+	formatHint = `no items yet: add "- [ ] task" lines`
 )
 
 // itemRe splits a checkbox line into: prefix up to "[", the mark, "] ", text.
@@ -29,6 +28,12 @@ func isDetail(line string) bool {
 var Kind = widget.Kind{
 	Name:     "checklist",
 	Label:    "Checklist",
+	Icon:     "☑",
+	Hint:     []string{"j k", "move", "space", "tick", "n", "new item"},
+	Blurb:    "Steps to tick off, with a progress bar.",
+	Example:  "- [x] Add endpoint\n- [x] Validate input\n- [ ] Write tests\n",
+	Keys:     "j k up down space n",
+	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
 }
@@ -44,7 +49,6 @@ type Checklist struct {
 	entries []entry
 	items   []int // indexes of the checkbox entries
 	cursor  int   // index into items
-	offset  int
 }
 
 func parse(d doc.Document) *Checklist {
@@ -80,19 +84,16 @@ func bar(done, total, width int) string {
 		return widget.Truncate(strings.TrimSpace(label), width)
 	}
 	fill := done * w / total
-	return strings.Repeat("▓", fill) + strings.Repeat("░", w-fill) + label
+	return widget.Good.Render(strings.Repeat("▓", fill)) + widget.Faint.Render(strings.Repeat("░", w-fill)) + label
 }
 
-// unshaped draws a checklist that has no items: the format hint followed by
-// the text that is there, so a note that does not fit the shape stays visible.
-func (c *Checklist) unshaped(width, height int) string {
-	lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
-	for _, e := range c.entries {
-		if e.text != "" {
-			lines = append(lines, widget.Truncate(widget.Clean(e.text), width))
-		}
+// Summary implements widget.Widget: done over total.
+func (c *Checklist) Summary() string {
+	done, total := c.counts()
+	if total == 0 {
+		return ""
 	}
-	return strings.Join(widget.Window(lines, 0, height), "\n")
+	return fmt.Sprintf("%d/%d", done, total)
 }
 
 // nth is how many items above the cursor share the selected item's text. It
@@ -108,63 +109,56 @@ func (c *Checklist) nth() int {
 	return n
 }
 
-// Preview implements widget.Widget.
-func (c *Checklist) Preview(width int) string {
+// Draw implements widget.Widget. Every line of the note is shown: items with
+// their checkbox, everything else as it is. Long items wrap.
+func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 	done, total := c.counts()
 	if total == 0 {
-		return c.unshaped(width, previewOpen+1)
-	}
-	lines := []string{bar(done, total, width)}
-	open := 0
-	for _, i := range c.items {
-		if e := c.entries[i]; !e.checked {
-			if open++; open <= previewOpen {
-				lines = append(lines, widget.Truncate("☐ "+widget.Clean(e.text), width))
+		lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
+		for _, e := range c.entries {
+			if e.text != "" {
+				lines = append(lines, widget.Wrap(widget.Clean(e.text), max(width, 1))...)
 			}
 		}
-	}
-	switch {
-	case open == 0:
-		lines = append(lines, "✓ all done")
-	case open > previewOpen:
-		lines = append(lines, widget.Faint.Render(fmt.Sprintf("+%d more", open-previewOpen)))
-	}
-	return strings.Join(lines, "\n")
-}
-
-// View implements widget.Widget.
-func (c *Checklist) View(width, height int) string {
-	done, total := c.counts()
-	if total == 0 {
-		return c.unshaped(width, height)
+		return widget.Fit(strings.Join(lines, "\n"), width), widget.NoSpan
 	}
 	c.clamp()
 	lines := []string{bar(done, total, width), ""}
-	cursorLine := 0
+	at := widget.NoSpan
 	for i, e := range c.entries {
 		if !e.item {
-			lines = append(lines, widget.Truncate(widget.Clean(e.text), width))
+			for _, l := range widget.Wrap(widget.Clean(e.text), max(width, 1)) {
+				if strings.HasPrefix(e.text, "#") {
+					l = widget.Bold.Render(l)
+				}
+				lines = append(lines, l)
+			}
 			continue
 		}
-		mark := "☐ "
+		mark, done := "☐ ", func(s string) string { return s }
 		if e.checked {
-			mark = "☑ "
+			// A finished item steps back so the open ones stand out.
+			mark, done = "☑ ", func(s string) string { return widget.Struck.Render(s) }
 		}
-		text := widget.Truncate(mark+widget.Clean(e.text), width-2)
-		if c.items[c.cursor] == i {
-			cursorLine = len(lines)
-			lines = append(lines, widget.Selected.Render("› "+text))
-		} else {
-			lines = append(lines, "  "+text)
+		selected := active && c.items[c.cursor] == i
+		for j, l := range widget.Wrap(widget.Clean(e.text), max(width-4, 1)) {
+			switch {
+			case j == 0 && selected:
+				at.Start = len(lines)
+				lines = append(lines, widget.Selected.Render("› "+mark+l))
+			case j == 0:
+				lines = append(lines, "  "+mark+done(l))
+			case selected:
+				lines = append(lines, widget.Selected.Render("    "+l))
+			default:
+				lines = append(lines, "    "+done(l))
+			}
+		}
+		if selected {
+			at.End = len(lines) // every wrapped line of the item
 		}
 	}
-	if cursorLine < c.offset {
-		c.offset = cursorLine
-	}
-	if cursorLine >= c.offset+height {
-		c.offset = cursorLine - height + 1
-	}
-	return strings.Join(widget.Window(lines, c.offset, height), "\n")
+	return widget.Fit(strings.Join(lines, "\n"), width), at
 }
 
 func (c *Checklist) clamp() {
@@ -179,7 +173,7 @@ func (c *Checklist) Update(key string) (widget.Widget, widget.Result) {
 		c.cursor++
 	case "k", "up":
 		c.cursor--
-	case "space", "x":
+	case "space":
 		c.clamp()
 		if len(c.items) > 0 {
 			e := &c.entries[c.items[c.cursor]]
@@ -199,7 +193,7 @@ func (c *Checklist) Update(key string) (widget.Widget, widget.Result) {
 // Sync implements widget.Widget.
 func (c *Checklist) Sync(d doc.Document) widget.Widget {
 	nc := parse(d)
-	nc.cursor, nc.offset = c.cursor, c.offset
+	nc.cursor = c.cursor
 	nc.clamp()
 	return nc
 }
