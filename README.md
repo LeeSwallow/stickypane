@@ -80,7 +80,9 @@ Front matter gives a note a shape. Every key is optional.
 | `pin`   | `true` keeps the note at the top                 |
 
 **Board.** Each `## Heading` is a column and each top-level list item is a
-card. Indented lines under a card are its details.
+card. Indented lines under a card are its details. Any other line under a
+column shows up as a card too, and text before the first heading is the
+board's description.
 
 ```markdown
 ---
@@ -118,12 +120,22 @@ still shown, never hidden.
 | `e`                   | edit in `$EDITOR`  | `n`       | new card or item        |
 | `?`                   | help               | `e`       | edit in `$EDITOR`       |
 
-## Edits are safe
+## How edits are written
 
 The board never overwrites a file with what it last saw. An edit is an intent
 ("move this card to that column") applied to the file as it is at that moment,
-then written in one atomic step. If your agent changed that card in the
-meantime, nothing is written and the board tells you.
+and the file is then replaced in one step. If your agent changed that card in
+the meantime, nothing is written and the board tells you. A note that is a
+symlink is edited where it really lives.
+
+Replacing the file has two limits:
+
+- A program that keeps a note open and keeps appending to it
+  (`some-command >> .stickypane/log.md`) goes on writing to the old file after
+  you edit that note from the board. Writing a line at a time, the way agents
+  do, is fine.
+- A write that lands in the instant between the board reading a file and
+  replacing it is lost.
 
 ## Adding a shape
 

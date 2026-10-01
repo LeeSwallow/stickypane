@@ -9,7 +9,7 @@ import (
 func init() {
 	handlers[modeModal] = modalUpdate
 	bodies[modeModal] = modalBody
-	footers[modeModal] = func(*Model) string { return "esc close  e edit" }
+	footers[modeModal] = func(*Model) string { return "esc close  e edit  ? keys" }
 
 	boardKeys["enter"] = func(m *Model) tea.Cmd {
 		if m.index(m.focus) >= 0 {
@@ -32,9 +32,9 @@ func modalUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	switch key := k.String(); key {
 	case "esc", "q":
 		m.mode = modeBoard
-	case "e":
-		if edit, ok := boardKeys["e"]; ok {
-			return edit(m)
+	case "e", "?":
+		if f, ok := boardKeys[key]; ok {
+			return f(m)
 		}
 	default:
 		name := m.modalName

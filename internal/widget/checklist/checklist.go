@@ -19,11 +19,17 @@ const (
 // itemRe splits a checkbox line into: prefix up to "[", the mark, "] ", text.
 var itemRe = regexp.MustCompile(`^(\s*[-*] \[)([ xX])(\] ?)(.*)$`)
 
+// isDetail reports whether line is an indented, non-blank line: a detail of
+// the item above it.
+func isDetail(line string) bool {
+	return (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) && strings.TrimSpace(line) != ""
+}
+
 // Kind registers the checklist.
 var Kind = widget.Kind{
 	Name:     "checklist",
 	Label:    "Checklist",
-	Template: func(title string) []byte { return widget.NewFile("checklist", title, "- [ ] \n") },
+	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
 }
 
@@ -77,11 +83,36 @@ func bar(done, total, width int) string {
 	return strings.Repeat("▓", fill) + strings.Repeat("░", w-fill) + label
 }
 
+// unshaped draws a checklist that has no items: the format hint followed by
+// the text that is there, so a note that does not fit the shape stays visible.
+func (c *Checklist) unshaped(width, height int) string {
+	lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
+	for _, e := range c.entries {
+		if e.text != "" {
+			lines = append(lines, widget.Truncate(widget.Clean(e.text), width))
+		}
+	}
+	return strings.Join(widget.Window(lines, 0, height), "\n")
+}
+
+// nth is how many items above the cursor share the selected item's text. It
+// tells an Op which of several identical items is meant.
+func (c *Checklist) nth() int {
+	text := c.entries[c.items[c.cursor]].text
+	n := 0
+	for _, i := range c.items[:c.cursor] {
+		if c.entries[i].text == text {
+			n++
+		}
+	}
+	return n
+}
+
 // Preview implements widget.Widget.
 func (c *Checklist) Preview(width int) string {
 	done, total := c.counts()
 	if total == 0 {
-		return widget.Faint.Render(widget.Truncate(formatHint, width))
+		return c.unshaped(width, previewOpen+1)
 	}
 	lines := []string{bar(done, total, width)}
 	open := 0
@@ -105,7 +136,7 @@ func (c *Checklist) Preview(width int) string {
 func (c *Checklist) View(width, height int) string {
 	done, total := c.counts()
 	if total == 0 {
-		return widget.Faint.Render(widget.Truncate(formatHint, width))
+		return c.unshaped(width, height)
 	}
 	c.clamp()
 	lines := []string{bar(done, total, width), ""}
@@ -152,7 +183,7 @@ func (c *Checklist) Update(key string) (widget.Widget, widget.Result) {
 		c.clamp()
 		if len(c.items) > 0 {
 			e := &c.entries[c.items[c.cursor]]
-			res.Op = Toggle{Text: e.text, Checked: !e.checked}
+			res.Op = Toggle{Text: e.text, Checked: !e.checked, Nth: c.nth()}
 			e.checked = !e.checked
 		}
 	case "n":
@@ -173,20 +204,31 @@ func (c *Checklist) Sync(d doc.Document) widget.Widget {
 	return nc
 }
 
-// Toggle sets the first item with Text that is not yet in state Checked.
+// Toggle sets an item to state Checked. The item is the one with Text; when
+// several items share that text, Nth counts from zero to say which. An item
+// that is already in that state is a conflict.
 type Toggle struct {
 	Text    string
 	Checked bool
+	Nth     int
 }
 
 // Apply implements doc.Op.
 func (o Toggle) Apply(d doc.Document) (doc.Document, error) {
 	lines := doc.Lines(d.Body)
+	nth := o.Nth
 	for i, line := range lines {
 		raw := strings.TrimSuffix(line, "\r")
 		m := itemRe.FindStringSubmatch(raw)
-		if m == nil || strings.TrimSpace(m[4]) != o.Text || (m[2] != " ") == o.Checked {
+		if m == nil || strings.TrimSpace(m[4]) != o.Text {
 			continue
+		}
+		if nth > 0 {
+			nth--
+			continue
+		}
+		if nth < 0 || (m[2] != " ") == o.Checked {
+			break // not the item the screen showed
 		}
 		mark := " "
 		if o.Checked {
@@ -199,8 +241,9 @@ func (o Toggle) Apply(d doc.Document) (doc.Document, error) {
 	return d, doc.ErrConflict
 }
 
-// AddItem appends an unchecked item after the last checkbox line, or at the
-// end of the body when there is none.
+// AddItem appends an unchecked item after the last checkbox line and the
+// indented lines that belong to it, or at the end of the body when there is
+// no checkbox yet.
 type AddItem struct{ Text string }
 
 // Apply implements doc.Op.
@@ -213,6 +256,9 @@ func (o AddItem) Apply(d doc.Document) (doc.Document, error) {
 	for i, line := range lines {
 		if itemRe.MatchString(strings.TrimSuffix(line, "\r")) {
 			at = i + 1
+			for at < len(lines) && isDetail(lines[at]) {
+				at++
+			}
 		}
 	}
 	out := make([]string, 0, len(lines)+1)

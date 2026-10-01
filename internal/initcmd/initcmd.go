@@ -83,14 +83,24 @@ func Run(root string, opts Options, out io.Writer) error {
 	return nil
 }
 
-// inject puts the guide into content: in place of an earlier guide when the
-// markers are there, otherwise at the end after a blank line.
+// inject puts the guide into content: in place of an earlier guide when one
+// is there, otherwise at the end after a blank line.
+//
+// An earlier guide is an end marker together with the nearest start marker
+// before it. Pairing them this way means a stray marker never makes inject
+// delete the user's own text or add a second guide on the next run.
 func inject(content, guide string) string {
 	block := strings.TrimRight(guide, "\n")
-	start := strings.Index(content, startMark)
-	end := strings.Index(content, endMark)
-	if start >= 0 && end > start {
-		return content[:start] + block + content[end+len(endMark):]
+	for from := 0; ; {
+		rel := strings.Index(content[from:], endMark)
+		if rel < 0 {
+			break
+		}
+		end := from + rel
+		if start := strings.LastIndex(content[:end], startMark); start >= 0 {
+			return content[:start] + block + content[end+len(endMark):]
+		}
+		from = end + len(endMark)
 	}
 	if content != "" {
 		content = strings.TrimRight(content, "\n") + "\n\n"

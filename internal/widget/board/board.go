@@ -1,5 +1,5 @@
 // Package board is the kanban note: "## " headings are columns and the
-// top-level list items below them are cards.
+// lines below them are cards, usually list items.
 package board
 
 import (
@@ -16,7 +16,8 @@ const (
 	minPreviewCol  = 12 // narrower than this, the preview stacks columns
 	minModalCol    = 16 // narrower than this, the open board scrolls sideways
 	detailRows     = 4  // separator plus three lines about the selected card
-	minDetailModal = 8  // shorter than this, the open board hides the detail
+	descRows       = 2  // lines of the board's description shown when open
+	minDetailModal = 8  // shorter than this, the open board shows cards only
 	formatHint     = `no columns yet: add "## Name" headings`
 )
 
@@ -43,25 +44,61 @@ type column struct {
 
 // Board is the widget for a kanban note.
 type Board struct {
+	desc     []string // the lines before the first column
 	cols     []column
 	col, row int // cursor
 }
 
 func parse(d doc.Document) *Board {
 	lines := doc.Lines(d.Body)
+	spans := scan(lines)
 	b := &Board{}
-	for _, s := range scan(lines) {
+	before := len(lines)
+	if len(spans) > 0 {
+		before = spans[0].head
+	}
+	for _, l := range lines[:before] {
+		if !isBlank(l) {
+			b.desc = append(b.desc, strings.TrimSpace(l))
+		}
+	}
+	for _, s := range spans {
 		c := column{title: s.title}
 		for _, cs := range s.cards {
 			cd := card{text: cs.text}
 			for _, l := range lines[cs.start+1 : cs.end] {
-				cd.detail = append(cd.detail, strings.TrimSpace(l))
+				if !isBlank(l) {
+					cd.detail = append(cd.detail, strings.TrimSpace(l))
+				}
 			}
 			c.cards = append(c.cards, cd)
 		}
 		b.cols = append(b.cols, c)
 	}
 	return b
+}
+
+// nth is how many cards above the cursor share the selected card's text. It
+// tells an Op which of several identical cards is meant.
+func (b *Board) nth() int {
+	cards := b.cols[b.col].cards
+	n := 0
+	for _, c := range cards[:b.row] {
+		if c.text == cards[b.row].text {
+			n++
+		}
+	}
+	return n
+}
+
+// unshaped draws a board that has no columns: the format hint followed by
+// the text that is there, so a note that does not fit the shape stays visible.
+func (b *Board) unshaped(width, height int) string {
+	lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
+	for _, d := range b.desc {
+		lines = append(lines, widget.Truncate(widget.Clean(d), width))
+	}
+	return strings.Join(widget.Window(lines, 0, height), "\n")
 }
 
 func (b *Board) clamp() {
@@ -87,7 +124,7 @@ func header(c column) string {
 // Preview implements widget.Widget.
 func (b *Board) Preview(width int) string {
 	if len(b.cols) == 0 {
-		return widget.Faint.Render(widget.Truncate(formatHint, width))
+		return b.unshaped(width, previewCards)
 	}
 	cw := width / len(b.cols)
 	if cw < minPreviewCol {
@@ -144,14 +181,14 @@ func joinColumns(cells [][]string, rows, cw int) string {
 // View implements widget.Widget.
 func (b *Board) View(width, height int) string {
 	if len(b.cols) == 0 {
-		return widget.Faint.Render(widget.Truncate(formatHint, width))
+		return b.unshaped(width, height)
 	}
 	b.clamp()
-	detail := 0
+	detail, desc := 0, 0
 	if height >= minDetailModal {
-		detail = detailRows
+		detail, desc = detailRows, min(len(b.desc), descRows)
 	}
-	listH := max(height-detail-1, 1)
+	listH := max(height-detail-desc-1, 1)
 
 	cw, first, visible := width/len(b.cols), 0, len(b.cols)
 	if cw < minModalCol {
@@ -182,7 +219,14 @@ func (b *Board) View(width, height int) string {
 		}
 		cells = append(cells, lines)
 	}
-	out := []string{joinColumns(cells, listH+1, cw)}
+	var out []string
+	for i, d := range b.desc[:desc] {
+		if i == desc-1 && len(b.desc) > desc {
+			d += " …"
+		}
+		out = append(out, widget.Faint.Render(widget.Truncate(widget.Clean(d), width)))
+	}
+	out = append(out, joinColumns(cells, listH+1, cw))
 	if detail > 0 {
 		out = append(out, widget.Faint.Render(strings.Repeat("─", width)))
 		out = append(out, b.detail(width, detail-1)...)
@@ -229,7 +273,7 @@ func (b *Board) Update(key string) (widget.Widget, widget.Result) {
 			to = b.col + 1
 		}
 		if c, ok := b.current(); ok && to >= 0 && to < len(b.cols) {
-			res.Op = MoveCard{From: col.title, To: b.cols[to].title, Text: c.text}
+			res.Op = MoveCard{From: col.title, To: b.cols[to].title, Text: c.text, Nth: b.nth()}
 			// The card lands at the end of the target column. Point the
 			// cursor there now; the next Sync makes that position real.
 			b.col, b.row = to, len(b.cols[to].cards)
@@ -241,7 +285,7 @@ func (b *Board) Update(key string) (widget.Widget, widget.Result) {
 			delta = -1
 		}
 		if c, ok := b.current(); ok && b.row+delta >= 0 && b.row+delta < len(col.cards) {
-			res.Op = ReorderCard{Col: col.title, Text: c.text, Delta: delta}
+			res.Op = ReorderCard{Col: col.title, Text: c.text, Nth: b.nth(), Delta: delta}
 			b.row += delta
 		}
 	case "n":

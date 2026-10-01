@@ -115,7 +115,7 @@ func TestHelpOpensAndCloses(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "?")
 	s := screen(m)
-	for _, want := range []string{"jot a note", "move to archive", "press any key to close"} {
+	for _, want := range []string{"jot a note", "move to archive", "any other key closes"} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("help should mention %q:\n%s", want, s)
 		}

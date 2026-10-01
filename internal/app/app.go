@@ -76,6 +76,8 @@ type Model struct {
 
 	modalName string // modal.go: file name of the open note
 
+	helpScroll int // help.go
+
 	input      textinput.Model // input.go
 	inputLabel string
 	onSubmit   func(string)
@@ -240,10 +242,22 @@ func (m *Model) reload() {
 		}
 	}
 	m.markSeen(m.focus)
-	if m.mode == modeModal && m.index(m.modalName) < 0 {
+	if m.onModal() && m.index(m.modalName) < 0 {
 		m.mode = modeBoard
 		m.status = "The note was removed."
 	}
+}
+
+// onModal reports whether a note is open, either in front or underneath a
+// prompt, a confirmation or the help screen.
+func (m *Model) onModal() bool {
+	switch m.mode {
+	case modeModal:
+		return true
+	case modeInput, modeConfirm, modeHelp:
+		return m.back == modeModal
+	}
+	return false
 }
 
 // apply writes an intent to a note and refreshes the board. On a conflict
@@ -257,6 +271,11 @@ func (m *Model) apply(name string, op doc.Op) {
 		m.status = "Write failed: " + err.Error()
 	}
 	m.reload()
+	if i := m.index(name); err != nil && i >= 0 {
+		// The widget may already show the change that did not happen.
+		// Rebuild it from the file so the screen never claims otherwise.
+		m.items[i].w = m.items[i].w.Sync(m.items[i].note.Doc)
+	}
 	m.markSeen(name)
 }
 

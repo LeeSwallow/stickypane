@@ -165,8 +165,14 @@ func readEnds(path string, size int64) (head, tail []byte, err error) {
 // Apply reads the file as it is now, applies op and replaces the file in one
 // step. The edit is never based on what the screen last saw, so changes made
 // by someone else in the meantime survive. A missing file is a conflict.
+//
+// A note that is a symlink is edited where it really lives: replacing the
+// link itself would silently detach the note from its file.
 func (s *Store) Apply(name string, op doc.Op) error {
 	path := filepath.Join(s.Dir, name)
+	if target, err := filepath.EvalSymlinks(path); err == nil {
+		path = target
+	}
 	b, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return doc.ErrConflict

@@ -160,7 +160,7 @@ func TestSyncClampsCursor(t *testing.T) {
 }
 
 func TestKindTemplate(t *testing.T) {
-	if got := string(Kind.Template("Release")); got != "---\ntype: checklist\ntitle: Release\n---\n- [ ] \n" {
+	if got := string(Kind.Template("Release")); got != "---\ntype: checklist\ntitle: Release\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 }
