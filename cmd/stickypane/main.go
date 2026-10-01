@@ -52,6 +52,12 @@ For scripts and agents that would rather not edit the files themselves:
                                  change one thing without reading or rewriting
                                  the note; a missing note is made. An item or
                                  card is named by its text, a part of it, or #2
+  stickypane mv <name> <to>      rename a note, or move it: <to> is a new name, a
+                                 folder (docs/) to make it a page of that book,
+                                 or . for the top level
+  stickypane rm <name>           move a note, a page or a folder to .trash/
+  stickypane restore <name>      bring back what rm removed last under that name
+  stickypane archive <name>      move a note out of sight into archive/
   stickypane answers <name> [--json]
                                  print what the user answered in a form
   stickypane wait <name> [--timeout 5m] [--json]
@@ -103,6 +109,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return notes(args[0], args[1:], stdin, stdout, stderr)
 		case "todo", "card", "chart", "log", "set":
 			return edit(args[0], args[1:], stdout, stderr)
+		case "rm", "restore", "archive", "mv":
+			return manage(args[0], args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			fmt.Fprint(stderr, usage)
@@ -143,6 +151,39 @@ func open(stderr io.Writer) (*api.API, int) {
 		return nil, report(stderr, err)
 	}
 	return api.New(store.Open(dir), kinds.Default(note.Plain)), 0
+}
+
+// manage runs the commands that remove, restore and move notes.
+func manage(cmd string, args []string, stdout, stderr io.Writer) int {
+	want := 1
+	if cmd == "mv" {
+		want = 2
+	}
+	if len(args) != want {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+	a, code := open(stderr)
+	if a == nil {
+		return code
+	}
+	var out string
+	var err error
+	switch cmd {
+	case "rm":
+		out, err = a.Remove(args[0])
+	case "restore":
+		out, err = a.Restore(args[0])
+	case "archive":
+		out, err = a.Archive(args[0])
+	default:
+		out, err = a.Move(args[0], args[1])
+	}
+	if err != nil {
+		return report(stderr, err)
+	}
+	fmt.Fprintln(stdout, out)
+	return 0
 }
 
 // edit runs the commands that change one thing in a note.

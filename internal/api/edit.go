@@ -316,3 +316,126 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 	}
 	return file + ": " + strings.Join(parts, "; "), nil
 }
+
+// target turns a name into what it points at: a book, named by its folder,
+// or a file.
+func (a *API) target(name string) (string, bool, error) {
+	name = strings.TrimSpace(name)
+	plain := name != "" && !strings.ContainsAny(name, `/\`) && !strings.HasPrefix(name, ".") && name != store.ArchiveDir
+	if fi, err := os.Stat(filepath.Join(a.st.Dir, name)); plain && err == nil && fi.IsDir() {
+		return name, true, nil
+	}
+	file, err := fileName(name)
+	return file, false, err
+}
+
+// Remove moves a note, a page or a whole book to the trash. Nothing is
+// removed from the disk, so an agent that removes the wrong note has done
+// no harm: Restore brings it back.
+func (a *API) Remove(name string) (string, error) {
+	file, _, err := a.target(name)
+	if err != nil {
+		return "", err
+	}
+	to, err := a.st.Trash(file)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("there is no note %s", file)
+	} else if err != nil {
+		return "", err
+	}
+	short := strings.TrimSuffix(file, ".md")
+	return fmt.Sprintf("moved %s to %s; `stickypane restore %s` brings it back", file, to, short), nil
+}
+
+// Restore brings back the note of that name that was removed last.
+func (a *API) Restore(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	file, err := fileName(name)
+	if err != nil {
+		return "", err
+	}
+	from, ok := a.st.Trashed(file)
+	if !ok && !strings.ContainsAny(name, `/\.`) {
+		// A book was removed as a folder, under its bare name.
+		if from, ok = a.st.Trashed(name); ok {
+			file = name
+		}
+	}
+	if !ok {
+		return "", fmt.Errorf("there is no %s in the trash", file)
+	}
+	if err := a.st.Restore(from, file); err != nil {
+		return "", err
+	}
+	return "restored " + file, nil
+}
+
+// Archive moves a note out of sight into the archive folder.
+func (a *API) Archive(name string) (string, error) {
+	file, _, err := a.target(name)
+	if err != nil {
+		return "", err
+	}
+	to, err := a.st.Archive(file)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("there is no note %s", file)
+	} else if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("moved %s to %s", file, to), nil
+}
+
+// Move renames a note or moves it. to is "." for the top level, the name
+// of a folder (an existing one, or any name ending in "/") to make the note
+// a page of that book, or a new name. A new name without an extension
+// keeps the note's. A note that is moved keeps where it was on the screen.
+func (a *API) Move(name, to string) (string, error) {
+	file, book, err := a.target(name)
+	if err != nil {
+		return "", err
+	}
+	to = strings.TrimSpace(to)
+	base := filepath.Base(file)
+	into := strings.TrimSuffix(to, "/")
+	dir, isDir, _ := a.target(into)
+	var dest string
+	switch {
+	case to == "":
+		return "", errors.New("say where to move the note: a folder, a new name, or . for the top level")
+	case to == ".":
+		dest = base
+	case !book && (isDir || strings.HasSuffix(to, "/")):
+		if !isDir {
+			if dir, err = fileName(into + "/x"); err != nil {
+				return "", err
+			}
+			dir = into
+		}
+		dest = dir + "/" + base
+	case book:
+		if strings.ContainsAny(to, `/\.`) || to == store.ArchiveDir {
+			return "", fmt.Errorf("a book is a folder: %q is not a folder name", to)
+		}
+		dest = to
+	default:
+		if filepath.Ext(to) == "" {
+			to += filepath.Ext(file)
+		}
+		if dest, err = fileName(to); err != nil {
+			return "", err
+		}
+	}
+	if err := a.st.Move(file, dest); errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("there is no note %s", file)
+	} else if err != nil {
+		return "", err
+	}
+	// What was arranged for the old name now belongs to the new one. A
+	// page has no arrangement of its own: its book has.
+	if views, err := a.st.Views(); err == nil {
+		if v, ok := views[file]; ok && !strings.Contains(dest, "/") {
+			_ = a.st.SetView(dest, func(n *store.View) { *n = v })
+		}
+	}
+	return fmt.Sprintf("moved %s to %s", file, dest), nil
+}

@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -28,7 +29,7 @@ func init() {
 	// jots; n jots too unless the focused open note uses n itself (a board
 	// adds a card, a checklist an item).
 	jot := func(m *Model) tea.Cmd {
-		m.ask("Jot", "", func(text string) { m.create(text, []byte(text+"\n")) })
+		m.ask("Jot", "", func(text string) { m.create(text, "", []byte(text+"\n")) })
 		return nil
 	}
 	boardKeys["N"] = jot
@@ -39,17 +40,21 @@ func init() {
 	}
 }
 
-// create writes a new note named after text and focuses it. A note made
-// here is marked open, so it is still on the screen after a restart: it is
-// the user's own note, and no agent is in the middle of editing it.
-func (m *Model) create(text string, content []byte) {
-	content = doc.Parse(content).Set("open", "true").Bytes()
-	name, err := m.store.Create(text, content, m.now())
+// create writes a new note named after text and focuses it. ext is the
+// file's extension when it is not Markdown. A note made here is opened in
+// sticky.json, so it is still on the screen after a restart: it is the
+// user's own note, and no agent is in the middle of editing it.
+func (m *Model) create(text, ext string, content []byte) {
+	if ext == "" {
+		ext = ".md"
+	}
+	name, err := m.store.Create(text, ext, content, m.now())
 	if err != nil {
 		m.status = "Cannot create the note: " + err.Error()
 		return
 	}
-	m.reload()
+	open := true
+	m.setView(name, func(v *store.View) { v.Open = &open })
 	m.setFocus(name)
 }
 
@@ -68,7 +73,7 @@ func catalogUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case "enter":
 		kind := m.reg[m.catalogIdx]
 		m.mode = modeBoard
-		m.ask("Title", "", func(title string) { m.create(title, kind.Template(title)) })
+		m.ask("Title", "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
 	}
 	return nil
 }

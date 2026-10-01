@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -19,8 +20,11 @@ func TestDefaultRegistry(t *testing.T) {
 			t.Errorf("kind %q is incomplete", k.Name)
 		}
 	}
-	if got := strings.Join(names, ","); got != "note,board,checklist,log,chart,form" {
+	if got := strings.Join(names, ","); got != "note,board,checklist,log,chart,form,script" {
 		t.Errorf("kinds = %s", got)
+	}
+	if reg.Lookup("script").Name != "note" || reg.For("run.sh", doc.Document{}).Name != "script" || reg.For("build.log", doc.Document{}).Name != "log" {
+		t.Error("a script or a log is told by its file name, not by front matter")
 	}
 	if reg.Lookup("mystery").Name != "note" {
 		t.Error("unknown types should fall back to the plain note")

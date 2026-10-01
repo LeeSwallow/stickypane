@@ -32,6 +32,7 @@ const (
 	modeConfirm             // a yes/no question over the previous screen
 	modeHelp                // the key reference
 	modeEdit                // edit.go: a note in the built-in editor
+	modeMove                // move.go: choosing where to move a note
 )
 
 // reveal says what the next layout should scroll into view.
@@ -142,6 +143,15 @@ type Model struct {
 
 	confirmMsg string // manage.go
 	onConfirm  func()
+
+	undo *undo // move.go: how to take back the last delete or archive
+
+	running map[string]bool // run.go: the scripts that are running, by file name
+	pending tea.Cmd         // run.go: what the current update started
+
+	moveFile    string   // move.go: the file being moved
+	moveTargets []string // where it can go; "" is the top level
+	moveIdx     int
 }
 
 // changedMsg arrives when the watched folder changed.
@@ -211,12 +221,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = ""
 		cmd = m.dispatch(msg)
+	case scriptDoneMsg:
+		m.finished(msg)
 	case tea.MouseClickMsg:
 		m.click(msg.Mouse())
 	case tea.MouseWheelMsg:
 		m.wheel(msg.Mouse())
 	default:
 		cmd = m.dispatch(msg)
+	}
+	// Something the update started, such as a script.
+	if m.pending != nil {
+		cmd, m.pending = tea.Batch(cmd, m.pending), nil
 	}
 	m.relayout()
 	return m, cmd
@@ -563,6 +579,9 @@ func (m *Model) act(name string, res widget.Result) {
 	if res.Op != nil {
 		m.apply(name, res.Op)
 	}
+	if res.Run {
+		m.askRun(name)
+	}
 	if p := res.Prompt; p != nil {
 		m.ask(p.Label, p.Initial, func(text string) {
 			m.apply(name, p.Submit(text))
@@ -601,9 +620,13 @@ func (m *Model) heading(it item) string {
 }
 
 // summary is the text at the right end of a note's top border: what its
-// widget counts and, for a book, which page it is on.
-func summary(it item) string {
+// widget counts and, for a book, which page it is on. A script that is
+// running says so instead.
+func (m *Model) summary(it item) string {
 	s := it.w.Summary()
+	if m.running[it.file().Name] {
+		s = "running…"
+	}
 	if len(it.pages) == 0 {
 		return s
 	}
@@ -735,7 +758,7 @@ func (m *Model) relayout() {
 		}
 		rects = append(rects, p.rect)
 		boxes = append(boxes, frame(box{
-			title: m.heading(it), icon: it.kind.Icon, summary: summary(it),
+			title: m.heading(it), icon: it.kind.Icon, summary: m.summary(it),
 			body: strings.Join(body, "\n"), width: p.rect.W, color: m.color(it), focused: focused,
 			offset: p.offset, total: p.total,
 		}))

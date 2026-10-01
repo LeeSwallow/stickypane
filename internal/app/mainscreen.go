@@ -116,7 +116,7 @@ func mainFooter(m *Model) string {
 		}
 		return hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
 	}
-	return hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "N", "jot")...)...)
+	return hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
 }
 
 // titleBar lists every note like a row of tabs, wrapping onto more lines

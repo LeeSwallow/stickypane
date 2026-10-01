@@ -208,7 +208,7 @@ func TestCreatePicksUniqueNames(t *testing.T) {
 	now := time.Date(2026, 10, 1, 14, 2, 0, 0, time.UTC)
 	var got []string
 	for i := 0; i < 3; i++ {
-		name, err := s.Create("Check env", []byte("Check env\n"), now)
+		name, err := s.Create("Check env", ".md", []byte("Check env\n"), now)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -244,11 +244,11 @@ func TestSlug(t *testing.T) {
 func TestArchiveMovesFile(t *testing.T) {
 	s := newStore(t)
 	write(t, s, "a.md", "first\n")
-	if err := s.Archive("a.md"); err != nil {
+	if _, err := s.Archive("a.md"); err != nil {
 		t.Fatal(err)
 	}
 	write(t, s, "a.md", "second\n")
-	if err := s.Archive("a.md"); err != nil {
+	if _, err := s.Archive("a.md"); err != nil {
 		t.Fatal(err)
 	}
 	if notes, _ := s.Scan(); len(notes) != 0 {

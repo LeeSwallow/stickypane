@@ -17,6 +17,9 @@ const helpText = `Notes
   z                zoom
   o                open or close
   + -              bigger, smaller
+  { }              move earlier, later
+  , .              turn a folder's pages
+  m                move to a folder
   N                jot a note
   a                add by shape
   e                edit here (like vi)
@@ -25,7 +28,8 @@ const helpText = `Notes
   c                change color
   R                rename
   x                move to archive
-  D                delete
+  D                delete (to .trash)
+  u                undo x or D
   r                reload
   j k g G          scroll in the note
   pgdn pgup        a page down, up

@@ -128,7 +128,7 @@ func TestInitializeAndListTools(t *testing.T) {
 			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
 		}
 	}
-	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,todo,card,chart,log,set_keys,read_answers,guide" {
+	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,todo,card,chart,log,set_keys,move_note,remove_note,restore_note,read_answers,guide" {
 		t.Errorf("tools = %s", got)
 	}
 	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
@@ -273,5 +273,29 @@ func TestSmallEdits(t *testing.T) {
 	views, err := store.Open(dir).Views()
 	if v := views["plan.md"]; err != nil || v.Open == nil || *v.Open || v.Size != "card" || v.Rows != 8 {
 		t.Errorf("the arrangement goes to sticky.json: %+v, %v", v, err)
+	}
+}
+
+func TestRemoveMoveAndRestore(t *testing.T) {
+	rs, dir := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"move_note","arguments":{"name":"a","to":"docs/"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"remove_note","arguments":{"name":"docs/a"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"restore_note","arguments":{"name":"docs/a"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"remove_note","arguments":{"name":"missing"}}}`,
+	)
+	if got := call(t, byID(t, rs, 1)); got.IsError || got.Content[0].Text != "moved a.md to docs/a.md" {
+		t.Errorf("move_note = %+v", got)
+	}
+	if got := call(t, byID(t, rs, 2)); got.IsError || !strings.Contains(got.Content[0].Text, ".trash/docs/a.md") {
+		t.Errorf("remove_note = %+v", got)
+	}
+	if got := call(t, byID(t, rs, 3)); got.IsError || got.Content[0].Text != "restored docs/a.md" {
+		t.Errorf("restore_note = %+v", got)
+	}
+	if got := call(t, byID(t, rs, 4)); !got.IsError {
+		t.Errorf("removing a missing note should fail: %+v", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "a.md")); err != nil {
+		t.Errorf("the note should be back in its book: %v", err)
 	}
 }

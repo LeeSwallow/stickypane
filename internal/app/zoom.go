@@ -97,7 +97,7 @@ func zoomBody(m *Model, h int) []string {
 		visible = append(visible, "")
 	}
 	return strings.Split(frame(box{
-		title: title, icon: it.kind.Icon, summary: summary(it),
+		title: title, icon: it.kind.Icon, summary: m.summary(it),
 		body: strings.Join(visible, "\n"), width: m.width, color: m.color(it), focused: true,
 		offset: m.zoomScroll, total: len(m.zoomLines),
 	}), "\n")

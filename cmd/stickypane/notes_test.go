@@ -194,3 +194,38 @@ func TestLogCanStampTheTime(t *testing.T) {
 		t.Errorf("--time should put the time before the entry: %q", last)
 	}
 }
+
+func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
+	root := project(t)
+	dir := filepath.Join(root, ".stickypane")
+	if err := os.WriteFile(filepath.Join(dir, "plan.md"), []byte("the plan\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	has := func(name string) bool {
+		_, err := os.Stat(filepath.Join(dir, filepath.FromSlash(name)))
+		return err == nil
+	}
+	if code, out, errOut := exec(t, "rm", "plan"); code != 0 || !strings.Contains(out, ".trash/plan.md") || has("plan.md") {
+		t.Fatalf("rm: code = %d, out = %q, stderr = %q", code, out, errOut)
+	}
+	if code, out, _ := exec(t, "restore", "plan"); code != 0 || out != "restored plan.md\n" || !has("plan.md") {
+		t.Fatalf("restore: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "mv", "plan", "docs/"); code != 0 || out != "moved plan.md to docs/plan.md\n" || !has("docs/plan.md") {
+		t.Fatalf("mv into a folder: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "mv", "docs/plan", "roadmap"); code != 0 || out != "moved docs/plan.md to roadmap.md\n" || !has("roadmap.md") {
+		t.Fatalf("mv to a new name: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "archive", "roadmap"); code != 0 || out != "moved roadmap.md to archive/roadmap.md\n" || !has("archive/roadmap.md") {
+		t.Fatalf("archive: code = %d, out = %q", code, out)
+	}
+	for _, bad := range [][]string{{"rm"}, {"mv", "x"}, {"restore"}, {"archive"}, {"rm", "a", "b"}} {
+		if code, _, errOut := exec(t, bad...); code != 2 || errOut == "" {
+			t.Errorf("%v: code = %d, want a usage error", bad, code)
+		}
+	}
+	if code, _, errOut := exec(t, "rm", "nothing"); code != 1 || !strings.Contains(errOut, "nothing.md") {
+		t.Errorf("rm of a missing note: code = %d, stderr = %q", code, errOut)
+	}
+}

@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -21,6 +23,8 @@ const (
 	DirName = ".stickypane"
 	// ArchiveDir is where detached notes go, inside DirName.
 	ArchiveDir = "archive"
+	// TrashDir is where deleted notes go, inside DirName, until restored.
+	TrashDir = ".trash"
 	// MaxSize is the largest file read in full.
 	MaxSize = 1 << 20
 
@@ -291,14 +295,15 @@ func writeAtomic(path string, data []byte) error {
 	return os.Rename(tmp.Name(), path)
 }
 
-// Create writes a new note named after text and returns the file name. It
-// never overwrites: a taken name gets "-2", "-3" and so on.
-func (s *Store) Create(text string, content []byte, now time.Time) (string, error) {
+// Create writes a new note named after text, with the extension ext, and
+// returns the file name. It never overwrites: a taken name gets "-2", "-3"
+// and so on.
+func (s *Store) Create(text, ext string, content []byte, now time.Time) (string, error) {
 	base := Slug(text, now)
 	for i := 1; ; i++ {
-		name := base + ".md"
+		name := base + ext
 		if i > 1 {
-			name = fmt.Sprintf("%s-%d.md", base, i)
+			name = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
 		f, err := os.OpenFile(filepath.Join(s.Dir, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 		if errors.Is(err, fs.ErrExist) {
@@ -340,29 +345,117 @@ func Slug(text string, now time.Time) string {
 	return "note-" + now.Format("20060102-150405")
 }
 
-// Archive moves a note into the archive folder without overwriting.
-func (s *Store) Archive(name string) error {
-	dir := filepath.Join(s.Dir, ArchiveDir)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+// put moves the note called name to dst, a path inside the notes folder.
+// It never writes over what is there: a taken name gets "-2", "-3" and so
+// on. It returns where the note went. A folder that is left without
+// anything in it is removed.
+func (s *Store) put(name, dst string) (string, error) {
+	src := filepath.Join(s.Dir, filepath.FromSlash(name))
+	if _, err := os.Lstat(src); err != nil {
+		return "", err
 	}
-	// A page leaves its book: the archive is one flat folder.
-	file := filepath.Base(filepath.FromSlash(name))
-	ext := filepath.Ext(file)
-	base := strings.TrimSuffix(file, ext)
+	ext := path.Ext(dst)
+	base := strings.TrimSuffix(dst, ext)
 	for i := 1; ; i++ {
-		target := file
+		target := dst
 		if i > 1 {
 			target = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		dst := filepath.Join(dir, target)
-		if _, err := os.Lstat(dst); err == nil {
+		full := filepath.Join(s.Dir, filepath.FromSlash(target))
+		if _, err := os.Lstat(full); err == nil {
 			continue
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			return err
+			return "", err
 		}
-		return os.Rename(filepath.Join(s.Dir, filepath.FromSlash(name)), dst)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			return "", err
+		}
+		if err := os.Rename(src, full); err != nil {
+			return "", err
+		}
+		s.tidy(name)
+		return target, nil
 	}
+}
+
+// tidy removes the folder a note was in when the folder is now empty.
+func (s *Store) tidy(name string) {
+	if dir := path.Dir(name); dir != "." && dir != "/" {
+		_ = os.Remove(filepath.Join(s.Dir, filepath.FromSlash(dir))) // fails, rightly, unless empty
+	}
+}
+
+// Archive moves a note out of sight into the archive folder and returns
+// where it went. The archive is one flat folder: a page leaves its book.
+func (s *Store) Archive(name string) (string, error) {
+	return s.put(name, ArchiveDir+"/"+path.Base(name))
+}
+
+// Trash moves a note, a page or a whole book to the trash folder and
+// returns where it went. Nothing is removed from the disk: Restore brings it
+// back. The trash keeps the note's place, so a page goes back to its book.
+func (s *Store) Trash(name string) (string, error) {
+	return s.put(name, TrashDir+"/"+name)
+}
+
+// Restore moves what Trash or Archive put at from back to name. It does
+// not write over a note that is there.
+func (s *Store) Restore(from, name string) error {
+	clean := path.Clean(from)
+	if clean != from || !(strings.HasPrefix(from, TrashDir+"/") || strings.HasPrefix(from, ArchiveDir+"/")) {
+		return fmt.Errorf("%s is not in the trash or the archive", from)
+	}
+	return s.Move(from, name)
+}
+
+// Trashed returns where in the trash the note called name is. When several
+// notes of that name were deleted it is the one deleted last.
+func (s *Store) Trashed(name string) (string, bool) {
+	ext := path.Ext(name)
+	stem := path.Base(strings.TrimSuffix(name, ext))
+	dir := path.Dir(TrashDir + "/" + name)
+	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
+	if err != nil {
+		return "", false
+	}
+	best, found := 0, ""
+	for _, e := range entries {
+		rest, ok := strings.CutPrefix(strings.TrimSuffix(e.Name(), ext), stem)
+		if !ok || !strings.HasSuffix(e.Name(), ext) {
+			continue
+		}
+		n := 1
+		if rest != "" {
+			if n, err = strconv.Atoi(strings.TrimPrefix(rest, "-")); err != nil || !strings.HasPrefix(rest, "-") {
+				continue
+			}
+		}
+		if n > best {
+			best, found = n, dir+"/"+e.Name()
+		}
+	}
+	return found, best > 0
+}
+
+// Move renames a note: under a new name, into a book, or out of one. It
+// does not write over a note that is there.
+func (s *Store) Move(name, to string) error {
+	src := filepath.Join(s.Dir, filepath.FromSlash(name))
+	dst := filepath.Join(s.Dir, filepath.FromSlash(to))
+	if _, err := os.Lstat(src); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(dst); err == nil {
+		return fmt.Errorf("%s: %w", to, fs.ErrExist)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	if err := os.Rename(src, dst); err != nil {
+		return err
+	}
+	s.tidy(name)
+	return nil
 }
 
 // Delete removes a note for good.

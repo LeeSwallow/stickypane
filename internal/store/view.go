@@ -36,8 +36,9 @@ type Views map[string]View
 // viewKey and orderKey are the keys this version reads. Other keys are kept
 // as they are, so a later version can add to the file.
 const (
-	viewKey  = "notes"
-	orderKey = "order"
+	viewKey    = "notes"
+	orderKey   = "order"
+	versionKey = "version"
 )
 
 // readViews returns the file's top-level keys and the views among them.
@@ -123,6 +124,10 @@ func (s *Store) SetView(name string, change func(*View)) error {
 }
 
 func (s *Store) writeViews(top map[string]json.RawMessage) error {
+	// The version lets a later format tell which one it is reading.
+	if _, ok := top[versionKey]; !ok {
+		top[versionKey] = json.RawMessage("1")
+	}
 	var out bytes.Buffer
 	enc := json.NewEncoder(&out)
 	enc.SetEscapeHTML(false)

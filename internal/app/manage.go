@@ -58,11 +58,16 @@ func init() {
 		})
 		return nil
 	})
+	// Neither x nor D removes anything from the disk: the file goes to
+	// archive/ or to .trash/, and u brings it back.
 	boardKeys["x"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if err := m.store.Archive(it.file().Name); err != nil {
+		file := it.file()
+		to, err := m.store.Archive(file.Name)
+		if err != nil {
 			m.status = "Cannot archive the note: " + err.Error()
 		} else {
-			m.status = "Moved to archive/."
+			m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
+			m.status = "Moved " + nameOf(file) + " to archive/. u brings it back."
 		}
 		m.reload()
 		return nil
@@ -70,8 +75,12 @@ func init() {
 	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
 		m.confirm("Delete "+nameOf(file)+"? (y/n)", func() {
-			if err := m.store.Delete(file.Name); err != nil {
+			to, err := m.store.Trash(file.Name)
+			if err != nil {
 				m.status = "Cannot delete the note: " + err.Error()
+			} else {
+				m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
+				m.status = "Deleted " + nameOf(file) + ". u brings it back."
 			}
 			m.reload()
 		})

@@ -158,6 +158,24 @@ var tools = []tool{
 		}),
 	},
 	{
+		Name:        "move_note",
+		Description: "Rename a note or move it. A note that is moved keeps where it was on the screen.",
+		InputSchema: object([]string{"name", "to"}, map[string]any{
+			"name": str(`The note's file name, such as "plan", "build.log" or "docs/plan" for a page of the book docs.`),
+			"to":   str(`A new name ("roadmap"), a folder ending in "/" ("docs/") to make the note a page of that book, or "." for the top level.`),
+		}),
+	},
+	{
+		Name:        "remove_note",
+		Description: "Take a note, a page or a whole folder off the board. It is moved to the trash folder, not erased: restore_note brings it back.",
+		InputSchema: object([]string{"name"}, map[string]any{"name": str("The note's file name, or a folder's name.")}),
+	},
+	{
+		Name:        "restore_note",
+		Description: "Bring back the note of that name that was removed last.",
+		InputSchema: object([]string{"name"}, map[string]any{"name": str("The name the note had when it was removed.")}),
+	},
+	{
 		Name:        "read_answers",
 		Description: "Read what the user chose and wrote in a form note (type: form) and which button they pressed. With wait_seconds it waits up to that long for a button to be pressed, then returns the answers so far.",
 		InputSchema: object([]string{"name"}, map[string]any{
@@ -376,6 +394,12 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		text, err = s.API.Chart(a.Name, a.Action, a.Label, plain(a.Value))
 	case "log":
 		text, err = s.API.Log(a.Name, a.Line)
+	case "move_note":
+		text, err = s.API.Move(a.Name, a.To)
+	case "remove_note":
+		text, err = s.API.Remove(a.Name)
+	case "restore_note":
+		text, err = s.API.Restore(a.Name)
 	case "set_keys":
 		keys := make([]string, 0, len(a.Keys))
 		for k := range a.Keys {

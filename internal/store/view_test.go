@@ -22,7 +22,7 @@ func TestViewsAreKeptInStickyJSON(t *testing.T) {
 	if err := s.SetView("build.log", func(v *View) { v.Rows, v.Color, v.Pin = 12, "blue", yes() }); err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n  \"notes\": {\n    \"a.md\": {\n      \"open\": true,\n      \"size\": \"half\"\n    },\n    \"build.log\": {\n      \"pin\": true,\n      \"rows\": 12,\n      \"color\": \"blue\"\n    }\n  }\n}\n"
+	want := "{\n  \"notes\": {\n    \"a.md\": {\n      \"open\": true,\n      \"size\": \"half\"\n    },\n    \"build.log\": {\n      \"pin\": true,\n      \"rows\": 12,\n      \"color\": \"blue\"\n    }\n  },\n  \"version\": 1\n}\n"
 	if got := read(t, s, ViewFile); got != want {
 		t.Errorf("sticky.json =\n%s\nwant\n%s", got, want)
 	}
