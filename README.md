@@ -141,8 +141,9 @@ store     ██████▎                  16   Wed  ·
 ```
 
 **Diagrams.** A `mermaid` code block in a plain note is drawn as a diagram
-instead of being shown as source. Flowcharts (`graph`, `flowchart`) and
-sequence diagrams are drawn; a block that cannot be drawn keeps its source.
+instead of being shown as source. Flowcharts (`graph`, `flowchart`), sequence
+diagrams and entity-relationship diagrams (`erDiagram`) are drawn; a block
+that cannot be drawn keeps its source.
 
 ````markdown
 ```mermaid
@@ -241,6 +242,18 @@ The focused open note takes the keys in the right-hand column where it is;
 you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
 when the focused note has no cursor of its own. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Mouse
+
+| Do this                    | And                                             |
+| -------------------------- | ----------------------------------------------- |
+| click a title in the bar   | a closed note opens, an open one takes the focus, the focused one closes |
+| click a note               | it takes the focus                              |
+| click an item, option, button or card | it is ticked, chosen, pressed or selected |
+| double-click a note        | zoom                                            |
+| wheel                      | scroll the screen, or the zoomed note           |
+
+In tmux the mouse reaches stickypane only with `set -g mouse on`.
 
 ## Command line and MCP
 

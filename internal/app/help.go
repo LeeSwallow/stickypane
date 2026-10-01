@@ -48,7 +48,13 @@ Open checklist
 
 Open form
   j k              change control
-  enter space      choose, type, press`
+  enter space      choose, type, press
+
+Mouse
+  click a title    open, focus, close
+  click a note     focus; tick, choose
+  double click     zoom
+  wheel            scroll`
 
 // helpWidth is the dialog that holds helpText: its widest line plus the frame.
 const helpWidth = 44

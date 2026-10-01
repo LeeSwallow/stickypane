@@ -38,6 +38,19 @@ func TestSequenceDiagramsAreDrawn(t *testing.T) {
 	}
 }
 
+func TestEntityDiagramsAreDrawn(t *testing.T) {
+	md := "```mermaid\nerDiagram\n  USER ||--o{ NOTE : writes\n  USER {\n    int id PK\n    string name\n  }\n```\n"
+	out := ansi.Strip(WithMermaid(note.Plain)(md, 70))
+	for _, want := range []string{"USER", "NOTE", "writes", "│ int", "│ PK │", "┌"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output should contain %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "erDiagram") {
+		t.Errorf("the source should be replaced by the drawing:\n%s", out)
+	}
+}
+
 func TestWhatCannotBeDrawnShowsItsSource(t *testing.T) {
 	cases := []string{
 		"```mermaid\npie title Pets\n  \"Dogs\" : 3\n```\n", // a diagram type the renderer does not know

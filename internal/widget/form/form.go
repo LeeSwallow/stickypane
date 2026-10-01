@@ -174,7 +174,18 @@ type Form struct {
 	cursor    int
 	submitted string // the pressed button, "" before that
 	at        string
+	drawn     []area // where each control was in the last Draw
 }
+
+// area is the cells a control took in the last Draw: its lines and, for a
+// button, its columns.
+type area struct {
+	lines  widget.Span
+	x0, x1 int
+}
+
+// anyCol is the column range of a control that owns its whole lines.
+const anyCol = 1 << 30
 
 func parse(d doc.Document, render note.Renderer) *Form {
 	f := &Form{render: render}
@@ -223,14 +234,8 @@ func (f *Form) Draw(width int, active bool) (string, widget.Span) {
 	f.clamp()
 	var out []string
 	at := widget.NoSpan
+	f.drawn = f.drawn[:0]
 	sel := f.controls[f.cursor]
-	mark := func(from int) {
-		if at.Ok() {
-			at.End = len(out)
-		} else {
-			at = widget.Span{Start: from, End: len(out)}
-		}
-	}
 	for i := 0; i < len(f.lines); i++ {
 		l := f.lines[i]
 		selected := active && sel.line == i
@@ -260,20 +265,27 @@ func (f *Form) Draw(width int, active bool) (string, widget.Span) {
 			if selected {
 				focus = sel.button
 			}
-			rows, focusRow := f.drawButtons(l.labels, width, focus)
+			rows, places := f.drawButtons(l.labels, width, focus)
+			starts := make([]int, len(rows))
 			for r, row := range rows {
-				if r == focusRow {
-					from = len(out)
-				}
+				starts[r] = len(out)
 				out = append(out, row...)
-				if r == focusRow {
-					mark(from)
+			}
+			for b, p := range places {
+				lines := widget.Span{Start: starts[p.row], End: starts[p.row] + len(rows[p.row])}
+				f.drawn = append(f.drawn, area{lines: lines, x0: p.x0, x1: p.x1})
+				if b == focus {
+					at = lines
 				}
 			}
 			continue
 		}
-		if selected {
-			mark(from)
+		if l.kind == option || l.kind == field {
+			lines := widget.Span{Start: from, End: len(out)}
+			f.drawn = append(f.drawn, area{lines: lines, x1: anyCol})
+			if selected {
+				at = lines
+			}
 		}
 	}
 	if f.submitted != "" {
@@ -397,11 +409,12 @@ func drawField(text string, width int, selected bool) []string {
 	return boxed(lines, inner, thin, widget.Faint, st)
 }
 
+// place is where a button was drawn: its row and its columns.
+type place struct{ row, x0, x1 int }
+
 // drawButtons draws the buttons of one line side by side, on more rows when
-// they do not fit. It returns the rows and which row holds the focused
-// button, or -1.
-func (f *Form) drawButtons(labels []string, width, focus int) (rows [][]string, focusRow int) {
-	focusRow = -1
+// they do not fit. It returns the rows and where each button is.
+func (f *Form) drawButtons(labels []string, width, focus int) (rows [][]string, places []place) {
 	var row []string
 	used := 0
 	flush := func() {
@@ -432,15 +445,13 @@ func (f *Form) drawButtons(labels []string, width, focus int) (rows [][]string, 
 			for j := range row {
 				row[j] += " " + button[j]
 			}
-			w++
+			used++
 		}
+		places = append(places, place{row: len(rows), x0: used, x1: used + w})
 		used += w
-		if i == focus {
-			focusRow = len(rows)
-		}
 	}
 	flush()
-	return rows, focusRow
+	return rows, places
 }
 
 // Summary implements widget.Widget: the pressed button, or how many
@@ -505,6 +516,19 @@ func (f *Form) Update(key string) (widget.Widget, widget.Result) {
 	}
 	f.clamp()
 	return f, res
+}
+
+// Click implements widget.Clicker: a press on a control does what enter
+// does there.
+func (f *Form) Click(line, col int) (widget.Widget, widget.Result, bool) {
+	for i, a := range f.drawn {
+		if i < len(f.controls) && line >= a.lines.Start && line < a.lines.End && col >= a.x0 && col < a.x1 {
+			f.cursor = i
+			w, res := f.Update("enter")
+			return w, res, true
+		}
+	}
+	return f, widget.Result{}, false
 }
 
 // Sync implements widget.Widget.

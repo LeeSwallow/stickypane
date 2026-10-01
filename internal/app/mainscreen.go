@@ -108,6 +108,7 @@ func (m *Model) titleBar() []string {
 	var lines []string
 	var line strings.Builder
 	used, focusLine := 0, 0
+	m.tabs = m.tabs[:0]
 	for _, it := range m.items {
 		open := m.isOpen(it)
 		text := "○ "
@@ -142,6 +143,7 @@ func (m *Model) titleBar() []string {
 			text = " " + widget.Faint.Render(text) + " "
 		}
 		line.WriteString(text)
+		m.tabs = append(m.tabs, tab{name: it.note.Name, y: len(lines), x0: used, x1: used + w})
 		used += w
 	}
 	if used > 0 {
@@ -150,6 +152,9 @@ func (m *Model) titleBar() []string {
 	if limit := max((m.height-1)/3, 1); len(lines) > limit {
 		start := widget.ClampOffset(focusLine-limit/2, len(lines), limit)
 		lines = lines[start : start+limit]
+		for i := range m.tabs {
+			m.tabs[i].y -= start // a tab scrolled out of the bar gets a line that is not there
+		}
 	}
 	if len(lines) > 0 && m.height >= ruleHeight {
 		lines = append(lines, widget.Faint.Render(strings.Repeat("─", m.width)))

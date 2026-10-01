@@ -9,7 +9,7 @@ Jot freely: decisions, things to remember, progress. A one-line file is a
 complete note. Add front matter only when a note needs a shape:
 
 - Plain note: any Markdown, from one line to a full page. A ```mermaid block
-  (flowchart or sequence diagram) is drawn as a diagram.
+  (flowchart, sequence or ER diagram) is drawn as a diagram.
 - Any note takes these optional keys: `title`; `open: true` to put it on the
   screen now (`open: false` to keep it folded away); `size` (`page` for the
   whole width, `half`, or `card`); `pin: true`; `color` (yellow, pink, blue,
