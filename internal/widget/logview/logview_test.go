@@ -61,3 +61,21 @@ func TestKind(t *testing.T) {
 		t.Errorf("Template = %q", got)
 	}
 }
+
+func TestSummaryCountsEntries(t *testing.T) {
+	if got := parseBody("one\ntwo\n\nthree\n").Summary(); got != "3 lines" {
+		t.Errorf("Summary = %q", got)
+	}
+	if got := parseBody("one\n").Summary(); got != "1 line" {
+		t.Errorf("Summary = %q", got)
+	}
+	if got := parseBody("").Summary(); got != "" {
+		t.Errorf("Summary of an empty log = %q", got)
+	}
+}
+
+func TestKindDescribesItself(t *testing.T) {
+	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || Kind.Blurb == "" || Kind.Example == "" {
+		t.Errorf("Kind needs a one-cell icon, a blurb and an example: %+v", Kind)
+	}
+}

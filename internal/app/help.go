@@ -10,9 +10,7 @@ import (
 
 // helpText lists one key per line and stays under 40 cells wide, so it is
 // readable in a narrow side pane. It scrolls when the pane is short.
-const helpText = `stickypane keys
-
-Notes
+const helpText = `Notes
   tab              next note
   shift+tab        previous note
   enter            open, then zoom
@@ -46,10 +44,15 @@ Open checklist
   space            tick an item
   n                new item`
 
+// helpWidth is the dialog that holds helpText: its widest line plus the frame.
+const helpWidth = 44
+
 func init() {
 	handlers[modeHelp] = helpUpdate
 	bodies[modeHelp] = helpBody
-	footers[modeHelp] = func(*Model) string { return "j k scroll  any other key closes" }
+	footers[modeHelp] = func(m *Model) string {
+		return hints(m.width, "j k", "scroll") + "  " + widget.Faint.Render("any other key closes")
+	}
 
 	// Also reachable from a zoomed note, which it returns to.
 	boardKeys["?"] = func(m *Model) tea.Cmd {
@@ -71,8 +74,24 @@ func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+// helpBody draws the key reference: section names stand out and the keys
+// line up. On a screen with room it sits in a centered dialog.
 func helpBody(m *Model, h int) []string {
 	lines := strings.Split(helpText, "\n")
-	m.helpScroll = widget.ClampOffset(m.helpScroll, len(lines), h)
-	return widget.Window(lines, m.helpScroll, h)
+	for i, l := range lines {
+		if l != "" && !strings.HasPrefix(l, " ") {
+			lines[i] = widget.Bold.Render(l)
+		}
+	}
+	rows := h
+	framed := m.width >= helpWidth && h >= 6
+	if framed {
+		rows = min(h-2, len(lines))
+	}
+	m.helpScroll = widget.ClampOffset(m.helpScroll, len(lines), rows)
+	visible := append([]string(nil), widget.Window(lines, m.helpScroll, rows)...)
+	if !framed {
+		return visible
+	}
+	return dialog("Keys", visible, helpWidth, m.width, h)
 }

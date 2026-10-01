@@ -3,27 +3,29 @@
 A note board in your terminal, for you and your coding agent.
 
 ```
- ▾ Auth work  ▾ Login API  ▾ Work log  ▸ Auth design  ▸ memo
-╔ Auth work ═════════════════════════════════════════════════════════════════╗
+ ● ▦ Auth work  ● ☑ Login API  ● ≣ Work log  ○ ✎ Auth design  ○ ✎ memo
+──────────────────────────────────────────────────────────────────────────────
+╔ ▦ Auth work ══════════════════════════════════════════════════════ 4 cards ╗
 ║ To do (1)               Doing (1)               Done (2)                   ║
-║   payments              › login API               schema                   ║
-║                             refresh tokens come                            ║
-║                             later                 CI setup                 ║
+║ ──────────────────────  ──────────────────────  ──────────────────────     ║
+║ ▎ payments              › login API             ▎ schema                   ║
+║                             refresh tokens                                 ║
+║                             come later          ▎ CI setup                 ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-╭ Login API ──────────────────────────╮╭ Work log ───────────────────────────╮
+╭ ☑ Login API ─────────────────── 2/3 ╮╭ ≣ Work log ──────────────── 2 lines ╮
 │ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3            ││ 14:02 tests passed                  │
 │                                     ││ 14:10 started on review feedback    │
 │   ☑ Add endpoint                    │╰─────────────────────────────────────╯
 │   ☑ Validate input                  │
 │   ☐ Write tests                     │
 ╰─────────────────────────────────────╯
-tab move  enter open/zoom  o close  + - size  N jot  a add  ? help
+h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 ```
 
 Your agent jots things down as plain Markdown files. stickypane shows them in
 a pane next to it: plain notes, kanban boards, checklists and logs. The line
-at the top lists every note; the ones you open are drawn below it in full,
-never cut. Move a card or tick a box and the change lands in the same file,
+at the top lists every note (`●` open, `○` folded away); the ones you open are
+drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
 so the agent sees it too.
 
 - **Nothing to configure.** No config file, no server, no hooks.

@@ -216,3 +216,22 @@ func TestKind(t *testing.T) {
 		t.Errorf("a new checklist must not contain a blank item: %q", lines)
 	}
 }
+
+func TestSummaryIsTheProgress(t *testing.T) {
+	if got := parseBody(body).Summary(); got != "2/3" {
+		t.Errorf("Summary = %q", got)
+	}
+	if got := parseBody("no items\n").Summary(); got != "" {
+		t.Errorf("Summary without items = %q", got)
+	}
+}
+
+func TestKindDescribesItself(t *testing.T) {
+	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
+		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
+	}
+	example := Kind.Parse(doc.Parse([]byte(Kind.Example)))
+	if got := example.Summary(); got == "" {
+		t.Errorf("the example should be a checklist with items, summary = %q", got)
+	}
+}

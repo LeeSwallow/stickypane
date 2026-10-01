@@ -2,6 +2,7 @@
 package logview
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -16,6 +17,9 @@ const rows = 10
 var Kind = widget.Kind{
 	Name:     "log",
 	Label:    "Log",
+	Icon:     "≣",
+	Blurb:    "One entry per line. The newest entries stay in sight.",
+	Example:  "14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
 	Tail:     true,
 	Rows:     rows,
 	Size:     func(doc.Document) string { return widget.SizeHalf },
@@ -43,10 +47,29 @@ func (l *Log) Draw(width int, _ bool) (string, int) {
 		return widget.Faint.Render("(no entries yet)"), -1
 	}
 	var out []string
+	// A log shows the file as it is: no styling, only wrapping so that
+	// nothing is cut.
 	for _, line := range l.lines {
 		out = append(out, widget.Wrap(line, width)...)
 	}
 	return strings.Join(out, "\n"), -1
+}
+
+// Summary implements widget.Widget: how many entries the log has.
+func (l *Log) Summary() string {
+	n := 0
+	for _, line := range l.lines {
+		if line != "" {
+			n++
+		}
+	}
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return "1 line"
+	}
+	return fmt.Sprintf("%d lines", n)
 }
 
 // Update implements widget.Widget. A log takes no keys.

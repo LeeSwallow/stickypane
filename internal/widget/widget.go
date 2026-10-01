@@ -22,6 +22,9 @@ type Widget interface {
 	// wraps. When active, the widget shows its cursor. cursor is the line
 	// the cursor is on, or -1 for a widget that has none.
 	Draw(width int, active bool) (out string, cursor int)
+	// Summary is a few words about the note for its border, such as
+	// "2/3" or "5 cards". It may be empty.
+	Summary() string
 	// Update handles a key such as "j", "space" or "H".
 	Update(key string) (Widget, Result)
 	// Sync replaces the content after the file changed and keeps screen
@@ -45,6 +48,14 @@ type Prompt struct {
 type Kind struct {
 	Name  string // the front matter "type" value
 	Label string // shown in the catalog
+	Icon  string // one cell, shown before the note's title
+	// Hint names the keys of Keys for the bottom line, as alternating
+	// keys and what they do: {"h l", "column", "n", "new card"}.
+	Hint []string
+	// Blurb says in one line what this shape is for, and Example is a small
+	// note of this shape; the catalog shows both.
+	Blurb   string
+	Example string
 	// Keys lists, separated by spaces, the keys an open note of this kind
 	// handles itself. Every other key belongs to the screen.
 	Keys string

@@ -26,7 +26,7 @@ func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
 	if !strings.Contains(s, "│ Check env before deploy") && !strings.Contains(s, "║ Check env before deploy") {
 		t.Errorf("the new note should be open on the screen:\n%s", s)
 	}
-	if strings.Contains(s, "●") {
+	if strings.Contains(s, "*") {
 		t.Errorf("a note you just wrote is not marked as changed:\n%s", s)
 	}
 }
@@ -70,7 +70,14 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 			t.Fatalf("catalog should list %q:\n%s", want, s)
 		}
 	}
-	press(m, "j", "enter")
+	if !strings.Contains(s, "Anything in Markdown") {
+		t.Errorf("the catalog should say what the selected shape is for:\n%s", s)
+	}
+	press(m, "j")
+	if s := screen(m); !strings.Contains(s, "Cards in columns") || !strings.Contains(s, "To do (1)") {
+		t.Errorf("the catalog should describe the board and show an example of it:\n%s", s)
+	}
+	press(m, "enter")
 	if s := screen(m); !strings.Contains(s, "Title:") {
 		t.Fatalf("choosing a shape should ask for a title:\n%s", s)
 	}

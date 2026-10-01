@@ -4,17 +4,20 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
+// ruleHeight is the shortest screen that spends a line on the rule under
+// the title bar.
+const ruleHeight = 8
+
 func init() {
 	handlers[modeBoard] = mainUpdate
 	bodies[modeBoard] = mainBody
-	footers[modeBoard] = func(*Model) string {
-		return "tab move  enter open/zoom  o close  + - size  N jot  a add  ? help"
-	}
+	footers[modeBoard] = mainFooter
 
 	boardKeys["tab"] = func(m *Model) tea.Cmd { m.stepFocus(1); return nil }
 	boardKeys["shift+tab"] = func(m *Model) tea.Cmd { m.stepFocus(-1); return nil }
@@ -61,30 +64,52 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func mainBody(m *Model, h int) []string {
 	switch {
 	case len(m.items) == 0:
-		return []string{"", "  No notes yet. Press N to jot one down."}
+		return dialog("", []string{"No notes yet.", "", "Press N to jot one down,", "or ask your agent to stick a note here."}, 46, m.width, h)
 	case len(m.canvas) == 0:
-		return []string{"", "  Nothing is open. Pick a note with tab and press enter."}
+		return dialog("", []string{"Nothing is open.", "", "Pick a note with tab and press enter."}, 46, m.width, h)
 	}
 	return widget.Window(m.canvas, m.scroll, h)
 }
 
-// titleBar lists every note, wrapping onto more lines when they do not fit:
-// "▾" marks an open note and "▸" a closed one, "📌" a pinned note and "●"
-// one that changed since it was last focused.
+// mainFooter guides the keys that matter for what has the focus: the note's
+// own keys first when it is open, then the screen's.
+func mainFooter(m *Model) string {
+	i := m.index(m.focus)
+	switch {
+	case i < 0:
+		return hints(m.width, "N", "jot", "a", "add", "?", "help", "q", "quit")
+	case !m.isOpen(m.items[i]):
+		return hints(m.width, "tab", "next", "enter", "open", "N", "jot", "a", "add", "?", "help", "q", "quit")
+	case len(m.items[i].kind.Hint) > 0:
+		return hints(m.width, append(append([]string(nil), m.items[i].kind.Hint...), "enter", "zoom", "o", "close", "tab", "next", "?", "help")...)
+	}
+	return hints(m.width, "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot", "?", "help")
+}
+
+// titleBar lists every note like a row of tabs, wrapping onto more lines
+// when they do not fit: "●" marks an open note and "○" a closed one, then the
+// shape's icon and the title, "📌" for a pinned note and "*" for one that
+// changed since it was last focused. On a screen tall enough, a rule sets
+// the bar apart from the notes.
 func (m *Model) titleBar() []string {
 	var lines []string
 	var line strings.Builder
 	used := 0
 	for _, it := range m.items {
-		text := "▸ " + label(it)
-		if m.isOpen(it) {
-			text = "▾ " + label(it)
+		open := m.isOpen(it)
+		text := "○ "
+		if open {
+			text = "● "
 		}
+		if it.kind.Icon != "" {
+			text += it.kind.Icon + " "
+		}
+		text += label(it)
 		if it.note.Doc.Pinned() {
 			text += " 📌"
 		}
 		if m.changed(it) {
-			text += " ●"
+			text += " *"
 		}
 		text = widget.Truncate(text, max(m.width-2, 1))
 		w := widget.Width(text) + 2
@@ -93,17 +118,23 @@ func (m *Model) titleBar() []string {
 			line.Reset()
 			used = 0
 		}
+		st := lipgloss.NewStyle().Foreground(noteColor(it))
 		switch {
 		case it.note.Name == m.focus:
-			text = widget.Selected.Render(text)
-		case !m.isOpen(it):
-			text = widget.Faint.Render(text)
+			text = st.Bold(true).Reverse(true).Render(" " + text + " ")
+		case open:
+			text = " " + st.Render(text) + " "
+		default:
+			text = " " + widget.Faint.Render(text) + " "
 		}
-		line.WriteString(" " + text + " ")
+		line.WriteString(text)
 		used += w
 	}
 	if used > 0 {
 		lines = append(lines, line.String())
+	}
+	if len(lines) > 0 && m.height >= ruleHeight {
+		lines = append(lines, widget.Faint.Render(strings.Repeat("─", m.width)))
 	}
 	return lines
 }

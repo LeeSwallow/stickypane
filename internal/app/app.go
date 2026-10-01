@@ -453,7 +453,10 @@ func (m *Model) relayout() {
 		if focused {
 			focusRect, cursor = len(boxes), at
 		}
-		boxes = append(boxes, frame(m.heading(it), strings.Join(lines, "\n"), w, noteColor(it), focused))
+		boxes = append(boxes, frame(box{
+			title: m.heading(it), icon: it.kind.Icon, summary: it.w.Summary(),
+			body: strings.Join(lines, "\n"), width: w, color: noteColor(it), focused: focused,
+		}))
 		sizes = append(sizes, layout.Item{W: max(w, 8), H: len(lines) + 2})
 	}
 	m.rects = layout.Shelf(m.width, sizes)

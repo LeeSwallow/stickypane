@@ -32,6 +32,9 @@ func NewKind(render Renderer) widget.Kind {
 	return widget.Kind{
 		Name:     "note",
 		Label:    "Note",
+		Icon:     "✎",
+		Blurb:    "Anything in Markdown, from one line to a full page.",
+		Example:  "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
 		Size:     size,
 		Template: func(title string) []byte { return widget.NewFile("note", title, "") },
 		Parse:    func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
@@ -90,6 +93,9 @@ func (n *Note) Draw(width int, _ bool) (string, int) {
 	}
 	return strings.Join(l, "\n"), -1
 }
+
+// Summary implements widget.Widget. A plain note has nothing to count.
+func (n *Note) Summary() string { return "" }
 
 // Update implements widget.Widget. A plain note takes no keys.
 func (n *Note) Update(string) (widget.Widget, widget.Result) { return n, widget.Result{} }

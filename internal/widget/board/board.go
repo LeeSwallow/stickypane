@@ -11,16 +11,21 @@ import (
 )
 
 const (
-	minCol     = 16 // narrower than this, columns are stacked instead of side by side
+	minCol     = 14 // narrower than this, columns are stacked instead of side by side
+	gutter     = 2  // empty cells between two columns
 	formatHint = `no columns yet: add "## Name" headings`
 )
 
 // Kind registers the board.
 var Kind = widget.Kind{
-	Name:  "board",
-	Label: "Board (kanban)",
-	Keys:  "h l j k H L J K n left right up down",
-	Size:  func(doc.Document) string { return widget.SizePage },
+	Name:    "board",
+	Label:   "Board (kanban)",
+	Icon:    "▦",
+	Hint:    []string{"h l j k", "move", "H L", "shift card", "J K", "reorder", "n", "new card"},
+	Blurb:   "Cards in columns. Move a card as the work moves.",
+	Example: "## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n",
+	Keys:    "h l j k H L J K n left right up down",
+	Size:    func(doc.Document) string { return widget.SizePage },
 	Template: func(title string) []byte {
 		return widget.NewFile("board", title, "## To do\n\n## Doing\n\n## Done\n")
 	},
@@ -143,7 +148,7 @@ func (b *Board) Draw(width int, active bool) (string, int) {
 			if i > 0 {
 				body = append(body, "")
 			}
-			lines, at := b.column(i, width, active)
+			lines, at := b.column(i, width-1, active)
 			if at >= 0 {
 				cursor = len(body) + at
 			}
@@ -154,7 +159,7 @@ func (b *Board) Draw(width int, active bool) (string, int) {
 		rows := 0
 		for i := range b.cols {
 			var at int
-			cells[i], at = b.column(i, cw-1, active)
+			cells[i], at = b.column(i, cw-gutter, active)
 			if at >= 0 {
 				cursor = at
 			}
@@ -180,6 +185,7 @@ func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
 	} else {
 		lines = append(lines, widget.Bold.Render(head))
 	}
+	lines = append(lines, widget.Faint.Render(strings.Repeat("─", max(width, 1))))
 	for r, cd := range c.cards {
 		if r > 0 {
 			lines = append(lines, "")
@@ -193,7 +199,8 @@ func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
 			case selected:
 				lines = append(lines, widget.Selected.Render("  "+l))
 			default:
-				lines = append(lines, "  "+l)
+				// The bar down the left edge is what makes it read as a card.
+				lines = append(lines, widget.Faint.Render("▎")+" "+l)
 			}
 		}
 		if selected {
@@ -222,6 +229,21 @@ func joinColumns(cells [][]string, rows, cw int) []string {
 		out[r] = strings.TrimRight(sb.String(), " ")
 	}
 	return out
+}
+
+// Summary implements widget.Widget: how many cards the board holds.
+func (b *Board) Summary() string {
+	n := 0
+	for _, c := range b.cols {
+		n += len(c.cards)
+	}
+	switch {
+	case len(b.cols) == 0:
+		return ""
+	case n == 1:
+		return "1 card"
+	}
+	return fmt.Sprintf("%d cards", n)
 }
 
 // Update implements widget.Widget.

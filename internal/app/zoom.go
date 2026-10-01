@@ -11,7 +11,17 @@ import (
 func init() {
 	handlers[modeZoom] = zoomUpdate
 	bodies[modeZoom] = zoomBody
-	footers[modeZoom] = func(*Model) string { return "esc back  e edit  ? keys" }
+	footers[modeZoom] = func(m *Model) string {
+		pairs := []string{"esc", "back"}
+		if i := m.index(m.zoomName); i >= 0 {
+			if hint := m.items[i].kind.Hint; len(hint) > 0 {
+				pairs = append(pairs, hint...)
+			} else {
+				pairs = append(pairs, "j k g G", "scroll")
+			}
+		}
+		return hints(m.width, append(pairs, "e", "edit", "?", "keys")...)
+	}
 }
 
 // zoom gives one note the whole screen. A log starts at its end.
@@ -78,5 +88,8 @@ func zoomBody(m *Model, h int) []string {
 	for len(visible) < rows {
 		visible = append(visible, "")
 	}
-	return strings.Split(frame(title, strings.Join(visible, "\n"), m.width, noteColor(it), true), "\n")
+	return strings.Split(frame(box{
+		title: title, icon: it.kind.Icon, summary: it.w.Summary(),
+		body: strings.Join(visible, "\n"), width: m.width, color: noteColor(it), focused: true,
+	}), "\n")
 }

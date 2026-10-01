@@ -26,7 +26,8 @@ func TestDrawShowsColumnsSideBySide(t *testing.T) {
 	lines, _ := draw(parseSrc(src), 60, false)
 	want := []string{
 		"To do (1)           Doing (1)           Done (1)",
-		"  payments            login API           schema",
+		"──────────────────  ──────────────────  ──────────────────",
+		"▎ payments          ▎ login API         ▎ schema",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
 		t.Errorf("Draw:\n%s\nwant:\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -42,7 +43,7 @@ func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
 		t.Errorf("an open board must not fold or cut cards:\n%s", text)
 	}
 	for _, card := range []string{"1", "6", "x"} {
-		if !strings.Contains(text, "  "+card) {
+		if !strings.Contains(text, "▎ "+card) {
 			t.Errorf("card %q is missing:\n%s", card, text)
 		}
 	}
@@ -61,14 +62,15 @@ func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
 
 func TestDrawPutsABlankLineBetweenCards(t *testing.T) {
 	lines, _ := draw(parseSrc("## A\n- one\n- two\n"), 40, false)
-	if want := []string{"A (2)", "  one", "", "  two"}; strings.Join(lines, "|") != strings.Join(want, "|") {
+	if want := []string{"A (2)", strings.Repeat("─", 38), "▎ one", "", "▎ two"}; strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("Draw = %q, want %q", lines, want)
 	}
 }
 
 func TestDrawStacksColumnsWhenNarrow(t *testing.T) {
 	lines, _ := draw(parseSrc(src), 30, false)
-	want := []string{"To do (1)", "  payments", "", "Doing (1)", "  login API", "", "Done (1)", "  schema"}
+	rule := strings.Repeat("─", 29)
+	want := []string{"To do (1)", rule, "▎ payments", "", "Doing (1)", rule, "▎ login API", "", "Done (1)", rule, "▎ schema"}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("Draw = %q\nwant  %q", lines, want)
 	}
@@ -243,6 +245,28 @@ func TestSyncClampsCursor(t *testing.T) {
 	w = w.Sync(doc.Parse([]byte("## Only\n- card\n")))
 	if lines, cursor := draw(w, 40, true); cursor < 0 || !strings.Contains(lines[cursor], "› card") {
 		t.Errorf("cursor should clamp to the remaining column: %q", lines)
+	}
+}
+
+func TestSummaryCountsCards(t *testing.T) {
+	if got := parseSrc(src).Summary(); got != "3 cards" {
+		t.Errorf("Summary = %q", got)
+	}
+	if got := parseSrc("## A\n- one\n").Summary(); got != "1 card" {
+		t.Errorf("Summary = %q", got)
+	}
+	if got := parseSrc("no columns\n").Summary(); got != "" {
+		t.Errorf("Summary without columns = %q", got)
+	}
+}
+
+func TestKindDescribesItself(t *testing.T) {
+	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
+		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
+	}
+	example := Kind.Parse(doc.Parse([]byte(Kind.Example)))
+	if out, _ := example.Draw(40, false); !strings.Contains(ansi.Strip(out), "(") {
+		t.Errorf("the example should draw as a board with columns:\n%s", out)
 	}
 }
 

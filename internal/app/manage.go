@@ -17,7 +17,7 @@ var sizes = []string{widget.SizeCard, widget.SizeHalf, widget.SizePage}
 
 func init() {
 	handlers[modeConfirm] = confirmUpdate
-	footers[modeConfirm] = func(m *Model) string { return m.confirmMsg }
+	footers[modeConfirm] = func(m *Model) string { return widget.Warn.Bold(true).Render(m.confirmMsg) }
 
 	grow := onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })
 	boardKeys["+"] = grow

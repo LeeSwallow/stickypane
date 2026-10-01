@@ -100,3 +100,13 @@ func TestKind(t *testing.T) {
 		t.Errorf("Template = %q", got)
 	}
 }
+
+func TestSummaryIsEmptyAndKindDescribesItself(t *testing.T) {
+	if got := parse("hello\n").Summary(); got != "" {
+		t.Errorf("Summary = %q, want none for a plain note", got)
+	}
+	k := NewKind(Plain)
+	if k.Icon == "" || widget.Width(k.Icon) != 1 || k.Blurb == "" || k.Example == "" {
+		t.Errorf("Kind needs a one-cell icon, a blurb and an example: %+v", k)
+	}
+}

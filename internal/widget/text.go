@@ -13,6 +13,9 @@ var (
 	Bold     = lipgloss.NewStyle().Bold(true)
 	Faint    = lipgloss.NewStyle().Faint(true)
 	Selected = lipgloss.NewStyle().Reverse(true)
+	Good     = lipgloss.NewStyle().Foreground(lipgloss.Color("#8FD694"))
+	Warn     = lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A962"))
+	Struck   = lipgloss.NewStyle().Faint(true).Strikethrough(true)
 )
 
 // Clean prepares file text for the screen: escape sequences and control

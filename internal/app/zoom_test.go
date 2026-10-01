@@ -16,7 +16,7 @@ func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
 		t.Fatalf("mode = %v, want zoom", m.mode)
 	}
 	s := screen(m)
-	if strings.Contains(s, "▾") || strings.Contains(s, "payments") {
+	if strings.Contains(s, "▦ Auth") || strings.Contains(s, "payments") {
 		t.Errorf("zoom should hide the title bar and the other notes:\n%s", s)
 	}
 	if !strings.Contains(s, "line 01") || !strings.Contains(s, "line 15") || !strings.Contains(s, "esc back") {

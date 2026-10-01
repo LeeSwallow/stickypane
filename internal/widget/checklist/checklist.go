@@ -28,6 +28,10 @@ func isDetail(line string) bool {
 var Kind = widget.Kind{
 	Name:     "checklist",
 	Label:    "Checklist",
+	Icon:     "☑",
+	Hint:     []string{"j k", "move", "space", "tick", "n", "new item"},
+	Blurb:    "Steps to tick off, with a progress bar.",
+	Example:  "- [x] Add endpoint\n- [x] Validate input\n- [ ] Write tests\n",
 	Keys:     "j k up down space n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
@@ -80,7 +84,16 @@ func bar(done, total, width int) string {
 		return widget.Truncate(strings.TrimSpace(label), width)
 	}
 	fill := done * w / total
-	return strings.Repeat("▓", fill) + strings.Repeat("░", w-fill) + label
+	return widget.Good.Render(strings.Repeat("▓", fill)) + widget.Faint.Render(strings.Repeat("░", w-fill)) + label
+}
+
+// Summary implements widget.Widget: done over total.
+func (c *Checklist) Summary() string {
+	done, total := c.counts()
+	if total == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d/%d", done, total)
 }
 
 // nth is how many items above the cursor share the selected item's text. It
@@ -114,12 +127,18 @@ func (c *Checklist) Draw(width int, active bool) (string, int) {
 	cursor := -1
 	for i, e := range c.entries {
 		if !e.item {
-			lines = append(lines, widget.Wrap(widget.Clean(e.text), max(width, 1))...)
+			for _, l := range widget.Wrap(widget.Clean(e.text), max(width, 1)) {
+				if strings.HasPrefix(e.text, "#") {
+					l = widget.Bold.Render(l)
+				}
+				lines = append(lines, l)
+			}
 			continue
 		}
-		mark := "☐ "
+		mark, done := "☐ ", func(s string) string { return s }
 		if e.checked {
-			mark = "☑ "
+			// A finished item steps back so the open ones stand out.
+			mark, done = "☑ ", func(s string) string { return widget.Struck.Render(s) }
 		}
 		selected := active && c.items[c.cursor] == i
 		for j, l := range widget.Wrap(widget.Clean(e.text), max(width-4, 1)) {
@@ -128,11 +147,11 @@ func (c *Checklist) Draw(width int, active bool) (string, int) {
 				cursor = len(lines)
 				lines = append(lines, widget.Selected.Render("› "+mark+l))
 			case j == 0:
-				lines = append(lines, "  "+mark+l)
+				lines = append(lines, "  "+mark+done(l))
 			case selected:
 				lines = append(lines, widget.Selected.Render("    "+l))
 			default:
-				lines = append(lines, "    "+l)
+				lines = append(lines, "    "+done(l))
 			}
 		}
 	}
