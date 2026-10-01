@@ -34,10 +34,10 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if !strings.HasPrefix(g, startMark+"\n") || !strings.HasSuffix(g, endMark+"\n") {
 		t.Error("the guide must be wrapped in the markers")
 	}
-	if n := strings.Count(g, "\n"); n > 40 {
-		t.Errorf("the guide is %d lines, want at most 40", n)
+	if n := strings.Count(g, "\n"); n > 45 {
+		t.Errorf("the guide is %d lines, want at most 45", n)
 	}
-	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
+	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}

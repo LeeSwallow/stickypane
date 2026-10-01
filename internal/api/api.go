@@ -5,19 +5,25 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
+	"github.com/LeeSwallow/stickypane/internal/widget/form"
 )
 
 // ErrBadName rejects names that are not a plain Markdown file name.
 var ErrBadName = errors.New(`a note name is a plain file name such as "plan" or "plan.md"`)
+
+// ErrNotForm reports that a note has no answers to read.
+var ErrNotForm = errors.New("that note is not a form: only a note with type: form has answers")
 
 // Info describes a note without its content.
 type Info struct {
@@ -147,4 +153,41 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 		}
 	}
 	return file, a.st.Write(file, d.Bytes())
+}
+
+// Answers reads what the user chose and wrote in a form, and which button
+// they pressed.
+func (a *API) Answers(name string) (form.Answers, error) {
+	file, err := fileName(name)
+	if err != nil {
+		return form.Answers{}, err
+	}
+	b, err := a.st.Read(file)
+	if err != nil {
+		return form.Answers{}, err
+	}
+	d := doc.Parse(b)
+	if d.Type() != "form" {
+		return form.Answers{}, ErrNotForm
+	}
+	return form.Read(d), nil
+}
+
+// Wait returns a form's answers once a button has been pressed, looking at
+// the file every interval. When ctx ends first it returns the answers so far
+// together with the context's error.
+func (a *API) Wait(ctx context.Context, name string, every time.Duration) (form.Answers, error) {
+	tick := time.NewTicker(every)
+	defer tick.Stop()
+	for {
+		got, err := a.Answers(name)
+		if err != nil || got.Submitted {
+			return got, err
+		}
+		select {
+		case <-ctx.Done():
+			return got, ctx.Err()
+		case <-tick.C:
+		}
+	}
 }

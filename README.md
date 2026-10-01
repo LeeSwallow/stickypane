@@ -23,8 +23,8 @@ h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 ```
 
 Your agent jots things down as plain Markdown files. stickypane shows them in
-a pane next to it: plain notes, kanban boards, checklists, logs, charts and
-Mermaid diagrams. The line
+a pane next to it: plain notes, kanban boards, checklists, logs, charts,
+Mermaid diagrams, and forms you answer with a key press. The line
 at the top lists every note (`●` open, `○` folded away); the ones you open are
 drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
 so the agent sees it too.
@@ -81,7 +81,7 @@ to type one: the keys in the next section change them for you.
 
 | Key     | Values                                                 |
 | ------- | ------------------------------------------------------ |
-| `type`  | `note` (default), `board`, `checklist`, `log`, `chart`  |
+| `type`  | `note` (default), `board`, `checklist`, `log`, `chart`, `form` |
 | `title` | shown in the title bar and the note's border            |
 | `open`  | `true` draws the note on the screen, `false` folds it away |
 | `size`  | `page` (whole width), `half`, `card`                    |
@@ -157,6 +157,64 @@ graph LR
 └───────┘     └──────┘     └───────┘
 ```
 
+**Form.** A document that asks. Your agent writes the questions; you answer
+on the board; the answers land in the same file.
+
+```markdown
+---
+type: form
+title: Deploy now?
+open: true
+---
+The build is green. Where should it go?
+
+## Target
+- ( ) staging
+  Try it there first.
+- ( ) production
+
+## Also
+- [ ] run migrations
+- [ ] clear the cache
+
+## Note
+> 
+
+[ Deploy ] [ Cancel ]
+```
+
+```
+  ○ staging                      ╭──────────────────────────────╮
+      Try it there first.        │ after lunch                  │
+› ◉ production                   ╰──────────────────────────────╯
+  ☑ run migrations               ┏━━━━━━━━┓ ╭────────╮
+  ☐ clear the cache              ┃ Deploy ┃ │ Cancel │
+                                 ┗━━━━━━━━┛ ╰────────╯
+```
+
+| Line                  | Is                                             |
+| --------------------- | ---------------------------------------------- |
+| `- ( ) text`          | an option; choosing one clears the others      |
+| `- [ ] text`          | an option; choose as many as you like          |
+| indented line below   | the option's description                       |
+| `> text`              | a line to fill in                              |
+| `[ Label ] [ Label ]` | buttons; a form without any gets `[ Submit ]`  |
+
+Everything else is Markdown and is drawn as such. Options of one kind in a
+row are one question, named by the heading above it. Pressing a button writes
+`submitted: <label>` and `submitted_at` into the front matter; changing an
+answer afterwards takes them out again. The agent reads the answers from the
+file, or waits for them:
+
+```sh
+stickypane wait deploy --timeout 10m
+# submitted: Deploy
+# at: 2026-10-02T14:03:05+09:00
+# Target: production
+# Also: run migrations
+# Note: after lunch
+```
+
 Notes are ordered by file name, pinned ones first. Prefix a number
 (`10-plan.md`) to control the order. A file that does not fit its shape is
 still shown, never hidden.
@@ -175,10 +233,14 @@ still shown, never hidden.
 | `x` / `D`           | archive, delete         | **Zoomed note**         |                      |
 | `e`                 | edit in `$EDITOR`       | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
+| `z`                 | zoom                    | **Open form**           |                      |
+|                     |                         | `j` `k`                 | change control       |
+|                     |                         | `enter` / `space`       | choose, type, press  |
 
 The focused open note takes the keys in the right-hand column where it is;
 you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
-when the focused note has no cursor of its own.
+when the focused note has no cursor of its own. A form uses `enter` itself,
+so `z` is the way to zoom into one.
 
 ## Command line and MCP
 
@@ -189,11 +251,15 @@ would rather call a tool, the same notes are reachable two more ways.
 stickypane list --json                       # every note: name, title, type, open, size
 stickypane show plan                         # print a note's file
 echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
+stickypane answers deploy                    # what the user answered in a form
+stickypane wait deploy --timeout 10m         # the same, once a button is pressed
 ```
 
+`wait` exits with code 3 when its time runs out. Both take `--json`.
+
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
-input and output, with four tools: `list_notes`, `read_note`, `write_note`
-and `guide`.
+input and output, with five tools: `list_notes`, `read_note`, `write_note`,
+`read_answers` and `guide`.
 
 ```sh
 claude mcp add stickypane -- stickypane mcp

@@ -21,13 +21,18 @@ complete note. Add front matter only when a note needs a shape:
 - Log: `type: log`. Append one line per entry at the end of the file.
 - Chart: `type: chart`. Each `label: number` line is a bar. `view: spark` draws
   a trend line; `view: heat` a calendar when labels are dates (`2026-10-01: 4`).
+- Form: `type: form`, to ask the user. Markdown with `- ( ) option` lines
+  (choose one), `- [ ] option` lines (choose any), a `> ` line (text to fill
+  in) and a line of buttons. The answers are written into the file: run
+  `stickypane wait <name>` to block until a button is pressed and print them.
 
     ---
-    type: checklist
-    title: Login API
+    type: form
+    title: Deploy now?
     ---
-    - [x] Add endpoint
-    - [ ] Write tests
+    - ( ) staging
+    - ( ) production
+    [ Deploy ] [ Cancel ]
 
 The screen shows open notes in full and lists the others by title, so open
 what the user should read now. When progress changes, update the matching

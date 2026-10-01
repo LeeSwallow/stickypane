@@ -135,6 +135,18 @@ func (d Document) Set(key, value string) Document {
 	return out
 }
 
+// Unset returns a copy without key. Only that key's line goes; a document
+// that does not have the key is returned as it is.
+func (d Document) Unset(key string) Document {
+	i := d.find(key)
+	if i < 0 {
+		return d
+	}
+	out := d
+	out.Front = append(append([]string(nil), d.Front[:i]...), d.Front[i+1:]...)
+	return out
+}
+
 // Type returns the lower-cased "type" key, or "" when it is absent.
 func (d Document) Type() string {
 	v, _ := d.Get("type")

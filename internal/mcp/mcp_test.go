@@ -114,7 +114,7 @@ func TestInitializeAndListTools(t *testing.T) {
 			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
 		}
 	}
-	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,guide" {
+	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,read_answers,guide" {
 		t.Errorf("tools = %s", got)
 	}
 	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
@@ -182,5 +182,25 @@ func TestToolFailuresAreToolErrorsNotCrashes(t *testing.T) {
 	}
 	if string(rs[5].Result) != "{}" {
 		t.Errorf("the server should keep serving after errors: %s", rs[5].Result)
+	}
+}
+
+func TestReadAnswers(t *testing.T) {
+	form := `---\ntype: form\nsubmitted: Go\n---\n## Where?\n- (x) staging\n- ( ) production\n\n[ Go ]\n`
+	rs, _ := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"deploy","content":"`+form+`"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_answers","arguments":{"name":"deploy"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_answers","arguments":{"name":"a"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"ask","type":"form","content":"- ( ) yes\n"}}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"read_answers","arguments":{"name":"ask","wait_seconds":0.05}}}`,
+	)
+	if got := call(t, rs[1]); got.IsError || got.Content[0].Text != "submitted: Go\nWhere?: staging\n" {
+		t.Errorf("read_answers = %+v", got)
+	}
+	if got := call(t, rs[2]); !got.IsError || !strings.Contains(got.Content[0].Text, "form") {
+		t.Errorf("read_answers of a plain note should fail: %+v", got)
+	}
+	if got := call(t, rs[4]); got.IsError || !strings.HasPrefix(got.Content[0].Text, "submitted: no\n") {
+		t.Errorf("a wait that runs out returns the answers so far: %+v", got)
 	}
 }

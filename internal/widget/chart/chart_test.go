@@ -107,6 +107,10 @@ func TestHeatDrawsACalendar(t *testing.T) {
 			t.Fatalf("line %d = %q, want %q\n%s", i, lines[i], w, strings.Join(lines, "\n"))
 		}
 	}
+	big := draw(t, "---\nview: heat\n---\n2026-09-28: 1,200,000\n2026-09-29: 34567.5\n", 60)
+	if last := big[len(big)-1]; !strings.HasPrefix(last, "total 1,234,567.5 ") {
+		t.Errorf("a large total should be grouped by thousands: %q", last)
+	}
 	if last := lines[len(lines)-1]; !strings.Contains(last, "10") || !strings.Contains(last, "2026-09-28") {
 		t.Errorf("the last line should give the total and the peak day: %q", last)
 	}

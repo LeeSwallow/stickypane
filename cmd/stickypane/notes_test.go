@@ -85,3 +85,52 @@ func TestMCPServesOverStandardIO(t *testing.T) {
 		t.Errorf("note written through MCP = %q", show)
 	}
 }
+
+const formNote = "---\ntype: form\n---\n## Where?\n- (x) staging\n- ( ) production\n\n## Note\n> after lunch\n\n[ Go ]\n"
+
+func TestAnswersAndWait(t *testing.T) {
+	root := project(t)
+	file := filepath.Join(root, ".stickypane", "deploy.md")
+	if err := os.WriteFile(file, []byte(formNote), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	code, out, _ := exec(t, "answers", "deploy")
+	if code != 0 || out != "submitted: no\nWhere?: staging\nNote: after lunch\n" {
+		t.Errorf("answers: code = %d, out = %q", code, out)
+	}
+
+	code, out, errOut := exec(t, "wait", "deploy", "--timeout", "30ms")
+	if code != 3 || out != "" || !strings.Contains(errOut, "deploy.md") {
+		t.Errorf("wait should give up with code 3: code = %d, out = %q, stderr = %q", code, out, errOut)
+	}
+
+	pressed := strings.Replace(formNote, "type: form\n", "type: form\nsubmitted: Go\nsubmitted_at: 2026-10-02T14:03:05Z\n", 1)
+	if err := os.WriteFile(file, []byte(pressed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, _ = exec(t, "wait", "deploy", "--timeout", "5s")
+	if code != 0 || out != "submitted: Go\nat: 2026-10-02T14:03:05Z\nWhere?: staging\nNote: after lunch\n" {
+		t.Errorf("wait: code = %d, out = %q", code, out)
+	}
+
+	code, out, _ = exec(t, "wait", "deploy", "--json")
+	var got struct {
+		Submitted bool
+		Button    string
+		Answers   []struct {
+			Question string
+			Values   []string
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || !got.Submitted || got.Button != "Go" || len(got.Answers) != 2 || got.Answers[1].Values[0] != "after lunch" {
+		t.Errorf("wait --json: code = %d, err = %v, out = %q", code, err, out)
+	}
+
+	if code, _, errOut := exec(t, "answers", "welcome"); code != 1 || !strings.Contains(errOut, "form") {
+		t.Errorf("answers of a plain note: code = %d, stderr = %q", code, errOut)
+	}
+	if code, _, _ := exec(t, "wait"); code != 2 {
+		t.Errorf("wait without a name: code = %d", code)
+	}
+}

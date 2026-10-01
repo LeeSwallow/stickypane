@@ -59,8 +59,10 @@ type Result struct {
 
 // Prompt asks the app for a line of text and turns it into an Op.
 type Prompt struct {
-	Label  string
-	Submit func(text string) doc.Op
+	Label   string
+	Initial string // the text the line starts with
+	Empty   bool   // an empty line is an answer too, not a cancel
+	Submit  func(text string) doc.Op
 }
 
 // Kind registers one shape of note.

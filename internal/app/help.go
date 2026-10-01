@@ -14,6 +14,7 @@ const helpText = `Notes
   tab              next note
   shift+tab        previous note
   enter            open, then zoom
+  z                zoom
   o                open or close
   + -              bigger, smaller
   N                jot a note
@@ -43,7 +44,11 @@ Open board
 Open checklist
   j k              change item
   space            tick an item
-  n                new item`
+  n                new item
+
+Open form
+  j k              change control
+  enter space      choose, type, press`
 
 // helpWidth is the dialog that holds helpText: its widest line plus the frame.
 const helpWidth = 44

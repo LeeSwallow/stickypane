@@ -7,15 +7,22 @@ package mcp
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 )
 
 // defaultProtocol is answered when the client does not name a version.
 const defaultProtocol = "2025-06-18"
+
+const (
+	maxWait   = 600 // seconds read_answers waits at most
+	waitEvery = 200 * time.Millisecond
+)
 
 // JSON-RPC error codes.
 const (
@@ -91,14 +98,22 @@ var tools = []tool{
 	},
 	{
 		Name:        "write_note",
-		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists, logs and charts.",
+		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists, logs, charts and forms.",
 		InputSchema: object([]string{"name", "content"}, map[string]any{
 			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
 			"content": str("The whole note as Markdown."),
-			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart"}, "description": "The note's shape. Omit for a plain note."},
+			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form"}, "description": "The note's shape. Omit for a plain note."},
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
 			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},
+		}),
+	},
+	{
+		Name:        "read_answers",
+		Description: "Read what the user chose and wrote in a form note (type: form) and which button they pressed. With wait_seconds it waits up to that long for a button to be pressed, then returns the answers so far.",
+		InputSchema: object([]string{"name"}, map[string]any{
+			"name":         str(`The form's file name, such as "deploy" or "deploy.md".`),
+			"wait_seconds": map[string]any{"type": "number", "description": "How long to wait for a button, at most 600. Omit to read the answers now."},
 		}),
 	},
 	{
@@ -185,6 +200,7 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 			Title   string  `json:"title"`
 			Size    string  `json:"size"`
 			Open    bool    `json:"open"`
+			Wait    float64 `json:"wait_seconds"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -210,6 +226,14 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 		}
 		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
+	case "read_answers":
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
+		got, aerr := s.API.Wait(ctx, a.Name, waitEvery)
+		cancel()
+		if errors.Is(aerr, context.DeadlineExceeded) {
+			aerr = nil // the answers so far are the result
+		}
+		text, err = got.String(), aerr
 	case "guide":
 		text = s.Guide
 	default:

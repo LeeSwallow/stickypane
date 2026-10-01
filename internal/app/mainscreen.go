@@ -33,6 +33,13 @@ func init() {
 		}
 		return nil
 	})
+	// z zooms too. It is the way in for a note that uses enter itself.
+	boardKeys["z"] = onFocused(func(m *Model, it item) tea.Cmd {
+		if m.isOpen(it) {
+			m.zoom(it)
+		}
+		return nil
+	})
 	boardKeys["o"] = onFocused(func(m *Model, it item) tea.Cmd {
 		m.setOpen(it, !m.isOpen(it))
 		return nil
@@ -82,7 +89,11 @@ func mainFooter(m *Model) string {
 	case !m.isOpen(m.items[i]):
 		return hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
 	case len(m.items[i].kind.Hint) > 0:
-		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), "enter", "zoom", "o", "close", "tab", "next")...)
+		zoom := "enter"
+		if m.items[i].kind.Handles("enter") {
+			zoom = "z"
+		}
+		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom", "o", "close", "tab", "next")...)
 	}
 	return hintsThen(m.width, "?", "help", "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot")
 }

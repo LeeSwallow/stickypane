@@ -18,7 +18,8 @@ func init() {
 
 // ask collects one line of text on the bottom line. Enter calls submit with
 // the trimmed text unless it is empty; esc cancels. Either way the screen it
-// was opened from comes back first.
+// was opened from comes back first. A caller that takes an empty line as an
+// answer sets inputEmpty after asking.
 func (m *Model) ask(label, initial string, submit func(text string)) {
 	in := textinput.New()
 	in.Prompt = ""
@@ -26,7 +27,7 @@ func (m *Model) ask(label, initial string, submit func(text string)) {
 	in.CursorEnd()
 	in.SetWidth(max(m.width-widget.Width(label)-3, 1))
 	in.Focus()
-	m.input, m.inputLabel, m.onSubmit = in, label, submit
+	m.input, m.inputLabel, m.onSubmit, m.inputEmpty = in, label, submit, false
 	m.back, m.mode = m.mode, modeInput
 }
 
@@ -39,7 +40,7 @@ func inputUpdate(m *Model, msg tea.Msg) tea.Cmd {
 		case "enter":
 			text := strings.TrimSpace(m.input.Value())
 			m.mode = m.back
-			if text != "" {
+			if text != "" || m.inputEmpty {
 				m.onSubmit(text)
 			}
 			return nil

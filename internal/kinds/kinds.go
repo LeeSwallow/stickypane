@@ -10,6 +10,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
+	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -23,6 +24,7 @@ func Default(render note.Renderer) widget.Registry {
 		checklist.Kind,
 		logview.Kind,
 		chart.Kind,
+		form.NewKind(render),
 	}
 }
 

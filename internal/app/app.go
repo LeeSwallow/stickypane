@@ -101,6 +101,7 @@ type Model struct {
 
 	input      textinput.Model // input.go
 	inputLabel string
+	inputEmpty bool // an empty line is submitted too
 	onSubmit   func(string)
 
 	catalogIdx int // create.go
@@ -380,10 +381,11 @@ func (m *Model) toWidget(i int, key string) {
 		m.apply(name, res.Op)
 	}
 	if p := res.Prompt; p != nil {
-		m.ask(p.Label, "", func(text string) {
+		m.ask(p.Label, p.Initial, func(text string) {
 			m.apply(name, p.Submit(text))
 			m.reveal = revealCursor
 		})
+		m.inputEmpty = p.Empty
 	}
 }
 

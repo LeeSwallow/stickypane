@@ -263,9 +263,20 @@ func faintLines(text string, width int) []string {
 	return lines
 }
 
-// trim formats a sum without a needless ".0".
+// trim formats a sum without a needless ".0" and groups its thousands.
 func trim(v float64) string {
-	return strconv.FormatFloat(math.Round(v*100)/100, 'f', -1, 64)
+	whole, frac, _ := strings.Cut(strconv.FormatFloat(math.Round(v*100)/100, 'f', -1, 64), ".")
+	sign := ""
+	if strings.HasPrefix(whole, "-") {
+		sign, whole = "-", whole[1:]
+	}
+	for i := len(whole) - 3; i > 0; i -= 3 {
+		whole = whole[:i] + "," + whole[i:]
+	}
+	if frac != "" {
+		frac = "." + frac
+	}
+	return sign + whole + frac
 }
 
 // Summary implements widget.Widget: how many values the chart has.
