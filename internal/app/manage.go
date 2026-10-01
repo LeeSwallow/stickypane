@@ -72,9 +72,13 @@ func init() {
 	})
 }
 
-// resize steps a note's size up or down and writes it. At either end it
-// writes nothing.
+// resize steps an open note's size up or down and writes it. It writes
+// nothing where nothing would show: on a closed note, and at either end of
+// the sizes.
 func (m *Model) resize(it item, delta int) {
+	if !m.isOpen(it) || !m.editable(it) {
+		return
+	}
 	current := m.sizeOf(it)
 	i := 0
 	for j, s := range sizes {
@@ -83,7 +87,7 @@ func (m *Model) resize(it item, delta int) {
 		}
 	}
 	next := sizes[max(min(i+delta, len(sizes)-1), 0)]
-	if stored, _ := it.note.Doc.Get("size"); next == current && stored != "" {
+	if next == current {
 		return
 	}
 	m.apply(it.note.Name, doc.SetKey{Key: "size", Value: next})

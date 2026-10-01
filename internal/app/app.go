@@ -36,7 +36,7 @@ type reveal int
 const (
 	revealNothing reveal = iota // leave the scroll position alone
 	revealNote                  // the focused note, from its top
-	revealCursor                // the cursor inside the focused note
+	revealCursor                // the selection inside the focused note
 )
 
 // cardWidth is the narrowest a note is drawn when the pane allows it. A pane
@@ -80,7 +80,7 @@ type Model struct {
 	focus string               // file name of the focused note
 	seen  map[string]time.Time // modification time last looked at, by file name
 	known map[string]bool      // notes that existed at the previous scan
-	peek  map[string]bool      // notes that appeared while running: open for this run
+	peek  map[string]bool      // notes shown open for this run without an "open" key
 
 	width, height int
 	bar           []string      // the title bar, one or more lines
@@ -94,6 +94,7 @@ type Model struct {
 	status string // shown on the bottom line until the next key
 
 	zoomName   string // zoom.go: file name of the zoomed note
+	zoomLines  []string
 	zoomScroll int
 
 	helpScroll int // help.go
@@ -216,9 +217,11 @@ func (m *Model) changed(it item) bool {
 }
 
 // isOpen reports whether a note is drawn on the main screen. The note's
-// "open" key decides. A note without the key is closed, unless it appeared
-// while stickypane was running: then it is shown for this run, without
-// touching the file, so that what an agent just wrote is seen at once.
+// "open" key decides. A note without the key is closed, with two exceptions
+// that last for this run and never touch the file: a note that appeared
+// while stickypane was running, so that what an agent just wrote is seen at
+// once, and a note that was open when a rewrite dropped its key, so that an
+// agent rewriting a note does not make it vanish from the screen.
 // A note that cannot be read is always open, to say why.
 func (m *Model) isOpen(it item) bool {
 	if it.note.Err != nil {
@@ -276,8 +279,10 @@ func (m *Model) reload() {
 		return
 	}
 	old := make(map[string]item, len(m.items))
+	wasOpen := make(map[string]bool, len(m.items))
 	for _, it := range m.items {
 		old[it.note.Name] = it
+		wasOpen[it.note.Name] = m.isOpen(it)
 	}
 	prev := m.index(m.focus)
 	first := m.known == nil
@@ -299,7 +304,7 @@ func (m *Model) reload() {
 		}
 		items = append(items, it)
 		known[n.Name] = true
-		if !first && !m.known[n.Name] {
+		if _, says := n.Doc.Get("open"); !says && ((!first && !m.known[n.Name]) || wasOpen[n.Name]) {
 			m.peek[n.Name] = true
 		}
 	}
@@ -402,28 +407,41 @@ func (m *Model) heading(it item) string {
 }
 
 // lines draws a note for the main screen at width and returns its lines and
-// the cursor line within them. A note with a fixed height shows a window of
-// its content: around the cursor if it has one, the end for a log, the
+// the selection within them. A note with a fixed height shows a window of
+// its content: around the selection if it has one, the end for a log, the
 // start otherwise.
-func (m *Model) lines(it item, width int, active bool) ([]string, int) {
-	out, cursor := it.w.Draw(width, active)
+func (m *Model) lines(it item, width int, active bool) ([]string, widget.Span) {
+	out, at := it.w.Draw(width, active)
 	lines := strings.Split(out, "\n")
 	rows := m.rowsOf(it)
 	if rows <= 0 || len(lines) <= rows {
-		return lines, cursor
+		return lines, at
 	}
 	start := 0
 	switch {
-	case cursor >= 0:
-		start = cursor - rows/2
+	case at.Ok():
+		start = show(at, at.Start-rows/2, rows)
 	case it.kind.Tail:
 		start = len(lines) - rows
 	}
 	start = widget.ClampOffset(start, len(lines), rows)
-	if cursor >= 0 {
-		cursor -= start
+	if at.Ok() {
+		at = widget.Span{Start: at.Start - start, End: min(at.End-start, rows)}
 	}
-	return lines[start : start+rows], cursor
+	return lines[start : start+rows], at
+}
+
+// show returns the scroll offset that brings a span into a window of the
+// given height, moving as little as possible from offset. A span taller than
+// the window is shown from its start.
+func show(at widget.Span, offset, height int) int {
+	if at.End > offset+height {
+		offset = at.End - height
+	}
+	if at.Start < offset {
+		offset = at.Start
+	}
+	return offset
 }
 
 // bodyHeight is how many lines the open notes get on the main screen.
@@ -434,7 +452,7 @@ func (m *Model) bodyHeight() int {
 // relayout redraws the title bar and every open note and places them. It
 // runs after every update, then scrolls to whatever the update asked to see.
 func (m *Model) relayout() {
-	m.bar, m.rects, m.canvas = nil, nil, nil
+	m.bar, m.rects, m.canvas, m.zoomLines = nil, nil, nil, nil
 	if m.width <= 0 {
 		return
 	}
@@ -442,16 +460,16 @@ func (m *Model) relayout() {
 
 	var boxes []string
 	var sizes []layout.Item
-	focusRect, cursor := -1, -1
+	focusRect, at := -1, widget.NoSpan
 	for _, it := range m.items {
 		if !m.isOpen(it) {
 			continue
 		}
 		focused := it.note.Name == m.focus
 		w := m.widthOf(m.sizeOf(it))
-		lines, at := m.lines(it, max(w-4, 1), focused)
+		lines, sel := m.lines(it, max(w-4, 1), focused)
 		if focused {
-			focusRect, cursor = len(boxes), at
+			focusRect, at = len(boxes), sel
 		}
 		boxes = append(boxes, frame(box{
 			title: m.heading(it), icon: it.kind.Icon, summary: it.w.Summary(),
@@ -463,21 +481,18 @@ func (m *Model) relayout() {
 	m.canvas = layout.Compose(m.rects, boxes)
 
 	h := m.bodyHeight()
-	if focusRect >= 0 && h > 0 {
+	if focusRect >= 0 && h > 0 && m.reveal != revealNothing {
 		r := m.rects[focusRect]
-		top, bottom := r.Y, r.Y+r.H
-		if m.reveal == revealCursor && cursor >= 0 {
-			top, bottom = r.Y+1+cursor, r.Y+2+cursor
+		target := widget.Span{Start: r.Y, End: r.Y + r.H}
+		if m.reveal == revealCursor && at.Ok() {
+			target = at.Shift(r.Y + 1) // the frame's top border is one line
 		}
-		if m.reveal != revealNothing {
-			if bottom > m.scroll+h {
-				m.scroll = bottom - h
-			}
-			if top < m.scroll {
-				m.scroll = top // also wins when the note is taller than the screen
-			}
-		}
+		m.scroll = show(target, m.scroll, h)
+	}
+	m.scroll = widget.ClampOffset(m.scroll, len(m.canvas), h)
+
+	if m.zoomed() {
+		m.layoutZoom()
 	}
 	m.reveal = revealNothing
-	m.scroll = widget.ClampOffset(m.scroll, len(m.canvas), h)
 }

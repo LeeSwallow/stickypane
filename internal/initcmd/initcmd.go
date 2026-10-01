@@ -35,8 +35,16 @@ type Options struct {
 	NoAgentDocs bool // leave AGENTS.md and CLAUDE.md alone
 }
 
-// Guide returns the text Run adds to agent instruction files.
+// Guide returns the text Run adds to agent instruction files, wrapped in the
+// markers that let a later run find and replace it.
 func Guide() string { return guide }
+
+// GuideText returns the guide without its markers, for readers that are not
+// an instruction file.
+func GuideText() string {
+	text := strings.TrimPrefix(guide, startMark+"\n")
+	return strings.TrimSuffix(strings.TrimRight(text, "\n"), endMark)
+}
 
 // Run prepares the project at root. It is safe to run again: an existing
 // notes folder is left as it is, and the guide is replaced in place.

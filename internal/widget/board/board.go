@@ -122,7 +122,7 @@ func wrapped(s string, width int, style func(...string) string) []string {
 // Draw implements widget.Widget. Every card is shown and long cards wrap.
 // The selected card, marked only while the board is active, shows its
 // details right below it.
-func (b *Board) Draw(width int, active bool) (string, int) {
+func (b *Board) Draw(width int, active bool) (string, widget.Span) {
 	var out []string
 	for _, d := range b.desc {
 		out = append(out, wrapped(d, width, widget.Faint.Render)...)
@@ -133,7 +133,7 @@ func (b *Board) Draw(width int, active bool) (string, int) {
 		for _, d := range b.desc {
 			lines = append(lines, wrapped(d, width, nil)...)
 		}
-		return widget.Fit(strings.Join(lines, "\n"), width), -1
+		return widget.Fit(strings.Join(lines, "\n"), width), widget.NoSpan
 	}
 	if len(out) > 0 {
 		out = append(out, "")
@@ -142,15 +142,15 @@ func (b *Board) Draw(width int, active bool) (string, int) {
 
 	cw := width / len(b.cols)
 	var body []string
-	cursor := -1
+	at := widget.NoSpan
 	if cw < minCol {
 		for i := range b.cols {
 			if i > 0 {
 				body = append(body, "")
 			}
-			lines, at := b.column(i, width-1, active)
-			if at >= 0 {
-				cursor = len(body) + at
+			lines, sel := b.column(i, width-1, active)
+			if sel.Ok() {
+				at = sel.Shift(len(body))
 			}
 			body = append(body, lines...)
 		}
@@ -158,27 +158,29 @@ func (b *Board) Draw(width int, active bool) (string, int) {
 		cells := make([][]string, len(b.cols))
 		rows := 0
 		for i := range b.cols {
-			var at int
-			cells[i], at = b.column(i, cw-gutter, active)
-			if at >= 0 {
-				cursor = at
+			var sel widget.Span
+			cells[i], sel = b.column(i, cw-gutter, active)
+			if sel.Ok() {
+				at = sel
 			}
 			rows = max(rows, len(cells[i]))
 		}
 		body = joinColumns(cells, rows, cw)
 	}
-	if cursor >= 0 {
-		cursor += len(out)
-	}
-	return widget.Fit(strings.Join(append(out, body...), "\n"), width), cursor
+	return widget.Fit(strings.Join(append(out, body...), "\n"), width), at.Shift(len(out))
 }
 
 // column draws one column at width: its heading, then every card with a
-// blank line between cards. It returns the line of the selected card, or -1
-// when the selection is in another column or the board is not active.
-func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
+// blank line between cards. It returns the lines of the selected card and
+// its details. When the selected column is empty that is its heading, so
+// the screen still shows where a new card would go. A column that does not
+// hold the selection, or a board that is not active, returns NoSpan.
+func (b *Board) column(i, width int, active bool) (lines []string, at widget.Span) {
 	c := b.cols[i]
-	cursor = -1
+	at = widget.NoSpan
+	if active && i == b.col && len(c.cards) == 0 {
+		at = widget.Span{Start: 0, End: 2}
+	}
 	head := widget.Truncate(fmt.Sprintf("%s (%d)", widget.Clean(c.title), len(c.cards)), width)
 	if active && i == b.col {
 		lines = append(lines, widget.Bold.Underline(true).Render(head))
@@ -194,7 +196,7 @@ func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
 		for j, l := range wrapped(cd.text, width-2, nil) {
 			switch {
 			case selected && j == 0:
-				cursor = len(lines)
+				at.Start = len(lines)
 				lines = append(lines, widget.Selected.Render("› "+l))
 			case selected:
 				lines = append(lines, widget.Selected.Render("  "+l))
@@ -209,9 +211,10 @@ func (b *Board) column(i, width int, active bool) (lines []string, cursor int) {
 					lines = append(lines, "    "+l)
 				}
 			}
+			at.End = len(lines)
 		}
 	}
-	return lines, cursor
+	return lines, at
 }
 
 // joinColumns lays cells out side by side, each column cw cells wide.

@@ -37,6 +37,18 @@ func TestFitCutsWithoutEllipsis(t *testing.T) {
 	}
 }
 
+func TestSpan(t *testing.T) {
+	if NoSpan.Ok() || !(Span{Start: 0, End: 1}).Ok() {
+		t.Error("NoSpan is not a span; a span starting at line 0 is")
+	}
+	if got := (Span{Start: 2, End: 5}).Shift(3); got != (Span{Start: 5, End: 8}) {
+		t.Errorf("Shift = %+v", got)
+	}
+	if got := NoSpan.Shift(3); got.Ok() {
+		t.Errorf("shifting no span gives no span, got %+v", got)
+	}
+}
+
 func TestKindHandles(t *testing.T) {
 	k := Kind{Keys: "h l j k left right space n"}
 	for _, key := range []string{"h", "left", "space", "n"} {

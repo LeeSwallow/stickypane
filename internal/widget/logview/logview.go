@@ -42,9 +42,9 @@ func parse(d doc.Document) *Log {
 }
 
 // Draw implements widget.Widget. A log has no cursor.
-func (l *Log) Draw(width int, _ bool) (string, int) {
+func (l *Log) Draw(width int, _ bool) (string, widget.Span) {
 	if len(l.lines) == 0 {
-		return widget.Faint.Render("(no entries yet)"), -1
+		return widget.Faint.Render("(no entries yet)"), widget.NoSpan
 	}
 	var out []string
 	// A log shows the file as it is: no styling, only wrapping so that
@@ -52,7 +52,7 @@ func (l *Log) Draw(width int, _ bool) (string, int) {
 	for _, line := range l.lines {
 		out = append(out, widget.Wrap(line, width)...)
 	}
-	return strings.Join(out, "\n"), -1
+	return strings.Join(out, "\n"), widget.NoSpan
 }
 
 // Summary implements widget.Widget: how many entries the log has.

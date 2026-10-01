@@ -25,6 +25,7 @@ const helpText = `Notes
   x                move to archive
   D                delete
   r                reload
+  j k g G          scroll the screen
   ?                this help
   q                quit
 

@@ -267,6 +267,106 @@ func TestBackgroundReportDoesNotReopenNotes(t *testing.T) {
 	}
 }
 
+func TestARewriteThatDropsOpenDoesNotCloseTheNote(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
+	writeFile(t, dir, "c.md", "---\ntype: checklist\ntitle: Release\n---\n- [x] build\n- [x] ship\n") // the agent rewrote it
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "2/2") {
+		t.Errorf("a note the user had open should stay on screen when a rewrite drops the key:\n%s", s)
+	}
+	writeFile(t, dir, "c.md", "---\ntype: checklist\nopen: false\n---\n- [x] build\n")
+	m.Update(changedMsg{})
+	if s := screen(m); strings.Contains(s, "1/1") {
+		t.Errorf("an explicit open: false still closes it:\n%s", s)
+	}
+}
+
+func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
+	files := map[string]string{}
+	for i := 0; i < 30; i++ {
+		files[fmt.Sprintf("%02d-note-number.md", i)] = "body\n"
+	}
+	files["00-note-number.md"] = opened("first body\n")
+	m, _ := newModel(t, files)
+	m.Update(tea.WindowSizeMsg{Width: 40, Height: 16})
+	if s := screen(m); !strings.Contains(s, "first body") {
+		t.Fatalf("the title bar must leave room for the open note:\n%s", s)
+	}
+	for i := 0; i < 30; i++ {
+		lines := strings.Split(screen(m), "\n")
+		bar := strings.Join(lines[:6], "\n")
+		if want := fmt.Sprintf("%02d-note-number", i); !strings.Contains(bar, want) {
+			t.Fatalf("the focused tab %s should be visible in the title bar:\n%s", want, bar)
+		}
+		press(m, "tab")
+	}
+}
+
+func TestTheSelectedCardsDetailsStayInView(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("---\ntype: board\ntitle: Tall\nopen: true\n---\n## A\n")
+	for i := 1; i <= 12; i++ {
+		fmt.Fprintf(&sb, "- card %02d\n  - detail a%02d\n  - detail b%02d\n  - detail c%02d\n", i, i, i, i)
+	}
+	m, _ := newModel(t, map[string]string{"b.md": sb.String()})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 14})
+	for i := 2; i <= 12; i++ {
+		press(m, "j")
+		s := screen(m)
+		if want := fmt.Sprintf("detail c%02d", i); !strings.Contains(s, fmt.Sprintf("› card %02d", i)) || !strings.Contains(s, want) {
+			t.Fatalf("card %02d and all its details should be in view:\n%s", i, s)
+		}
+	}
+	press(m, "enter") // the same holds when zoomed
+	for i := 11; i >= 1; i-- {
+		press(m, "k")
+		if s := screen(m); !strings.Contains(s, fmt.Sprintf("detail c%02d", i)) {
+			t.Fatalf("zoomed: the details of card %02d should be in view:\n%s", i, s)
+		}
+	}
+}
+
+func TestAnEmptyColumnStaysInViewWhenSelected(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("---\ntype: board\ntitle: Narrow\nopen: true\n---\n## A\n")
+	for i := 1; i <= 20; i++ {
+		fmt.Fprintf(&sb, "- card %02d\n", i)
+	}
+	sb.WriteString("## Empty\n## C\n- x\n")
+	m, _ := newModel(t, map[string]string{"b.md": sb.String()})
+	m.Update(tea.WindowSizeMsg{Width: 36, Height: 14})
+	for i := 0; i < 19; i++ {
+		press(m, "j")
+	}
+	press(m, "l")
+	if s := screen(m); !strings.Contains(s, "Empty (0)") {
+		t.Errorf("the selected empty column should be on screen, where a new card would go:\n%s", s)
+	}
+}
+
+func TestSizeKeysDoNothingWhereTheyCannotShow(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": "closed\n", "b.md": boardFile})
+	press(m, "+", "-")
+	if got := readFile(t, dir, "a.md"); got != "closed\n" {
+		t.Errorf("resizing a closed note shows nothing, so it should write nothing: %q", got)
+	}
+	press(m, "tab", "+")
+	if got := readFile(t, dir, "b.md"); got != boardFile {
+		t.Errorf("a board is already a page: + should write nothing, got %q", got)
+	}
+}
+
+func TestTheBottomLineAlwaysOffersHelp(t *testing.T) {
+	m, _ := newModel(t, map[string]string{"b.md": boardFile})
+	for _, width := range []int{80, 40, 24} {
+		m.Update(tea.WindowSizeMsg{Width: width, Height: 20})
+		lines := strings.Split(screen(m), "\n")
+		if foot := lines[len(lines)-1]; !strings.Contains(foot, "? help") {
+			t.Errorf("width %d: the way to the key list must not be dropped: %q", width, foot)
+		}
+	}
+}
+
 func TestSizeKeysWriteTheSize(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
 	steps := []struct{ key, size string }{{"+", "half"}, {"+", "page"}, {"+", "page"}, {"-", "half"}, {"-", "card"}, {"-", "card"}}

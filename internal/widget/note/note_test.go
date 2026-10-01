@@ -25,13 +25,13 @@ func numbered(n int) string {
 }
 
 func TestDrawShowsTheWholeNote(t *testing.T) {
-	out, cursor := parse(numbered(40)).Draw(60, true)
+	out, at := parse(numbered(40)).Draw(60, true)
 	lines := strings.Split(out, "\n")
 	if len(lines) != 40 || lines[39] != "l"+strings.Repeat("i", 40) {
 		t.Errorf("got %d lines, last %q; want all 40 lines", len(lines), lines[len(lines)-1])
 	}
-	if cursor != -1 {
-		t.Errorf("cursor = %d, want -1: a plain note has no cursor", cursor)
+	if at.Ok() {
+		t.Errorf("span = %+v, want none: a plain note has no cursor", at)
 	}
 }
 

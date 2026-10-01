@@ -178,7 +178,7 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 		fmt.Fprintln(stdout, "wrote", file)
 		return 0
 	default: // mcp
-		server := &mcp.Server{API: a, Guide: initcmd.Guide(), Version: version}
+		server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: version}
 		return report(stderr, server.Serve(stdin, stdout))
 	}
 }

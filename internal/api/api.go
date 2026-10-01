@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -50,7 +51,8 @@ func New(st *store.Store, reg widget.Registry) *API { return &API{st: st, reg: r
 // Anything that could leave the notes folder or hide the file is rejected.
 func fileName(name string) (string, error) {
 	name = strings.TrimSpace(name)
-	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") {
+	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") ||
+		strings.ContainsFunc(name, unicode.IsControl) {
 		return "", ErrBadName
 	}
 	switch ext := filepath.Ext(name); {
@@ -100,9 +102,15 @@ func (a *API) Show(name string) ([]byte, error) {
 	return a.st.Read(file)
 }
 
-// Write creates the note or replaces all of it with body, then sets the
-// front matter keys given in opts. It returns the file name. Whatever was in
-// the note before is gone, so read a note before rewriting it.
+// viewKeys are how the user arranged a note on the screen.
+var viewKeys = []string{"open", "size", "rows", "color", "pin"}
+
+// Write creates the note or replaces its content with body, then sets the
+// front matter keys given in opts. It returns the file name. The text that
+// was in the note before is gone, so read a note before rewriting it. How the
+// user arranged the note is kept: a rewrite that says nothing about open,
+// size, rows, color or pin leaves them as they were, so that an agent
+// updating a note does not make it vanish from the user's screen.
 func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	file, err := fileName(name)
 	if err != nil {
@@ -126,6 +134,17 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 			return "", fmt.Errorf("unknown size %q: use page, half or card", opts.Size)
 		}
 		d = d.Set("size", opts.Size)
+	}
+	if old, err := a.st.Read(file); err == nil {
+		was := doc.Parse(old)
+		for _, key := range viewKeys {
+			if _, set := d.Get(key); set {
+				continue
+			}
+			if v, ok := was.Get(key); ok {
+				d = d.Set(key, v)
+			}
+		}
 	}
 	return file, a.st.Write(file, d.Bytes())
 }

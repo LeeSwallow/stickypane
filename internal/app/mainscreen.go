@@ -72,29 +72,31 @@ func mainBody(m *Model, h int) []string {
 }
 
 // mainFooter guides the keys that matter for what has the focus: the note's
-// own keys first when it is open, then the screen's.
+// own keys first when it is open, then the screen's. The way to the full
+// key list is always there, however narrow the pane.
 func mainFooter(m *Model) string {
 	i := m.index(m.focus)
 	switch {
 	case i < 0:
-		return hints(m.width, "N", "jot", "a", "add", "?", "help", "q", "quit")
+		return hintsThen(m.width, "?", "help", "N", "jot", "a", "add", "q", "quit")
 	case !m.isOpen(m.items[i]):
-		return hints(m.width, "tab", "next", "enter", "open", "N", "jot", "a", "add", "?", "help", "q", "quit")
+		return hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
 	case len(m.items[i].kind.Hint) > 0:
-		return hints(m.width, append(append([]string(nil), m.items[i].kind.Hint...), "enter", "zoom", "o", "close", "tab", "next", "?", "help")...)
+		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), "enter", "zoom", "o", "close", "tab", "next")...)
 	}
-	return hints(m.width, "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot", "?", "help")
+	return hintsThen(m.width, "?", "help", "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot")
 }
 
 // titleBar lists every note like a row of tabs, wrapping onto more lines
 // when they do not fit: "●" marks an open note and "○" a closed one, then the
 // shape's icon and the title, "📌" for a pinned note and "*" for one that
-// changed since it was last focused. On a screen tall enough, a rule sets
-// the bar apart from the notes.
+// changed since it was last focused. The bar never takes more than a third
+// of the screen: with more notes than that it shows the lines around the
+// focused tab. On a screen tall enough, a rule sets it apart from the notes.
 func (m *Model) titleBar() []string {
 	var lines []string
 	var line strings.Builder
-	used := 0
+	used, focusLine := 0, 0
 	for _, it := range m.items {
 		open := m.isOpen(it)
 		text := "○ "
@@ -121,6 +123,7 @@ func (m *Model) titleBar() []string {
 		st := lipgloss.NewStyle().Foreground(noteColor(it))
 		switch {
 		case it.note.Name == m.focus:
+			focusLine = len(lines)
 			text = st.Bold(true).Reverse(true).Render(" " + text + " ")
 		case open:
 			text = " " + st.Render(text) + " "
@@ -132,6 +135,10 @@ func (m *Model) titleBar() []string {
 	}
 	if used > 0 {
 		lines = append(lines, line.String())
+	}
+	if limit := max((m.height-1)/3, 1); len(lines) > limit {
+		start := widget.ClampOffset(focusLine-limit/2, len(lines), limit)
+		lines = lines[start : start+limit]
 	}
 	if len(lines) > 0 && m.height >= ruleHeight {
 		lines = append(lines, widget.Faint.Render(strings.Repeat("─", m.width)))
@@ -147,8 +154,22 @@ func (m *Model) stepFocus(delta int) {
 	}
 }
 
+// editable reports whether the note's file can take a change, and says so on
+// the bottom line when it cannot. A note that could not be read is shown to
+// explain why; rewriting its file would do no good.
+func (m *Model) editable(it item) bool {
+	if it.note.Err != nil {
+		m.status = "This note cannot be changed from here: " + it.note.Err.Error()
+		return false
+	}
+	return true
+}
+
 // setOpen opens or closes a note by writing its "open" key.
 func (m *Model) setOpen(it item, open bool) {
+	if !m.editable(it) {
+		return
+	}
 	value := "false"
 	if open {
 		value = "true"

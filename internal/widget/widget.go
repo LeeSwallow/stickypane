@@ -16,12 +16,31 @@ const (
 	SizeCard = "card" // a small sticky note
 )
 
+// Span is a range of lines [Start, End) of a drawn note: the selection and
+// everything that belongs to it, which the screen keeps in view.
+type Span struct{ Start, End int }
+
+// NoSpan is what a widget without a cursor returns.
+var NoSpan = Span{Start: -1, End: -1}
+
+// Ok reports whether s is a real span.
+func (s Span) Ok() bool { return s.Start >= 0 }
+
+// Shift moves a span down by n lines. NoSpan stays NoSpan.
+func (s Span) Shift(n int) Span {
+	if !s.Ok() {
+		return s
+	}
+	return Span{Start: s.Start + n, End: s.End + n}
+}
+
 // Widget draws one note and reacts to keys while the note has the focus.
 type Widget interface {
 	// Draw renders the whole note at width. Nothing is cut: long text
-	// wraps. When active, the widget shows its cursor. cursor is the line
-	// the cursor is on, or -1 for a widget that has none.
-	Draw(width int, active bool) (out string, cursor int)
+	// wraps. When active, the widget shows its cursor and returns the lines
+	// of the selection, including what unfolds under it; a widget without a
+	// cursor, or one that is not active, returns NoSpan.
+	Draw(width int, active bool) (out string, at Span)
 	// Summary is a few words about the note for its border, such as
 	// "2/3" or "5 cards". It may be empty.
 	Summary() string

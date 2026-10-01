@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,30 @@ func TestZoomScrollsANoteWithoutACursor(t *testing.T) {
 	press(m, "k", "k")
 	if s := screen(m); strings.Contains(s, "line 60") {
 		t.Errorf("k should scroll up:\n%s", s)
+	}
+}
+
+func TestZoomReachesEveryLineOfANoteWithACursor(t *testing.T) {
+	body := "---\ntype: checklist\ntitle: Mixed\nopen: true\n---\n" + numbered(60) + "- [ ] one\n- [ ] two\n"
+	for i := 1; i <= 40; i++ {
+		body += fmt.Sprintf("tail %02d\n", i)
+	}
+	m, _ := newModel(t, map[string]string{"c.md": body})
+	press(m, "enter")
+	if s := screen(m); !strings.Contains(s, "› ☐ one") {
+		t.Fatalf("zoom should start where the cursor is:\n%s", s)
+	}
+	press(m, "g")
+	if s := screen(m); !strings.Contains(s, "line 01") {
+		t.Errorf("g should reach the top of a zoomed note even though it has a cursor:\n%s", s)
+	}
+	press(m, "G")
+	if s := screen(m); !strings.Contains(s, "tail 40") {
+		t.Errorf("G should reach the end:\n%s", s)
+	}
+	press(m, "j")
+	if s := screen(m); !strings.Contains(s, "› ☐ two") {
+		t.Errorf("a cursor key should bring the cursor back into view:\n%s", s)
 	}
 }
 

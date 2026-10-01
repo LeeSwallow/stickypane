@@ -121,3 +121,13 @@ func TestNoAgentDocs(t *testing.T) {
 		t.Error("AGENTS.md should not be touched")
 	}
 }
+
+func TestGuideTextHasNoMarkers(t *testing.T) {
+	text := GuideText()
+	if strings.Contains(text, "stickypane:start") || strings.Contains(text, "stickypane:end") {
+		t.Errorf("GuideText should drop the markers: %q", text)
+	}
+	if !strings.HasPrefix(text, "## stickypane notes") || !strings.Contains(text, "type: board") {
+		t.Errorf("GuideText should be the guide itself: %q", text)
+	}
+}

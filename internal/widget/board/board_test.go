@@ -18,8 +18,8 @@ func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s))) 
 
 // draw returns the board without colors, plus the cursor line.
 func draw(w widget.Widget, width int, active bool) ([]string, int) {
-	out, cursor := w.Draw(width, active)
-	return strings.Split(ansi.Strip(out), "\n"), cursor
+	out, at := w.Draw(width, active)
+	return strings.Split(ansi.Strip(out), "\n"), at.Start
 }
 
 func TestDrawShowsColumnsSideBySide(t *testing.T) {
@@ -111,6 +111,33 @@ func TestDetailShowsUnderTheSelectedCard(t *testing.T) {
 	lines, cursor := draw(w, 60, true)
 	if !strings.Contains(lines[cursor], "› login API") || !strings.HasPrefix(strings.TrimLeft(lines[cursor+1][20:], " "), "refresh token") {
 		t.Errorf("the detail should sit right under the selected card:\n%s", strings.Join(lines, "\n"))
+	}
+}
+
+func TestSpanCoversTheSelectedCardAndItsDetails(t *testing.T) {
+	w := parseSrc("## A\n- a long card title that wraps onto a second line here\n  - detail one\n  - detail two\n- next\n")
+	for _, width := range []int{30, 12} { // side by side, then stacked
+		out, at := w.Draw(width, true)
+		lines := strings.Split(ansi.Strip(out), "\n")
+		if !at.Ok() || !strings.Contains(lines[at.Start], "› a long") {
+			t.Fatalf("width %d: span %+v should start at the selected card: %q", width, at, lines)
+		}
+		block := strings.Join(strings.Fields(strings.Join(lines[at.Start:at.End], " ")), " ")
+		if !strings.Contains(block, "detail two") || strings.Contains(block, "next") {
+			t.Errorf("width %d: the span should cover the card and its details, and nothing else:\n%s", width, block)
+		}
+	}
+}
+
+func TestSpanOfAnEmptyActiveColumnIsItsHeading(t *testing.T) {
+	w := parseSrc("## A\n- one\n- two\n## Empty\n## C\n- x\n")
+	w, _ = w.Update("l")
+	for _, width := range []int{60, 12} {
+		out, at := w.Draw(width, true)
+		lines := strings.Split(ansi.Strip(out), "\n")
+		if !at.Ok() || !strings.Contains(lines[at.Start], "Empty (0)") {
+			t.Errorf("width %d: span %+v should point at the empty column's heading: %q", width, at, lines)
+		}
 	}
 }
 

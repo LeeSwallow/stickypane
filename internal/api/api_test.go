@@ -85,8 +85,8 @@ func TestWriteCreatesAndReplaces(t *testing.T) {
 	if _, err := a.Write("plan.md", Options{}, []byte("just text\n")); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(t, dir, "plan.md"); got != "just text\n" {
-		t.Errorf("a write without options replaces the whole file, got %q", got)
+	if got := read(t, dir, "plan.md"); got != "---\nopen: true\nsize: half\n---\njust text\n" {
+		t.Errorf("a rewrite replaces the content but keeps how the user arranged the note, got %q", got)
 	}
 }
 
@@ -101,9 +101,22 @@ func TestWriteKeepsFrontMatterGivenInTheBody(t *testing.T) {
 	}
 }
 
+func TestRewriteKeepsTheUsersArrangement(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{
+		"c.md": "---\ntype: checklist\nopen: true\nsize: page\nrows: 8\ncolor: blue\npin: true\n---\n- [ ] a\n",
+	})
+	if _, err := a.Write("c", Options{}, []byte("---\ntype: checklist\ncolor: pink\n---\n- [x] a\n")); err != nil {
+		t.Fatal(err)
+	}
+	want := "---\ntype: checklist\ncolor: pink\nopen: true\nsize: page\nrows: 8\npin: true\n---\n- [x] a\n"
+	if got := read(t, dir, "c.md"); got != want {
+		t.Errorf("file = %q\nwant  %q", got, want)
+	}
+}
+
 func TestBadNamesAreRejected(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	for _, name := range []string{"", "../escape", "sub/note", `sub\note`, ".hidden", "archive/x.md", "note.txt"} {
+	for _, name := range []string{"", "../escape", "sub/note", `sub\note`, ".hidden", "archive/x.md", "note.txt", "two\nlines", "tab\there"} {
 		if _, err := a.Write(name, Options{}, []byte("x\n")); !errors.Is(err, ErrBadName) {
 			t.Errorf("Write(%q): err = %v, want ErrBadName", name, err)
 		}

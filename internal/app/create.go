@@ -39,9 +39,11 @@ func init() {
 	}
 }
 
-// create writes a new note named after text and focuses it. The note shows
-// at once: a note that appears while running is open for this run.
+// create writes a new note named after text and focuses it. A note made
+// here is marked open, so it is still on the screen after a restart: it is
+// the user's own note, and no agent is in the middle of editing it.
 func (m *Model) create(text string, content []byte) {
+	content = doc.Parse(content).Set("open", "true").Bytes()
 	name, err := m.store.Create(text, content, m.now())
 	if err != nil {
 		m.status = "Cannot create the note: " + err.Error()

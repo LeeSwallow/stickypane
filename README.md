@@ -84,7 +84,7 @@ to type one: the keys in the next section change them for you.
 | `title` | shown in the title bar and the note's border            |
 | `open`  | `true` draws the note on the screen, `false` folds it away |
 | `size`  | `page` (whole width), `half`, `card`                    |
-| `rows`  | a fixed height in lines; the note scrolls inside it     |
+| `rows`  | a fixed height in lines; zoom in to see the rest        |
 | `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange`   |
 | `pin`   | `true` keeps the note first                             |
 

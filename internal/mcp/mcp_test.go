@@ -159,6 +159,13 @@ func TestToolFailuresAreToolErrorsNotCrashes(t *testing.T) {
 	if len(rs) != 6 {
 		t.Fatalf("got %d responses, want 6", len(rs))
 	}
+	wipe, dir := serve(t, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"a"}}}`)
+	if res := call(t, wipe[0]); !res.IsError {
+		t.Errorf("write_note without content must fail, got %+v", res)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "a.md")); string(b) != "---\ntitle: First\n---\nhello\n" {
+		t.Errorf("write_note without content emptied the note: %q", b)
+	}
 	for i := 0; i < 2; i++ {
 		if res := call(t, rs[i]); !res.IsError || res.Content[0].Text == "" {
 			t.Errorf("response %d should be a tool error with a message: %+v", i+1, res)

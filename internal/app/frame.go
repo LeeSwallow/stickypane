@@ -144,3 +144,18 @@ func hints(width int, pairs ...string) string {
 	}
 	return strings.Join(parts, "  ")
 }
+
+// hintsThen draws pairs like hints but always ends with one last pair, for
+// which it keeps room: the way out, such as "? help", must not be the thing
+// a narrow pane drops.
+func hintsThen(width int, lastKey, lastLabel string, pairs ...string) string {
+	last := hints(width, lastKey, lastLabel)
+	if last == "" {
+		return ""
+	}
+	body := hints(width-widget.Width(lastKey)-widget.Width(lastLabel)-3, pairs...)
+	if body == "" {
+		return last
+	}
+	return body + "  " + last
+}

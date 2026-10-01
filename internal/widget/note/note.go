@@ -86,12 +86,12 @@ func (n *Note) lines(width int) []string {
 }
 
 // Draw implements widget.Widget. A plain note has no cursor.
-func (n *Note) Draw(width int, _ bool) (string, int) {
+func (n *Note) Draw(width int, _ bool) (string, widget.Span) {
 	l := n.lines(width)
 	if len(l) == 0 {
-		return widget.Faint.Render("(empty)"), -1
+		return widget.Faint.Render("(empty)"), widget.NoSpan
 	}
-	return strings.Join(l, "\n"), -1
+	return strings.Join(l, "\n"), widget.NoSpan
 }
 
 // Summary implements widget.Widget. A plain note has nothing to count.

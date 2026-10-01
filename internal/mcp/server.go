@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
@@ -90,7 +91,7 @@ var tools = []tool{
 	},
 	{
 		Name:        "write_note",
-		Description: "Create a note or replace all of it. The content is Markdown and may start with front matter. Call the guide tool for the formats of boards, checklists and logs.",
+		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists and logs.",
 		InputSchema: object([]string{"name", "content"}, map[string]any{
 			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
 			"content": str("The whole note as Markdown."),
@@ -178,12 +179,12 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 	var p struct {
 		Name      string `json:"name"`
 		Arguments struct {
-			Name    string `json:"name"`
-			Content string `json:"content"`
-			Type    string `json:"type"`
-			Title   string `json:"title"`
-			Size    string `json:"size"`
-			Open    bool   `json:"open"`
+			Name    string  `json:"name"`
+			Content *string `json:"content"`
+			Type    string  `json:"type"`
+			Title   string  `json:"title"`
+			Size    string  `json:"size"`
+			Open    bool    `json:"open"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -201,7 +202,13 @@ func (s *Server) call(params json.RawMessage) (*toolResult, *rpcError) {
 		b, rerr := s.API.Show(a.Name)
 		text, err = string(b), rerr
 	case "write_note":
-		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(a.Content))
+		if a.Content == nil {
+			// Without this check a call that forgot its content would
+			// replace the note with nothing and report success.
+			err = errors.New("write_note needs content: the whole note as Markdown")
+			break
+		}
+		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
 	case "guide":
 		text = s.Guide

@@ -28,7 +28,8 @@ complete note. Add front matter only when a note needs a shape:
 
 The screen shows open notes in full and lists the others by title, so open
 what the user should read now. When progress changes, update the matching
-note instead of adding a new one. The user can edit notes from the board, so read a note again
+note instead of adding a new one, and keep the keys you are not changing:
+`open` and `size` are how the user arranged the screen. The user can edit notes from the board, so read a note again
 before you change it. Notes are ordered by file name; prefix a number
 (`10-plan.md`) to control the order.
 <!-- stickypane:end -->

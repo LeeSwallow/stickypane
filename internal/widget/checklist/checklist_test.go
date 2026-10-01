@@ -19,8 +19,20 @@ const sameItems = "## Backend\n- [ ] tests\n## Frontend\n- [ ] tests\n"
 func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
 
 func draw(w widget.Widget, width int, active bool) ([]string, int) {
-	out, cursor := w.Draw(width, active)
-	return strings.Split(ansi.Strip(out), "\n"), cursor
+	out, at := w.Draw(width, active)
+	return strings.Split(ansi.Strip(out), "\n"), at.Start
+}
+
+func TestSpanCoversEveryLineOfAWrappedItem(t *testing.T) {
+	w := parseBody("- [ ] an item that is long enough to wrap onto more lines than one\n- [ ] next\n")
+	out, at := w.Draw(20, true)
+	lines := strings.Split(ansi.Strip(out), "\n")
+	if !at.Ok() || at.End-at.Start < 2 {
+		t.Fatalf("span %+v should cover the wrapped item: %q", at, lines)
+	}
+	if block := strings.Join(lines[at.Start:at.End], " "); !strings.Contains(block, "than one") || strings.Contains(block, "next") {
+		t.Errorf("span covers %q", block)
+	}
 }
 
 func apply(t *testing.T, op doc.Op, body string) string {

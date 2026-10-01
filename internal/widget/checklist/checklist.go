@@ -111,7 +111,7 @@ func (c *Checklist) nth() int {
 
 // Draw implements widget.Widget. Every line of the note is shown: items with
 // their checkbox, everything else as it is. Long items wrap.
-func (c *Checklist) Draw(width int, active bool) (string, int) {
+func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 	done, total := c.counts()
 	if total == 0 {
 		lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
@@ -120,11 +120,11 @@ func (c *Checklist) Draw(width int, active bool) (string, int) {
 				lines = append(lines, widget.Wrap(widget.Clean(e.text), max(width, 1))...)
 			}
 		}
-		return widget.Fit(strings.Join(lines, "\n"), width), -1
+		return widget.Fit(strings.Join(lines, "\n"), width), widget.NoSpan
 	}
 	c.clamp()
 	lines := []string{bar(done, total, width), ""}
-	cursor := -1
+	at := widget.NoSpan
 	for i, e := range c.entries {
 		if !e.item {
 			for _, l := range widget.Wrap(widget.Clean(e.text), max(width, 1)) {
@@ -144,7 +144,7 @@ func (c *Checklist) Draw(width int, active bool) (string, int) {
 		for j, l := range widget.Wrap(widget.Clean(e.text), max(width-4, 1)) {
 			switch {
 			case j == 0 && selected:
-				cursor = len(lines)
+				at.Start = len(lines)
 				lines = append(lines, widget.Selected.Render("› "+mark+l))
 			case j == 0:
 				lines = append(lines, "  "+mark+done(l))
@@ -154,8 +154,11 @@ func (c *Checklist) Draw(width int, active bool) (string, int) {
 				lines = append(lines, "    "+done(l))
 			}
 		}
+		if selected {
+			at.End = len(lines) // every wrapped line of the item
+		}
 	}
-	return widget.Fit(strings.Join(lines, "\n"), width), cursor
+	return widget.Fit(strings.Join(lines, "\n"), width), at
 }
 
 func (c *Checklist) clamp() {

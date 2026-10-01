@@ -13,12 +13,12 @@ import (
 func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
 
 func TestDrawShowsEveryEntry(t *testing.T) {
-	out, cursor := parseBody("one\ntwo\n\nthree\n\n\n").Draw(40, true)
+	out, at := parseBody("one\ntwo\n\nthree\n\n\n").Draw(40, true)
 	if out != "one\ntwo\n\nthree" {
 		t.Errorf("Draw = %q, want every entry and no trailing blank lines", out)
 	}
-	if cursor != -1 {
-		t.Errorf("cursor = %d, want -1", cursor)
+	if at.Ok() {
+		t.Errorf("span = %+v, want none", at)
 	}
 }
 
