@@ -298,11 +298,72 @@ weeks: 12
  오늘 출력 84만 · 입력 12만 · 캐시 읽기 5,210만      이번 주 출력 310만
 ```
 
-- Claude Code는 세션 기록을 `~/.claude/projects/<프로젝트>/*.jsonl`에 남기고, 응답마다 `usage`(입력·출력·캐시 토큰)와 시각이 들어 있다. 이 파일들을 읽어 날짜별로 더한다.
 - `scope: project`는 이 프로젝트의 세션만, `all`은 전부다. `weeks`는 잔디에 보이는 주 수다.
-- 파일이 크므로 파일별 합계를 수정 시각·크기와 함께 기억해 두고, 바뀐 파일만 다시 읽는다. 읽기는 화면을 막지 않게 뒤에서 한다.
-- Codex 세션(`~/.codex/sessions`)은 형식을 확인한 뒤 더한다. 형식을 모르는 기록은 건너뛴다.
 - 앞선 설계가 뺐던 "에이전트 세션 감시"와는 다르다. 세션을 제어하거나 내용을 보여 주지 않고, 사용량 숫자만 더한다.
+
+### 추출 구조 (ccusage를 따른다)
+
+사용량 도구 가운데 소스를 읽을 수 있는 [ccusage](https://github.com/ryoppippi/ccusage)의 구조를 그대로 따른다(2026-10-01 판을 읽고 확인). 에이전트가 자기 세션 기록을 로컬 파일로 남기고, 도구는 그 파일을 읽기만 한다. 에이전트 쪽 설정이나 API 호출은 없다.
+
+```
+에이전트별 어댑터  →  공통 사용량 항목  →  중복 제거  →  날짜별 합계  →  잔디·합계
+(claude, codex)      (시각, 세션, 프로젝트,
+                      모델, 토큰 넷)
+```
+
+**공통 사용량 항목**: 시각, 세션 ID, 프로젝트, 모델, 그리고 토큰 넷(입력, 출력, 캐시 생성, 캐시 읽기).
+
+**Claude Code 어댑터**
+
+| 항목 | 규칙 |
+|---|---|
+| 찾는 곳 | `CLAUDE_CONFIG_DIR`(쉼표로 여러 개)가 있으면 그것만. 없으면 `$XDG_CONFIG_HOME/claude`(기본 `~/.config/claude`)와 `~/.claude` 둘 다. 각 폴더의 `projects/` 아래 `*.jsonl`을 하위 폴더까지 전부 |
+| 프로젝트 | `projects/` 바로 아래 폴더 이름 |
+| 읽는 줄 | `message.usage`가 있는 줄. `timestamp`, `sessionId`, `requestId`, `message.id`, `message.model` |
+| 토큰 | `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens` |
+| 중복 제거 | `requestId`가 있으면 `message.id` + `requestId`가 같은 것은 세션이 달라도 하나로 센다. Claude Code가 한 응답을 여러 세션 기록에 복사하기 때문이다. `requestId`가 없으면 `message.id` + 세션 + 시각으로 본다 |
+| 곁가지 기록 | `isSidechain: true`인 줄이 부모 대화의 응답을 되풀이한 것이면 뺀다 |
+| 깨진 줄 | 건너뛴다 |
+
+**Codex 어댑터**
+
+| 항목 | 규칙 |
+|---|---|
+| 찾는 곳 | `${CODEX_HOME:-~/.codex}/sessions/`와 `archived_sessions/` 아래 `*.jsonl`. 같은 상대 경로가 둘 다 있으면 `sessions/` 쪽 |
+| 읽는 줄 | `type`이 `event_msg`이고 `payload.type`이 `token_count`인 줄 |
+| 토큰 | `payload.info.last_token_usage`가 그 차례의 증가분이다. 누적값(`total_token_usage`)만 있으면 앞의 누적값을 빼서 증가분을 구한다. `input_tokens`, `cached_input_tokens`, `output_tokens` |
+| 모델 | `turn_context`의 모델 |
+| 되풀이 | 하위 에이전트 기록은 부모의 이력을 앞에 되풀이하므로 그 구간은 세지 않는다 |
+
+**처음 버전의 범위**
+
+- 지원하는 에이전트는 Claude Code와 Codex다. ccusage는 그 밖에 OpenCode, Amp, Gemini 등 열여덟 가지를 어댑터로 지원한다. 같은 방식으로 어댑터 하나가 파일 하나인 구조로 두어 나중에 더한다.
+- 토큰 수만 보여 준다. 비용은 모델별 가격표가 있어야 하고(ccusage는 models.dev와 LiteLLM의 가격표를 실행 파일에 넣어 둔다), 가격표를 계속 갱신해야 해서 넣지 않는다. 기록에 `costUSD`가 들어 있으면 그 값만 더해 보여 준다.
+- 파일이 크므로 파일별 합계를 수정 시각·크기와 함께 기억해 두고, 바뀐 파일만 다시 읽는다. 읽기는 화면을 막지 않게 뒤에서 한다.
+- 읽지 못한 파일과 건너뛴 줄 수를 위젯 아래에 보여 준다.
+
+## 8-8. 명령줄과 MCP
+
+파일을 직접 고치는 것이 여전히 기본 계약이다. 명령줄과 MCP는 같은 파일을 다루는 얇은 껍데기이고, 파일 편집이 불편한 에이전트나 스크립트를 위한 선택지다.
+
+**명령**
+
+| 명령 | 하는 일 |
+|---|---|
+| `stickypane list [--json]` | 노트 목록: 파일 이름, 제목, 모양, 열림, 크기, 고정 |
+| `stickypane show <이름>` | 노트 파일 내용을 그대로 출력 |
+| `stickypane write <이름> [--type T] [--title X] [--open] [--size S]` | 표준 입력을 본문으로 노트를 만들거나 통째로 바꾼다 |
+| `stickypane mcp` | 표준 입출력으로 MCP 서버를 띄운다 |
+
+`<이름>`은 `.md`를 붙이지 않아도 된다. 폴더 구분자가 들어간 이름은 거부한다.
+
+**MCP 도구**: `list_notes`, `read_note`, `write_note`, `guide`(안내문). 명령과 같은 일을 한다.
+
+```bash
+claude mcp add stickypane -- stickypane mcp
+```
+
+`write`와 `write_note`는 노트를 통째로 바꾼다. 에이전트가 파일을 직접 덮어쓰는 것과 같아서, 그사이 사용자가 보드에서 고친 내용이 있으면 사라진다. 그래서 안내문은 "고치기 전에 다시 읽는다"를 그대로 요구한다.
 
 ## 9. 친절하게 만들고 바꾸기
 

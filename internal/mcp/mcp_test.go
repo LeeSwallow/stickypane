@@ -1,0 +1,179 @@
+package mcp_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/mcp"
+	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/widget/note"
+)
+
+type response struct {
+	ID     json.RawMessage `json:"id"`
+	Result json.RawMessage `json:"result"`
+	Error  *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+type toolResult struct {
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+	IsError bool `json:"isError"`
+}
+
+// serve runs the server over the given request lines and returns one parsed
+// response per line of output.
+func serve(t *testing.T, requests ...string) ([]response, string) {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), store.DirName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("---\ntitle: First\n---\nhello\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := &mcp.Server{API: api.New(store.Open(dir), kinds.Default(note.Plain)), Guide: "GUIDE TEXT", Version: "test"}
+	var out bytes.Buffer
+	if err := s.Serve(strings.NewReader(strings.Join(requests, "\n")+"\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	var responses []response
+	for _, line := range strings.Split(strings.TrimSpace(out.String()), "\n") {
+		if line == "" {
+			continue
+		}
+		var r response
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatalf("output line is not JSON: %q", line)
+		}
+		responses = append(responses, r)
+	}
+	return responses, dir
+}
+
+func call(t *testing.T, r response) toolResult {
+	t.Helper()
+	if r.Error != nil {
+		t.Fatalf("unexpected protocol error: %+v", r.Error)
+	}
+	var res toolResult
+	if err := json.Unmarshal(r.Result, &res); err != nil || len(res.Content) != 1 || res.Content[0].Type != "text" {
+		t.Fatalf("tool result should be one text block: %s", r.Result)
+	}
+	return res
+}
+
+func TestInitializeAndListTools(t *testing.T) {
+	rs, _ := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`,
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":3,"method":"ping"}`,
+	)
+	if len(rs) != 3 {
+		t.Fatalf("got %d responses, want 3: a notification gets no answer", len(rs))
+	}
+	var init struct {
+		ProtocolVersion string `json:"protocolVersion"`
+		Capabilities    struct {
+			Tools *struct{} `json:"tools"`
+		} `json:"capabilities"`
+		ServerInfo struct{ Name, Version string } `json:"serverInfo"`
+	}
+	if err := json.Unmarshal(rs[0].Result, &init); err != nil {
+		t.Fatal(err)
+	}
+	if init.ProtocolVersion != "2025-06-18" || init.Capabilities.Tools == nil || init.ServerInfo.Name != "stickypane" {
+		t.Errorf("initialize result = %s", rs[0].Result)
+	}
+	var list struct {
+		Tools []struct {
+			Name        string          `json:"name"`
+			Description string          `json:"description"`
+			InputSchema json.RawMessage `json:"inputSchema"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(rs[1].Result, &list); err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, tool := range list.Tools {
+		names = append(names, tool.Name)
+		if tool.Description == "" || !strings.Contains(string(tool.InputSchema), `"type":"object"`) {
+			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
+		}
+	}
+	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,guide" {
+		t.Errorf("tools = %s", got)
+	}
+	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
+		t.Errorf("ping = %s %s", rs[2].ID, rs[2].Result)
+	}
+}
+
+func TestToolsReadAndWriteNotes(t *testing.T) {
+	rs, dir := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_notes","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_note","arguments":{"name":"a"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"plan","type":"checklist","title":"Plan","open":true,"size":"half","content":"- [ ] 한글 항목\n"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"guide","arguments":{}}}`,
+	)
+	if got := call(t, rs[0]).Content[0].Text; !strings.Contains(got, `"name":"a.md"`) || !strings.Contains(got, `"title":"First"`) {
+		t.Errorf("list_notes = %s", got)
+	}
+	if got := call(t, rs[1]).Content[0].Text; got != "---\ntitle: First\n---\nhello\n" {
+		t.Errorf("read_note = %q", got)
+	}
+	if got := call(t, rs[2]); got.IsError || !strings.Contains(got.Content[0].Text, "plan.md") {
+		t.Errorf("write_note = %+v", got)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "plan.md"))
+	if err != nil || string(b) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: half\n---\n- [ ] 한글 항목\n" {
+		t.Errorf("file = %q, %v", b, err)
+	}
+	if got := call(t, rs[3]).Content[0].Text; got != "GUIDE TEXT" {
+		t.Errorf("guide = %q", got)
+	}
+}
+
+func TestToolFailuresAreToolErrorsNotCrashes(t *testing.T) {
+	rs, _ := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_note","arguments":{"name":"missing"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"../escape","content":"x"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"no_such_tool","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"no/such/method"}`,
+		`this is not json`,
+		`{"jsonrpc":"2.0","id":5,"method":"ping"}`,
+	)
+	if len(rs) != 6 {
+		t.Fatalf("got %d responses, want 6", len(rs))
+	}
+	for i := 0; i < 2; i++ {
+		if res := call(t, rs[i]); !res.IsError || res.Content[0].Text == "" {
+			t.Errorf("response %d should be a tool error with a message: %+v", i+1, res)
+		}
+	}
+	if rs[2].Error == nil || rs[2].Error.Code != -32602 {
+		t.Errorf("unknown tool: %+v, want error -32602", rs[2].Error)
+	}
+	if rs[3].Error == nil || rs[3].Error.Code != -32601 {
+		t.Errorf("unknown method: %+v, want error -32601", rs[3].Error)
+	}
+	if rs[4].Error == nil || rs[4].Error.Code != -32700 {
+		t.Errorf("bad JSON: %+v, want error -32700", rs[4].Error)
+	}
+	if string(rs[5].Result) != "{}" {
+		t.Errorf("the server should keep serving after errors: %s", rs[5].Result)
+	}
+}

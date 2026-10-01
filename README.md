@@ -138,6 +138,28 @@ The focused open note takes the keys in the right-hand column where it is;
 you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
 when the focused note has no cursor of its own.
 
+## Command line and MCP
+
+Editing the files is all an agent needs. For scripts, and for agents that
+would rather call a tool, the same notes are reachable two more ways.
+
+```sh
+stickypane list --json                       # every note: name, title, type, open, size
+stickypane show plan                         # print a note's file
+echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
+```
+
+`stickypane mcp` serves the notes over the Model Context Protocol on standard
+input and output, with four tools: `list_notes`, `read_note`, `write_note`
+and `guide`.
+
+```sh
+claude mcp add stickypane -- stickypane mcp
+```
+
+`write` and `write_note` replace the whole note, exactly as overwriting the
+file would. Read a note before rewriting it.
+
 ## How edits are written
 
 The board never overwrites a file with what it last saw. An edit is an intent
