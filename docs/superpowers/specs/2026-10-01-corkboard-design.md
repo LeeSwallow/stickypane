@@ -48,6 +48,7 @@ wezterm Lua 설정과 워크플로우 훅으로 만든 이전 상태 표시는 �
 | [sidecar](https://github.com/marcus/sidecar) | 에이전트 옆에서 diff·파일·대화 기록·태스크를 보는 작업 공간 | 에이전트가 만든 내용을 붙이는 구조가 아니고 범위가 크다. |
 | [tui-dashboard](https://github.com/lyuangg/tui-dashboard) | YAML로 셸 명령 출력을 위젯에 배치하는 대시보드 | 설정 파일이 필요하고, 화면에서 내용을 고칠 수 없다. |
 | [Backlog.md](https://github.com/MrLesk/Backlog.md) | 마크다운 태스크 관리와 칸반 | 칸반·태스크 전용이다. |
+| [redthread](https://github.com/B33pBeeps/redthread) | 메모지를 끌어다 놓고 실로 잇는 터미널 코르크보드 | 사람이 마우스로 쓰는 메모 도구다. 칸반·체크리스트·로그 같은 모양이 없다. 저장 형식과 에이전트 연동 여부는 확인하지 않았다. |
 
 차별점은 한 문장이다. **폴더에 파일을 넣으면 노트가 붙고, 에이전트 종류와 터미널 종류를 가리지 않는다.**
 
