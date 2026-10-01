@@ -61,3 +61,31 @@ func TestARewriteClearsTheSubmission(t *testing.T) {
 		t.Errorf("a new question starts unanswered and stays on the screen:\n%s", got)
 	}
 }
+
+func TestWaitRidesOutAFileThatIsBeingRewritten(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"f.md": formNote})
+	path := filepath.Join(dir, "f.md")
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		_ = os.WriteFile(path, nil, 0o644) // an editor truncates, then writes
+		time.Sleep(20 * time.Millisecond)
+		pressed := strings.Replace(formNote, "title: Deploy\n", "title: Deploy\nsubmitted: Go\n", 1)
+		_ = os.WriteFile(path, []byte(pressed), 0o644)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	got, err := a.Wait(ctx, "f", 5*time.Millisecond)
+	if err != nil || got.Button != "Go" {
+		t.Errorf("Wait = %+v, %v", got, err)
+	}
+}
+
+func TestWaitStillFailsForANoteThatIsNotAForm(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{"n.md": "plain\n"})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	start := time.Now()
+	if _, err := a.Wait(ctx, "n", 5*time.Millisecond); !errors.Is(err, ErrNotForm) || time.Since(start) > time.Second {
+		t.Errorf("Wait on a plain note should fail at once: %v after %s", err, time.Since(start))
+	}
+}

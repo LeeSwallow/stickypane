@@ -21,9 +21,11 @@ const (
 	gutterDays = 5 // cells for the weekday names left of a calendar
 )
 
-// dataRe matches a data line: an optional list marker, a label, a colon and
-// a number that may use "," or "_" between digits.
-var dataRe = regexp.MustCompile(`^\s*(?:[-*]\s+)?(.+?)\s*:\s*(-?[0-9][0-9,_]*(?:\.[0-9]+)?)\s*$`)
+// dataRe matches a data line: an optional list marker, a label, a colon,
+// a space and a number that may use "," or "_" between digits. The space is
+// required, so that a time ("12:30") or an address ("host:8080") in a line
+// of text is not taken for data.
+var dataRe = regexp.MustCompile(`^\s*(?:[-*]\s+)?(.+?)\s*:\s+(-?[0-9][0-9,_]*(?:\.[0-9]+)?)\s*$`)
 
 // Kind registers the chart.
 var Kind = widget.Kind{
@@ -63,6 +65,19 @@ func parse(d doc.Document) *Chart {
 			}
 		}
 		c.prose = append(c.prose, strings.TrimRight(line, " \t"))
+	}
+	if days := c.days(); c.view == "heat" && len(days) > 0 && len(days) < len(c.points) {
+		// A calendar draws days only. A value that is not a day is shown
+		// as the text it is rather than dropped.
+		var dated []point
+		for _, p := range c.points {
+			if _, err := time.Parse(dayLayout, strings.TrimSpace(p.label)); err == nil {
+				dated = append(dated, p)
+			} else {
+				c.prose = append(c.prose, p.label+": "+p.text)
+			}
+		}
+		c.points = dated
 	}
 	for len(c.prose) > 0 && c.prose[len(c.prose)-1] == "" {
 		c.prose = c.prose[:len(c.prose)-1]
@@ -152,10 +167,12 @@ func (c *Chart) spark(width int) []string {
 	var line strings.Builder
 	for _, p := range points {
 		i := len(sparks) / 2
-		if high.value > low.value {
-			i = int(math.Round((p.value - low.value) / (high.value - low.value) * float64(len(sparks)-1)))
+		// A range too large for a float gives a ratio that is not a
+		// number; such a value sits in the middle.
+		if ratio := (p.value - low.value) / (high.value - low.value); high.value > low.value && !math.IsNaN(ratio) && !math.IsInf(ratio, 0) {
+			i = int(math.Round(ratio * float64(len(sparks)-1)))
 		}
-		line.WriteRune(sparks[i])
+		line.WriteRune(sparks[max(min(i, len(sparks)-1), 0)])
 	}
 	legend := fmt.Sprintf("%s → %s  low %s  peak %s (%s)",
 		widget.Clean(points[0].label), widget.Clean(points[len(points)-1].label), low.text, high.text, widget.Clean(high.label))

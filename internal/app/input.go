@@ -21,6 +21,9 @@ func init() {
 // was opened from comes back first. A caller that takes an empty line as an
 // answer sets inputEmpty after asking.
 func (m *Model) ask(label, initial string, submit func(text string)) {
+	// The label comes from a note, so it is cleaned, and it never takes
+	// more than a third of the line: the text being typed must show.
+	label = widget.Truncate(widget.Clean(label), max(m.width/3, 8))
 	in := textinput.New()
 	in.Prompt = ""
 	in.SetValue(initial)

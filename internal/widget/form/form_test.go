@@ -275,6 +275,73 @@ func TestQuestionsWithoutAHeadingAreNamedByTheLineAbove(t *testing.T) {
 	}
 }
 
+func TestABlankLineEndsAQuestion(t *testing.T) {
+	src := "- ( ) red\n- (x) blue\n\n- ( ) small\n- ( ) large\n"
+	out, _, _ := press(t, src, parseSrc(src), "j", "j", "j", "space")
+	if out != "- ( ) red\n- (x) blue\n\n- ( ) small\n- (x) large\n" {
+		t.Errorf("options after a blank line are another question:\n%s", out)
+	}
+	if a := Read(doc.Parse([]byte(out))); len(a.Answers) != 2 {
+		t.Errorf("Answers = %+v", a.Answers)
+	}
+}
+
+func TestIndentedControlsAreControls(t *testing.T) {
+	src := "## Where?\n  - ( ) staging\n  - ( ) production\n  [ Deploy ] [ Cancel ]\n"
+	a := Read(doc.Parse([]byte(src)))
+	if len(a.Answers) != 1 {
+		t.Fatalf("options indented like a nested list are still options: %+v", a.Answers)
+	}
+	lines, _ := draw(t, parseSrc(src), 40)
+	if text := strings.Join(lines, "\n"); !strings.Contains(text, "│ Deploy │") || strings.Contains(text, "Submit") {
+		t.Errorf("a button line under an option is still a button line:\n%s", text)
+	}
+	out, _, _ := press(t, src, parseSrc(src), "j", "space")
+	if !strings.Contains(out, "  - (x) production\n") {
+		t.Errorf("the indentation must survive a choice:\n%s", out)
+	}
+}
+
+func TestLinesThatOnlyLookLikeControls(t *testing.T) {
+	src := "- [x](http://example.com/x) a link\n[   ]\n- ( ) real\n"
+	f := parseSrc(src)
+	if a := Read(doc.Parse([]byte(src))); len(a.Answers) != 1 || len(a.Answers[0].Values) != 0 {
+		t.Errorf("a link is not a ticked box: %+v", a.Answers)
+	}
+	lines, _ := draw(t, f, 40)
+	if text := strings.Join(lines, "\n"); !strings.Contains(text, "│ Submit │") || strings.Contains(text, "✓") {
+		t.Errorf("a button without a name is not a button:\n%s", text)
+	}
+}
+
+func TestFillingAFieldWithTheSameTextKeepsTheSubmission(t *testing.T) {
+	src := "---\ntype: form\nsubmitted: Go\n---\n> same\n\n[ Go ]\n"
+	d, err := (Fill{Nth: 0, Old: "same", Text: "same"}).Apply(doc.Parse([]byte(src)))
+	if err != nil || string(d.Bytes()) != src {
+		t.Errorf("nothing changed, so nothing should be written: %v\n%s", err, d.Bytes())
+	}
+}
+
+func TestTextFromTheFileIsCleaned(t *testing.T) {
+	src := "Hello \x1b[2J\x1b]0;pwned\x07 world\n\n## Name \x1b[2J\n> \n"
+	f := parseSrc(src)
+	out, _ := f.Draw(60, true)
+	if strings.Contains(out, "\x1b[2J") || strings.Contains(out, "\x07") || strings.Contains(out, "pwned\x07") {
+		t.Errorf("escape sequences from the file must not reach the screen: %q", out)
+	}
+	_, res := f.Update("enter")
+	if res.Prompt == nil || strings.ContainsAny(res.Prompt.Label, "\x1b\x07") {
+		t.Errorf("the prompt label must be clean: %+v", res.Prompt)
+	}
+}
+
+func TestLongerFencesHideTheirControls(t *testing.T) {
+	src := "````markdown\n```\n- ( ) example\n```\n- ( ) still an example\n````\n- ( ) real\n"
+	if a := Read(doc.Parse([]byte(src))); len(a.Answers) != 1 {
+		t.Errorf("only the option after the long fence is real: %+v", a.Answers)
+	}
+}
+
 func TestCodeBlocksAreNotControls(t *testing.T) {
 	src := "예시:\n\n```\n- ( ) not an option\n[ Not a button ]\n> not a field\n```\n\n- ( ) 진짜 선택지\n"
 	a := Read(doc.Parse([]byte(src)))

@@ -134,3 +134,13 @@ func TestAnswersAndWait(t *testing.T) {
 		t.Errorf("wait without a name: code = %d", code)
 	}
 }
+
+func TestWaitRejectsANegativeTimeout(t *testing.T) {
+	root := project(t)
+	if err := os.WriteFile(filepath.Join(root, ".stickypane", "deploy.md"), []byte(formNote), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := exec(t, "wait", "deploy", "--timeout", "-1s"); code != 2 || errOut == "" {
+		t.Errorf("code = %d, stderr = %q", code, errOut)
+	}
+}

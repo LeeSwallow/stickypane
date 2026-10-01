@@ -31,9 +31,11 @@ const (
 var now = time.Now
 
 var (
-	// optionRe splits "- ( ) text" and "- [x] text": the list marker, the
-	// opening bracket, the mark, the closing bracket, a space, the text.
-	optionRe = regexp.MustCompile(`^([-*] )([(\[])([ xX])([)\]])( ?)(.*)$`)
+	// optionRe splits "- ( ) text" and "- [x] text": the list marker with up
+	// to three spaces before it, the opening bracket, the mark, the closing
+	// bracket, a space, the text. The space is required, so that a link
+	// written "- [x](url)" is not a ticked box.
+	optionRe = regexp.MustCompile(`^( {0,3}[-*] )([(\[])([ xX])([)\]])(?:( )(.*))?$`)
 	// fieldRe matches a line to fill in: ">" and the answer so far.
 	fieldRe = regexp.MustCompile(`^>(.*)$`)
 	// buttonsRe matches a line made only of "[ Label ]" buttons.
@@ -84,7 +86,8 @@ type line struct {
 // doc.Lines(body). It also returns what each question is called: the
 // heading above it, else the line above it, else its number.
 func scan(body string) (lines []line, questions []string) {
-	var fence, heading, above string
+	var heading, above string
+	var fence string // the run of ` or ~ that closes the code block we are in
 	grouped, canDetail, radio := false, false, false
 	ask := func() int {
 		name := heading
@@ -104,11 +107,13 @@ func scan(body string) (lines []line, questions []string) {
 		l := line{kind: prose, text: raw}
 		switch m := optionRe.FindStringSubmatch(raw); {
 		case fence != "": // inside a code block nothing is a control
-			if strings.HasPrefix(trimmed, fence) {
+			if strings.HasPrefix(trimmed, fence) && strings.Trim(trimmed, fence[:1]) == "" {
 				fence = ""
 			}
 		case strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~"):
-			fence = trimmed[:3]
+			// The block ends at a line of at least as many of the same
+			// character, so a longer fence can quote a shorter one.
+			fence = trimmed[:len(trimmed)-len(strings.TrimLeft(trimmed, trimmed[:1]))]
 			grouped, canDetail = false, false
 		case m != nil && (m[2] == "(") == (m[4] == ")"):
 			l = line{kind: option, text: strings.TrimSpace(m[6]), radio: m[2] == "(", on: m[3] != " "}
@@ -120,17 +125,16 @@ func scan(body string) (lines []line, questions []string) {
 			}
 			grouped, canDetail, radio = true, true, l.radio
 		case trimmed == "":
-			canDetail = false
+			// A blank line ends the question: the screen shows a gap
+			// there, so what follows must not share one answer with it.
+			grouped, canDetail = false, false
+		case len(buttonsOf(raw)) > 0:
+			l = line{kind: buttons, labels: buttonsOf(raw)}
+			grouped, canDetail = false, false
 		case canDetail && (strings.HasPrefix(raw, " ") || strings.HasPrefix(raw, "\t")):
 			l = line{kind: detail, text: trimmed}
 		case fieldRe.MatchString(raw):
 			l = line{kind: field, text: strings.TrimSpace(raw[1:]), question: ask()}
-			grouped, canDetail = false, false
-		case buttonsRe.MatchString(raw):
-			l = line{kind: buttons}
-			for _, b := range buttonRe.FindAllStringSubmatch(raw, -1) {
-				l.labels = append(l.labels, strings.TrimSpace(b[1]))
-			}
 			grouped, canDetail = false, false
 		default:
 			if strings.HasPrefix(trimmed, "#") {
@@ -143,6 +147,21 @@ func scan(body string) (lines []line, questions []string) {
 		lines = append(lines, l)
 	}
 	return lines, questions
+}
+
+// buttonsOf returns the labels of a line made only of buttons, and nothing
+// for any other line. A button without a name is not a button.
+func buttonsOf(raw string) []string {
+	if !buttonsRe.MatchString(raw) {
+		return nil
+	}
+	var labels []string
+	for _, b := range buttonRe.FindAllStringSubmatch(raw, -1) {
+		if label := strings.TrimSpace(b[1]); label != "" {
+			labels = append(labels, label)
+		}
+	}
+	return labels
 }
 
 // buttonLabels returns every button of the form, or the built-in one when
@@ -318,7 +337,7 @@ func (f *Form) text(lines []line, width int, before, after bool) []string {
 	}
 	raw := make([]string, 0, last-first)
 	for _, l := range lines[first:last] {
-		raw = append(raw, l.text)
+		raw = append(raw, widget.Clean(l.text))
 	}
 	drawn := strings.Split(f.render(strings.Join(raw, "\n")+"\n", width), "\n")
 	blank := func(s string) bool { return strings.TrimSpace(ansi.Strip(s)) == "" }
@@ -504,7 +523,7 @@ func (f *Form) Update(key string) (widget.Widget, widget.Result) {
 		case field:
 			nth, old := f.nth(c), l.text
 			res.Prompt = &widget.Prompt{
-				Label:   f.questions[l.question],
+				Label:   widget.Clean(f.questions[l.question]),
 				Initial: old,
 				Empty:   true,
 				Submit:  func(text string) doc.Op { return Fill{Nth: nth, Old: old, Text: text} },
@@ -622,6 +641,9 @@ func (o Fill) Apply(d doc.Document) (doc.Document, error) {
 		}
 		if l.text != o.Old {
 			break
+		}
+		if o.Text == o.Old {
+			return d, nil // nothing changed, so nothing is taken back
 		}
 		replace(raw, i, "> "+o.Text)
 		d.Body = doc.Join(raw)

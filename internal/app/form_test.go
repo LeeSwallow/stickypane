@@ -82,3 +82,29 @@ func TestZDoesNotZoomAClosedNote(t *testing.T) {
 		t.Errorf("z on a closed note should do nothing, mode = %v", m.mode)
 	}
 }
+
+func TestAFrontMatterChangeReachesTheWidget(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"f.md": formFile})
+	pressed := strings.Replace(formFile, "open: true\n", "open: true\nsubmitted: Go\n", 1)
+	writeFile(t, dir, "f.md", pressed)
+	press(m, "r")
+	if s := screen(m); !strings.Contains(s, "✓ Go") {
+		t.Fatalf("a submission written to the file should show:\n%s", s)
+	}
+	writeFile(t, dir, "f.md", formFile)
+	press(m, "r")
+	if s := screen(m); strings.Contains(s, "✓ Go") {
+		t.Errorf("a form asked again must not look submitted:\n%s", s)
+	}
+}
+
+func TestALongQuestionLeavesRoomToType(t *testing.T) {
+	long := strings.Replace(formFile, "## Note\n", strings.Repeat("a very long question ", 8)+"\n", 1)
+	m, _ := newModel(t, map[string]string{"f.md": long})
+	press(m, "j", "j", "enter")
+	typeText(m, "typed")
+	lines := strings.Split(screen(m), "\n")
+	if last := lines[len(lines)-1]; !strings.Contains(last, "typed") {
+		t.Errorf("the text being typed must stay visible: %q", last)
+	}
+}

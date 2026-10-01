@@ -148,6 +148,10 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
+	if *timeout < 0 {
+		fmt.Fprintln(stderr, "stickypane: --timeout cannot be negative")
+		return 2
+	}
 	if flags.NArg() > 0 || (needsName && name == "") {
 		fmt.Fprint(stderr, usage)
 		return 2

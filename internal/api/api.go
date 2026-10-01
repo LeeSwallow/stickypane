@@ -22,6 +22,9 @@ import (
 // ErrBadName rejects names that are not a plain Markdown file name.
 var ErrBadName = errors.New(`a note name is a plain file name such as "plan" or "plan.md"`)
 
+// waitRetries is how many failed looks in a row Wait rides out.
+const waitRetries = 10
+
 // ErrNotForm reports that a note has no answers to read.
 var ErrNotForm = errors.New("that note is not a form: only a note with type: form has answers")
 
@@ -176,14 +179,27 @@ func (a *API) Answers(name string) (form.Answers, error) {
 // Wait returns a form's answers once a button has been pressed, looking at
 // the file every interval. When ctx ends first it returns the answers so far
 // together with the context's error.
+//
+// A form that cannot be read at the first look is an error. After that, a
+// few failed looks in a row are ridden out: an editor or an agent replacing
+// the file may leave it empty for a moment.
 func (a *API) Wait(ctx context.Context, name string, every time.Duration) (form.Answers, error) {
 	tick := time.NewTicker(every)
 	defer tick.Stop()
-	for {
+	var last form.Answers
+	for failed, first := 0, true; ; first = false {
 		got, err := a.Answers(name)
-		if err != nil || got.Submitted {
+		switch {
+		case err == nil && got.Submitted:
+			return got, nil
+		case err == nil:
+			last, failed = got, 0
+		case first || failed >= waitRetries:
 			return got, err
+		default:
+			failed++
 		}
+		got = last
 		select {
 		case <-ctx.Done():
 			return got, ctx.Err()

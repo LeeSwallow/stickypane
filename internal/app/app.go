@@ -305,7 +305,9 @@ func (m *Model) reload() {
 		switch o, ok := old[n.Name]; {
 		case !ok || o.kind.Name != it.kind.Name:
 			it.w = it.kind.Parse(n.Doc)
-		case o.note.Doc.Body == n.Doc.Body:
+		case string(o.note.Doc.Bytes()) == string(n.Doc.Bytes()):
+			// Front matter counts too: a form shows whether it was
+			// submitted and a chart which view it has.
 			it.w = o.w
 		default:
 			it.w = o.w.Sync(n.Doc)

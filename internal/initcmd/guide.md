@@ -25,6 +25,7 @@ complete note. Add front matter only when a note needs a shape:
   (choose one), `- [ ] option` lines (choose any), a `> ` line (text to fill
   in) and a line of buttons. The answers are written into the file: run
   `stickypane wait <name>` to block until a button is pressed and print them.
+  A pressed button adds `submitted` keys; leave them out when you ask again.
 
     ---
     type: form

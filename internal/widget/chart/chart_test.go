@@ -162,6 +162,36 @@ func TestNarrowChartsDoNotBreak(t *testing.T) {
 	}
 }
 
+func TestSparkSurvivesExtremeValues(t *testing.T) {
+	huge := "1" + strings.Repeat("0", 308)
+	lines := draw(t, "---\nview: spark\n---\na: "+huge+"\nb: -"+huge+"\nc: 0\n", 40)
+	if widget.Width(lines[0]) != 3 {
+		t.Errorf("spark = %q", lines[0])
+	}
+}
+
+func TestTextThatOnlyLooksLikeDataStaysText(t *testing.T) {
+	lines := draw(t, "Updated at 12:30\nSee http://localhost:8080\napp: 4\n", 40)
+	text := strings.Join(lines, "\n")
+	if !strings.Contains(text, "Updated at 12:30") || !strings.Contains(text, "http://localhost:8080") {
+		t.Errorf("a time and a URL are text, not data:\n%s", text)
+	}
+	if got := parseSrc("Updated at 12:30\napp: 4\n").Summary(); got != "1 value" {
+		t.Errorf("Summary = %q", got)
+	}
+}
+
+func TestHeatShowsValuesThatAreNotDays(t *testing.T) {
+	lines := draw(t, "---\nview: heat\n---\n2026-09-28: 4\nbudget: 100\n", 40)
+	text := strings.Join(lines, "\n")
+	if !strings.Contains(text, "budget: 100") {
+		t.Errorf("a value without a date must not vanish from a calendar:\n%s", text)
+	}
+	if got := parseSrc("---\nview: heat\n---\n2026-09-28: 4\nbudget: 100\n").Summary(); got != "1 value" {
+		t.Errorf("Summary should count what is drawn: %q", got)
+	}
+}
+
 func TestSummaryAndSync(t *testing.T) {
 	w := parseSrc("a: 1\nb: 2\n")
 	if got := w.Summary(); got != "2 values" {

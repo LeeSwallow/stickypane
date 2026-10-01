@@ -92,3 +92,68 @@ func TestMarkdownDrawsMermaid(t *testing.T) {
 		t.Errorf("the styled renderer should draw Mermaid blocks too:\n%s", out)
 	}
 }
+
+func TestAHugeDiagramKeepsItsSource(t *testing.T) {
+	var sb strings.Builder
+	sb.WriteString("```mermaid\ngraph LR\n")
+	for i := 0; i < 400; i++ {
+		sb.WriteString("  A --> B\n")
+	}
+	sb.WriteString("```\n")
+	out := ansi.Strip(WithMermaid(note.Plain)(sb.String(), 80))
+	if !strings.Contains(out, "graph LR") || strings.Contains(out, "┌") {
+		t.Errorf("a block too large to draw quickly should stay as source:\n%.200s", out)
+	}
+}
+
+func TestADiagramTooWideForTheNoteIsNotCut(t *testing.T) {
+	md := "```mermaid\nsequenceDiagram\n  Alice->>Bob: a rather long message for a narrow pane\n```\n"
+	out := WithMermaid(note.Plain)(md, 30)
+	for _, line := range strings.Split(out, "\n") {
+		if w := widget.Width(line); w > 30 {
+			t.Fatalf("line %q is %d cells wide, want at most 30", ansi.Strip(line), w)
+		}
+	}
+	plain := ansi.Strip(out)
+	if !strings.Contains(plain, "sequenceDiagram") || !strings.Contains(plain, "zoom") {
+		t.Errorf("a diagram that does not fit should show its source and say how to see it:\n%s", plain)
+	}
+}
+
+func TestAWideFlowchartTurnsDownwards(t *testing.T) {
+	md := "```mermaid\ngraph LR\n  alpha --> beta --> gamma --> delta --> epsilon\n```\n"
+	out := ansi.Strip(WithMermaid(note.Plain)(md, 32))
+	if strings.Contains(out, "graph LR") || !strings.Contains(out, "▼") || !strings.Contains(out, "epsilon") {
+		t.Errorf("a left-to-right chart that does not fit should be drawn top-down:\n%s", out)
+	}
+}
+
+func TestLongerFencesAreRespected(t *testing.T) {
+	md := "Example:\n\n````markdown\n```mermaid\ngraph LR\n  A --> B\n```\n````\n\nafter\n"
+	out := ansi.Strip(WithMermaid(note.Plain)(md, 60))
+	if strings.Contains(out, "┌") || !strings.Contains(out, "graph LR") || !strings.Contains(out, "after") {
+		t.Errorf("a Mermaid block quoted inside a longer fence is an example, not a diagram:\n%s", out)
+	}
+}
+
+func TestStylingLinesAndLabelledArrowsAreUnderstood(t *testing.T) {
+	md := "```mermaid\ngraph LR\n  A -- yes --> B\n  style A fill:#f9f\n  click A href \"x\"\n```\n"
+	out := ansi.Strip(WithMermaid(note.Plain)(md, 70))
+	if strings.Contains(out, "style") || strings.Contains(out, "click") || strings.Contains(out, "A -- yes") || !strings.Contains(out, "yes") {
+		t.Errorf("styling is dropped and the arrow keeps its label:\n%s", out)
+	}
+}
+
+func TestTheSameDiagramIsDrawnOnce(t *testing.T) {
+	calls := 0
+	old := renderDiagram
+	renderDiagram = func(src string, width int) (string, error) { calls++; return old(src, width) }
+	defer func() { renderDiagram = old }()
+	render := WithMermaid(note.Plain)
+	for i := 0; i < 5; i++ {
+		render(flow, 70)
+	}
+	if calls != 1 {
+		t.Errorf("the diagram was drawn %d times for the same source and width", calls)
+	}
+}
