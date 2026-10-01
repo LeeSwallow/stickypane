@@ -35,7 +35,17 @@ complete note. Add front matter only when a note needs a shape:
     - ( ) production
     [ Deploy ] [ Cancel ]
 
-The screen shows open notes in full and lists the others by title, so open
+For a small change do not read or rewrite the note: run one of these. They
+make the note when it is missing and print where it stands (`plan.md: 2/5`).
+An item or a card is named by its text, a part of it, or its position (`#2`).
+
+    stickypane todo plan add "write tests"       # also: check, uncheck
+    stickypane card work move "login" --to Done  # also: add "text" --to Doing
+    stickypane chart tokens add input 1200       # also: set input 5000
+    stickypane log worklog --time "tests passed"
+    stickypane set plan open=true size=half      # front matter keys only
+
+The screen shows open notes side by side and lists the others by title, so open
 what the user should read now. When progress changes, update the matching
 note instead of adding a new one, and keep the keys you are not changing:
 `open` and `size` are how the user arranged the screen. The user can edit

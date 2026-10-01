@@ -194,18 +194,31 @@ func TestFocusCyclesThroughEveryNote(t *testing.T) {
 	}
 }
 
-func TestOTogglesOpenInTheFile(t *testing.T) {
+// isOpenIn reports what sticky.json says about a note being open: "true",
+// "false", or "" when it says nothing.
+func isOpenIn(t *testing.T, dir, name string) string {
+	t.Helper()
+	switch v := viewsOf(t, dir)[name].Open; {
+	case v == nil:
+		return ""
+	case *v:
+		return "true"
+	}
+	return "false"
+}
+
+func TestOTogglesOpen(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "o")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" {
-		t.Fatalf("file = %q", got)
+	if got := isOpenIn(t, dir, "a.md"); got != "true" || readFile(t, dir, "a.md") != "one\n" {
+		t.Fatalf("open = %q, file = %q", got, readFile(t, dir, "a.md"))
 	}
 	if s := screen(m); !strings.Contains(s, "one") || !strings.Contains(s, "● ✎ a") {
 		t.Errorf("the note should be open now:\n%s", s)
 	}
 	press(m, "o")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: false\n---\none\n" {
-		t.Errorf("file = %q", got)
+	if got := isOpenIn(t, dir, "a.md"); got != "false" {
+		t.Errorf("open = %q", got)
 	}
 	if s := screen(m); !strings.Contains(s, "○ ✎ a") || !strings.Contains(s, "Nothing is open") {
 		t.Errorf("the note should be closed again:\n%s", s)
@@ -215,8 +228,8 @@ func TestOTogglesOpenInTheFile(t *testing.T) {
 func TestEnterOpensAClosedNoteThenZooms(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "enter")
-	if got := readFile(t, dir, "a.md"); got != "---\nopen: true\n---\none\n" || m.mode != modeBoard {
-		t.Fatalf("enter on a closed note should open it: file = %q, mode = %v", got, m.mode)
+	if got := isOpenIn(t, dir, "a.md"); got != "true" || m.mode != modeBoard {
+		t.Fatalf("enter on a closed note should open it: open = %q, mode = %v", got, m.mode)
 	}
 	press(m, "enter")
 	if m.mode != modeZoom {
@@ -372,8 +385,8 @@ func TestSizeKeysWriteTheSize(t *testing.T) {
 	steps := []struct{ key, size string }{{"+", "half"}, {"+", "page"}, {"+", "page"}, {"-", "half"}, {"-", "card"}, {"-", "card"}}
 	for _, step := range steps {
 		press(m, step.key)
-		if got := readFile(t, dir, "a.md"); got != "---\nopen: true\nsize: "+step.size+"\n---\none\n" {
-			t.Fatalf("after %s: file = %q, want size %s", step.key, got, step.size)
+		if got := viewsOf(t, dir)["a.md"].Size; got != step.size || readFile(t, dir, "a.md") != opened("one\n") {
+			t.Fatalf("after %s: size = %q, want %s (file %q)", step.key, got, step.size, readFile(t, dir, "a.md"))
 		}
 	}
 }
@@ -529,21 +542,29 @@ func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
 	}
 }
 
-func TestALogShowsItsLastTenLines(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"log.md": "---\ntype: log\ntitle: Work log\nopen: true\n---\n" + numbered(30)})
+// longNote is a note that takes all the room it is given.
+var longNote = "---\nopen: true\nsize: page\n---\n" + strings.Repeat("filler\n", 80)
+
+func TestALogAsksForTenLines(t *testing.T) {
+	m, _ := newModel(t, map[string]string{
+		"log.md": "---\ntype: log\ntitle: Work log\nopen: true\nsize: page\n---\n" + numbered(30),
+		"z.md":   longNote,
+	})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
 	s := screen(m)
 	if !strings.Contains(s, "line 30") || !strings.Contains(s, "line 21") || strings.Contains(s, "line 20") {
-		t.Errorf("a log should show its last ten lines:\n%s", s)
+		t.Errorf("next to a note that wants the room, a log shows its last ten lines:\n%s", s)
 	}
 }
 
-func TestRowsFixTheHeightAndKeepTheCursorVisible(t *testing.T) {
+func TestRowsSetTheHeightANoteAsksFor(t *testing.T) {
 	var sb strings.Builder
-	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nrows: 6\n---\n")
+	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nsize: page\nrows: 6\n---\n")
 	for i := 1; i <= 20; i++ {
 		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
 	}
-	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
+	m, _ := newModel(t, map[string]string{"c.md": sb.String(), "z.md": longNote})
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
 	if n := strings.Count(screen(m), "☐"); n > 6 {
 		t.Errorf("rows: 6 should limit the height, %d items visible:\n%s", n, screen(m))
 	}

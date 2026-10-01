@@ -16,6 +16,7 @@ const rows = 10
 // newest entries stay in sight as the file grows.
 var Kind = widget.Kind{
 	Name:     "log",
+	Exts:     []string{".log", ".txt", ".out"},
 	Label:    "Log",
 	Icon:     "≣",
 	Blurb:    "One entry per line. The newest entries stay in sight.",
@@ -77,3 +78,18 @@ func (l *Log) Update(string) (widget.Widget, widget.Result) { return l, widget.R
 
 // Sync implements widget.Widget.
 func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d) }
+
+// Append adds one entry at the end of the log. An entry is one line: line
+// breaks inside Line become spaces.
+type Append struct{ Line string }
+
+// Apply implements doc.Op.
+func (o Append) Apply(d doc.Document) (doc.Document, error) {
+	line := strings.TrimSpace(strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(o.Line))
+	eol := doc.EOL(d.Body)
+	if d.Body != "" && !strings.HasSuffix(d.Body, "\n") {
+		d.Body += eol + "\n"
+	}
+	d.Body += line + eol + "\n"
+	return d, nil
+}

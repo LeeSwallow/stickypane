@@ -95,18 +95,25 @@ func Window(lines []string, offset, height int) []string {
 	return lines[offset:min(offset+height, len(lines))]
 }
 
-// ScrollKey returns the offset after a scrolling key and whether key was one.
-// The result may exceed the content; ClampOffset fixes that when drawing.
-func ScrollKey(offset int, key string) (int, bool) {
+// ScrollKey returns the offset after a scrolling key and whether key was
+// one. page is how many lines are in view: the paging keys move by that
+// much, less one line of overlap. The result may exceed the content;
+// ClampOffset fixes that when drawing.
+func ScrollKey(offset int, key string, page int) (int, bool) {
+	page = max(page-1, 1)
 	switch key {
 	case "j", "down":
 		offset++
 	case "k", "up":
 		offset--
-	case "space", "pgdown":
-		offset += 10
-	case "b", "pgup":
-		offset -= 10
+	case "space", "pgdown", "ctrl+f":
+		offset += page
+	case "b", "pgup", "ctrl+b":
+		offset -= page
+	case "ctrl+d":
+		offset += max(page/2, 1)
+	case "ctrl+u":
+		offset -= max(page/2, 1)
 	case "g":
 		offset = 0
 	case "G":

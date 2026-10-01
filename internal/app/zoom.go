@@ -44,7 +44,7 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case key == "esc" || key == "q":
 		m.mode = modeBoard
 		m.reveal = revealCursor
-	case key == "e" || key == "?":
+	case key == "e" || key == "E" || key == "?" || strings.ContainsAny(key, ",.<>") && len(key) == 1:
 		if f, ok := boardKeys[key]; ok {
 			return f(m)
 		}
@@ -53,7 +53,7 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	default:
 		// Keys the note does not use scroll freely, so every line of a
 		// zoomed note can be reached even when it has a cursor.
-		if offset, ok := widget.ScrollKey(m.zoomScroll, key); ok {
+		if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
 			m.zoomScroll = offset
 		}
 	}
@@ -97,7 +97,8 @@ func zoomBody(m *Model, h int) []string {
 		visible = append(visible, "")
 	}
 	return strings.Split(frame(box{
-		title: title, icon: it.kind.Icon, summary: it.w.Summary(),
-		body: strings.Join(visible, "\n"), width: m.width, color: noteColor(it), focused: true,
+		title: title, icon: it.kind.Icon, summary: m.summary(it),
+		body: strings.Join(visible, "\n"), width: m.width, color: m.color(it), focused: true,
+		offset: m.zoomScroll, total: len(m.zoomLines),
 	}), "\n")
 }

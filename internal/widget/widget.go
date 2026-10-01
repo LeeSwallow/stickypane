@@ -4,6 +4,7 @@
 package widget
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -58,10 +59,11 @@ type Clicker interface {
 	Click(line, col int) (w Widget, res Result, hit bool)
 }
 
-// Result is what a key press asks the app to do. Both fields may be nil.
+// Result is what a key press asks the app to do. Every field may be empty.
 type Result struct {
 	Op     doc.Op  // apply to the file now
 	Prompt *Prompt // collect one line of text first
+	Run    bool    // run the note's file as a script, after asking the user
 }
 
 // Prompt asks the app for a line of text and turns it into an Op.
@@ -74,7 +76,13 @@ type Prompt struct {
 
 // Kind registers one shape of note.
 type Kind struct {
-	Name  string // the front matter "type" value
+	Name string // the front matter "type" value
+	// Exts are the file extensions, such as ".log", whose files are this
+	// kind whatever they contain. Such files have no front matter.
+	Exts []string
+	// New is the extension of a file made as this kind, when it is not
+	// Markdown. Such a file gets no front matter.
+	New   string
 	Label string // shown in the catalog
 	Icon  string // one cell, shown before the note's title
 	// Hint names the keys of Keys for the bottom line, as alternating
@@ -114,7 +122,9 @@ type Registry []Kind
 // Lookup returns the kind for a type value. Unknown values get the first kind.
 func (r Registry) Lookup(name string) Kind {
 	for _, k := range r {
-		if k.Name == name {
+		// A kind that is a file of its own, such as a script, cannot be
+		// asked for by a Markdown note's front matter.
+		if k.Name == name && k.New == "" {
 			return k
 		}
 	}
@@ -131,4 +141,18 @@ func NewFile(kind, title, body string) []byte {
 		d = d.Set("title", title)
 	}
 	return d.Bytes()
+}
+
+// For returns the kind of the note in the file called name: the kind that
+// owns the file's extension, or else the kind its front matter names.
+func (r Registry) For(name string, d doc.Document) Kind {
+	ext := strings.ToLower(filepath.Ext(name))
+	for _, k := range r {
+		for _, e := range k.Exts {
+			if e == ext {
+				return k
+			}
+		}
+	}
+	return r.Lookup(d.Type())
 }

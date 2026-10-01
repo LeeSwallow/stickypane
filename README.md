@@ -25,9 +25,11 @@ h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 Your agent jots things down as plain Markdown files. stickypane shows them in
 a pane next to it: plain notes, kanban boards, checklists, logs, charts,
 Mermaid diagrams, and forms you answer with a key press. The line
-at the top lists every note (`●` open, `○` folded away); the ones you open are
-drawn below it in full, never cut. Move a card or tick a box and the change lands in the same file,
-so the agent sees it too.
+at the top lists every note (`●` open, `○` folded away). The ones you open
+tile the screen below it, each in a pane of its own: a note longer than its
+pane scrolls inside it, and when more notes are open than fit, the rest are
+on the next screen. Move a card or tick a box and the change lands in the
+same file, so the agent sees it too.
 
 - **Nothing to configure.** No config file, no server, no hooks.
 - **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
@@ -55,6 +57,9 @@ stickypane         # opens the board
 
 `init` adds a short guide to `AGENTS.md` and `CLAUDE.md` (whichever exist; it
 creates `AGENTS.md` if neither does), so your agent knows the board is there.
+`init --skill` installs the guide as a Claude Code skill instead
+(`.claude/skills/stickypane/SKILL.md`), which is read only when a task calls
+for it.
 Then ask it for anything: "keep a checklist of this refactor on the board",
 "explain the structure on the board as a page".
 
@@ -85,7 +90,7 @@ to type one: the keys in the next section change them for you.
 | `title` | shown in the title bar and the note's border            |
 | `open`  | `true` draws the note on the screen, `false` folds it away |
 | `size`  | `page` (whole width), `half`, `card`                    |
-| `rows`  | a fixed height in lines; zoom in to see the rest        |
+| `rows`  | the height in lines the note asks for                   |
 | `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange`   |
 | `pin`   | `true` keeps the note first                             |
 
@@ -232,16 +237,48 @@ still shown, never hidden.
 | `a`                 | add by shape            | `n`                     | new card or item     |
 | `p` / `c` / `R`     | pin, color, rename      |                         |                      |
 | `x` / `D`           | archive, delete         | **Zoomed note**         |                      |
-| `e`                 | edit in `$EDITOR`       | `esc`                   | back                 |
+| `e` / `E`           | edit here, in `$EDITOR` | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
 | `z`                 | zoom                    | **Open form**           |                      |
+| `[` / `]`           | previous, next screen   |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
 |                     |                         | `enter` / `space`       | choose, type, press  |
 
 The focused open note takes the keys in the right-hand column where it is;
-you do not have to zoom in first. `j`, `k`, `g` and `G` scroll the screen
-when the focused note has no cursor of its own. A form uses `enter` itself,
+you do not have to zoom in first. When the focused note has no cursor of its
+own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
+`ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
+a cursor scrolls to keep the cursor in view.
+
+**How the screen is shared.** Open notes are placed left to right by `size`
+(`page` takes a row, two `half` notes share one, `card`s sit three or more
+to a row) and each row is stretched to the full width. The rows then share
+the height: a short note takes what it needs and the long ones split the
+rest, so the screen is always full and never scrolls as a whole. A note gets
+at least ten lines; notes that would get less go to the next screen, shown
+as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Editing a note
+
+`e` opens the focused note's file in a small editor that works like vi, so
+you can fix a note without leaving the board. `E` hands the file to `$EDITOR`
+instead.
+
+| Keys                          | Do                                     |
+| ----------------------------- | -------------------------------------- |
+| `i` `a` `I` `A` `o` `O`       | insert text; `esc` goes back           |
+| `h` `j` `k` `l` `w` `b` `e` `0` `^` `$` `gg` `G` | move                |
+| `ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u` | a page, half a page             |
+| `x` `dd` `dw` `D` `cc` `cw` `C` `r` `J` | delete, change, replace, join |
+| `yy` `p` `P`, `u` `ctrl+r`    | copy and paste, undo and redo          |
+| `/text` `n` `N`, `:12`        | search, go to a line                   |
+| `:w` `:q` `:wq` `ZZ` `:q!`    | save, quit, both, quit without saving  |
+
+The border shows the cursor's line and column and which page of the file it
+is on. If the file changed on disk while you were editing, usually because
+your agent wrote to it, `:w` does not overwrite it: `:w!` does, and `:e!`
+loads the file again. Counts (`3dd`) and visual mode are not there.
 
 ## Mouse
 
@@ -251,7 +288,7 @@ so `z` is the way to zoom into one.
 | click a note               | it takes the focus                              |
 | click an item, option, button or card | it is ticked, chosen, pressed or selected |
 | double-click a note        | zoom                                            |
-| wheel                      | scroll the screen, or the zoomed note           |
+| wheel                      | scroll the note under the pointer               |
 
 In tmux the mouse reaches stickypane only with `set -g mouse on`.
 
@@ -270,8 +307,30 @@ stickypane wait deploy --timeout 10m         # the same, once a button is presse
 
 `wait` exits with code 3 when its time runs out. Both take `--json`.
 
+**Small changes without reading the note.** An agent that ticks an item by
+rewriting the whole checklist has to read it first, and may write it back
+wrong. These commands change one thing and print where the note stands:
+
+```sh
+stickypane todo plan add "write tests"       # plan.md: 0/1
+stickypane todo plan check tests             # plan.md: 1/1
+stickypane card work add "login API" --to Doing
+stickypane card work move login --to Done    # work.md: 2 cards
+stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
+stickypane chart tokens add input 800        # tokens.md: input = 2,000
+stickypane log worklog --time "tests passed" # worklog.md: 12 lines
+stickypane set plan open=true size=half      # front matter keys only
+```
+
+A note that does not exist yet is made, open on the screen, so an agent never
+has to know the file format for these. An item, a card or a column is named
+by its text, by a part of it that nothing else has, or by its position
+(`#2`). When the name fits nothing, or more than one thing, the error lists
+what there is.
+
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
-input and output, with five tools: `list_notes`, `read_note`, `write_note`,
+input and output. Its tools are the commands above: `list_notes`,
+`read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `set_keys`,
 `read_answers` and `guide`.
 
 ```sh

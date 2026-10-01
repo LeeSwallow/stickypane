@@ -6,7 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -23,6 +23,24 @@ func init() {
 	boardKeys["shift+tab"] = func(m *Model) tea.Cmd { m.stepFocus(-1); return nil }
 	boardKeys["r"] = func(m *Model) tea.Cmd { m.reload(); return nil }
 	boardKeys["q"] = func(*Model) tea.Cmd { return tea.Quit }
+	boardKeys["]"] = func(m *Model) tea.Cmd { m.flip(1); return nil }
+	boardKeys["["] = func(m *Model) tea.Cmd { m.flip(-1); return nil }
+
+	// . and , turn the pages of a book; > and < are the same keys shifted.
+	turn := func(delta int) func(*Model) tea.Cmd {
+		return func(m *Model) tea.Cmd {
+			name := m.focus
+			if m.zoomed() {
+				name = m.zoomName
+			}
+			if i := m.index(name); i >= 0 {
+				m.turn(i, delta)
+			}
+			return nil
+		}
+	}
+	boardKeys["."], boardKeys[">"] = turn(1), turn(1)
+	boardKeys[","], boardKeys["<"] = turn(-1), turn(-1)
 
 	// enter goes one step deeper: it opens a closed note and zooms an open one.
 	boardKeys["enter"] = onFocused(func(m *Model, it item) tea.Cmd {
@@ -47,8 +65,8 @@ func init() {
 }
 
 // mainUpdate routes a key. A focused open note gets the keys its kind
-// lists; the screen gets the rest; and scroll keys nobody claimed move the
-// screen.
+// lists; the screen gets the rest; and scroll keys nobody claimed scroll
+// the focused note inside its pane.
 func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	k, ok := msg.(tea.KeyPressMsg)
 	if !ok {
@@ -62,8 +80,11 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	if f, ok := boardKeys[key]; ok {
 		return f(m)
 	}
-	if offset, ok := widget.ScrollKey(m.scroll, key); ok {
-		m.scroll = offset
+	// Scroll keys nobody claimed move the focused note inside its pane.
+	if p, ok := m.paneOf(m.focus); ok {
+		if offset, ok := widget.ScrollKey(p.offset, key, p.rows()); ok {
+			m.scrollPane(p, offset)
+		}
 	}
 	return nil
 }
@@ -75,7 +96,7 @@ func mainBody(m *Model, h int) []string {
 	case len(m.canvas) == 0:
 		return dialog("", []string{"Nothing is open.", "", "Pick a note with tab and press enter."}, 46, m.width, h)
 	}
-	return widget.Window(m.canvas, m.scroll, h)
+	return widget.Window(m.canvas, 0, h)
 }
 
 // mainFooter guides the keys that matter for what has the focus: the note's
@@ -93,9 +114,9 @@ func mainFooter(m *Model) string {
 		if m.items[i].kind.Handles("enter") {
 			zoom = "z"
 		}
-		return hintsThen(m.width, "?", "help", append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom", "o", "close", "tab", "next")...)
+		return hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
 	}
-	return hintsThen(m.width, "?", "help", "tab", "next", "enter", "zoom", "o", "close", "+ -", "size", "N", "jot")
+	return hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
 }
 
 // titleBar lists every note like a row of tabs, wrapping onto more lines
@@ -119,7 +140,7 @@ func (m *Model) titleBar() []string {
 			text += it.kind.Icon + " "
 		}
 		text += label(it)
-		if it.note.Doc.Pinned() {
+		if m.pinned(it) {
 			text += " 📌"
 		}
 		if m.changed(it) {
@@ -132,7 +153,7 @@ func (m *Model) titleBar() []string {
 			line.Reset()
 			used = 0
 		}
-		st := lipgloss.NewStyle().Foreground(noteColor(it))
+		st := lipgloss.NewStyle().Foreground(m.color(it))
 		switch {
 		case it.note.Name == m.focus:
 			focusLine = len(lines)
@@ -174,23 +195,17 @@ func (m *Model) stepFocus(delta int) {
 // the bottom line when it cannot. A note that could not be read is shown to
 // explain why; rewriting its file would do no good.
 func (m *Model) editable(it item) bool {
-	if it.note.Err != nil {
-		m.status = "This note cannot be changed from here: " + it.note.Err.Error()
+	if err := it.file().Err; err != nil {
+		m.status = "This note cannot be changed from here: " + err.Error()
 		return false
 	}
 	return true
 }
 
-// setOpen opens or closes a note by writing its "open" key.
+// setOpen opens or closes a note. Like everything about where a note is on
+// the screen, that is written to sticky.json and not to the note.
 func (m *Model) setOpen(it item, open bool) {
-	if !m.editable(it) {
-		return
-	}
-	value := "false"
-	if open {
-		value = "true"
-	}
-	m.apply(it.note.Name, doc.SetKey{Key: "open", Value: value})
+	m.setView(it.note.Name, func(v *store.View) { v.Open = &open })
 	m.reveal = revealNote
 }
 
@@ -203,4 +218,17 @@ func onFocused(f func(*Model, item) tea.Cmd) func(*Model) tea.Cmd {
 		}
 		return f(m, m.items[i])
 	}
+}
+
+// moving puts the keys that turn pages and screens in front of other hints
+// when the focused note is a book and when the open notes take more than
+// one screen.
+func (m *Model) moving(pairs ...string) []string {
+	if m.screens > 1 {
+		pairs = append([]string{"[ ]", "screen"}, pairs...)
+	}
+	if i := m.index(m.focus); i >= 0 && len(m.items[i].pages) > 1 {
+		pairs = append([]string{", .", "page"}, pairs...)
+	}
+	return pairs
 }

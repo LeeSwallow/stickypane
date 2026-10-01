@@ -144,3 +144,88 @@ func TestWaitRejectsANegativeTimeout(t *testing.T) {
 		t.Errorf("code = %d, stderr = %q", code, errOut)
 	}
 }
+
+func TestSmallEditsFromTheCommandLine(t *testing.T) {
+	root := project(t)
+	steps := []struct {
+		args []string
+		out  string
+	}{
+		{[]string{"todo", "plan", "add", "write", "tests"}, "plan.md: 0/1\n"},
+		{[]string{"todo", "plan", "check", "tests"}, "plan.md: 1/1\n"},
+		{[]string{"card", "work", "add", "login API", "--to", "Doing"}, "work.md: 1 card\n"},
+		{[]string{"card", "work", "add", "--to", "Done", "schema"}, "work.md: 2 cards\n"},
+		{[]string{"card", "work", "move", "login", "--to", "Done"}, "work.md: 2 cards\n"},
+		{[]string{"chart", "tokens", "set", "input", "tokens", "1,200"}, "tokens.md: input tokens = 1,200\n"},
+		{[]string{"chart", "tokens", "add", "input tokens", "800"}, "tokens.md: input tokens = 2,000\n"},
+		{[]string{"log", "worklog", "tests", "passed"}, "worklog.md: 1 line\n"},
+		{[]string{"set", "plan", "size=card", "title=The plan"}, "plan.md: set size, title\n"},
+	}
+	for _, s := range steps {
+		if code, out, errOut := exec(t, s.args...); code != 0 || out != s.out {
+			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
+		t.Errorf("work.md = %q", b)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
+		t.Errorf("plan.md = %q", b)
+	}
+	for _, bad := range [][]string{{"todo"}, {"todo", "plan"}, {"todo", "plan", "add"}, {"card", "work", "move", "login"}, {"chart", "tokens", "set", "input"}, {"log", "worklog"}, {"set", "plan"}} {
+		if code, _, errOut := exec(t, bad...); code != 2 || errOut == "" {
+			t.Errorf("%v: code = %d, stderr = %q, want a usage error", bad, code, errOut)
+		}
+	}
+	if code, _, errOut := exec(t, "todo", "plan", "check", "nothing like this"); code != 1 || !strings.Contains(errOut, "write tests") {
+		t.Errorf("an item that is not there: code = %d, stderr = %q", code, errOut)
+	}
+}
+
+func TestLogCanStampTheTime(t *testing.T) {
+	root := project(t)
+	if code, _, errOut := exec(t, "log", "worklog", "--time", "deployed"); code != 0 {
+		t.Fatalf("code = %d, stderr = %q", code, errOut)
+	}
+	b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "worklog.md"))
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+	last := lines[len(lines)-1]
+	if len(last) < 6 || last[2] != ':' || !strings.HasSuffix(last, " deployed") {
+		t.Errorf("--time should put the time before the entry: %q", last)
+	}
+}
+
+func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
+	root := project(t)
+	dir := filepath.Join(root, ".stickypane")
+	if err := os.WriteFile(filepath.Join(dir, "plan.md"), []byte("the plan\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	has := func(name string) bool {
+		_, err := os.Stat(filepath.Join(dir, filepath.FromSlash(name)))
+		return err == nil
+	}
+	if code, out, errOut := exec(t, "rm", "plan"); code != 0 || !strings.Contains(out, ".trash/plan.md") || has("plan.md") {
+		t.Fatalf("rm: code = %d, out = %q, stderr = %q", code, out, errOut)
+	}
+	if code, out, _ := exec(t, "restore", "plan"); code != 0 || out != "restored plan.md\n" || !has("plan.md") {
+		t.Fatalf("restore: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "mv", "plan", "docs/"); code != 0 || out != "moved plan.md to docs/plan.md\n" || !has("docs/plan.md") {
+		t.Fatalf("mv into a folder: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "mv", "docs/plan", "roadmap"); code != 0 || out != "moved docs/plan.md to roadmap.md\n" || !has("roadmap.md") {
+		t.Fatalf("mv to a new name: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "archive", "roadmap"); code != 0 || out != "moved roadmap.md to archive/roadmap.md\n" || !has("archive/roadmap.md") {
+		t.Fatalf("archive: code = %d, out = %q", code, out)
+	}
+	for _, bad := range [][]string{{"rm"}, {"mv", "x"}, {"restore"}, {"archive"}, {"rm", "a", "b"}} {
+		if code, _, errOut := exec(t, bad...); code != 2 || errOut == "" {
+			t.Errorf("%v: code = %d, want a usage error", bad, code)
+		}
+	}
+	if code, _, errOut := exec(t, "rm", "nothing"); code != 1 || !strings.Contains(errOut, "nothing.md") {
+		t.Errorf("rm of a missing note: code = %d, stderr = %q", code, errOut)
+	}
+}

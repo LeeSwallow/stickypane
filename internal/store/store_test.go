@@ -43,14 +43,6 @@ func read(t *testing.T, s *Store, name string) string {
 	return string(b)
 }
 
-func names(notes []Note) string {
-	var out []string
-	for _, n := range notes {
-		out = append(out, n.Name)
-	}
-	return strings.Join(out, ",")
-}
-
 type failOp struct{}
 
 func (failOp) Apply(d doc.Document) (doc.Document, error) { return d, doc.ErrConflict }
@@ -75,13 +67,13 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestScanListsOnlyTopLevelMarkdown(t *testing.T) {
+func TestScanListsNotesAndSkipsTheRest(t *testing.T) {
 	s := newStore(t)
 	write(t, s, "b.md", "---\ntype: board\n---\n## A\n")
 	write(t, s, "a.md", "hello\n")
 	write(t, s, "UPPER.MD", "x\n")
 	write(t, s, ".hidden.md", "x\n")
-	write(t, s, "notes.txt", "x\n")
+	write(t, s, "picture.png", "x\n")
 	write(t, s, "archive/old.md", "x\n")
 	notes, err := s.Scan()
 	if err != nil {
@@ -216,7 +208,7 @@ func TestCreatePicksUniqueNames(t *testing.T) {
 	now := time.Date(2026, 10, 1, 14, 2, 0, 0, time.UTC)
 	var got []string
 	for i := 0; i < 3; i++ {
-		name, err := s.Create("Check env", []byte("Check env\n"), now)
+		name, err := s.Create("Check env", ".md", []byte("Check env\n"), now)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -252,11 +244,11 @@ func TestSlug(t *testing.T) {
 func TestArchiveMovesFile(t *testing.T) {
 	s := newStore(t)
 	write(t, s, "a.md", "first\n")
-	if err := s.Archive("a.md"); err != nil {
+	if _, err := s.Archive("a.md"); err != nil {
 		t.Fatal(err)
 	}
 	write(t, s, "a.md", "second\n")
-	if err := s.Archive("a.md"); err != nil {
+	if _, err := s.Archive("a.md"); err != nil {
 		t.Fatal(err)
 	}
 	if notes, _ := s.Scan(); len(notes) != 0 {

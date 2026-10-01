@@ -15,15 +15,15 @@ import (
 func TestPinToggles(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	press(m, "tab", "p")
-	if got := readFile(t, dir, "b.md"); got != "---\npin: true\n---\ntwo\n" {
-		t.Fatalf("file = %q", got)
+	if v := viewsOf(t, dir)["b.md"].Pin; v == nil || !*v || readFile(t, dir, "b.md") != "two\n" {
+		t.Fatalf("pin = %v, file = %q", v, readFile(t, dir, "b.md"))
 	}
 	if m.items[0].note.Name != "b.md" || m.focus != "b.md" {
 		t.Errorf("the pinned note should move first and keep the focus")
 	}
 	press(m, "p")
-	if got := readFile(t, dir, "b.md"); got != "---\npin: false\n---\ntwo\n" {
-		t.Errorf("file = %q", got)
+	if v := viewsOf(t, dir)["b.md"].Pin; v == nil || *v {
+		t.Errorf("pin = %v", v)
 	}
 }
 
@@ -32,12 +32,12 @@ func TestColorCycles(t *testing.T) {
 	first := palette[(colorIndex("a.md", "")+1)%len(palette)].name
 	second := palette[(colorIndex("a.md", "")+2)%len(palette)].name
 	press(m, "c")
-	if got := readFile(t, dir, "a.md"); got != "---\ncolor: "+first+"\n---\none\n" {
-		t.Fatalf("file = %q, want color %s", got, first)
+	if got := viewsOf(t, dir)["a.md"].Color; got != first {
+		t.Fatalf("color = %q, want %s", got, first)
 	}
 	press(m, "c")
-	if got := readFile(t, dir, "a.md"); got != "---\ncolor: "+second+"\n---\none\n" {
-		t.Errorf("file = %q, want color %s", got, second)
+	if got := viewsOf(t, dir)["a.md"].Color; got != second || readFile(t, dir, "a.md") != "one\n" {
+		t.Errorf("color = %q, want %s", got, second)
 	}
 }
 

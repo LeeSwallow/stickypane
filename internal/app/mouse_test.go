@@ -54,15 +54,15 @@ func TestClickingATabOpensFocusesAndCloses(t *testing.T) {
 		"b.md": "---\ntitle: Second\n---\nsecond note\n",
 	})
 	clickOn(t, m, "Second")
-	if v, _ := doc.Parse([]byte(readFile(t, dir, "b.md"))).Get("open"); v != "true" || m.focus != "b.md" {
+	if v := isOpenIn(t, dir, "b.md"); v != "true" || m.focus != "b.md" {
 		t.Fatalf("clicking a closed note's tab should open and focus it: open = %q, focus = %q", v, m.focus)
 	}
 	clickOn(t, m, "✎ a")
-	if v, _ := doc.Parse([]byte(readFile(t, dir, "a.md"))).Get("open"); v != "true" || m.focus != "a.md" {
+	if v := isOpenIn(t, dir, "a.md"); v != "" || m.focus != "a.md" || !strings.Contains(screen(m), "first note") {
 		t.Fatalf("clicking another open note's tab should only focus it: open = %q, focus = %q", v, m.focus)
 	}
 	clickOn(t, m, "✎ a")
-	if v, _ := doc.Parse([]byte(readFile(t, dir, "a.md"))).Get("open"); v != "false" {
+	if v := isOpenIn(t, dir, "a.md"); v != "false" {
 		t.Errorf("clicking the focused note's tab should close it: open = %q", v)
 	}
 }
@@ -131,19 +131,6 @@ func TestClickingACardSelectsIt(t *testing.T) {
 	}
 	if readFile(t, dir, "b.md") != before {
 		t.Error("selecting a card must not change the file")
-	}
-}
-
-func TestTheWheelScrollsTheScreen(t *testing.T) {
-	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(60))})
-	wheel(m, 10, 10, true)
-	if m.scroll == 0 || !strings.Contains(screen(m), "line 05") || strings.Contains(screen(m), "line 01") {
-		t.Fatalf("wheel down should scroll, scroll = %d:\n%s", m.scroll, screen(m))
-	}
-	wheel(m, 10, 10, false)
-	wheel(m, 10, 10, false)
-	if m.scroll != 0 {
-		t.Errorf("wheel up should scroll back to the top, scroll = %d", m.scroll)
 	}
 }
 

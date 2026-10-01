@@ -33,7 +33,25 @@ var agentFiles = []string{"AGENTS.md", "CLAUDE.md"}
 // Options adjusts what Run does.
 type Options struct {
 	NoAgentDocs bool // leave AGENTS.md and CLAUDE.md alone
+	// Skill installs the guide as a Claude Code skill instead of adding it
+	// to the instruction files. A skill is read only when a task calls for
+	// it, so the guide does not take up room in every conversation.
+	Skill bool
 }
+
+// skillPath is where a project's Claude Code skill for stickypane lives.
+var skillPath = filepath.Join(".claude", "skills", "stickypane", "SKILL.md")
+
+// skillHead says when the skill applies. It is all an agent sees of the
+// skill until it decides to use it.
+const skillHead = `---
+name: stickypane
+description: Put notes, checklists, kanban boards, charts, diagrams and questions on the user's stickypane board (a terminal pane next to you) and update them with one-line commands. Use when the user asks to show, track or ask something on the board, and when progress on tracked work changes.
+---
+`
+
+// Skill returns the guide as a Claude Code skill file.
+func Skill() string { return skillHead + GuideText() }
 
 // Guide returns the text Run adds to agent instruction files, wrapped in the
 // markers that let a later run find and replace it.
@@ -65,7 +83,16 @@ func Run(root string, opts Options, out io.Writer) error {
 		fmt.Fprintf(out, "%s/ already exists.\n", store.DirName)
 	}
 
-	if !opts.NoAgentDocs {
+	if opts.Skill {
+		path := filepath.Join(root, skillPath)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, []byte(Skill()), 0o644); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Wrote the stickypane skill to %s.\n", skillPath)
+	} else if !opts.NoAgentDocs {
 		var targets []string
 		for _, name := range agentFiles {
 			if _, err := os.Stat(filepath.Join(root, name)); err == nil {

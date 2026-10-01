@@ -116,7 +116,7 @@ func TestRewriteKeepsTheUsersArrangement(t *testing.T) {
 
 func TestBadNamesAreRejected(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	for _, name := range []string{"", "../escape", "sub/note", `sub\note`, ".hidden", "archive/x.md", "note.txt", "two\nlines", "tab\there"} {
+	for _, name := range []string{"", "../escape", "a/b/note", `sub\note`, ".hidden", "sub/.hidden", "archive/x.md", "note.png", "two\nlines", "tab\there"} {
 		if _, err := a.Write(name, Options{}, []byte("x\n")); !errors.Is(err, ErrBadName) {
 			t.Errorf("Write(%q): err = %v, want ErrBadName", name, err)
 		}

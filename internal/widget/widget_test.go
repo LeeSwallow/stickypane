@@ -49,16 +49,28 @@ func TestWindow(t *testing.T) {
 }
 
 func TestScrollKey(t *testing.T) {
-	if off, ok := ScrollKey(3, "j"); off != 4 || !ok {
-		t.Errorf("j: got %d, %v", off, ok)
+	cases := []struct {
+		offset int
+		key    string
+		want   int
+	}{
+		{3, "j", 4}, {0, "k", 0}, {7, "g", 0},
+		{0, "pgdown", 9}, {0, "space", 9}, {0, "ctrl+f", 9}, // a page of ten, less one line of overlap
+		{20, "pgup", 11}, {20, "b", 11}, {20, "ctrl+b", 11},
+		{0, "ctrl+d", 4}, {20, "ctrl+u", 16},
 	}
-	if off, ok := ScrollKey(0, "k"); off != 0 || !ok {
-		t.Errorf("k at top: got %d, %v", off, ok)
+	for _, c := range cases {
+		if got, ok := ScrollKey(c.offset, c.key, 10); got != c.want || !ok {
+			t.Errorf("ScrollKey(%d, %q) = %d, %v, want %d", c.offset, c.key, got, ok, c.want)
+		}
 	}
-	if off, _ := ScrollKey(7, "g"); off != 0 {
-		t.Errorf("g: got %d", off)
+	if off, ok := ScrollKey(0, "G", 10); !ok || off < 1<<20 {
+		t.Errorf("G should go past any end: %d", off)
 	}
-	if _, ok := ScrollKey(0, "n"); ok {
+	if off, ok := ScrollKey(5, "pgdown", 0); !ok || off != 6 {
+		t.Errorf("a page is never less than one line: %d", off)
+	}
+	if _, ok := ScrollKey(0, "n", 10); ok {
 		t.Error("n is not a scroll key")
 	}
 }

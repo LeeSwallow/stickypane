@@ -68,3 +68,112 @@ func Compose(rects []Rect, boxes []string) []string {
 	}
 	return out
 }
+
+// Cell is an item's place across the screen: its row, where it starts and
+// how wide it is.
+type Cell struct{ Row, X, W int }
+
+// Rows puts items of the given widths side by side, in order, starting a
+// new row when the next one does not fit. Each row is then stretched to the
+// full width, every item growing in proportion to its width, so no part of
+// the screen is left empty.
+func Rows(width int, widths []int) []Cell {
+	cells := make([]Cell, 0, len(widths))
+	stretch := func(from int) {
+		row := cells[from:]
+		sum := 0
+		for _, c := range row {
+			sum += c.W
+		}
+		if len(row) == 0 || sum <= 0 {
+			return
+		}
+		x := 0
+		for i := range row {
+			row[i].X = x
+			row[i].W = row[i].W * width / sum
+			if i == len(row)-1 {
+				row[i].W = width - x
+			}
+			x += row[i].W
+		}
+	}
+	row, start, used := 0, 0, 0
+	for _, w := range widths {
+		w = max(min(w, width), 1)
+		if used > 0 && used+w > width {
+			stretch(start)
+			row, start, used = row+1, len(cells), 0
+		}
+		cells = append(cells, Cell{Row: row, W: w})
+		used += w
+	}
+	stretch(start)
+	return cells
+}
+
+// Slot is a row's place down the screen: which screen it is on, where it
+// starts and how tall it is.
+type Slot struct{ Screen, Y, H int }
+
+// Stack puts rows on screens of the given height, in order. need is the
+// height each row asks for. A screen takes rows for as long as every one of
+// them can have at least floor lines, or all it needs if that is less; the
+// rest go to the next screen. A screen's height is then shared out: a row
+// that needs less than an equal share gets what it needs and the others
+// split the rest, and whatever is left when every row has what it needs is
+// split equally. Every screen is filled exactly.
+func Stack(height int, need []int, floor int) []Slot {
+	slots := make([]Slot, len(need))
+	if height <= 0 {
+		return slots
+	}
+	share := func(from, to, screen int) {
+		rows := need[from:to]
+		got := make([]int, len(rows))
+		left, open := height, len(rows)
+		// Rows that need less than the equal share take what they need.
+		for changed := true; changed && open > 0; {
+			changed = false
+			for i, n := range rows {
+				if got[i] == 0 && n <= left/open {
+					got[i] = max(n, 1)
+					left -= got[i]
+					open--
+					changed = true
+					if open == 0 {
+						break
+					}
+				}
+			}
+		}
+		// The others split the rest; with none, everyone splits the surplus.
+		split := make([]int, 0, len(rows))
+		for i := range rows {
+			if got[i] == 0 || open == 0 {
+				split = append(split, i)
+			}
+		}
+		for k, i := range split {
+			extra := left / (len(split) - k)
+			got[i] += extra
+			left -= extra
+		}
+		y := 0
+		for i := range rows {
+			slots[from+i] = Slot{Screen: screen, Y: y, H: got[i]}
+			y += got[i]
+		}
+	}
+	screen, start, used := 0, 0, 0
+	for i, n := range need {
+		least := max(min(n, floor), 1)
+		if i > start && used+least > height {
+			share(start, i, screen)
+			screen, start, used = screen+1, i, 0
+		}
+		used += least
+	}
+	share(start, len(need), screen)
+	return slots
+}

@@ -34,10 +34,10 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if !strings.HasPrefix(g, startMark+"\n") || !strings.HasSuffix(g, endMark+"\n") {
 		t.Error("the guide must be wrapped in the markers")
 	}
-	if n := strings.Count(g, "\n"); n > 45 {
-		t.Errorf("the guide is %d lines, want at most 45", n)
+	if n := strings.Count(g, "\n"); n > 55 {
+		t.Errorf("the guide is %d lines, want at most 55", n)
 	}
-	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
+	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "stickypane todo", "stickypane card", "stickypane chart", "stickypane log", "stickypane set", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}
@@ -129,5 +129,31 @@ func TestGuideTextHasNoMarkers(t *testing.T) {
 	}
 	if !strings.HasPrefix(text, "## stickypane notes") || !strings.Contains(text, "type: board") {
 		t.Errorf("GuideText should be the guide itself: %q", text)
+	}
+}
+
+func TestSkillInstallsASkillInsteadOfTheGuide(t *testing.T) {
+	root := t.TempDir()
+	out := run(t, root, Options{Skill: true})
+	skill := read(t, filepath.Join(root, ".claude", "skills", "stickypane", "SKILL.md"))
+	if !strings.HasPrefix(skill, "---\nname: stickypane\ndescription: ") {
+		t.Fatalf("a skill starts with its name and description:\n%.200s", skill)
+	}
+	head, body, _ := strings.Cut(strings.TrimPrefix(skill, "---\n"), "\n---\n")
+	if strings.Count(head, "\n") != 1 || !strings.Contains(head, "board") {
+		t.Errorf("the description should be one line that says when to use the skill: %q", head)
+	}
+	if !strings.Contains(body, "stickypane todo") || !strings.Contains(body, "type: form") || strings.Contains(body, startMark) {
+		t.Errorf("the skill should carry the guide, without the markers:\n%s", body)
+	}
+	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
+		t.Error("with a skill the guide is not added to AGENTS.md: the skill is loaded when it is needed")
+	}
+	if !strings.Contains(out, "SKILL.md") {
+		t.Errorf("the output should name the file: %q", out)
+	}
+	run(t, root, Options{Skill: true})
+	if again := read(t, filepath.Join(root, ".claude", "skills", "stickypane", "SKILL.md")); again != skill {
+		t.Error("running again should change nothing")
 	}
 }

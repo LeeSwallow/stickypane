@@ -13,6 +13,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/widget/script"
 )
 
 // Default returns the built-in kinds. The plain note comes first because it
@@ -25,6 +26,7 @@ func Default(render note.Renderer) widget.Registry {
 		logview.Kind,
 		chart.Kind,
 		form.NewKind(render),
+		script.Kind,
 	}
 }
 

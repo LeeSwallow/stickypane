@@ -19,13 +19,6 @@ type tab struct {
 	y, x0, x1 int
 }
 
-// placed says which note is drawn in a rect, and which line of the note is
-// the first one shown when the note has a fixed height.
-type placed struct {
-	name  string
-	start int
-}
-
 // lastClick remembers a click on a note that hit nothing, to tell a double
 // click from two clicks.
 type lastClick struct {
@@ -45,11 +38,16 @@ func (m *Model) wheel(e tea.Mouse) {
 	}
 	switch m.mode {
 	case modeBoard:
-		m.scroll += delta
+		// The wheel scrolls the note under the pointer, focused or not.
+		if p, ok := m.paneAt(e.X, e.Y); ok {
+			m.scrollPane(p, p.offset+delta)
+		}
 	case modeZoom:
 		m.zoomScroll += delta
 	case modeHelp:
 		m.helpScroll += delta
+	case modeEdit:
+		m.edit.Scroll(delta)
 	}
 }
 
@@ -67,18 +65,25 @@ func (m *Model) click(e tea.Mouse) {
 			m.clickTab(e.X, e.Y)
 			return
 		}
-		y := e.Y - bar + m.scroll
-		for i, r := range m.rects {
-			if e.X >= r.X && e.X < r.X+r.W && y >= r.Y && y < r.Y+r.H {
-				p := m.placed[i]
-				m.clickNote(p.name, y-r.Y-1+p.start, e.X-r.X-2)
-				return
-			}
+		if p, ok := m.paneAt(e.X, e.Y); ok {
+			m.clickNote(p.name, e.Y-bar-p.rect.Y-1+p.offset, e.X-p.rect.X-2)
 		}
 	case modeZoom:
 		m.status = ""
 		m.clickNote(m.zoomName, e.Y-1+m.zoomScroll, e.X-2)
 	}
+}
+
+// paneAt returns the pane shown at a cell of the screen.
+func (m *Model) paneAt(x, y int) (pane, bool) {
+	y -= min(len(m.bar), m.height-1)
+	for _, p := range m.panes {
+		r := p.rect
+		if p.screen == m.screen && x >= r.X && x < r.X+r.W && y >= r.Y && y < r.Y+r.H {
+			return p, true
+		}
+	}
+	return pane{}, false
 }
 
 // clickTab handles a click on the title bar. A closed note opens; an open
