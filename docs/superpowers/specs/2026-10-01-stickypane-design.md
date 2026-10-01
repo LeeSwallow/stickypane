@@ -1,8 +1,8 @@
-# corkboard 설계
+# stickypane 설계
 
 - 작성일: 2026-10-01
 - 상태: 검토 대기
-- 이름: `corkboard`는 임시 이름이다. 후보와 충돌 확인 결과는 14절에 있다.
+- 이름: `stickypane`. 정한 이유와 제외한 후보는 14절에 있다.
 
 ## 1. 목적
 
@@ -31,7 +31,7 @@ wezterm Lua 설정과 워크플로우 훅으로 만든 이전 상태 표시는 �
 
 ### 성공 기준
 
-- 설치 후 `corkboard init`, `corkboard` 두 명령으로 설정 파일 없이 화면이 뜬다.
+- 설치 후 `stickypane init`, `stickypane` 두 명령으로 설정 파일 없이 화면이 뜬다.
 - 에이전트는 `init`이 넣어 준 안내문만 읽고, 평소 쓰는 파일 편집만으로 네 가지 모양의 노트를 만들고 갱신한다. Claude Code와 Codex에서 직접 확인한다.
 - 폭 40칸짜리 좁은 분할 pane에서도 읽을 수 있다.
 - 새 모양을 추가할 때 새 패키지 하나와 등록 한 줄만 건드린다.
@@ -74,7 +74,7 @@ wezterm Lua 설정과 워크플로우 훅으로 만든 이전 상태 표시는 �
 
 ## 4. 핵심 개념
 
-화면은 노트의 모음이고, **노트 하나는 `.corkboard/` 폴더 안의 마크다운 파일 하나**다.
+화면은 노트의 모음이고, **노트 하나는 `.stickypane/` 폴더 안의 마크다운 파일 하나**다.
 
 - 파일을 만들면 노트가 붙는다.
 - 파일을 고치면 노트가 갱신된다.
@@ -86,7 +86,7 @@ wezterm Lua 설정과 워크플로우 훅으로 만든 이전 상태 표시는 �
 
 ```
 프로젝트/
-└── .corkboard/
+└── .stickypane/
     ├── 10-auth-board.md
     ├── 20-progress.md
     ├── auth-design.md
@@ -96,9 +96,9 @@ wezterm Lua 설정과 워크플로우 훅으로 만든 이전 상태 표시는 �
         └── old-notes.md
 ```
 
-- TUI는 현재 디렉터리에서 위로 올라가며 `.corkboard/`를 찾는다. `corkboard <경로>`로 직접 지정할 수 있다.
+- TUI는 현재 디렉터리에서 위로 올라가며 `.stickypane/`를 찾는다. `stickypane <경로>`로 직접 지정할 수 있다.
 - 폴더 바로 아래의 `*.md` 파일만 노트가 된다. `archive/`를 비롯한 하위 폴더와 다른 확장자는 무시한다.
-- `.corkboard/`를 git에 올릴지는 사용자가 정한다. `init`은 `.gitignore`를 건드리지 않는다.
+- `.stickypane/`를 git에 올릴지는 사용자가 정한다. `init`은 `.gitignore`를 건드리지 않는다.
 
 ## 5. 파일 형식
 
@@ -224,9 +224,9 @@ title: 작업 로그
 
 | 방식 | 명령 |
 |---|---|
-| tmux에서 옆 pane에 상주 | `tmux split-window -h corkboard` |
-| tmux에서 팝업으로 잠깐 열기 | `tmux display-popup -E corkboard` |
-| wezterm에서 옆 pane에 상주 | `wezterm cli split-pane --right -- corkboard` |
+| tmux에서 옆 pane에 상주 | `tmux split-window -h stickypane` |
+| tmux에서 팝업으로 잠깐 열기 | `tmux display-popup -E stickypane` |
+| wezterm에서 옆 pane에 상주 | `wezterm cli split-pane --right -- stickypane` |
 
 pane 크기가 바뀌면 그 폭에 맞춰 배치를 다시 계산한다.
 
@@ -301,11 +301,11 @@ TUI는 화면에 들고 있던 내용을 통째로 덮어쓰지 않는다. 수�
 
 ## 8. 에이전트 연동
 
-연동 장치는 안내문 하나뿐이다. `corkboard init`이 다음을 한다.
+연동 장치는 안내문 하나뿐이다. `stickypane init`이 다음을 한다.
 
-1. `.corkboard/`를 만들고, 조작법을 적은 환영 노트 `welcome.md`를 하나 붙여 둔다.
+1. `.stickypane/`를 만들고, 조작법을 적은 환영 노트 `welcome.md`를 하나 붙여 둔다.
 2. 프로젝트 루트의 `AGENTS.md`와 `CLAUDE.md` 중 있는 파일에 안내문을 덧붙인다. 둘 다 없으면 `AGENTS.md`를 만든다. `--no-agent-docs`를 주면 이 단계를 건너뛴다.
-3. 안내문은 `<!-- corkboard:start -->`와 `<!-- corkboard:end -->` 사이에 넣는다. 다시 실행하면 그 구간만 교체한다.
+3. 안내문은 `<!-- stickypane:start -->`와 `<!-- stickypane:end -->` 사이에 넣는다. 다시 실행하면 그 구간만 교체한다.
 
 안내문은 30줄 안쪽이고 다음을 담는다.
 
@@ -314,7 +314,7 @@ TUI는 화면에 들고 있던 내용을 통째로 덮어쓰지 않는다. 수�
 - 쓰는 태도: 기억해 둘 것, 결정한 것, 진행 상황을 짧게 끄적인다. 한 줄짜리 파일이면 충분하고 머리말은 필요할 때만 쓴다. 진행 상황이 바뀌면 해당 노트를 고친다.
 - 읽는 태도: 사용자가 보드에서 노트를 고쳤을 수 있으니, 노트를 고치기 전에 다시 읽는다.
 
-`corkboard guide`는 같은 안내문을 표준 출력으로 내보낸다.
+`stickypane guide`는 같은 안내문을 표준 출력으로 내보낸다.
 
 훅, MCP 등록, 에이전트별 설정은 없다.
 
@@ -325,7 +325,7 @@ Go로 작성하고 TUI는 Bubble Tea 계열 라이브러리(Bubble Tea, Lip Glos
 용어를 구분한다. **노트**는 파일이고 사용자에게 보이는 말이다. **위젯**은 코드 안에서 한 모양의 노트를 그리고 조작하는 단위다.
 
 ```
-cmd/corkboard/          진입점. 인자 해석 후 app 또는 initcmd 호출
+cmd/stickypane/          진입점. 인자 해석 후 app 또는 initcmd 호출
 internal/doc/           머리말과 본문 분리, 머리말 줄 단위 수정
 internal/store/         폴더 찾기, 읽기, 감시, 의도 적용, 떼어 내기·삭제·생성
 internal/widget/        Kind 등록부와 Widget 인터페이스
@@ -371,7 +371,7 @@ type Op interface {
 
 ### 파일 감시
 
-`.corkboard/` 폴더 하나를 감시한다. 이벤트가 오면 100ms 동안 모았다가 폴더 전체를 다시 읽는다. 에디터와 에이전트는 저장할 때 임시 파일을 만들고 이름을 바꾸는 경우가 많아서, 이벤트를 파일별로 해석하지 않고 폴더를 다시 읽는 쪽이 단순하고 정확하다. 노트 수가 수십 개 수준이라 비용 문제는 없다.
+`.stickypane/` 폴더 하나를 감시한다. 이벤트가 오면 100ms 동안 모았다가 폴더 전체를 다시 읽는다. 에디터와 에이전트는 저장할 때 임시 파일을 만들고 이름을 바꾸는 경우가 많아서, 이벤트를 파일별로 해석하지 않고 폴더를 다시 읽는 쪽이 단순하고 정확하다. 노트 수가 수십 개 수준이라 비용 문제는 없다.
 
 감시를 시작하지 못하면 화면 아래에 알리고 `r` 키로 수동 갱신하게 한다.
 
@@ -385,7 +385,7 @@ type Op interface {
 | 파일이 1MB를 넘음 | log는 마지막 64KB만 읽는다. 다른 모양은 오류 노트로 표시한다. |
 | 쓰기 직전에 대상이 바뀜 | 쓰지 않고 화면을 새로 고친 뒤 알린다. |
 | 파일 쓰기 실패 | 화면 아래에 오류를 알리고 화면 상태를 파일 기준으로 되돌린다. |
-| `.corkboard/`가 없음 | `corkboard init`을 안내하고 종료한다. |
+| `.stickypane/`가 없음 | `stickypane init`을 안내하고 종료한다. |
 
 원칙은 하나다. **형식이 틀려도 내용을 숨기거나 잃지 않는다.**
 
@@ -411,24 +411,27 @@ type Op interface {
 
 | 말 | 뜻 |
 |---|---|
-| 노트 | `.corkboard/` 안의 마크다운 파일 하나, 그리고 화면에 붙은 그 모습 |
+| 노트 | `.stickypane/` 안의 마크다운 파일 하나, 그리고 화면에 붙은 그 모습 |
 | 모양 | 노트의 `type`. 일반 노트, board, checklist, log |
 | 보드 | 노트가 붙어 있는 화면 전체. `board` 모양(칸반)과 구분해, 칸반은 항상 "board 노트"라고 쓴다 |
 | 끄적이기 | 한 줄을 입력해 일반 노트를 바로 붙이는 동작 |
 | 떼어 내기 | 노트를 `archive/`로 옮기는 동작 |
 | 위젯 | 코드 안에서 한 모양의 노트를 그리고 조작하는 단위 |
 
-## 14. 남은 결정
+## 14. 이름
 
-**이름.** `corkboard`는 임시다. 2026-10-01에 확인한 후보는 다음과 같다.
+이름은 `stickypane`이다. tmux의 pane이라는 말을 그대로 쓰고, sticky가 "붙이는 메모지"와 "옆에 붙어 있는 창" 두 뜻을 함께 담는다. 2026-10-01 기준으로 같은 이름의 명령어, Homebrew 패키지, 프로젝트를 찾지 못했다.
 
-| 후보 | 상태 |
+폴더 이름(`.stickypane/`), 명령어(`stickypane`), 안내문 표식(`<!-- stickypane:start -->`)이 모두 이 이름을 따른다.
+
+제외한 후보는 다음과 같다.
+
+| 후보 | 제외한 이유 |
 |---|---|
-| `doodle` | 같은 이름의 명령어와 Homebrew 패키지가 없다. 일정 조율 서비스 Doodle과 이름이 같다. |
-| `doodlenote` | 충돌을 찾지 못했다. 길다. |
-| `corkboard` | 같은 이름의 Homebrew 패키지가 없다. 길다. |
-| `tack` | 제외. 같은 이름의 AI 코딩 CLI가 있다. |
-| `scribble`, `scrawl` | 제외. 같은 이름의 터미널 노트 도구가 있다. |
-| `jot` | 제외. macOS 기본 명령어 `/usr/bin/jot`과 겹친다. |
-
-이름을 정하면 폴더 이름(`.corkboard/`), 명령어, 안내문 표식을 함께 바꾼다.
+| `corkboard` | redthread가 "ASCII corkboard"를 내세우고 있어 헷갈린다. |
+| `tack` | 같은 이름의 AI 코딩 CLI가 있다. |
+| `scribble`, `scrawl` | 같은 이름의 터미널 노트 도구가 있다. |
+| `jot` | macOS 기본 명령어 `/usr/bin/jot`과 겹친다. |
+| `doodle` | 일정 조율 서비스 Doodle과 이름이 같다. |
+| `agentpad`, `agentpane`, `agentboard`, `paneboard` | 같은 이름의 프로젝트가 있고 대부분 AI 에이전트 도구다. |
+| `sidenotes` | Homebrew에 같은 이름의 패키지가 있다. |
