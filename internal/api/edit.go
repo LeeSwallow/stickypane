@@ -17,6 +17,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
+	"github.com/LeeSwallow/stickypane/internal/widget/chat"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
 )
@@ -68,11 +69,16 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 			return file, d, err
 		}
 		d = a.tend(file, doc.Document{}, d)
-		return file, d, a.st.Write(file, d.Bytes())
+		if err := a.st.Write(file, d.Bytes()); err != nil {
+			return file, d, err
+		}
+		_, _ = a.Derive()
+		return file, d, nil
 	}
 	if err := a.st.Apply(file, shaped{a, file, kinds, op}); err != nil {
 		return file, doc.Document{}, err
 	}
+	_, _ = a.Derive() // charts computed from this note follow it
 	b, err := a.st.Read(file)
 	return file, doc.Parse(b), err
 }
@@ -179,6 +185,24 @@ func (a *API) Log(name, line string) (string, error) {
 		return "", err
 	}
 	file, d, err := a.change(name, []string{"log", "note"}, logview.Append{Line: line})
+	if err != nil {
+		return "", err
+	}
+	return a.status(file, d), nil
+}
+
+// Say adds a message to a chat note, from who, at the current time. A chat
+// that does not exist yet is made. who defaults to "agent": the command
+// line and MCP are how agents talk.
+func (a *API) Say(name, who, text string) (string, error) {
+	text, err := oneLine(text)
+	if err != nil {
+		return "", err
+	}
+	if who = strings.TrimSpace(who); who == "" {
+		who = "agent"
+	}
+	file, d, err := a.change(name, []string{"chat"}, chat.Say{Who: who, Text: text, At: time.Now()})
 	if err != nil {
 		return "", err
 	}

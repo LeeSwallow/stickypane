@@ -64,6 +64,14 @@ A note with `type: log`, one line per entry, or any `.log`, `.txt` or
 `.out` file. The view follows the end as the file grows until the user
 scrolls up. `stickypane show logs/app.log` follows a log of the project.
 
+## Chat
+
+For talking with the user on the board. `stickypane say chat "41/41 pass" --as claude`
+
+A note with `type: chat`: `@name HH:MM text` lines under a `## YYYY-MM-DD`
+heading. The user presses n to answer, as themselves. To wait for the
+answer: `stickypane watch --once --note chat --type message.added`.
+
 ## Chart
 
 For numbers. `stickypane chart tokens add input 1200`

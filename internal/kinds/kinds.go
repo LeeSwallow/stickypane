@@ -11,6 +11,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/api"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
+	"github.com/LeeSwallow/stickypane/internal/widget/chat"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
@@ -26,6 +27,7 @@ func Default(render note.Renderer) widget.Registry {
 		board.Kind,
 		checklist.Kind,
 		logview.Kind,
+		chat.Kind,
 		chart.Kind,
 		form.NewKind(render),
 		script.Kind,
@@ -35,7 +37,7 @@ func Default(render note.Renderer) widget.Registry {
 
 // Markdown returns the renderer for plain notes: Markdown styled with the
 // theme in use at each call, with Mermaid blocks drawn as diagrams.
-func Markdown(th *theme.Holder) note.Renderer { return WithMermaid(styled(th)) }
+func Markdown(th *theme.Holder) note.Renderer { return WithEmbeds(WithMermaid(styled(th))) }
 
 // styled renders Markdown in the colors of the theme in use at each call.
 func styled(th *theme.Holder) note.Renderer {

@@ -102,3 +102,9 @@ func TestNewFile(t *testing.T) {
 		t.Error("NewFile should write the type key")
 	}
 }
+
+func TestUnlinkWritesLinksAsTheirNames(t *testing.T) {
+	if got := Unlink("see [[why]], [[plan#tests]] and [[deploy|the run]]"); got != "see why, plan#tests and the run" {
+		t.Errorf("Unlink = %q", got)
+	}
+}

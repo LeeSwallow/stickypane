@@ -200,7 +200,11 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 		d = created(d)
 	}
 	d = a.tend(file, before, d)
-	return file, a.st.Write(file, d.Bytes())
+	if err := a.st.Write(file, d.Bytes()); err != nil {
+		return file, err
+	}
+	_, _ = a.Derive() // charts computed from this note follow it
+	return file, nil
 }
 
 // isMarkdown reports whether a note may carry front matter.

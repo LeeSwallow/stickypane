@@ -14,17 +14,18 @@ note is made, and so is a missing board in a git repository.
     stickypane card work move "login" --to Done  # also: add "text" --to Doing
     stickypane chart tokens add input 1200       # also: set input 5000
     stickypane log worklog --time "tests passed"
+    stickypane say chat "41/41 pass" --as claude # the user answers with n
     stickypane set plan open=true size=half      # page, half or card; hide <name> folds it
     stickypane mv plan deploy/                   # also: rm, restore, link <path>
 
 An item or a card is named by its text, a part of it, or its position (`#2`).
+For a bigger job, `stickypane guide` names the skill to follow: tracking
+progress, asking the user, talking in a chat, connecting notes.
 
-For anything else, write a file into `.sticky/`. Front matter gives a
-Markdown note a `title` and a shape; `stickypane kinds <shape>` prints a
-full example of one.
+For anything else, write a file into `.sticky/`; front matter gives it a
+`title` and a shape. `stickypane kinds <shape>` prints a full example.
 
-- A plain note: any Markdown. A ```mermaid block (flowchart, sequence or
-  ER diagram) is drawn.
+- A plain note: any Markdown; a ```mermaid block is drawn as a diagram.
 - `type: board`, a kanban: each `## Heading` a column, each `- item` a card,
   indented lines its details. End a card you take with `@<your branch>`.
 - `type: checklist`: `- [ ]` and `- [x]` lines, with a progress bar.
@@ -36,9 +37,8 @@ full example of one.
   `[ Deploy ] [ Cancel ]`. `stickypane wait <name> --timeout 10m` blocks
   until a button is pressed and prints the answers. To ask again, leave the
   `submitted` keys out.
-- `name.log` (or `.txt`, `.out`): a log, shown as it is and followed live.
-- `name.sh`: a script the user runs after saying yes; output in `name.log`.
-  `name.http` (exp): HTTP requests, sent the same way. `stickypane kinds api`.
+- `name.log`: a log, followed live. `name.sh`: a script the user runs after
+  a yes. `name.http` (exp): HTTP requests. `type: chat`: a conversation.
 - A folder: a tab, a screen of its own. A folder in a tab: a book, one note
   with a page per file.
 
@@ -50,6 +50,6 @@ Rules:
 - The user edits notes from the board. Use the commands for small changes,
   and `stickypane cat <name>` before you rewrite a note.
 - Never edit `sticky.json`: it is how the user arranged the screen.
-- Prefix a number to order notes (`10-plan.md`). Write in the user's
-  language: short titles, one action per item, one event per log line.
+- Do not write times: the board does. Write in the user's language: short
+  titles, one action per item, one event per log line.
 <!-- stickypane:end -->

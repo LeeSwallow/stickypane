@@ -122,7 +122,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		}
 		selected := active && p == c.cursor
 		from := len(lines)
-		for j, l := range widget.Wrap(widget.Clean(e.text), textWidth) {
+		for j, l := range widget.Wrap(widget.Clean(widget.Unlink(e.text)), textWidth) {
 			switch {
 			case j == 0 && selected:
 				at.Start = len(lines)

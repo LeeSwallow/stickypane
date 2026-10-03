@@ -4,11 +4,8 @@ package board
 
 import (
 	"fmt"
-	"hash/fnv"
 	"strings"
 	"time"
-
-	"charm.land/lipgloss/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/when"
 
@@ -237,7 +234,7 @@ func (b *Board) box(cd card, width int, selected, last bool) []string {
 	out := []string{edge.Render("╭" + strings.Repeat("─", inner+2) + "╮")}
 	if !selected {
 		meta := b.meta(cd, last, inner)
-		for _, l := range wrapped(cd.text, inner, nil) {
+		for _, l := range wrapped(widget.Unlink(cd.text), inner, nil) {
 			out = append(out, row(text(l)))
 		}
 		if meta != "" {
@@ -247,7 +244,7 @@ func (b *Board) box(cd card, width int, selected, last bool) []string {
 	}
 	// The selected card says so in its text too, not by color alone, and
 	// shows its details under its text.
-	for j, l := range wrapped(cd.text, inner-2, nil) {
+	for j, l := range wrapped(widget.Unlink(cd.text), inner-2, nil) {
 		lead := "  "
 		if j == 0 {
 			lead = "› "
@@ -269,7 +266,7 @@ func (b *Board) box(cd card, width int, selected, last bool) []string {
 // edge, or the cursor and its details when it is selected.
 func (b *Board) bar(cd card, width int, selected bool, last bool) []string {
 	var out []string
-	for j, l := range wrapped(cd.text, width-2, nil) {
+	for j, l := range wrapped(widget.Unlink(cd.text), width-2, nil) {
 		switch {
 		case selected && j == 0:
 			out = append(out, widget.Selected.Render("› "+l))
@@ -400,7 +397,7 @@ func (b *Board) meta(cd card, last bool, width int) string {
 	}
 	var names []string
 	for _, w := range cd.who {
-		names = append(names, whoStyle(w).Render("@"+widget.Clean(w)))
+		names = append(names, widget.NameStyle(w).Render("@"+widget.Clean(w)))
 	}
 	head := strings.Join(names, " ")
 	switch {
@@ -415,14 +412,6 @@ func (b *Board) meta(cd card, last bool, width int) string {
 		return widget.Truncate(tail, width)
 	}
 	return widget.Truncate(head, room) + sep + tail
-}
-
-// whoStyle gives a name its color, the same each time it appears.
-func whoStyle(name string) lipgloss.Style {
-	styles := []lipgloss.Style{widget.Info, widget.Good, widget.Accent, widget.Warn}
-	h := fnv.New32a()
-	h.Write([]byte(name))
-	return styles[h.Sum32()%uint32(len(styles))]
 }
 
 // NextChange implements widget.Timed: when the next card stalls.

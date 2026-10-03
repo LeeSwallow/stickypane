@@ -1,6 +1,8 @@
 package widget
 
 import (
+	"hash/fnv"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -143,4 +145,28 @@ func ScrollKey(offset int, key string, page int) (int, bool) {
 		return offset, false
 	}
 	return max(offset, 0), true
+}
+
+// noteLink is a link to another note: [[name]], [[name#item]], [[name|alias]].
+var noteLink = regexp.MustCompile(`!?\[\[([^\]|]+)(?:\|([^\]]*))?\]\]`)
+
+// Unlink writes a line's links to other notes as their alias or name, for
+// widgets that draw text without Markdown (checklist items, cards).
+func Unlink(s string) string {
+	return noteLink.ReplaceAllStringFunc(s, func(m string) string {
+		p := noteLink.FindStringSubmatch(m)
+		if strings.TrimSpace(p[2]) != "" {
+			return strings.TrimSpace(p[2])
+		}
+		return strings.TrimSpace(p[1])
+	})
+}
+
+// NameStyle gives a name (an @owner, a chat's author) its color, the same
+// each time it appears and in every note.
+func NameStyle(name string) lipgloss.Style {
+	styles := []lipgloss.Style{Info, Good, Accent, Warn}
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return styles[h.Sum32()%uint32(len(styles))]
 }

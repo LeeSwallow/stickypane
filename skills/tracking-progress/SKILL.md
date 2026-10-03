@@ -36,4 +36,9 @@ that; do not read the note.
 - Tick an item when it is done, not when you start it.
 - Leave the finished note where it is: it is the record. Delete it only
   when the user asks.
-- When the work needs the user's decision, use the `asking-the-user` skill.
+- When the work needs the user's decision, use the `asking-the-user` skill;
+  to tell the user something as you go, `talking-in-chat`.
+- A chart of how far along it is: `connecting-notes` (`from:`), not counts
+  you keep yourself.
+- `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` and
+  `${CLAUDE_PLUGIN_ROOT}/rules/writing-notes.md` apply.

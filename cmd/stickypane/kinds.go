@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
@@ -51,7 +53,7 @@ func kindsCmd(e env, args []string) error {
 	want := strings.ToLower(strings.TrimSpace(args[0]))
 	for _, k := range reg {
 		if k.Name == want {
-			printShape(stdout, k.Name, k.Blurb, k.Command, k.Usage, exampleFile(k), keysOf(k))
+			printShape(stdout, k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(k))
 			return nil
 		}
 	}
@@ -69,14 +71,6 @@ func kindsCmd(e env, args []string) error {
 		names = append(names, f.name)
 	}
 	return usagef("kinds", "no shape is called %q; there are %s", want, strings.Join(names, ", "))
-}
-
-// exampleFile is a whole file of the shape, front matter included.
-func exampleFile(k widget.Kind) string {
-	if k.New != "" {
-		return k.Example
-	}
-	return string(widget.NewFile(k.Name, "", k.Example))
 }
 
 // keysOf spells out a kind's keys: "h l j k move · H L shift card".
@@ -97,4 +91,22 @@ func printShape(w io.Writer, name, blurb, command, usage, example, keys string) 
 	if keys != "" {
 		fmt.Fprintf(w, "\nKeys on the board:\n  %s\n", keys)
 	}
+}
+
+// guideCmd prints the agent guide in layers: the overview with the skills
+// and shapes it names, or one of them in full. It needs no board.
+func guideCmd(e env, args []string) error {
+	if len(args) > 1 {
+		return usageError{cmd: "guide"}
+	}
+	topic := ""
+	if len(args) == 1 {
+		topic = args[0]
+	}
+	text, err := api.New(nil, kinds.Default(note.Plain)).Guide(topic, initcmd.GuideText())
+	if err != nil {
+		return usagef("guide", "%v", err)
+	}
+	_, err = io.WriteString(e.stdout, strings.TrimRight(text, "\n")+"\n")
+	return err
 }

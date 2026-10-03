@@ -25,6 +25,12 @@ type Entry struct {
 	Gist     string    `json:"gist,omitempty"`    // a line: its summary, or what to look at first
 	Open     bool      `json:"open"`
 	Modified time.Time `json:"modified"`
+	// Links are the notes this one names with [[name]], by file; Backlinks
+	// the notes that name this one.
+	Links     []string `json:"links,omitempty"`
+	Backlinks []string `json:"backlinks,omitempty"`
+
+	body string
 }
 
 // Index lists every note of every tab in a line, the way a wiki's index
@@ -59,9 +65,11 @@ func (a *API) Index() ([]Entry, error) {
 				e.Summary = k.Parse(n.Doc).Summary()
 				e.Gist = gist(k, n.Doc)
 			}
+			e.body = n.Doc.Body // its links are resolved once every name is known
 			out = append(out, e)
 		}
 	}
+	linkUp(out)
 	return out, nil
 }
 

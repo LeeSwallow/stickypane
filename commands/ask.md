@@ -3,7 +3,7 @@ description: Ask the user a question on the board, as a form with buttons, and w
 allowed-tools: Bash(stickypane:*), Write
 ---
 
-Ask this on the board, following the `board:asking-the-user` skill:
+Follow the `board:asking-the-user` skill to ask this on the board:
 $ARGUMENTS
 
 Write the form into `.sticky/`, run `stickypane show <name>`, then

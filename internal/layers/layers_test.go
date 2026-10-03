@@ -26,6 +26,8 @@ var rank = map[string]int{
 	"internal/env":      0, // the system, shell, pane tool and locale
 	"internal/when":     0, // how times are written and read
 	"internal/i18n":     5, // reads the locale from env
+	".":                 0, // the plugin's files, carried in the program
+	"internal/harness":  5, // the plugin's skills, read for MCP and guide
 	"internal/httpfile": 5, // .http files: read, send, check; writes times with when
 	"internal/layout":   0,
 	"internal/editor":   0,
@@ -43,6 +45,7 @@ var rank = map[string]int{
 	"internal/widget/checklist": 22,
 	"internal/widget/form":      22,
 	"internal/widget/logview":   22,
+	"internal/widget/chat":      22,
 	"internal/widget/script":    22,
 	"internal/widget/api":       22,
 	// The registry of shapes, and how a note is arranged.

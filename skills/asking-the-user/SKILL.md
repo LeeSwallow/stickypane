@@ -71,5 +71,5 @@ Report the answer in one line; acting on it is the caller's job. Then
   Never guess the answer.
 - To ask again, write the form without the `submitted` keys; a form that
   still has them answers at once with the old choice.
-- Read the answer with `wait` or `answers`, not by reading the marks in the
-  file yourself.
+- An answer that is a sentence, or a back and forth: `talking-in-chat`.
+- `${CLAUDE_PLUGIN_ROOT}/rules/touching-the-board.md` applies.

@@ -329,6 +329,21 @@ graph LR
 └───────┘     └──────┘     └───────┘
 ```
 
+**Chat.** A conversation with your agent, kept in the folder. Each message
+is `@name HH:MM text` under a heading for its day; the board writes the
+time. You press n to answer, as `$STICKYPANE_USER`, git's `user.name` or
+your login name; the agent says things with `stickypane say` and hears you
+with `stickypane watch --once --note chat --type message.added`.
+
+```markdown
+---
+type: chat
+---
+## 2026-10-03
+@min 14:02 can you rerun the tests?
+@claude 14:03 41/41 pass
+```
+
 **Form.** A document that asks. Your agent writes the questions; you answer
 on the board; the answers land in the same file.
 
@@ -429,10 +444,39 @@ at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
+## Notes that link
+
+Notes name each other with `[[name]]`, as in Obsidian: `[[plan]]`,
+`[[plan#write tests]]`, `[[deploy/run|the run]]`. A link is drawn as its
+name or alias, and a name finds its note with or without `.md` and its
+folder. `f` on a note lists the notes it links to and the notes that link
+to it, and `enter` goes there; the index shows how many notes link to each
+one, and `stickypane index --json` lists `links` and `backlinks`.
+
+A line that is only `![[plan]]` shows that note there, in its own shape and
+read only: a checklist with its progress, a board with its columns. It
+follows the note it shows. Embeds go one level deep.
+
+A chart can be computed from another note: give it `from:` and stickypane
+fills in its values and keeps them up to date, in the file itself.
+
+```markdown
+---
+type: chart
+title: Progress
+from: plan          # one note: done and open (a board: cards per column)
+---
+```
+
+With `from: plan, release` it draws one bar per note: percent done for a
+checklist, cards for a board, answered questions for a form, lines for a
+log. That is the whole list; anything else is a `stickypane watch --exec`
+recipe.
+
 ## Notes that react
 
 Everything that happens on the board is an event: a note made or removed,
-an item ticked, a card moved, a form sent, a line logged, a chart value
+an item ticked, a card moved, a form sent, a line logged, a message said, a chart value
 changed. `stickypane watch` prints them as they happen, one a line, and
 runs a command for each with `--exec`, so one note can answer another and
 anything outside can listen:
@@ -638,6 +682,7 @@ stickypane card work move login --to Done    # work.md: 2 cards
 stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
+stickypane say chat "41/41 pass" --as claude # chat.md: 3 messages
 stickypane set plan open=true size=half      # to sticky.json
 stickypane set plan title="The plan"         # to the note's front matter
 ```
@@ -649,10 +694,18 @@ by its text, by a part of it that nothing else has, or by its position
 what there is.
 
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
-input and output. Its tools are the commands above: `list_notes`,
-`read_note`, `write_note`, `show_note`, `hide_note`, `todo`, `card`, `chart`,
-`log`, `set_keys`, `move_note`, `remove_note`, `restore_note`, `read_answers`
-and `guide`.
+input and output. It is layered the way the plugin is, so an agent finds
+its way without reading everything:
+
+| Layer | Over MCP | At the command line |
+| --- | --- | --- |
+| the way in | the `guide` tool | `stickypane guide` |
+| a skill for a job: tracking progress, asking the user, talking in a chat, connecting notes | `guide` with the skill as `topic`, or the prompt of that name | `stickypane guide tracking-progress` |
+| one thing changed | `index`, `read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `say`, `set_keys`, `arrange_note` (show, hide, move, remove, restore) | the commands above |
+| waiting for the user | `read_answers`, `wait_event` | `stickypane wait`, `stickypane watch` |
+
+The skills are the plugin's own files, carried in the program, so a client
+without the plugin reads the same ones.
 
 ```sh
 claude mcp add stickypane -- stickypane mcp

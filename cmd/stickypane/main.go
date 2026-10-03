@@ -56,7 +56,7 @@ Usage:
   stickypane env [--json]  say what the board found about where it runs: the
                          system, the shell, how to open a pane beside the
                          agent, the screen's language and how scripts run
-  stickypane guide       print the agent guide
+  stickypane guide [topic]  print the agent guide: the overview, a skill or a shape
   stickypane version     print the version
 
 For scripts and agents that would rather not edit the files themselves:
@@ -73,6 +73,7 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane card <name> add|move <card> [--to <column>]
   stickypane chart <name> set|add <label> <number>
   stickypane log <name> [--time] <text>
+  stickypane say <name> [--as <who>] <text>
   stickypane set <name> key=value ...
                                  change one thing without reading or rewriting
                                  the note; a missing note is made, and so is the

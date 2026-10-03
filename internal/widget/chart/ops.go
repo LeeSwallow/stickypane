@@ -74,3 +74,28 @@ func (o Add) Apply(d doc.Document) (doc.Document, error) {
 	}
 	return put(d, o.Label, value)
 }
+
+// Replace writes Values as the chart's data, in order, in place of every
+// data line it had; its other lines stay above them. A chart computed from
+// another note (from:) is written this way.
+type Replace struct{ Values [][2]string }
+
+// Apply implements doc.Op.
+func (o Replace) Apply(d doc.Document) (doc.Document, error) {
+	eol := doc.EOL(d.Body)
+	var text []string
+	for _, l := range doc.Lines(d.Body) {
+		if raw := strings.TrimRight(l, "\r"); raw != "" && !dataRe.MatchString(raw) {
+			text = append(text, raw)
+		}
+	}
+	var b strings.Builder
+	for _, l := range text {
+		b.WriteString(l + eol + "\n")
+	}
+	for _, v := range o.Values {
+		b.WriteString(v[0] + ": " + v[1] + eol + "\n")
+	}
+	d.Body = b.String()
+	return d, nil
+}

@@ -129,7 +129,7 @@ func TestInitializeAndListTools(t *testing.T) {
 			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
 		}
 	}
-	if got := strings.Join(names, ","); got != "list_notes,read_note,write_note,todo,card,chart,log,set_keys,show_note,hide_note,move_note,remove_note,restore_note,read_answers,index,wait_event,guide" {
+	if got := strings.Join(names, ","); got != "guide,index,read_note,write_note,todo,card,chart,log,say,set_keys,arrange_note,read_answers,wait_event,api" {
 		t.Errorf("tools = %s", got)
 	}
 	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
@@ -139,13 +139,13 @@ func TestInitializeAndListTools(t *testing.T) {
 
 func TestToolsReadAndWriteNotes(t *testing.T) {
 	rs, dir := serve(t,
-		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_notes","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"index","arguments":{}}}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_note","arguments":{"name":"a"}}}`,
 		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"write_note","arguments":{"name":"plan","type":"checklist","title":"Plan","open":true,"size":"half","content":"- [ ] 한글 항목\n"}}}`,
 		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"guide","arguments":{}}}`,
 	)
-	if got := call(t, rs[0]).Content[0].Text; !strings.Contains(got, `"name":"a.md"`) || !strings.Contains(got, `"title":"First"`) {
-		t.Errorf("list_notes = %s", got)
+	if got := call(t, rs[0]).Content[0].Text; !strings.Contains(got, "a.md") || !strings.Contains(got, "First") {
+		t.Errorf("index = %s", got)
 	}
 	if got := call(t, rs[1]).Content[0].Text; got != "---\ntitle: First\n---\nhello\n" {
 		t.Errorf("read_note = %q", got)
@@ -157,8 +157,48 @@ func TestToolsReadAndWriteNotes(t *testing.T) {
 	if err != nil || plain(string(b)) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: half\n---\n- [ ] 한글 항목\n" {
 		t.Errorf("file = %q, %v", b, err)
 	}
-	if got := call(t, rs[3]).Content[0].Text; got != "GUIDE TEXT" {
+	// The guide opens with the short guide, then names the skills and the
+	// shapes, each of which is a topic of its own.
+	if got := call(t, rs[3]).Content[0].Text; !strings.HasPrefix(got, "GUIDE TEXT\n\n## Skills") || !strings.Contains(got, "- tracking-progress: Use when") || !strings.Contains(got, "checklist, log, chat") {
 		t.Errorf("guide = %q", got)
+	}
+}
+
+func TestGuideTopicsAndPromptsAreTheSkills(t *testing.T) {
+	rs, _ := serve(t,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"talking-in-chat"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"board"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"nope"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"prompts/list"}`,
+		`{"jsonrpc":"2.0","id":5,"method":"prompts/get","params":{"name":"asking-the-user"}}`,
+		`{"jsonrpc":"2.0","id":6,"method":"prompts/get","params":{"name":"nope"}}`,
+	)
+	if got := call(t, byID(t, rs, 1)).Content[0].Text; !strings.HasPrefix(got, "# Talking in a chat note") || !strings.Contains(got, "<!-- rules/touching-the-board.md -->") {
+		t.Errorf("guide talking-in-chat = %.200q", got)
+	}
+	if got := call(t, byID(t, rs, 2)).Content[0].Text; !strings.HasPrefix(got, "# board") || !strings.Contains(got, "type: board") {
+		t.Errorf("guide board = %q", got)
+	}
+	if got := call(t, byID(t, rs, 3)); !got.IsError || !strings.Contains(got.Content[0].Text, "connecting-notes") {
+		t.Errorf("an unknown topic should list the topics: %+v", got)
+	}
+	var list struct {
+		Prompts []struct{ Name, Description string } `json:"prompts"`
+	}
+	if err := json.Unmarshal(byID(t, rs, 4).Result, &list); err != nil || len(list.Prompts) < 5 || list.Prompts[0].Name != "using-the-board" {
+		t.Errorf("prompts/list = %s, %v", byID(t, rs, 4).Result, err)
+	}
+	var got struct {
+		Messages []struct {
+			Role    string                `json:"role"`
+			Content struct{ Text string } `json:"content"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(byID(t, rs, 5).Result, &got); err != nil || len(got.Messages) != 1 || !strings.HasPrefix(got.Messages[0].Content.Text, "# Asking the user") {
+		t.Errorf("prompts/get = %s, %v", byID(t, rs, 5).Result, err)
+	}
+	if byID(t, rs, 6).Error == nil {
+		t.Error("an unknown prompt is an error")
 	}
 }
 
@@ -279,10 +319,10 @@ func TestSmallEdits(t *testing.T) {
 
 func TestRemoveMoveAndRestore(t *testing.T) {
 	rs, dir := serve(t,
-		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"move_note","arguments":{"name":"a","to":"docs/"}}}`,
-		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"remove_note","arguments":{"name":"docs/a"}}}`,
-		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"restore_note","arguments":{"name":"docs/a"}}}`,
-		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"remove_note","arguments":{"name":"missing"}}}`,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"arrange_note","arguments":{"name":"a","action":"move","to":"docs/"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"arrange_note","arguments":{"name":"docs/a","action":"remove"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"arrange_note","arguments":{"name":"docs/a","action":"restore"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"arrange_note","arguments":{"name":"missing","action":"remove"}}}`,
 	)
 	if got := call(t, byID(t, rs, 1)); got.IsError || got.Content[0].Text != "moved a.md to docs/a.md" {
 		t.Errorf("move_note = %+v", got)

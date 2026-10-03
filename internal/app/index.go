@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -37,6 +39,31 @@ func init() {
 	}
 	boardKeys["i"] = open
 	boardKeys["/"] = open
+	// f: the notes the focused one links to and the notes that link to it.
+	boardKeys["f"] = func(m *Model) tea.Cmd {
+		if open(m); m.mode != modeIndex {
+			return nil
+		}
+		var self api.Entry
+		for _, e := range m.indexAll {
+			if e.Name == m.focus {
+				self = e
+			}
+		}
+		var linked []api.Entry
+		for _, e := range m.indexAll {
+			if slices.Contains(self.Links, e.Name) || slices.Contains(self.Backlinks, e.Name) {
+				linked = append(linked, e)
+			}
+		}
+		if len(linked) == 0 {
+			m.mode = m.back
+			m.status = tr.L("no links to or from this note")
+			return nil
+		}
+		m.indexAll = linked
+		return nil
+	}
 }
 
 // indexShown is the index as the filter leaves it: every word of the filter
@@ -134,6 +161,9 @@ func indexBody(m *Model, h int) []string {
 		text := e.Icon + " " + widget.Clean(e.Title)
 		if e.Summary != "" {
 			text += widget.Faint.Render("  " + e.Summary)
+		}
+		if n := len(e.Backlinks); n > 0 {
+			text += widget.Faint.Render(fmt.Sprintf("  ← %d", n))
 		}
 		if e.Gist != "" && e.Gist != e.Title {
 			text += widget.Faint.Render("  — " + e.Gist)

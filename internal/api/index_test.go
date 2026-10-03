@@ -12,10 +12,10 @@ import (
 // (the next open item, the latest log line, the first line of text).
 func TestIndexGivesEveryNoteInALine(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{
-		"plan.md":  "---\ntype: checklist\ntitle: Plan\n---\n- [x] design\n- [ ] write tests\n- [ ] ship\n",
-		"why.md":   "---\nsummary: why the cache is in a cookie\n---\n# Decision\n\nLong text.\n",
+		"plan.md":   "---\ntype: checklist\ntitle: Plan\n---\n- [x] design\n- [ ] write tests\n- [ ] ship\n",
+		"why.md":    "---\nsummary: why the cache is in a cookie\n---\n# Decision\n\nLong text.\n",
 		"build.log": "compiling\ntests passed\n",
-		"intro.md": "# Hello\n\nFirst **real** line.\n",
+		"intro.md":  "# Hello\n\nFirst **real** line.\n",
 	})
 	if err := os.MkdirAll(filepath.Join(dir, "deploy"), 0o755); err != nil {
 		t.Fatal(err)

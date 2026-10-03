@@ -1,7 +1,11 @@
 // Package mcp serves the notes folder to agents over the Model Context
 // Protocol: JSON-RPC 2.0 messages, one per line, on standard input and output.
-// It implements only what a tool server needs: initialize, ping, tools/list
-// and tools/call.
+// It implements initialize, ping, the tools (tools/list, tools/call) and
+// the plugin's skills as prompts (prompts/list, prompts/get).
+//
+// What it offers is layered as the plugin is: the guide tool is the way in
+// and names the skills; a skill, as a prompt or as the guide's topic, says
+// which tools to call for a job; the tools change one thing each.
 package mcp
 
 import (
@@ -39,7 +43,7 @@ const (
 // Server answers MCP requests for one notes folder.
 type Server struct {
 	API     *api.API
-	Guide   string // the agent guide, returned by the "guide" tool
+	Guide   string // the short agent guide, which the "guide" tool opens with
 	Version string
 }
 
@@ -92,8 +96,15 @@ func str(description string) map[string]any {
 // tools is what tools/list returns, in this order.
 var tools = []tool{
 	{
-		Name:        "list_notes",
-		Description: "List the notes on the user's stickypane board: file name, title, type, whether it is open on screen, size and pin.",
+		Name:        "guide",
+		Description: "Start here. Without a topic: how the board works, the skills (which to follow for a job: tracking progress, asking the user, talking in a chat, connecting notes) and the shapes of note. With a topic: that skill in full, or that shape's file format with an example.",
+		InputSchema: object(nil, map[string]any{
+			"topic": str(`A skill, such as "tracking-progress", or a shape, such as "board". Omit for the overview.`),
+		}),
+	},
+	{
+		Name:        "index",
+		Description: "Every note of the board in a line, by tab: its title, what it counts (2/5, 7 cards) and a gist (its summary, the next open item, the latest log line). Read this to know what is on the board, instead of every note.",
 		InputSchema: object(nil, map[string]any{}),
 	},
 	{
@@ -107,7 +118,7 @@ var tools = []tool{
 		InputSchema: object([]string{"name", "content"}, map[string]any{
 			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
 			"content": str("The whole note as Markdown."),
-			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form"}, "description": "The note's shape. Omit for a plain note."},
+			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form", "chat"}, "description": "The note's shape. Omit for a plain note."},
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
 			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},
@@ -151,6 +162,15 @@ var tools = []tool{
 		}),
 	},
 	{
+		Name:        "say",
+		Description: "Add a message to a chat note, the conversation with the user on the board. A chat that does not exist yet is made. The user answers there; wait_event with type message.added hears it.",
+		InputSchema: object([]string{"name", "text"}, map[string]any{
+			"name": str(`The chat's file name, such as "chat".`),
+			"text": str("The message, one line."),
+			"as":   str(`Who says it, such as "claude". Default "agent".`),
+		}),
+	},
+	{
 		Name:        "set_keys",
 		Description: "Change front matter keys of an existing note and nothing else: title, open, size, rows, color, pin, view. An empty value removes the key.",
 		InputSchema: object([]string{"name", "keys"}, map[string]any{
@@ -159,32 +179,13 @@ var tools = []tool{
 		}),
 	},
 	{
-		Name:        "show_note",
-		Description: "Put a note on the user's screen. The name may be a path to any file or folder of the project, which is then linked onto the board. This is how to put something in front of the user.",
-		InputSchema: object([]string{"name"}, map[string]any{"name": str(`A note's file name, or a path such as "README.md" or "docs/".`)}),
-	},
-	{
-		Name:        "hide_note",
-		Description: "Fold a note away from the screen. It stays on the board.",
-		InputSchema: object([]string{"name"}, map[string]any{"name": str("The note's file name.")}),
-	},
-	{
-		Name:        "move_note",
-		Description: "Rename a note or move it. A note that is moved keeps where it was on the screen.",
-		InputSchema: object([]string{"name", "to"}, map[string]any{
-			"name": str(`The note's file name, such as "plan", "build.log" or "docs/plan" for a page of the book docs.`),
-			"to":   str(`A new name ("roadmap"), a folder ending in "/" ("docs/") to make the note a page of that book, or "." for the top level.`),
+		Name:        "arrange_note",
+		Description: "Where a note is: show puts it in front of the user (a path to any file or folder of the project is linked onto the board), hide folds it away, move renames it or moves it into a tab or book, remove moves it to the trash, restore brings back what was removed last under that name.",
+		InputSchema: object([]string{"name", "action"}, map[string]any{
+			"name":   str(`A note's file name, such as "plan", "build.log" or "docs/plan"; for show, also a path such as "README.md" or "docs/".`),
+			"action": map[string]any{"type": "string", "enum": []string{"show", "hide", "move", "remove", "restore"}},
+			"to":     str(`For move: a new name ("roadmap"), a folder ending in "/" ("docs/"), or "." for the top level.`),
 		}),
-	},
-	{
-		Name:        "remove_note",
-		Description: "Take a note, a page or a whole folder off the board. It is moved to the trash folder, not erased: restore_note brings it back.",
-		InputSchema: object([]string{"name"}, map[string]any{"name": str("The note's file name, or a folder's name.")}),
-	},
-	{
-		Name:        "restore_note",
-		Description: "Bring back the note of that name that was removed last.",
-		InputSchema: object([]string{"name"}, map[string]any{"name": str("The name the note had when it was removed.")}),
 	},
 	{
 		Name:        "read_answers",
@@ -193,11 +194,6 @@ var tools = []tool{
 			"name":         str(`The form's file name, such as "deploy" or "deploy.md".`),
 			"wait_seconds": map[string]any{"type": "number", "description": "How long to wait for a button, at most 600. Omit to read the answers now."},
 		}),
-	},
-	{
-		Name:        "index",
-		Description: "Every note of the board in a line, by tab: its title, what it counts (2/5, 7 cards) and a gist (its summary, the next open item, the latest log line). Read this first instead of every note.",
-		InputSchema: object(nil, map[string]any{}),
 	},
 	{
 		Name:        "wait_event",
@@ -209,9 +205,14 @@ var tools = []tool{
 		}),
 	},
 	{
-		Name:        "guide",
-		Description: "How to write notes for the board: the note shapes and their file formats.",
-		InputSchema: object(nil, map[string]any{}),
+		Name:        "api",
+		Description: "Experimental. A .http note holds REST requests (resterm and VS Code REST Client syntax). With only name, list its requests; with request (its title, a part of it, or #2) send it, or with all send every one in order; returns each response's status, headers, body, checks and captured values, as the board shows them.",
+		InputSchema: object([]string{"name"}, map[string]any{
+			"name":    str(`The .http note, such as "api" or "api.http".`),
+			"request": str(`The request to send: its title, a part of it, or "#2".`),
+			"env":     str("The environment of the note to use (optional)."),
+			"all":     map[string]any{"type": "boolean", "description": "Send every request, in order."},
+		}),
 	},
 }
 
@@ -345,13 +346,20 @@ func (s *Server) handle(ctx context.Context, line []byte) *response {
 		}
 		resp.Result = map[string]any{
 			"protocolVersion": p.ProtocolVersion,
-			"capabilities":    map[string]any{"tools": map[string]any{}},
+			"capabilities":    map[string]any{"tools": map[string]any{}, "prompts": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "stickypane", "version": s.Version},
 		}
 	case "ping":
 		resp.Result = struct{}{}
 	case "tools/list":
 		resp.Result = map[string]any{"tools": tools}
+	case "prompts/list":
+		resp.Result = map[string]any{"prompts": prompts()}
+	case "prompts/get":
+		resp.Result, resp.Error = getPrompt(req.Params)
+		if resp.Error != nil {
+			resp.Result = nil
+		}
 	case "tools/call":
 		result, rpcErr := s.call(ctx, req.Params)
 		resp.Result, resp.Error = result, rpcErr
@@ -385,9 +393,15 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			Label   string         `json:"label"`
 			Value   any            `json:"value"`
 			Line    string         `json:"line"`
+			Text    string         `json:"text"`
+			As      string         `json:"as"`
 			Keys    map[string]any `json:"keys"`
 			Notes   string         `json:"notes"`
+			Request string         `json:"request"`
+			Env     string         `json:"env"`
+			All     bool           `json:"all"`
 			Types   string         `json:"types"`
+			Topic   string         `json:"topic"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -395,12 +409,6 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 	}
 	text, err := "", error(nil)
 	switch a := p.Arguments; p.Name {
-	case "list_notes":
-		infos, lerr := s.API.List()
-		if err = lerr; err == nil {
-			b, _ := json.Marshal(infos)
-			text = string(b)
-		}
 	case "read_note":
 		b, rerr := s.API.Cat(a.Name)
 		text, err = string(b), rerr
@@ -421,16 +429,10 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		text, err = s.API.Chart(a.Name, a.Action, a.Label, plain(a.Value))
 	case "log":
 		text, err = s.API.Log(a.Name, a.Line)
-	case "show_note":
-		text, err = s.API.Show(a.Name)
-	case "hide_note":
-		text, err = s.API.Hide(a.Name)
-	case "move_note":
-		text, err = s.API.Move(a.Name, a.To)
-	case "remove_note":
-		text, err = s.API.Remove(a.Name)
-	case "restore_note":
-		text, err = s.API.Restore(a.Name)
+	case "say":
+		text, err = s.API.Say(a.Name, a.As, a.Text)
+	case "arrange_note":
+		text, err = s.arrange(a.Name, a.Action, a.To)
 	case "set_keys":
 		keys := make([]string, 0, len(a.Keys))
 		for k := range a.Keys {
@@ -450,6 +452,8 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			aerr = nil // the answers so far are the result
 		}
 		text, err = got.String(), aerr
+	case "api":
+		text, _, err = s.API.HTTP(ctx, a.Name, a.Request, a.Env, a.All)
 	case "index":
 		var idx []api.Entry
 		if idx, err = s.API.Index(); err == nil {
@@ -478,7 +482,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			err = werr
 		}
 	case "guide":
-		text = s.Guide
+		text, err = s.API.Guide(a.Topic, s.Guide)
 	default:
 		return nil, &rpcError{codeParams, "unknown tool " + p.Name}
 	}
@@ -486,6 +490,26 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
 	return &toolResult{Content: []content{{Type: "text", Text: text}}}, nil
+}
+
+// arrange runs the arrange_note tool.
+func (s *Server) arrange(name, action, to string) (string, error) {
+	switch action {
+	case "show":
+		return s.API.Show(name)
+	case "hide":
+		return s.API.Hide(name)
+	case "move":
+		if to == "" {
+			return "", errors.New(`move needs "to": a new name, a folder ending in "/", or "."`)
+		}
+		return s.API.Move(name, to)
+	case "remove":
+		return s.API.Remove(name)
+	case "restore":
+		return s.API.Restore(name)
+	}
+	return "", fmt.Errorf("unknown action %q: show, hide, move, remove or restore", action)
 }
 
 // errFound ends a wait_event that has its event.

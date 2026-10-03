@@ -28,7 +28,7 @@ func TestPluginManifestsParse(t *testing.T) {
 			t.Errorf("%s: %v", f, err)
 		}
 	}
-	for _, f := range []string{"commands/show.md", "commands/status.md", "commands/ask.md", "commands/setup.md", "commands/kinds.md"} {
+	for _, f := range []string{"commands/show.md", "commands/status.md", "commands/ask.md", "commands/setup.md", "commands/kinds.md", "commands/track.md", "commands/say.md", "commands/index.md"} {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
 		if err != nil || !strings.HasPrefix(string(b), "---\ndescription: ") {
 			t.Errorf("%s should start with a description: %v", f, err)
@@ -37,13 +37,13 @@ func TestPluginManifestsParse(t *testing.T) {
 }
 
 // skillNames are the plugin's skills.
-var skillNames = []string{"using-the-board", "asking-the-user", "tracking-progress"}
+var skillNames = []string{"using-the-board", "asking-the-user", "tracking-progress", "talking-in-chat", "connecting-notes"}
 
 // harnessFiles are every file of the plugin an agent reads.
 func harnessFiles(t *testing.T) map[string]string {
 	t.Helper()
 	files := map[string]string{}
-	for _, dir := range []string{"skills", "commands", "scripts"} {
+	for _, dir := range []string{"skills", "commands", "scripts", "rules"} {
 		err := filepath.WalkDir(filepath.Join(repoRoot, dir), func(path string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
@@ -95,7 +95,7 @@ func TestTheHarnessNamesOnlyFilesThatExist(t *testing.T) {
 
 func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 	real := map[string]bool{}
-	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log set rm restore archive mv link kinds api") {
+	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api") {
 		real[c] = true
 	}
 	cmd := regexp.MustCompile("stickypane ([a-z]+)")
@@ -135,5 +135,32 @@ func TestSessionStartHookIsQuietWithoutABoard(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil || len(out) != 0 {
 		t.Errorf("without a board the hook should say nothing: %q, %v", out, err)
+	}
+}
+
+// TestTheLayersPointAtEachOther keeps the plugin a tree: every command
+// follows a skill that exists, every skill the way in names is there, and
+// every skill but the way in is named by it.
+func TestTheLayersPointAtEachOther(t *testing.T) {
+	named := regexp.MustCompile("`(?:board:)?([a-z]+(?:-[a-z]+)+)`")
+	isSkill := map[string]bool{}
+	for _, s := range skillNames {
+		isSkill[s] = true
+	}
+	way, err := os.ReadFile(filepath.Join(repoRoot, "skills", "using-the-board", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range skillNames[1:] {
+		if !strings.Contains(string(way), "`"+s+"`") {
+			t.Errorf("using-the-board should say when to follow %s", s)
+		}
+	}
+	for path, text := range harnessFiles(t) {
+		for _, m := range named.FindAllStringSubmatch(text, -1) {
+			if strings.Contains(m[0], "board:") && !isSkill[m[1]] {
+				t.Errorf("%s follows %s, which is not a skill", path, m[0])
+			}
+		}
 	}
 }

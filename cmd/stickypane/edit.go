@@ -9,7 +9,7 @@ import (
 )
 
 // editCmd runs a command that changes one thing in a note: todo, card,
-// chart, log or set. The note is made when it is missing.
+// chart, log, say or set. The note is made when it is missing.
 func editCmd(cmd string) func(env, []string) error {
 	return func(e env, args []string) error {
 		fs := newFlags(cmd)
@@ -20,8 +20,10 @@ func editCmd(cmd string) func(env, []string) error {
 			fs.StringVar(&to, "to", "", "the column")
 		case "log":
 			fs.BoolVar(&stamp, "time", false, "start the line with the time")
+		case "say":
+			fs.StringVar(&to, "as", "agent", "who says it")
 		}
-		least := map[string]int{"todo": 3, "card": 3, "chart": 4, "log": 2, "set": 2}[cmd]
+		least := map[string]int{"todo": 3, "card": 3, "chart": 4, "log": 2, "say": 2, "set": 2}[cmd]
 		words, err := parse(fs, cmd, args, least, -1)
 		if err != nil {
 			return err
@@ -48,6 +50,8 @@ func editCmd(cmd string) func(env, []string) error {
 				line = time.Now().Format(when.Clock) + " " + line
 			}
 			out, err = a.Log(name, line)
+		case "say":
+			out, err = a.Say(name, to, strings.Join(rest, " "))
 		default: // set
 			out, err = a.Set(name, rest)
 		}

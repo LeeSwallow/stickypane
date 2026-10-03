@@ -25,8 +25,14 @@ func execIn(t *testing.T, stdin string, args ...string) (code int, stdout, stder
 
 func TestGuidePrintsTheAgentGuide(t *testing.T) {
 	code, out, _ := exec(t, "guide")
-	if code != 0 || out != initcmd.Guide() {
+	if code != 0 || !strings.HasPrefix(out, initcmd.GuideText()) || !strings.Contains(out, "## Skills") {
 		t.Errorf("code = %d, out = %q", code, out)
+	}
+	if code, out, _ = exec(t, "guide", "tracking-progress"); code != 0 || !strings.HasPrefix(out, "# Tracking progress") {
+		t.Errorf("a skill: code = %d, out = %.80q", code, out)
+	}
+	if code, _, _ = exec(t, "guide", "nope"); code != 2 {
+		t.Errorf("an unknown topic: code = %d", code)
 	}
 }
 

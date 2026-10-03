@@ -57,6 +57,19 @@ func (r renderer) inline(s string) string {
 				continue
 			}
 			b.WriteRune(c)
+		case c == '[' && i+1 < len(rs) && rs[i+1] == '[':
+			// [[note]], [[note#item]] or [[note|alias]]: a link to another
+			// note, drawn as its alias or its name.
+			if end := find(rs, i+2, "]]"); end > i+2 {
+				target := string(rs[i+2 : end])
+				if _, alias, ok := strings.Cut(target, "|"); ok {
+					target = alias
+				}
+				b.WriteString(r.s.Link.Render(strings.TrimSpace(target)))
+				i = end + 1
+				continue
+			}
+			b.WriteRune(c)
 		case c == '[':
 			if text, end, ok := link(rs, i); ok {
 				b.WriteString(r.s.Link.Render(r.inline(text)))

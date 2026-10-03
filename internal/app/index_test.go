@@ -37,3 +37,23 @@ func TestTheIndexFindsAndOpensANote(t *testing.T) {
 		t.Error("and opens it")
 	}
 }
+
+// f on a note opens the index with only the notes it links to and the
+// notes that link to it; enter goes there.
+func TestFFollowsALink(t *testing.T) {
+	m, _ := newModel(t, map[string]string{
+		"plan.md":  opened("see [[why]]\n"),
+		"why.md":   "---\ntitle: Why\n---\nbecause\n",
+		"other.md": "---\ntitle: Other\n---\nunrelated\n",
+	})
+	m.setFocus("plan.md")
+	press(m, "f")
+	s := screen(m)
+	if m.mode != modeIndex || !strings.Contains(s, "Why") || strings.Contains(s, "Other") {
+		t.Fatalf("f lists the links of the focused note:\n%s", s)
+	}
+	press(m, "enter")
+	if m.focus != "why.md" {
+		t.Errorf("enter follows the link: focus %q", m.focus)
+	}
+}

@@ -64,3 +64,24 @@ func detect(getenv func(string) string, goos string, system func() string) Env {
 	}
 	return e
 }
+
+// User is the name the user writes as: $STICKYPANE_USER, else git's
+// user.name, else $USER or $USERNAME, else "me". Spaces are taken out, so
+// it can follow an @.
+func (e Env) User() string {
+	name := e.getenv("STICKYPANE_USER")
+	if name == "" {
+		if out, err := exec.Command("git", "config", "user.name").Output(); err == nil {
+			name = strings.TrimSpace(string(out))
+		}
+	}
+	for _, v := range []string{"USER", "USERNAME"} {
+		if name == "" {
+			name = e.getenv(v)
+		}
+	}
+	if name = strings.Join(strings.Fields(name), ""); name == "" {
+		name = "me"
+	}
+	return name
+}

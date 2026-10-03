@@ -77,3 +77,12 @@ func TestStylesOnlyColor(t *testing.T) {
 		t.Errorf("styles should change only the colors:\n%q\n%q", a, b)
 	}
 }
+
+// A link to another note is drawn as its name, or its alias, without the
+// brackets.
+func TestNoteLinksAreDrawnByName(t *testing.T) {
+	got := render("see [[plan]], [[plan#write tests]] and [[deploy/run|the run]]\n", 80)
+	if got != "see plan, plan#write tests and the run" {
+		t.Errorf("got %q", got)
+	}
+}

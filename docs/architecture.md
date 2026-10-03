@@ -18,7 +18,9 @@ layer, fails the build.
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
+| 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
+| 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 
 The packages stay side by side under `internal/` rather than in folders by
@@ -124,6 +126,24 @@ To add a shape:
 `TestEveryKindKeepsTheContract` in `internal/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
 an empty file. A new shape that passes it works on the board.
+
+## The plugin
+
+The repository is also the Claude Code and Codex plugin, in four layers,
+each pointing only at the one below:
+
+| Layer | Folder | Is |
+| --- | --- | --- |
+| commands | `commands/` | `/board:track`, `/board:ask`, `/board:say`...: a line that names a skill |
+| skills | `skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
+| references | `skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
+| rules | `rules/` | what every skill keeps to: what the board writes itself, how a note is worded |
+
+The program embeds `skills/`, `rules/` and `commands/` (`harness.go` at the
+module root), and `internal/harness` hands the skills to the MCP server, as
+prompts and as topics of the `guide` tool, and to `stickypane guide`. The
+tests in `internal/initcmd` keep the layers pointing at each other: every
+command names a skill that exists, and the way in names every skill.
 
 ## The command line
 

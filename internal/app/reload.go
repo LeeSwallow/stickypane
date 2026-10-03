@@ -3,10 +3,13 @@ package app
 import (
 	"path"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -44,7 +47,9 @@ func (m *Model) reload() {
 	}
 	// What a note's kind fills in by itself, the board writes, so that an
 	// agent editing the file never has to; then it reads the board again.
-	if m.tend(board.Tabs, m.shownDocs()) {
+	// Charts computed from other notes (from:) are computed too.
+	derived, _ := api.New(m.store, m.reg).Derive()
+	if m.tend(board.Tabs, m.shownDocs()) || derived > 0 {
 		if board, err = m.store.Load(); err != nil {
 			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 			return
@@ -98,6 +103,8 @@ func (m *Model) reload() {
 	}
 	known := make(map[string]bool, len(notes))
 	items := make([]item, 0, len(notes))
+	changedAny := false
+	m.setEmbeds(board)
 	// A script's log is shown in the script's pane, not as a note of its own.
 	logs := logsOfScripts(notes)
 	shownBy := make(map[string]bool, len(logs))
@@ -128,6 +135,7 @@ func (m *Model) reload() {
 			}
 			var kept bool
 			it.kind, it.w, kept = m.widgetFor(it.note, o, had)
+			changedAny = changedAny || !kept
 			if l, ok := logs[n.Name]; ok {
 				l = unreadable(l)
 				kept = kept && l.Path == oldLog.Path && l.ModTime.Equal(oldLog.ModTime)
@@ -154,6 +162,16 @@ func (m *Model) reload() {
 		}
 	}
 	m.known = known
+	// A note that shows another (![[name]]) is drawn again when anything
+	// changed, since what it shows may have.
+	if changedAny {
+		for i := range items {
+			if it := &items[i]; len(it.pages) == 0 && strings.Contains(it.note.Doc.Body, "![[") {
+				it.w = it.kind.Parse(it.note.Doc)
+				m.forget(it.note.Name)
+			}
+		}
+	}
 	for name := range m.drawn {
 		if !known[name] {
 			delete(m.drawn, name)
@@ -289,4 +307,29 @@ func (m *Model) shownDocs() map[string]doc.Document {
 		}
 	}
 	return docs
+}
+
+// setEmbeds tells the Markdown renderer how to find the note a ![[name]]
+// line shows: among every note of every tab, drawn by its own kind.
+func (m *Model) setEmbeds(b store.Board) {
+	files := map[string]store.Note{}
+	var names []string
+	for _, t := range b.Tabs {
+		for _, n := range t.Notes {
+			for _, f := range append([]store.Note{n}, n.Pages...) {
+				if !f.Book() && f.Err == nil {
+					files[f.Name] = f
+					names = append(names, f.Name)
+				}
+			}
+		}
+	}
+	reg := m.reg
+	kinds.Embeds = func(name string) (string, widget.Widget, bool) {
+		f, ok := files[api.Resolve(name, names)]
+		if !ok {
+			return "", nil, false
+		}
+		return arrange.Title(store.View{}, f.Doc, f.Name), reg.For(f.Name, f.Doc).Parse(f.Doc), true
+	}
 }

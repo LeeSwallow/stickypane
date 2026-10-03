@@ -1,6 +1,7 @@
 package api
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -121,5 +122,22 @@ func TestSetChangesKeysAndNothingElse(t *testing.T) {
 	}
 	if _, err := a.Set("missing", []string{"open=true"}); err == nil {
 		t.Error("Set does not make a note")
+	}
+}
+
+func TestSayMakesAChatAndAddsMessages(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	if got, err := a.Say("chat", "claude", "41/41 pass"); err != nil || got != "chat.md: 1 message" {
+		t.Fatalf("Say = %q, %v", got, err)
+	}
+	if got, err := a.Say("chat", "", "next?"); err != nil || got != "chat.md: 2 messages" {
+		t.Errorf("Say = %q, %v", got, err)
+	}
+	got := read(t, dir, "chat.md")
+	if !strings.Contains(got, "type: chat") || !regexp.MustCompile(`(?m)^## \d{4}-\d{2}-\d{2}\n@claude \d\d:\d\d 41/41 pass\n@agent \d\d:\d\d next\?\n$`).MatchString(got) {
+		t.Errorf("file = %q", got)
+	}
+	if _, err := a.Say("chat", "me", " \n "); err == nil {
+		t.Error("an empty message is refused")
 	}
 }
