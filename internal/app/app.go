@@ -4,7 +4,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"image/color"
 	"path"
 	"sort"
@@ -65,13 +64,14 @@ var (
 )
 
 // item is a note with the widget that draws it. A book, which is a folder,
-// has pages; its kind and widget are those of the page that is shown.
+// has pages: its widget is the book, drawn as one scroll of all of them, and
+// its kind is that of the page the view is on.
 type item struct {
 	note  store.Note
 	kind  widget.Kind
 	w     widget.Widget
 	pages []page // a book's pages; nil for a file
-	page  int    // the page shown
+	page  int    // the page the view is on
 }
 
 // page is one file of a book.
@@ -100,13 +100,13 @@ type Model struct {
 	theme *theme.Holder // the theme in use, shared with the Markdown renderer
 	dark  bool          // what the terminal said about its background
 
-	items []item
-	focus string               // file name of the focused note
-	seen  map[string]time.Time // modification time last looked at, by file name
-	known map[string]bool      // notes that existed at the previous scan
-	peek  map[string]bool      // notes shown open for this run without an "open" key
-	views store.Views          // how the user arranged the notes, from sticky.json
-	shown map[string]string    // the page each book shows, by the page's file name
+	items   []item
+	focus   string               // file name of the focused note
+	seen    map[string]time.Time // modification time last looked at, by file name
+	known   map[string]bool      // notes that existed at the previous scan
+	peek    map[string]bool      // notes shown open for this run without an "open" key
+	views   store.Views          // how the user arranged the notes, from sticky.json
+	anchors map[string]anchor    // where the view is in each book, by the book's name
 
 	width, height int
 	bar           []string       // the title bar, one or more lines
@@ -167,7 +167,7 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, shown: map[string]string{}, reveal: revealNote, theme: th, dark: true}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, reveal: revealNote, theme: th, dark: true}
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m
@@ -449,12 +449,11 @@ func (m *Model) reload() {
 				o, had := old[pn.Name]
 				kind, w := m.widgetFor(pn, o, had)
 				it.pages = append(it.pages, page{pn, kind, w})
-				if pn.Name == m.shown[n.Name] {
+				if pn.Name == m.anchors[n.Name].page {
 					it.page = i
 				}
 			}
-			m.shown[n.Name] = it.pages[it.page].note.Name
-			it.kind, it.w = it.pages[it.page].kind, it.pages[it.page].w
+			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page}
 		} else {
 			o, had := old[n.Name]
 			it.kind, it.w = m.widgetFor(it.note, o, had)
@@ -471,9 +470,9 @@ func (m *Model) reload() {
 			delete(m.peek, name)
 		}
 	}
-	for name := range m.shown {
+	for name := range m.anchors {
 		if !known[name] {
-			delete(m.shown, name)
+			delete(m.anchors, name)
 		}
 	}
 	m.known = known
@@ -519,26 +518,39 @@ func (m *Model) reload() {
 	}
 }
 
-// turn shows another page of a book.
-func (m *Model) turn(i, delta int) {
-	it := &m.items[i]
-	to := max(min(it.page+delta, len(it.pages)-1), 0)
-	if len(it.pages) == 0 || to == it.page {
-		return
-	}
-	it.page = to
-	it.kind, it.w = it.pages[to].kind, it.pages[to].w
-	m.shown[it.note.Name] = it.pages[to].note.Name
-	m.zoomScroll = 0
+// anchor is where the view is in a book: a page, and how far into it. It
+// is kept by page rather than by line so that a page added or removed
+// before it does not move the view.
+type anchor struct {
+	page   string
+	within int
+	start  int // the line the page started at when the anchor was taken
 }
 
-// setWidget replaces the widget an item shows.
-func (m *Model) setWidget(i int, w widget.Widget) {
+// turn scrolls a book to the start of the page before or after the one the
+// view is on.
+func (m *Model) turn(i, delta int) {
 	it := &m.items[i]
-	it.w = w
-	if len(it.pages) > 0 {
-		it.pages[it.page].w = w
+	b, ok := it.w.(*book)
+	if !ok || len(it.pages) == 0 {
+		return
 	}
+	to := max(min(b.at+delta, len(it.pages)-1), 0)
+	b.at, it.page, it.kind = to, to, it.pages[to].kind
+	if to < len(b.starts) {
+		m.anchors[it.note.Name] = anchor{page: it.pages[to].note.Name, start: b.starts[to]}
+		m.offsets[it.note.Name] = b.starts[to]
+		m.zoomScroll = b.starts[to]
+	}
+}
+
+// setWidget replaces the widget an item shows. A book's widget stays the
+// book: its pages are replaced inside it.
+func (m *Model) setWidget(i int, w widget.Widget) {
+	if _, ok := m.items[i].w.(*book); ok {
+		return
+	}
+	m.items[i].w = w
 }
 
 // showing returns the position of the item that shows the file called
@@ -651,18 +663,10 @@ func (m *Model) heading(it item) string {
 // widget counts and, for a book, which page it is on. A script that is
 // running says so instead.
 func (m *Model) summary(it item) string {
-	s := it.w.Summary()
 	if m.running[it.file().Name] {
-		s = "running…"
+		return "running…"
 	}
-	if len(it.pages) == 0 {
-		return s
-	}
-	at := fmt.Sprintf("%d/%d", it.page+1, len(it.pages))
-	if s == "" {
-		return at
-	}
-	return at + " · " + s
+	return it.w.Summary()
 }
 
 // show returns the scroll offset that brings a span into a window of the
@@ -761,13 +765,22 @@ func (m *Model) relayout() {
 	for i, it := range open {
 		slot := slots[cells[i].Row]
 		p := pane{
-			name: it.note.Name, file: it.file().Name, screen: slot.Screen, total: len(lines[i]),
+			name: it.note.Name, file: it.note.Name, screen: slot.Screen, total: len(lines[i]),
 			rect: layout.Rect{X: cells[i].X, Y: slot.Y, W: cells[i].W, H: slot.H},
 		}
 		// Where the user left it; a log that was never scrolled shows its end.
 		offset, scrolled := m.offsets[p.file]
-		if !scrolled && it.kind.Tail {
+		if !scrolled && it.kind.Tail && len(it.pages) == 0 {
 			offset = p.total
+		}
+		if b, ok := it.w.(*book); ok {
+			// A book keeps its place by page: when the page the view is
+			// on moved, because pages before it came or went, the view
+			// moves with it.
+			if a, ok := m.anchors[p.name]; ok && b.at < len(b.starts) && a.page == it.pages[b.at].note.Name && a.start != b.starts[b.at] {
+				offset, scrolled = b.starts[b.at]+a.within, true
+				m.offsets[p.file] = offset
+			}
 		}
 		focused := p.name == m.focus
 		if focused && m.reveal == revealCursor && spans[i].Ok() {
@@ -775,9 +788,10 @@ func (m *Model) relayout() {
 			m.offsets[p.file] = offset
 		}
 		p.offset = widget.ClampOffset(offset, p.total, p.rows())
-		if scrolled && it.kind.Tail && p.offset >= p.total-p.rows() {
+		if scrolled && it.kind.Tail && len(it.pages) == 0 && p.offset >= p.total-p.rows() {
 			delete(m.offsets, p.file) // back at the end: follow the log again
 		}
+		m.settle(i, p.offset, p.rows())
 		m.panes = append(m.panes, p)
 		if p.screen != m.screen || p.rect.H < 2 {
 			continue
@@ -800,6 +814,38 @@ func (m *Model) relayout() {
 		m.layoutZoom()
 	}
 	m.reveal = revealNothing
+}
+
+// settle notes which page of a book the view is on after a scroll, so the
+// next keys go to that page and the place survives a reload. i is the
+// index into the open notes of the current layout.
+func (m *Model) settle(i, offset, rows int) {
+	for k := range m.items {
+		it := &m.items[k]
+		b, ok := it.w.(*book)
+		if !ok || it.note.Name != m.openName(i) {
+			continue
+		}
+		b.settle(offset, rows)
+		it.page, it.kind = b.at, it.pages[b.at].kind
+		if b.at < len(b.starts) {
+			m.anchors[it.note.Name] = anchor{page: it.pages[b.at].note.Name, within: offset - b.starts[b.at], start: b.starts[b.at]}
+		}
+	}
+}
+
+// openName returns the name of the i-th open note.
+func (m *Model) openName(i int) string {
+	n := 0
+	for _, it := range m.items {
+		if m.isOpen(it) {
+			if n == i {
+				return it.note.Name
+			}
+			n++
+		}
+	}
+	return ""
 }
 
 // paneOf returns the pane of an open note.

@@ -105,9 +105,12 @@ What a file is depends on its name:
   sticky.json         how you arranged all this
 ```
 
-**Books.** A folder is shown as one pane. Its border says which page you are
-on (`docs · 02-usage  2/3`), `,` and `.` turn the pages, and every key acts
-on the page that is shown. Folders are read one level deep. `stickypane link
+**Books.** A folder is shown as one pane that scrolls like one long note:
+its files follow one another, each under a rule with its name, and the
+border says which page the view is on (`docs · 02-usage  2/3`). `j` `k`, the
+wheel and the paging keys scroll through all of it; `,` and `.` jump to the
+page before or after; every other key acts on the page the view is on.
+Folders are read one level deep. `stickypane link
 docs` puts a folder of your project on the board as a book without copying
 it, and `stickypane link README.md` does the same for a file; both make a
 symbolic link, so what you change on the board is changed in the real file.

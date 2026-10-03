@@ -117,7 +117,11 @@ func (m *Model) focusFile(name string) {
 	for i, it := range m.items {
 		for p, pg := range it.pages {
 			if pg.note.Name == name {
-				m.turn(i, p-it.page)
+				m.anchors[it.note.Name] = anchor{page: name}
+				if b, ok := it.w.(*book); ok {
+					b.at = p
+				}
+				m.items[i].page, m.items[i].kind = p, pg.kind
 				m.setFocus(it.note.Name)
 				return
 			}

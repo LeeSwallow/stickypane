@@ -78,6 +78,10 @@ func (m *Model) layoutZoom() {
 		m.zoomScroll = show(at, m.zoomScroll, rows)
 	}
 	m.zoomScroll = widget.ClampOffset(m.zoomScroll, len(m.zoomLines), rows)
+	if b, ok := m.items[i].w.(*book); ok {
+		b.settle(m.zoomScroll, rows)
+		m.items[i].page, m.items[i].kind = b.at, m.items[i].pages[b.at].kind
+	}
 }
 
 // zoomBody shows the zoomed note in a frame that fills the screen.
