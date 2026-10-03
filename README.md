@@ -2,6 +2,13 @@
 
 **A board in your terminal that your coding agent writes to and you read.**
 
+[![CI](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeeSwallow/stickypane?include_prereleases)](https://github.com/LeeSwallow/stickypane/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/LeeSwallow/stickypane)](https://goreportcard.com/report/github.com/LeeSwallow/stickypane)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+[Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Plugin](#install) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
+
 ```
  ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
 ╔ ▦ Auth work ═══════════════════════════════════════════════════════════ 4 cards ╗
@@ -51,6 +58,15 @@ skill, tells it all of this.
 terminal plugin. It runs in a plain window, in tmux, WezTerm or Zellij, next
 to Claude Code, Codex or any agent that can edit files. The files are yours,
 in your repository, readable without stickypane.
+
+> **Status: design stage.** stickypane is pre-1.0 and I am still deciding
+> how the board should behave; file names, command names and `sticky.json`
+> may change until v0.1.0. The most useful thing you can do is try it with
+> your agent for a day and tell me what you expected the board to do: open
+> a [design feedback issue](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)
+> or an [Idea](https://github.com/LeeSwallow/stickypane/discussions). The
+> open questions are in [ROADMAP.md](ROADMAP.md); the principles in
+> [VISION.md](VISION.md).
 
 ## Install
 
@@ -546,6 +562,26 @@ Replacing the file has two limits:
 A shape is one package under `internal/widget/` that implements the
 `widget.Widget` interface, plus one line in `internal/kinds/kinds.go`.
 
+## Feedback and contributing
+
+Design feedback is worth more than code right now: see
+[CONTRIBUTING.md](CONTRIBUTING.md) for what helps and how, and
+[Discussions](https://github.com/LeeSwallow/stickypane/discussions) for
+the open questions. Bugs go to the
+[issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose).
+
+## Alternatives
+
+If you want a kanban that lives in Markdown files and nothing else,
+[kanban-md](https://github.com/csobrinho/kanban-md) and
+[Backlog.md](https://github.com/MrLesk/Backlog.md) do that well. If you want
+to watch commands and metrics in a configured dashboard,
+[sampler](https://github.com/sqshq/sampler) and
+[wtf](https://github.com/wtfutil/wtf) are for that. stickypane is for the
+space between you and an agent: files the agent writes, a screen you read,
+and answers that go back.
+
 ## License
 
-MIT
+MIT. Third-party palettes and libraries are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

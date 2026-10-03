@@ -26,6 +26,12 @@ archives:
 checksum:
   name_template: checksums.txt
 
+changelog:
+  use: github-native
+
+release:
+  prerelease: auto
+
 homebrew_casks:
   - repository:
       owner: LeeSwallow
