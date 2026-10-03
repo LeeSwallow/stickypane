@@ -1,22 +1,11 @@
 #!/usr/bin/env sh
-# Tells the agent, at the start of a session, whether the project has a
-# stickypane board and what is on it. Prints nothing when there is none, so
-# a project without a board costs no context.
+# At the start of a session, tells the agent that the project has a board
+# and what is on it. Says nothing when there is no board or no stickypane,
+# so a project without one costs no context.
 set -u
-
-if ! command -v stickypane >/dev/null 2>&1; then
-  exit 0
-fi
-
-dir="${PWD:-.}"
-while [ "$dir" != "/" ]; do
-  if [ -d "$dir/.sticky" ] || [ -d "$dir/.stickypane" ]; then
-    notes="$(stickypane list 2>/dev/null | head -20)"
-    printf 'The user keeps a stickypane board open next to you (folder: %s). Notes on it now:\n%s\n' \
-      "$([ -d "$dir/.sticky" ] && echo "$dir/.sticky" || echo "$dir/.stickypane")" "${notes:-(none yet)}"
-    printf 'Use the board:using-the-board skill to put things there: `stickypane show <file>`, `stickypane todo/card/chart/log`, or write a Markdown file into the folder.\n'
-    exit 0
-  fi
-  dir="$(dirname "$dir")"
-done
-exit 0
+here="$(cd "$(dirname "$0")" && pwd)"
+context="$("$here/board-context.sh" 2>/dev/null)" || exit 0
+dir="$(printf '%s\n' "$context" | sed -n 's/^BOARD_DIR=//p')"
+notes="$(printf '%s\n' "$context" | sed -n '/^NOTES<<END$/,/^END$/p' | sed '1d;$d' | head -20)"
+printf 'The user keeps a stickypane board open next to you (folder: %s). Notes on it now:\n%s\n' "$dir" "${notes:-(none yet)}"
+printf 'To put something there use the board:using-the-board skill: `stickypane show <file>`, `stickypane todo|card|chart|log`, or write a Markdown file into the folder.\n'

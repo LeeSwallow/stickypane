@@ -35,22 +35,27 @@ func TestPluginManifestsParse(t *testing.T) {
 	}
 }
 
-func TestTheBoardSkillCarriesTheGuide(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join(repoRoot, "skills", "using-the-board", "SKILL.md"))
+func TestTheSkillsAreCompleteAndCarryTheGuide(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join(repoRoot, "skills", "using-the-board", "references", "formats.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	skill := string(b)
-	if !strings.HasPrefix(skill, "---\nname: using-the-board\ndescription: ") {
-		t.Fatalf("the skill needs a name and a description:\n%.120s", skill)
+	if !strings.Contains(string(b), GuideText()) {
+		t.Error("skills/using-the-board/references/formats.md should contain the guide word for word; regenerate it from `stickypane guide`")
 	}
-	if !strings.Contains(skill, GuideText()) {
-		t.Error("skills/using-the-board/SKILL.md should contain the guide word for word; regenerate it from `stickypane guide`")
-	}
-	for _, name := range []string{"asking-the-user", "tracking-progress"} {
-		b, err := os.ReadFile(filepath.Join(repoRoot, "skills", name, "SKILL.md"))
-		if err != nil || !strings.Contains(string(b), "name: "+name+"\n") {
-			t.Errorf("skill %s: %v", name, err)
+	for _, name := range []string{"using-the-board", "asking-the-user", "tracking-progress"} {
+		dir := filepath.Join(repoRoot, "skills", name)
+		b, err := os.ReadFile(filepath.Join(dir, "SKILL.md"))
+		if err != nil || !strings.HasPrefix(string(b), "---\nname: "+name+"\ndescription: Use when") {
+			t.Errorf("skill %s needs its name and a description that starts with when to use it: %v", name, err)
+		}
+		if !strings.Contains(string(b), "## Loading instructions") {
+			t.Errorf("skill %s should say what to read for what", name)
+		}
+		for _, ref := range []string{"rules.md", "flow.md"} {
+			if _, err := os.Stat(filepath.Join(dir, "references", ref)); err != nil {
+				t.Errorf("skill %s is missing references/%s", name, ref)
+			}
 		}
 	}
 }
