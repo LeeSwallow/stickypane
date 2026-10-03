@@ -21,18 +21,23 @@ const module = "github.com/LeeSwallow/stickypane/"
 // decide where it belongs.
 var rank = map[string]int{
 	// Leaves: they know nothing of the board.
-	"internal/doc":      0,
-	"internal/theme":    0,
-	"internal/env":      0, // the system, shell, pane tool and locale
-	"internal/when":     0, // how times are written and read
-	"internal/i18n":     5, // reads the locale from env
-	".":                 0, // the plugin's files, carried in the program
-	"internal/harness":  5, // the plugin's skills, read for MCP and guide
-	"internal/httpfile": 5, // .http files: read, send, check; writes times with when
-	"internal/layout":   0,
-	"internal/editor":   0,
-	"internal/lineedit": 0, // the one-line editor of the bottom line
-	"internal/markdown": 0, // Markdown drawn for the terminal
+	"internal/doc":             0,
+	"internal/theme":           0,
+	"internal/env":             0, // the system, shell, pane tool and locale
+	"internal/when":            0, // how times are written and read
+	"internal/i18n":            5, // reads the locale from env
+	".":                        0, // the plugin's files, carried in the program
+	"internal/harness":         5, // the plugin's skills, read for MCP and guide
+	"internal/httpfile":        5, // .http files: read, send, check; writes times with when
+	"internal/layout":          0,
+	"internal/editor":          0,
+	"internal/lineedit":        0, // the one-line editor of the bottom line
+	"internal/markdown":        0, // Markdown drawn for the terminal
+	"internal/wsock":           0, // a WebSocket client on the standard library
+	"internal/proto":           0, // protocol buffers without generated code
+	"internal/proto/prototest": 1, // a descriptor for tests
+	"internal/rpc":             3, // a gRPC client on the standard library
+	"internal/rpc/rpctest":     2, // a gRPC server for tests
 	// The notes folder.
 	"internal/store": 10,
 	// What a user may change, each with a default.
