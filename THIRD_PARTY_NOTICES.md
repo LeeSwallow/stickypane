@@ -10,9 +10,15 @@ stickypane is MIT licensed (see LICENSE). It builds on these projects.
 | [AlexanderGrooff/mermaid-ascii](https://github.com/AlexanderGrooff/mermaid-ascii) | MIT | drawing Mermaid blocks as text |
 | [fsnotify/fsnotify](https://github.com/fsnotify/fsnotify) | BSD-3-Clause | following the notes folder |
 
+These are the modules stickypane uses directly. With the modules they use
+in turn, the program links 22, all under MIT or BSD-3-Clause. Every release
+archive carries `THIRD_PARTY_LICENSES.txt` with each one's license as it
+ships it; `scripts/licenses.sh` writes that file and fails when a module's
+license is missing or not MIT, BSD or Apache-2.0, and CI runs it on every
+pull request.
+
 Markdown and the one-line editor are stickypane's own (`internal/markdown`,
-`internal/lineedit`). The full list is in `go.mod`; every module keeps its own license file in the
-module cache.
+`internal/lineedit`).
 
 ## Color palettes
 
