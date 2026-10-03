@@ -14,7 +14,7 @@ terminal.
 
 English · [한국어](README.ko.md)
 
-[Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Plugin](#install) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
+[Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Contributing](#contributing) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
 
 ```
  ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
@@ -75,43 +75,148 @@ in your repository, readable without stickypane.
 > open questions are in [ROADMAP.md](ROADMAP.md); the principles in
 > [VISION.md](VISION.md).
 
+## Contents
+
+- [Install](#install): Homebrew, a release archive, `go install`, from source
+- [Quick start](#quick-start): the board next to your agent in four steps
+- [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
+- [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
+- [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
+- [Command line and MCP](#command-line-and-mcp)
+- [Contributing](#contributing), [support](#support), [license](#license)
+
 ## Install
+
+stickypane is one program with no runtime dependencies. It runs on macOS,
+Linux and Windows, in any terminal that shows Unicode and color: Terminal,
+iTerm2, Ghostty, WezTerm, Kitty, Alacritty, Windows Terminal, and inside
+tmux or Zellij. No special font is needed.
+
+### Homebrew
 
 ```sh
 brew install --cask LeeSwallow/tap/stickypane
-# or
+```
+
+### A release archive
+
+Every [release](https://github.com/LeeSwallow/stickypane/releases) has an
+archive for each system: `darwin` (macOS), `linux` and `windows`, each for
+`amd64` (Intel and AMD) and `arm64` (Apple silicon, ARM). Each holds the
+program, the license, and the licenses of the libraries it is built from.
+
+macOS and Linux:
+
+```sh
+VERSION=0.1.0 OS=linux ARCH=amd64      # or OS=darwin, ARCH=arm64
+curl -LO "https://github.com/LeeSwallow/stickypane/releases/download/v$VERSION/stickypane_${VERSION}_${OS}_${ARCH}.tar.gz"
+tar -xzf "stickypane_${VERSION}_${OS}_${ARCH}.tar.gz" stickypane
+sudo install stickypane /usr/local/bin/   # or any folder on your PATH
+```
+
+On macOS, a program downloaded by a browser is held back by Gatekeeper;
+`xattr -d com.apple.quarantine stickypane` lets it run. Homebrew does this
+for you.
+
+Windows, in PowerShell:
+
+```powershell
+$v = "0.1.0"
+Invoke-WebRequest "https://github.com/LeeSwallow/stickypane/releases/download/v$v/stickypane_${v}_windows_amd64.zip" -OutFile stickypane.zip
+Expand-Archive stickypane.zip -DestinationPath "$env:LOCALAPPDATA\stickypane"
+# add it to your PATH, once
+[Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:LOCALAPPDATA\stickypane", "User")
+```
+
+Each release lists the archives' SHA-256 sums in `checksums.txt`; check one
+with `shasum -a 256 <archive>` or, in PowerShell, `Get-FileHash <archive>`.
+
+### With Go
+
+```sh
 go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest
 ```
 
-On Windows, take the zip from the
-[releases](https://github.com/LeeSwallow/stickypane/releases) or use
-`go install`; it runs in Windows Terminal, with PowerShell or sh.
+This needs Go 1.26 or later and puts the program in `$(go env GOPATH)/bin`.
+
+### From source
+
+```sh
+git clone https://github.com/LeeSwallow/stickypane
+cd stickypane
+go build -o stickypane ./cmd/stickypane
+```
+
+### Check that it works
+
+```sh
+stickypane version     # stickypane 0.1.0
+stickypane env         # the system, shell, pane tool, locale and editor it found
+```
+
+### Update and remove
+
+Update the way you installed it: `brew upgrade --cask stickypane`, a newer
+archive, or `go install ...@latest` again. To remove it, run
+`stickypane setup --undo` if you installed the plugin, then
+`brew uninstall --cask stickypane` or delete the program. Your notes stay
+in each project's `.sticky/` folder; they are plain files, yours to keep or
+delete.
 
 ## Quick start
 
-```sh
-cd your-project
-stickypane         # the first time, sets the project up; then opens the board
+**1. Open the board next to your agent.** In the project's folder, split
+the terminal and run `stickypane` in the new pane:
+
+| Terminal | Command |
+| --- | --- |
+| tmux | `tmux split-window -h stickypane`, or a popup: `tmux display-popup -E stickypane` |
+| WezTerm | `wezterm cli split-pane --right -- stickypane` |
+| Zellij | `zellij run --direction right -- stickypane` |
+| Windows Terminal | `wt -w 0 split-pane -V stickypane` |
+| anything else | a second window or tab, in the same folder: `stickypane` |
+
+`stickypane env` prints the right command for the terminal you are in.
+
+**2. The first run sets the project up.** In a git repository it makes
+`.sticky/` at the top of the repository and tells your agent about the
+board, then opens it. Nothing to configure: every setting has a default
+(`S` on the board changes them).
+
+**3. Teach your agent, once.** Pick one:
+
+| Way | How | For |
+| --- | --- | --- |
+| the plugin | `stickypane setup` | Claude Code and Codex: five skills, slash commands, a session hook |
+| a guide in its instructions | done by step 2: a short guide in `CLAUDE.md` or `AGENTS.md` | any agent that reads those files |
+| MCP | `stickypane setup --mcp`, or `claude mcp add stickypane -- stickypane mcp` | any MCP client |
+
+For another MCP client, the server is the command `stickypane mcp` on
+standard input and output:
+
+```json
+{ "mcpServers": { "stickypane": { "command": "stickypane", "args": ["mcp"] } } }
 ```
 
-In a git repository, the first run makes `.sticky/` at the top of the
-repository and tells your agent about the board, then opens it. Then ask
-your agent for anything: "keep a checklist of this refactor on the board",
-"explain the structure on the board as a page".
+**4. Ask for things.** "Keep a checklist of this refactor on the board."
+"Explain the structure on the board as a page." "Ask me on the board
+before you deploy." The agent writes the files; the board shows them as
+they change, and what you do on the board lands in the same files.
+
+### More on the setup
 
 Telling the agent means a short guide where it reads it: `CLAUDE.md` and
 `AGENTS.md` when they exist, a Claude Code skill
 (`.claude/skills/stickypane/SKILL.md`) when the project has a `.claude`
 folder but no `CLAUDE.md`, and a new `AGENTS.md` when there is nothing. An
-agent with the plugin below installed gets nothing in its file, since the
-plugin teaches it. `stickypane init` does the same without opening the
-board, and works outside a git repository too; it is safe to run again.
-`--skill` writes the skill instead of the instruction files and
-`--no-agent-docs` makes the folder only.
+agent with the plugin installed gets nothing in its file, since the plugin
+teaches it. `stickypane init` does the same without opening the board, and
+works outside a git repository too; it is safe to run again. `--skill`
+writes the skill instead of the instruction files and `--no-agent-docs`
+makes the folder only.
 
-**As a plugin.** The repository is also a Claude Code and Codex plugin, so
-the agent learns the board without a guide in your files. One command
-installs it for every agent it finds, through the agents' own commands:
+`stickypane setup` installs the plugin for every agent it finds, through
+the agents' own commands:
 
 ```sh
 stickypane setup                       # asks, then installs for Claude Code and Codex
@@ -126,20 +231,15 @@ MCP server, `--agents claude,codex` limits it to some agents, and
 `--dry-run` prints the commands without running them. In a terminal it
 asks for what the flags did not say.
 
-It brings three skills (`using-the-board`, `asking-the-user`,
-`tracking-progress`), the commands `/board:show`, `/board:status`,
-`/board:ask`, `/board:kinds` and `/board:setup`, and a session hook that
-tells the agent what is on the board when a session starts in a project
-that has one. No setup step is needed: in a git repository the agent's
-first `stickypane show` or `stickypane todo` makes the board.
-
-Keep the board next to your agent:
-
-```sh
-tmux split-window -h stickypane             # tmux pane
-tmux display-popup -E stickypane            # tmux popup
-wezterm cli split-pane --right -- stickypane
-```
+The plugin is in layers. The way in, `using-the-board`, says which of four
+skills fits a job: `tracking-progress`, `asking-the-user`,
+`talking-in-chat` and `connecting-notes`. The commands `/board:show`,
+`/board:status`, `/board:index`, `/board:track`, `/board:ask`,
+`/board:say`, `/board:kinds` and `/board:setup` each start one. A session
+hook tells the agent what is on the board when a session starts in a
+project that has one. In a git repository the agent's first
+`stickypane show` or `stickypane todo` makes the board, so no setup step
+is needed.
 
 ## The folder is the board
 
@@ -739,13 +839,22 @@ Replacing the file has two limits:
 A shape is one package under `internal/widget/` that implements the
 `widget.Widget` interface, plus one line in `internal/kinds/kinds.go`.
 
-## Feedback and contributing
+## Contributing
 
-Design feedback is worth more than code right now: see
-[CONTRIBUTING.md](CONTRIBUTING.md) for what helps and how, and
-[Discussions](https://github.com/LeeSwallow/stickypane/discussions) for
-the open questions. Bugs go to the
-[issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose).
+Design feedback is worth more than code right now: what you expected the
+board to show, and what it did. [CONTRIBUTING.md](CONTRIBUTING.md) says how
+an idea becomes an issue, a proposal, a pull request and a release, how to
+take an issue, and how to set up and test. Good places to start: issues
+labelled [good first issue](https://github.com/LeeSwallow/stickypane/labels/good%20first%20issue)
+or [accepted](https://github.com/LeeSwallow/stickypane/labels/accepted).
+Coding agents read [AGENTS.md](AGENTS.md) first.
+
+## Support
+
+Questions go to [Discussions](https://github.com/LeeSwallow/stickypane/discussions),
+bugs and ideas to the [issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose),
+and security problems privately, as [SECURITY.md](SECURITY.md) says. More
+in [SUPPORT.md](SUPPORT.md).
 
 ## Alternatives
 
@@ -760,5 +869,7 @@ and answers that go back.
 
 ## License
 
-MIT. Third-party palettes and libraries are listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE), © 2026 LeeSwallow. The libraries stickypane is built from
+are all under MIT or BSD licenses; they and the color palettes of the
+themes are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and
+every release archive carries their license texts.

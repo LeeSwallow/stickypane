@@ -8,8 +8,8 @@ Claude Code, Codex 같은 AI 코딩 에이전트를 위한 칸반, 체크리스�
 
 [English](README.md) · 한국어
 
-> 이 문서는 `README.md`의 번역이며 요약본입니다(커밋 `8e8b745` 기준이고, '시작'
-> 절과 폴더 표는 그 뒤에 바뀐 init과 탭까지 반영했습니다). 영문이 원본이고 더
+> 이 문서는 `README.md`의 번역이며 요약본입니다(커밋 `8e8b745` 기준이고, '설치',
+> '시작', '기여' 절과 폴더 표는 그 뒤의 변경까지 반영했습니다). 영문이 원본이고 더
 > 자세합니다. 두 문서가 다르면 영문이 맞습니다.
 
 ```
@@ -42,40 +42,59 @@ stickypane이 그 보드입니다. 평범한 파일이 든 폴더(`.sticky/`) �
 
 ## 설치
 
+프로그램 하나이고 따로 필요한 것이 없습니다. macOS, Linux, Windows에서, 유니코드와
+색을 보여 주는 터미널이면 어디서나 돕니다. 특별한 글꼴도 필요 없습니다.
+
 ```sh
-brew install --cask LeeSwallow/tap/stickypane
-# 또는
-go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest
+brew install --cask LeeSwallow/tap/stickypane                      # Homebrew
+go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest  # Go 1.26 이상
 ```
 
-macOS와 Linux를 지원합니다.
+[릴리스](https://github.com/LeeSwallow/stickypane/releases)에는 시스템마다 압축
+파일이 있습니다(`darwin`, `linux`, `windows` × `amd64`, `arm64`). 풀어서 나온
+`stickypane`을 PATH에 있는 폴더에 두면 됩니다. Windows는 zip을 풀어 PATH에
+추가합니다. 명령 예시와 체크섬 확인, macOS Gatekeeper 처리는 영문 README의
+[Install](README.md#install)에 있습니다.
+
+```sh
+stickypane version   # 설치 확인
+stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
+```
+
+지우려면 플러그인을 넣었을 때 `stickypane setup --undo`를 먼저 하고, 설치한
+방법대로 지웁니다. 노트는 각 프로젝트의 `.sticky/`에 평범한 파일로 남습니다.
 
 ## 시작
 
-```sh
-cd your-project
-stickypane               # 처음엔 프로젝트를 준비하고, 보드를 엽니다
-stickypane language ko   # 화면을 한국어로
-```
+**1. 에이전트 옆에 보드를 띄웁니다.** 프로젝트 폴더에서 창을 나눠 `stickypane`을
+실행합니다. `stickypane env`가 지금 터미널에 맞는 명령을 알려 줍니다.
 
-git 저장소에서 처음 실행하면 저장소 맨 위에 `.sticky/`를 만들고 에이전트에게
-보드를 알린 뒤 엽니다. 알리는 방법은 있는 것을 보고 정합니다. `CLAUDE.md`와
-`AGENTS.md`가 있으면 거기에 짧은 안내문을 넣고, `CLAUDE.md` 없이 `.claude`
-폴더만 있으면 Claude Code 스킬로 넣고, 아무것도 없으면 `AGENTS.md`를 만듭니다.
-아래 플러그인이 설치된 에이전트의 파일은 건드리지 않습니다. `stickypane init`은
-보드를 열지 않고 같은 일을 하며, git 저장소 밖에서도 되고 여러 번 실행해도
-안전합니다.
+| 터미널 | 명령 |
+| --- | --- |
+| tmux | `tmux split-window -h stickypane` |
+| WezTerm | `wezterm cli split-pane --right -- stickypane` |
+| Zellij | `zellij run --direction right -- stickypane` |
+| Windows Terminal | `wt -w 0 split-pane -V stickypane` |
 
-플러그인으로 쓰려면 아래 두 줄이면 됩니다. 따로 준비할 것은 없습니다. git
-저장소에서는 에이전트의 첫 `stickypane show`나 `todo`가 보드를 만듭니다.
+**2. 처음 실행하면 프로젝트를 준비합니다.** git 저장소 맨 위에 `.sticky/`를 만들고
+에이전트에게 보드를 알린 뒤 엽니다. 설정할 것은 없습니다. 모든 설정에 기본값이
+있고, 보드에서 `S`로 바꿉니다. 화면을 한국어로 하려면 `stickypane language ko`.
 
-```sh
-claude plugin marketplace add LeeSwallow/stickypane
-claude plugin install board@stickypane
-```
+**3. 에이전트에게 한 번 알려 줍니다.** 셋 중 하나입니다.
 
-에이전트 옆에 띄우기: `tmux split-window -h stickypane`, `tmux display-popup -E stickypane`,
-`wezterm cli split-pane --right -- stickypane`.
+| 방법 | 명령 | 대상 |
+| --- | --- | --- |
+| 플러그인 | `stickypane setup` | Claude Code, Codex: 스킬 다섯 개, 슬래시 명령, 세션 훅 |
+| 안내문 | 2단계가 `CLAUDE.md`나 `AGENTS.md`에 넣습니다 | 그 파일을 읽는 모든 에이전트 |
+| MCP | `stickypane setup --mcp` | MCP를 쓰는 모든 클라이언트 |
+
+**4. 시키면 됩니다.** "이 리팩터 체크리스트를 보드에 띄워 줘", "배포 전에 보드에서
+물어봐". 에이전트가 파일을 쓰면 보드에 나타나고, 보드에서 한 일은 같은 파일에
+남습니다.
+
+플러그인은 계층으로 되어 있습니다. 입구 스킬 `using-the-board`가 일에 맞는 스킬을
+알려 줍니다: 진행 추적(`tracking-progress`), 묻기(`asking-the-user`), 채팅
+(`talking-in-chat`), 노트 연결(`connecting-notes`).
 
 ## 폴더가 곧 보드
 
@@ -135,9 +154,22 @@ stickypane wait deploy --timeout 10m        # 폼의 버튼이 눌릴 때까지
 ## 설계
 
 [VISION.md](VISION.md)(원칙), [ROADMAP.md](ROADMAP.md)(계획과 열린 질문),
-`docs/superpowers/specs/`(설계 문서, 한국어). 기여 방법은
-[CONTRIBUTING.md](CONTRIBUTING.md), 번역은 [docs/translating.md](docs/translating.md).
+`docs/superpowers/specs/`(설계 문서, 한국어), [docs/architecture.md](docs/architecture.md)(코드 구조).
+
+## 기여와 문의
+
+지금은 코드보다 "보드가 이렇게 해 주길 바랐다"는 피드백이 더 도움이 됩니다.
+아이디어가 이슈, 제안, 풀 리퀘스트, 릴리스가 되는 과정과 이슈를 맡는 방법, 개발
+환경은 [CONTRIBUTING.md](CONTRIBUTING.md)에 있습니다. 시작하기 좋은 이슈에는
+`good first issue`나 `accepted` 라벨이 붙습니다. 코딩 에이전트는
+[AGENTS.md](AGENTS.md)를 먼저 읽습니다. 질문은
+[Discussions](https://github.com/LeeSwallow/stickypane/discussions), 버그는
+[이슈](https://github.com/LeeSwallow/stickypane/issues/new/choose), 보안 문제는
+[SECURITY.md](SECURITY.md)대로 비공개로 알려 주세요. 번역은
+[docs/translating.md](docs/translating.md).
 
 ## 라이선스
 
-MIT. 쓰인 팔레트와 라이브러리는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에.
+[MIT](LICENSE). 쓰인 라이브러리는 모두 MIT나 BSD 라이선스이고, 테마 팔레트와 함께
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있습니다. 릴리스 압축 파일마다
+그 라이선스 원문이 들어 있습니다.
