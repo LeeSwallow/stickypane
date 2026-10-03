@@ -265,7 +265,8 @@ func (rn *Runner) after(ctx context.Context, res *Result, scope Scope, osEnv fun
 	got := response{status: res.Status, header: res.Header, body: res.Body, took: res.Took, grpc: res.GRPC}
 	got.sent, got.received = res.Counts()
 	for _, a := range r.Asserts {
-		ok, seen := got.check(a)
+		filled, _ := Fill(a, scope, osEnv) // "== {{user}}" compares with the user
+		ok, seen := got.check(filled)
 		res.Checks = append(res.Checks, Check{Expr: a, OK: ok, Got: seen})
 	}
 	for _, c := range r.Captures {

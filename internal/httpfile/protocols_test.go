@@ -225,3 +225,19 @@ func TestALogKeepsASectionPerRequest(t *testing.T) {
 		t.Errorf("an old log goes: %q", got)
 	}
 }
+
+func TestAnAssertionFillsInVariables(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"name":"sam"}`))
+	}))
+	defer srv.Close()
+	file := "@who = sam\n### Me\nGET " + srv.URL + "\n# @assert response.json(\"name\") == \"{{who}}\"\n"
+	res := (&Runner{Root: t.TempDir()}).Send(context.Background(), Parse(file), 0)
+	if res.Passed() != 1 {
+		t.Errorf("checks: %+v", res.Checks)
+	}
+	if res.Checks[0].Expr != `response.json("name") == "{{who}}"` {
+		t.Errorf("the log shows the assertion as written: %q", res.Checks[0].Expr)
+	}
+}

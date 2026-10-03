@@ -126,17 +126,40 @@ func (w *withLog) Draw(width int, active bool) (string, widget.Span) {
 	}
 	for _, l := range output {
 		style := lipgloss.NewStyle()
-		switch { // the checks of a request
+		switch { // the checks of a request, and what is said about it
 		case strings.HasPrefix(l, "✔ "):
 			style = widget.Good
 		case strings.HasPrefix(l, "✘ "):
 			style = widget.Bad
+		case strings.HasPrefix(l, "· wait "), strings.HasPrefix(l, "descriptors: "):
+			style = widget.Faint
 		}
-		for _, part := range widget.Wrap(widget.Clean(l), max(width, 1)) {
+		for i, part := range widget.Wrap(widget.Clean(l), max(width, 1)) {
+			if i == 0 && (strings.HasPrefix(part, "→ ") || strings.HasPrefix(part, "← ")) {
+				lines = append(lines, transcriptLine(part))
+				continue
+			}
 			lines = append(lines, style.Render(part))
 		}
 	}
 	return widget.Fit(strings.Join(lines, "\n"), width), at
+}
+
+// transcriptLine draws a line of a WebSocket session: the arrow in the
+// color of its way (sent, received), the time faint, a control message
+// (ping, pong, close) faint too.
+func transcriptLine(l string) string {
+	arrow, rest, _ := strings.Cut(l, " ")
+	at, msg, _ := strings.Cut(rest, "  ")
+	dir := widget.Accent
+	if arrow == "←" {
+		dir = widget.Good
+	}
+	body := lipgloss.NewStyle()
+	if w, _, _ := strings.Cut(msg, " "); w == "ping" || w == "pong" || w == "close" || msg == "close" {
+		body = widget.Faint
+	}
+	return dir.Render(arrow) + " " + widget.Faint.Render(at) + "  " + body.Render(msg)
 }
 
 // Summary implements widget.Widget: how the last run ended, else the

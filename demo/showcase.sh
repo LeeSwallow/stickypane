@@ -143,6 +143,47 @@ sp show 30-notes/design
 sp show 30-notes/tokens
 sp show 30-notes/commits
 
+# --- The fourth tab: an API to try, REST, WebSocket and gRPC ------------
+# The requests go to public echo servers; offline they say "not sent yet".
+mkdir -p .sticky/40-api
+cat >.sticky/40-api/rest-client.env.json <<'MD'
+{
+  "$shared": { "user": "sam" },
+  "dev": { "rest": "https://httpbin.org", "socket": "wss://ws.postman-echo.com/raw", "grpc": "grpcb.in:9000" }
+}
+MD
+cat >.sticky/40-api/api.http <<'MD'
+# @env dev
+
+### Create user
+POST {{rest}}/anything
+Content-Type: application/json
+
+{"name": "{{user}}", "role": "admin"}
+# @assert response.statusCode == 200
+# @assert response.json("json.name") == "{{user}}"
+
+### Live updates
+# @websocket timeout=5s idle-timeout=1500ms
+# @ws send {"type":"subscribe","channel":"builds"}
+# @ws send-json {"type":"ping","user":"{{user}}"}
+# @ws ping heartbeat
+# @ws close 1000 done
+# @assert response.received >= 2
+GET {{socket}}
+
+### Say hello
+# @grpc hello.HelloService/SayHello
+# @grpc-plaintext true
+# @assert response.grpc.status == "OK"
+GRPC {{grpc}}
+
+{"greeting": "{{user}}"}
+MD
+stickypane api 40-api/api --all >/dev/null 2>&1 || true
+sp show 40-api/api
+sp set 40-api/api size=page
+
 # A demo is photographed at once, so give the times some history: the
 # board wrote them all this minute. The card left in Doing for two hours
 # is the one the board marks as stalled.

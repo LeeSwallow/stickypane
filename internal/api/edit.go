@@ -237,6 +237,7 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	file = a.existing(name, file)
 	if len(pairs) == 0 {
 		return "", errors.New("nothing to set: give key=value pairs")
 	}

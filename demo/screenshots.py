@@ -21,6 +21,7 @@ SHOTS = [
     ("3-notes", ["3"]),
     ("4-index", ["1", "i"]),
     ("5-settings", ["Escape", "S"]),
+    ("6-api", ["Escape", "4", "j"]),
 ]
 
 BASE16 = ["#45475a", "#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#f5c2e7", "#94e2d5", "#bac2de",

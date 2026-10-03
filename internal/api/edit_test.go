@@ -162,6 +162,9 @@ func TestANameWithoutItsExtensionFindsTheNoteThatHasIt(t *testing.T) {
 	if got, err := a.Hide("live"); err != nil || got != "hidden live.http" {
 		t.Errorf("Hide = %q, %v", got, err)
 	}
+	if got, err := a.Set("live", []string{"size=page"}); err != nil || !strings.HasPrefix(got, "live.http:") {
+		t.Errorf("Set = %q, %v", got, err)
+	}
 	if b, err := a.Cat("live"); err != nil || !strings.Contains(string(b), "### Ping") {
 		t.Errorf("Cat = %q, %v", b, err)
 	}

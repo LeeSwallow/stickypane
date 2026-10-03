@@ -238,7 +238,7 @@ func (a *API) Answers(name string) (form.Answers, error) {
 	if err != nil {
 		return form.Answers{}, err
 	}
-	b, err := a.st.Read(file)
+	b, err := a.st.Read(a.existing(name, file))
 	if err != nil {
 		return form.Answers{}, err
 	}
