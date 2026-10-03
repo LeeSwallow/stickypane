@@ -1,7 +1,7 @@
 name: Design feedback
 description: stickypane is at the design stage. Tell me what you wanted the board to do.
 title: "[design] "
-labels: ["design", "feedback wanted"]
+labels: ["design", "feedback wanted", "needs triage"]
 body:
   - type: markdown
     attributes:

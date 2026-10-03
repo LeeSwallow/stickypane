@@ -1,5 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Ideas and questions
+  - name: Questions and ideas
     url: https://github.com/LeeSwallow/stickypane/discussions
-    about: Not sure it is a bug or a feature? Start a discussion. Ideas is where new things begin.
+    about: How do I...? Is this a bug or a feature? Ideas start here, then become issues.
+  - name: A security problem
+    url: https://github.com/LeeSwallow/stickypane/security/advisories/new
+    about: Report it privately, not as an issue. See SECURITY.md.

@@ -1,0 +1,45 @@
+name: Proposal
+description: A change to how the board behaves, a new shape of note, a new command or file format. Agreed on before it is built.
+title: "proposal: "
+labels: ["proposal", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A proposal is how a bigger change gets agreed on before anyone spends a week on it, as in Go's proposal process.
+        It is discussed here; when the maintainer marks it **accepted**, it is ready to build, by you or anyone.
+        Small additions can be a feature request instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you or your agent cannot do today, with a real case.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: What changes for the user and for the agent. The file format, the command, the keys. A text mockup of the board helps.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to get there, and why not those.
+  - type: textarea
+    id: impact
+    attributes:
+      label: What it changes
+      description: Files, names or keys people rely on that would change; which packages it touches (docs/architecture.md); whether it fits VISION.md (no setup, plain files, any terminal, any agent).
+  - type: dropdown
+    id: build
+    attributes:
+      label: Would you build it once it is accepted?
+      options:
+        - "Yes"
+        - "Yes, with some pointers"
+        - "No"
+    validations:
+      required: true

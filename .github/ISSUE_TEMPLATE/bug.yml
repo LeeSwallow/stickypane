@@ -1,7 +1,7 @@
 name: Bug report
 description: Something did not work.
 title: "[bug] "
-labels: ["bug"]
+labels: ["bug", "needs triage"]
 body:
   - type: input
     id: version
@@ -37,3 +37,12 @@ body:
       description: A screenshot, the pasted screen, or the error.
     validations:
       required: true
+  - type: dropdown
+    id: fix
+    attributes:
+      label: Would you like to fix it?
+      description: Say so and the issue is yours once it is accepted; see "Taking an issue" in CONTRIBUTING.md.
+      options:
+        - "Yes"
+        - "Yes, with some pointers"
+        - "No"

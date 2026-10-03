@@ -1,6 +1,7 @@
 # The labels the flow uses, as name|color|description. scripts/sync-labels.sh
 # creates or updates them on GitHub; release.yml sorts the release notes by
 # them and the PR check asks for one kind label on every pull request.
+# CONTRIBUTING.md says what each status means and who moves an issue on.
 #
 # Kind: one per pull request; it decides the release-notes section.
 feature|0e8a16|Something the board could not do before
@@ -11,14 +12,21 @@ docs|0075ca|The README, the guide or other documentation
 plugin|5319e7|The Claude Code or Codex plugin: skills, commands, hooks
 chore|cfd3d7|Build, CI, refactoring, tests: nothing a user sees
 dependencies|0366d6|Pull requests that update a dependency file
+# Status: where an issue is. A new issue starts at needs triage.
+needs triage|ededed|New: the maintainer has not looked at it yet
+needs info|d876e3|Waiting for details from the person who opened it
+proposal|c5def5|A change to how the board behaves, discussed before it is built
+accepted|0e8a16|Agreed and ready: anyone may take it and open a pull request
+in progress|fbca04|Someone has taken it; see the assignee
 # Flow
 no-issue|fbca04|A pull request small enough to need no issue
 skip-changelog|ededed|Left out of the release notes
 # Issues
 design|c5def5|How the board should behave
 feedback wanted|d4c5f9|Waiting for people to try it and say
-good first issue|7057ff|Good for newcomers
-help wanted|008672|Extra attention is needed
+good first issue|7057ff|Small, well described, a good way in
+help wanted|008672|The maintainer would welcome a hand
+translation|0075ca|A language of the screen or of the README
 question|d876e3|Further information is requested
 duplicate|cfd3d7|This issue or pull request already exists
 wontfix|ffffff|This will not be worked on
