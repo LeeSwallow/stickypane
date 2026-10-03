@@ -21,7 +21,7 @@ func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
 	if v.Open == nil || !*v.Open || v.Pin == nil || !*v.Pin || v.Size == "" || v.Color == "" {
 		t.Errorf("the arrangement goes to sticky.json: %+v", v)
 	}
-	if s := screen(m); !strings.Contains(s, "● ✎ Plan 📌") || !strings.Contains(s, "the plan") {
+	if s := screen(m); !strings.Contains(s, "✎ Plan") || !strings.Contains(s, "the plan") || !m.pinned(m.items[0]) {
 		t.Errorf("the screen should show the arrangement:\n%s", s)
 	}
 	press(m, "o", "p")
@@ -35,12 +35,12 @@ func TestStickyJSONWinsOverFrontMatter(t *testing.T) {
 		"a.md": "---\nopen: true\nsize: page\npin: true\ncolor: blue\n---\nnote a\n",
 		"b.md": "---\nopen: true\n---\nnote b\n",
 	})
-	if s := screen(m); !strings.Contains(s, "note a") || !strings.Contains(s, "📌") {
+	if s := screen(m); !strings.Contains(s, "note a") || !m.pinned(m.items[0]) {
 		t.Fatalf("front matter arranges a note until the user says otherwise:\n%s", s)
 	}
 	writeView(t, dir, `{"notes":{"a.md":{"open":false,"pin":false}}}`)
 	press(m, "r")
-	if s := screen(m); strings.Contains(s, "note a") || strings.Contains(s, "📌") || !strings.Contains(s, "note b") {
+	if s := screen(m); strings.Contains(s, "note a") || m.pinned(m.items[0]) || !strings.Contains(s, "note b") {
 		t.Errorf("what sticky.json says wins:\n%s", s)
 	}
 }

@@ -56,7 +56,7 @@ func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
 	if !strings.Contains(s, "exit 3") || strings.Contains(s, "running") {
 		t.Errorf("the bottom line should say how the run ended:\n%s", s)
 	}
-	if !strings.Contains(s, "hello from the script") || !strings.Contains(s, "● ≣ deploy") {
+	if !strings.Contains(s, "hello from the script") || !strings.Contains(s, "≣ deploy") {
 		t.Errorf("the output is a log, open next to the script:\n%s", s)
 	}
 }
@@ -100,7 +100,7 @@ func TestAddingAScriptMakesAShellFile(t *testing.T) {
 	if got := readFile(t, dir, "run-tests.sh"); got != "#!/bin/sh\n" {
 		t.Fatalf("a new script is a .sh file without front matter: %q", got)
 	}
-	if s := screen(m); !strings.Contains(s, "● ▶ run-tests") {
+	if s := screen(m); !strings.Contains(s, "▶ run-tests") || !m.isOpen(m.items[0]) {
 		t.Errorf("the new script should be open:\n%s", s)
 	}
 }

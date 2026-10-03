@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -10,10 +11,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
-
-// ruleHeight is the shortest screen that spends a line on the rule under
-// the title bar.
-const ruleHeight = 8
 
 func init() {
 	handlers[modeBoard] = mainUpdate
@@ -121,68 +118,113 @@ func mainFooter(m *Model) string {
 	return hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
 }
 
-// titleBar lists every note like a row of tabs, wrapping onto more lines
-// when they do not fit: "●" marks an open note and "○" a closed one, then the
-// shape's icon and the title, "📌" for a pinned note and "*" for one that
-// changed since it was last focused. The bar never takes more than a third
-// of the screen: with more notes than that it shows the lines around the
-// focused tab. On a screen tall enough, a rule sets it apart from the notes.
+// titleBar is one line of tabs, like the tab strips of yazi and zellij:
+// an open note is a tab with a tinted background in the note's color, the
+// focused one a ribbon in the accent color, and a closed note plain muted
+// text. A note that changed since it was last focused carries a dot. When
+// the tabs do not fit, the ones around the focus are shown and the ends say
+// how many more there are on each side. The right end says which screen of
+// notes is shown when there is more than one.
 func (m *Model) titleBar() []string {
-	var lines []string
-	var line strings.Builder
-	used, focusLine := 0, 0
 	m.tabs = m.tabs[:0]
-	for _, it := range m.items {
-		open := m.isOpen(it)
-		text := "○ "
-		if open {
-			text = "● "
-		}
-		if it.kind.Icon != "" {
-			text += it.kind.Icon + " "
-		}
-		text += m.label(it)
-		if m.pinned(it) {
-			text += " 📌"
-		}
+	if len(m.items) == 0 {
+		return nil
+	}
+	th := m.theme.Get()
+	type tab struct {
+		text string
+		w    int
+		st   lipgloss.Style
+	}
+	tabs := make([]tab, len(m.items))
+	focus, open := 0, 0
+	for i, it := range m.items {
+		text := strings.TrimSpace(it.kind.Icon + " " + m.label(it))
 		if m.changed(it) {
-			text += " *"
+			text += " •"
 		}
-		text = widget.Truncate(text, max(m.width-2, 1))
-		w := widget.Width(text) + 2
-		if used > 0 && used+w > m.width {
-			lines = append(lines, line.String())
-			line.Reset()
-			used = 0
-		}
-		st := lipgloss.NewStyle().Foreground(m.color(it))
+		// A tab is never wider than a third of the screen, but on a
+		// narrow screen a name still gets a readable length.
+		text = " " + widget.Truncate(text, max(min(max(m.width/3, 24), m.width-4), 4)) + " "
+		t := tab{text: text, w: widget.Width(text)}
 		switch {
 		case it.note.Name == m.focus:
-			focusLine = len(lines)
-			text = widget.Selected.Foreground(m.color(it)).Bold(true).Render(" " + text + " ")
-		case open:
-			text = " " + st.Render(text) + " "
+			focus = i
+			t.st = lipgloss.NewStyle().Background(lipgloss.Color(th.Accent)).Foreground(lipgloss.Color(th.Base)).Bold(true)
+		case m.isOpen(it):
+			open++
+			t.st = lipgloss.NewStyle().Background(lipgloss.Color(th.Select)).Foreground(m.color(it))
 		default:
-			text = " " + widget.Faint.Render(text) + " "
+			t.st = widget.Faint
 		}
-		line.WriteString(text)
-		m.tabs = append(m.tabs, tab{name: it.note.Name, y: len(lines), x0: used, x1: used + w})
-		used += w
+		tabs[i] = t
 	}
-	if used > 0 {
-		lines = append(lines, line.String())
+
+	right := ""
+	if m.screens > 1 {
+		right = fmt.Sprintf(" %d/%d", m.screen+1, m.screens)
 	}
-	if limit := max((m.height-1)/3, 1); len(lines) > limit {
-		start := widget.ClampOffset(focusLine-limit/2, len(lines), limit)
-		lines = lines[start : start+limit]
-		for i := range m.tabs {
-			m.tabs[i].y -= start // a tab scrolled out of the bar gets a line that is not there
+	avail := m.width - widget.Width(right)
+
+	// The window of tabs: the focused one, then neighbors on either side
+	// while they fit, keeping room for the counts of what is left out.
+	lo, hi := focus, focus+1
+	used := tabs[focus].w
+	marker := func(n int, left bool) string {
+		if n == 0 {
+			return ""
+		}
+		if left {
+			return fmt.Sprintf("‹%d ", n)
+		}
+		return fmt.Sprintf(" %d›", n)
+	}
+	room := func() int {
+		return avail - widget.Width(marker(lo, true)) - widget.Width(marker(len(tabs)-hi, false))
+	}
+	for {
+		grew := false
+		if hi < len(tabs) && used+1+tabs[hi].w <= room()-widget.Width(marker(len(tabs)-hi-1, false))+widget.Width(marker(len(tabs)-hi, false)) {
+			used += 1 + tabs[hi].w
+			hi++
+			grew = true
+		}
+		if lo > 0 && used+1+tabs[lo-1].w <= room()-widget.Width(marker(lo-1, true))+widget.Width(marker(lo, true)) {
+			used += 1 + tabs[lo-1].w
+			lo--
+			grew = true
+		}
+		if !grew {
+			break
 		}
 	}
-	if len(lines) > 0 && m.height >= ruleHeight {
-		lines = append(lines, widget.Faint.Render(strings.Repeat("─", m.width)))
+
+	var line strings.Builder
+	x := 0
+	if left := marker(lo, true); left != "" {
+		line.WriteString(widget.Faint.Render(left))
+		x += widget.Width(left)
 	}
-	return lines
+	for i := lo; i < hi; i++ {
+		if i > lo {
+			line.WriteString(" ")
+			x++
+		}
+		m.tabs = append(m.tabs, hit{name: m.items[i].note.Name, y: 0, x0: x, x1: x + tabs[i].w})
+		line.WriteString(tabs[i].st.Render(tabs[i].text))
+		x += tabs[i].w
+	}
+	if rightMarker := marker(len(tabs)-hi, false); rightMarker != "" {
+		line.WriteString(widget.Faint.Render(rightMarker))
+		x += widget.Width(rightMarker)
+	}
+	if gap := m.width - x - widget.Width(right); gap > 0 {
+		line.WriteString(strings.Repeat(" ", gap))
+	}
+	if right != "" {
+		line.WriteString(widget.Faint.Render(right))
+	}
+	return []string{line.String()}
 }
 
 // stepFocus moves to the next or previous note in title bar order, wrapping.

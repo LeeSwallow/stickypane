@@ -114,8 +114,8 @@ func TestTitleBarListsEveryNoteAndOnlyOpenOnesAreDrawn(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "closed note body\n", "b.md": boardFile})
 	s := screen(m)
 	bar := strings.Split(s, "\n")[0]
-	if !strings.Contains(bar, "○ ✎ a") || !strings.Contains(bar, "● ▦ Auth") {
-		t.Errorf("the title bar should list both notes with their state: %q", bar)
+	if !strings.Contains(bar, "✎ a") || !strings.Contains(bar, "▦ Auth") || m.isOpen(m.items[0]) || !m.isOpen(m.items[1]) {
+		t.Errorf("the title bar should list both notes: %q", bar)
 	}
 	if !strings.Contains(s, "payments") || !strings.Contains(s, "To do (1)") {
 		t.Errorf("the open board should be drawn:\n%s", s)
@@ -132,11 +132,11 @@ func TestTheScreenHasVisualStructure(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": boardFile})
 	press(m, "tab")
 	lines := strings.Split(screen(m), "\n")
-	if lines[1] != strings.Repeat("─", 80) {
-		t.Errorf("a rule should separate the title bar from the notes: %q", lines[1])
+	if len(m.bar) != 1 || widget.Width(lines[0]) != 80 || !strings.HasPrefix(lines[0], " ✎ a ") {
+		t.Errorf("the title bar is one line of tabs across the screen: %q", lines[0])
 	}
-	if !strings.HasPrefix(lines[2], "╔ ▦ Auth ") || !strings.HasSuffix(lines[2], " 3 cards ╗") {
-		t.Errorf("the frame should carry the shape's icon and the note's summary: %q", lines[2])
+	if !strings.HasPrefix(lines[1], "╔ ▦ Auth ") || !strings.HasSuffix(lines[1], " 3 cards ╗") {
+		t.Errorf("the frame should carry the shape's icon and the note's summary: %q", lines[1])
 	}
 	foot := lines[len(lines)-1]
 	if !strings.Contains(foot, "H L shift card") || !strings.Contains(foot, "enter zoom") {
@@ -214,14 +214,14 @@ func TestOTogglesOpen(t *testing.T) {
 	if got := isOpenIn(t, dir, "a.md"); got != "true" || readFile(t, dir, "a.md") != "one\n" {
 		t.Fatalf("open = %q, file = %q", got, readFile(t, dir, "a.md"))
 	}
-	if s := screen(m); !strings.Contains(s, "one") || !strings.Contains(s, "● ✎ a") {
+	if s := screen(m); !strings.Contains(s, "one") || !m.isOpen(m.items[0]) {
 		t.Errorf("the note should be open now:\n%s", s)
 	}
 	press(m, "o")
 	if got := isOpenIn(t, dir, "a.md"); got != "false" {
 		t.Errorf("open = %q", got)
 	}
-	if s := screen(m); !strings.Contains(s, "○ ✎ a") || !strings.Contains(s, "Nothing is open") {
+	if s := screen(m); m.isOpen(m.items[0]) || !strings.Contains(s, "Nothing is open") {
 		t.Errorf("the note should be closed again:\n%s", s)
 	}
 }
@@ -305,10 +305,12 @@ func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
 		t.Fatalf("the title bar must leave room for the open note:\n%s", s)
 	}
 	for i := 0; i < 30; i++ {
-		lines := strings.Split(screen(m), "\n")
-		bar := strings.Join(lines[:6], "\n")
-		if want := fmt.Sprintf("%02d-note-number", i); !strings.Contains(bar, want) {
-			t.Fatalf("the focused tab %s should be visible in the title bar:\n%s", want, bar)
+		bar := strings.Split(screen(m), "\n")[0]
+		if want := fmt.Sprintf("%02d-note-number", i); !strings.Contains(bar, want) || widget.Width(bar) > 40 {
+			t.Fatalf("the focused tab %s should be visible in the one-line title bar:\n%s", want, bar)
+		}
+		if i > 0 && !strings.Contains(bar, "‹") {
+			t.Errorf("the bar should say how many tabs are left out on the left: %q", bar)
 		}
 		press(m, "tab")
 	}
@@ -463,14 +465,14 @@ func TestClosedNotesDoNotTakeWidgetKeys(t *testing.T) {
 func TestPinnedNotesComeFirst(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "z.md": "---\npin: true\n---\npinned\n"})
 	bar := strings.Split(screen(m), "\n")[0]
-	if m.items[0].note.Name != "z.md" || strings.Index(bar, "z") > strings.Index(bar, "○ ✎ a") || !strings.Contains(bar, "📌") {
-		t.Errorf("the pinned note should come first and show its pin: %q", bar)
+	if m.items[0].note.Name != "z.md" || strings.Index(bar, "z") > strings.Index(bar, "✎ a") {
+		t.Errorf("the pinned note should come first: %q", bar)
 	}
 }
 
 func TestChangedNotesAreMarkedUntilFocused(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
-	if strings.Contains(screen(m), "*") {
+	if strings.Contains(screen(m), "•") {
 		t.Fatal("nothing changed yet")
 	}
 	writeFile(t, dir, "b.md", "two, edited by the agent\n")
@@ -479,11 +481,11 @@ func TestChangedNotesAreMarkedUntilFocused(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.Update(changedMsg{})
-	if bar := strings.Split(screen(m), "\n")[0]; strings.Count(bar, "*") != 1 {
+	if bar := strings.Split(screen(m), "\n")[0]; strings.Count(bar, "•") != 1 {
 		t.Fatalf("the edited note should be marked in the title bar: %q", bar)
 	}
 	press(m, "tab")
-	if strings.Contains(screen(m), "*") {
+	if strings.Contains(screen(m), "•") {
 		t.Errorf("the mark should clear once the note was focused:\n%s", screen(m))
 	}
 }

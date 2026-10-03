@@ -13,8 +13,8 @@ const (
 	doubleClick = 400 * time.Millisecond // two clicks this close are one double click
 )
 
-// tab is where a note's title is in the title bar.
-type tab struct {
+// hit is where a note's title is in the title bar.
+type hit struct {
 	name      string
 	y, x0, x1 int
 }

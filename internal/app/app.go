@@ -110,7 +110,7 @@ type Model struct {
 
 	width, height int
 	bar           []string       // the title bar, one or more lines
-	tabs          []tab          // mouse.go: where each note's title is in the bar
+	tabs          []hit          // mouse.go: where each note's title is in the bar
 	panes         []pane         // the open notes, each in its place
 	screen        int            // which screen of panes is shown
 	screens       int            // how many screens the open notes take
@@ -711,7 +711,9 @@ func (m *Model) relayout() {
 	if m.width <= 0 {
 		return
 	}
-	m.bar = m.titleBar()
+	if len(m.items) > 0 {
+		m.bar = []string{""} // one line, drawn once the screens are known
+	}
 	h := m.bodyHeight()
 
 	var open []item
@@ -792,23 +794,12 @@ func (m *Model) relayout() {
 		}))
 	}
 	m.canvas = layout.Compose(rects, boxes)
-	m.markScreen()
+	m.bar = m.titleBar()
 
 	if m.zoomed() {
 		m.layoutZoom()
 	}
 	m.reveal = revealNothing
-}
-
-// markScreen writes "2/3" at the end of the rule under the title bar when
-// the open notes take more than one screen.
-func (m *Model) markScreen() {
-	if m.screens < 2 || len(m.bar) == 0 || m.height < ruleHeight {
-		return
-	}
-	mark := fmt.Sprintf(" %d/%d ", m.screen+1, m.screens)
-	rule := strings.Repeat("─", max(m.width-widget.Width(mark)-1, 0))
-	m.bar[len(m.bar)-1] = widget.Faint.Render(rule) + widget.Bold.Render(mark) + widget.Faint.Render("─")
 }
 
 // paneOf returns the pane of an open note.

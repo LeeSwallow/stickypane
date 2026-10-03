@@ -35,12 +35,12 @@ const openAll = `{"notes":{"build.log":{"open":true},"docs":{"open":true}}}`
 
 func TestALogFileIsShownAsItIs(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"build.log": "---\nnot front matter\n---\ncompiled **ok**\n"})
-	if s := screen(m); !strings.Contains(s, "○ ≣ build") {
+	if s := screen(m); !strings.Contains(s, "≣ build") || m.isOpen(m.items[0]) {
 		t.Fatalf("a .log file is a note, a log, and closed until it is opened:\n%s", s)
 	}
 	press(m, "o")
 	s := screen(m)
-	for _, want := range []string{"● ≣ build", "not front matter", "compiled **ok**", "4 lines"} {
+	for _, want := range []string{"≣ build", "not front matter", "compiled **ok**", "4 lines"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("a log shows its file as it is, missing %q:\n%s", want, s)
 		}

@@ -19,6 +19,7 @@ type Theme struct {
 	Dark   bool   // made for a dark terminal
 	Source string // where the colors come from, with the license
 
+	Base   string // the background the theme is made for; text on an accent ribbon
 	Text   string // text drawn in a color of its own, such as a selection
 	Muted  string // hints, details, rules, inactive borders
 	Accent string // focus: the focused tab and border, buttons, scroll bars
@@ -39,7 +40,7 @@ var NoteNames = [6]string{"yellow", "pink", "blue", "green", "purple", "orange"}
 // roles returns the single colors by role name, for checks.
 func (t Theme) roles() map[string]string {
 	return map[string]string{
-		"text": t.Text, "muted": t.Muted, "accent": t.Accent, "select": t.Select,
+		"base": t.Base, "text": t.Text, "muted": t.Muted, "accent": t.Accent, "select": t.Select,
 		"good": t.Good, "warn": t.Warn, "bad": t.Bad, "info": t.Info,
 	}
 }
