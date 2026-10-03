@@ -35,12 +35,12 @@ const openAll = `{"notes":{"build.log":{"open":true},"docs":{"open":true}}}`
 
 func TestALogFileIsShownAsItIs(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"build.log": "---\nnot front matter\n---\ncompiled **ok**\n"})
-	if s := screen(m); !strings.Contains(s, "○ ≣ build") {
+	if s := screen(m); !strings.Contains(s, "≣ build") || m.isOpen(m.items[0]) {
 		t.Fatalf("a .log file is a note, a log, and closed until it is opened:\n%s", s)
 	}
 	press(m, "o")
 	s := screen(m)
-	for _, want := range []string{"● ≣ build", "not front matter", "compiled **ok**", "4 lines"} {
+	for _, want := range []string{"≣ build", "not front matter", "compiled **ok**", "4 lines"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("a log shows its file as it is, missing %q:\n%s", want, s)
 		}
@@ -63,14 +63,14 @@ func TestAFolderIsOneNoteWithPages(t *testing.T) {
 	press(m, "r", "tab")
 	s := screen(m)
 	if strings.Count(s, "docs") < 2 || !strings.Contains(s, "docs · Introduction") || !strings.Contains(s, "1/3") {
-		t.Fatalf("a folder is one note in the bar and one pane, showing its first page:\n%s", s)
+		t.Fatalf("a folder is one note in the bar and one pane, on its first page:\n%s", s)
 	}
-	if !strings.Contains(s, "the first page") || strings.Contains(s, "the second page") || !strings.Contains(s, "another note") {
-		t.Fatalf("only the shown page is drawn:\n%s", s)
+	if !strings.Contains(s, "─ Introduction ─") || !strings.Contains(s, "the first page") || !strings.Contains(s, "another note") {
+		t.Fatalf("the pages follow one another under a rule with the page's name:\n%s", s)
 	}
 	press(m, ".")
 	if s := screen(m); !strings.Contains(s, "the second page") || !strings.Contains(s, "docs · 02-usage") || !strings.Contains(s, "2/3") {
-		t.Fatalf(". should turn the page:\n%s", s)
+		t.Fatalf(". should scroll to the next page:\n%s", s)
 	}
 	press(m, ".")
 	if s := screen(m); !strings.Contains(s, "a log page") || !strings.Contains(s, "3/3") {
@@ -82,14 +82,14 @@ func TestAFolderIsOneNoteWithPages(t *testing.T) {
 	}
 	press(m, ",", ",", ",", ",")
 	if s := screen(m); !strings.Contains(s, "the first page") || !strings.Contains(s, "1/3") {
-		t.Errorf(", should turn back to the first page:\n%s", s)
+		t.Errorf(", should go back to the first page:\n%s", s)
 	}
 	if s := screen(m); !strings.Contains(s, ", . page") {
 		t.Errorf("the bottom line should offer the page keys:\n%s", s)
 	}
 }
 
-func TestKeysActOnTheShownPage(t *testing.T) {
+func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "docs")
 	writeFile(t, dir, "docs/a-notes.md", "just text\n")
@@ -97,32 +97,42 @@ func TestKeysActOnTheShownPage(t *testing.T) {
 	writeView(t, dir, openAll)
 	press(m, "r", ".", "j", "space")
 	if got := readFile(t, dir, "docs/b-todo.md"); !strings.HasSuffix(got, "- [ ] one\n- [x] two\n") {
-		t.Fatalf("space should tick the item of the page that is shown: %q", got)
+		t.Fatalf("space should tick the item of the page the view is on: %q", got)
 	}
-	if s := screen(m); !strings.Contains(s, "1/2 · 2/2") && !strings.Contains(s, "2/2 · 1/2") {
+	if s := screen(m); !strings.Contains(s, "2/2 · 1/2") {
 		t.Errorf("the border should show the page and the page's own summary:\n%s", s)
 	}
-	// The page that was shown stays shown when the files change.
+	// The page the view is on stays when the files change.
 	writeFile(t, dir, "docs/a-first.md", "a new first page\n")
 	press(m, "r")
 	if s := screen(m); !strings.Contains(s, "☑ two") || !strings.Contains(s, "3/3") {
-		t.Errorf("a new page must not turn the book:\n%s", s)
+		t.Errorf("a new page must not move the view off its page:\n%s", s)
 	}
 }
 
-func TestEachPageKeepsItsOwnPlace(t *testing.T) {
+func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", numbered(80))
-	writeFile(t, dir, "docs/b.md", strings.ReplaceAll(numbered(80), "line", "row"))
+	writeFile(t, dir, "docs/a.md", numbered(40))
+	writeFile(t, dir, "docs/b.md", strings.ReplaceAll(numbered(40), "line", "row"))
 	writeView(t, dir, openAll)
-	press(m, "r", "G", ".")
-	if s := screen(m); !strings.Contains(s, "row 01") {
-		t.Fatalf("a page opens at its own top, wherever the last page was:\n%s", s)
+	press(m, "r", "G")
+	if s := screen(m); !strings.Contains(s, "row 40") || !strings.Contains(s, "2/2") {
+		t.Fatalf("G scrolls through every page to the end:\n%s", s)
 	}
 	press(m, ",")
-	if s := screen(m); !strings.Contains(s, "line 80") {
-		t.Errorf("turning back finds the page where it was left:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "line 01") || !strings.Contains(s, "1/2") {
+		t.Errorf(", should jump to the start of the first page:\n%s", s)
+	}
+	press(m, ".")
+	if s := screen(m); !strings.Contains(s, "─ b ─") || !strings.Contains(s, "row 01") || strings.Contains(s, "line 40") {
+		t.Errorf(". should put the next page at the top of the pane:\n%s", s)
+	}
+	for i := 0; i < 50; i++ {
+		press(m, "k")
+	}
+	if s := screen(m); !strings.Contains(s, "line 01") || !strings.Contains(s, "1/2") {
+		t.Errorf("scrolling up through the pages is one scroll:\n%s", s)
 	}
 }
 
@@ -134,7 +144,7 @@ func TestEditingAndDeletingAPage(t *testing.T) {
 	writeView(t, dir, openAll)
 	press(m, "r", ".", "e")
 	if s := screen(m); m.mode != modeEdit || !strings.Contains(s, "docs/b.md") || !strings.Contains(s, "page b") {
-		t.Fatalf("e should edit the file of the page that is shown:\n%s", s)
+		t.Fatalf("e should edit the file of the page the view is on:\n%s", s)
 	}
 	typeKeys(m, "A!<esc>:wq<enter>")
 	if got := readFile(t, dir, "docs/b.md"); got != "page b!\n" {

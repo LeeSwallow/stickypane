@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -87,7 +88,7 @@ func TestDiagramsFitTheWidthWhenTheyCan(t *testing.T) {
 }
 
 func TestMarkdownDrawsMermaid(t *testing.T) {
-	out := ansi.Strip(Markdown(&Theme{Dark: true})(flow, 70))
+	out := ansi.Strip(Markdown(theme.NewHolder(theme.Pick("auto", true)))(flow, 70))
 	if !strings.Contains(out, "┌") || strings.Contains(out, "graph LR") || !strings.Contains(out, "That is all.") {
 		t.Errorf("the styled renderer should draw Mermaid blocks too:\n%s", out)
 	}
@@ -128,6 +129,19 @@ func TestAWideFlowchartTurnsDownwards(t *testing.T) {
 	}
 }
 
+func TestANarrowPaneGetsATighterDrawing(t *testing.T) {
+	md := "```mermaid\ngraph LR\n  agent[에이전트] --> file[.stickypane/*.md]\n  file --> board[stickypane 화면]\n  board --> user[사용자]\n  user -->|키 입력| file\n```\n"
+	out := ansi.Strip(WithMermaid(note.Plain)(md, 46))
+	if strings.Contains(out, "graph LR") || !strings.Contains(out, "┌") {
+		t.Fatalf("a chart that fits when drawn tighter and top-down should be drawn:\n%s", out)
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if w := widget.Width(line); w > 46 {
+			t.Errorf("line %q is %d cells wide", line, w)
+		}
+	}
+}
+
 func TestLongerFencesAreRespected(t *testing.T) {
 	md := "Example:\n\n````markdown\n```mermaid\ngraph LR\n  A --> B\n```\n````\n\nafter\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 60))
@@ -147,7 +161,7 @@ func TestStylingLinesAndLabelledArrowsAreUnderstood(t *testing.T) {
 func TestTheSameDiagramIsDrawnOnce(t *testing.T) {
 	calls := 0
 	old := renderDiagram
-	renderDiagram = func(src string, width int) (string, error) { calls++; return old(src, width) }
+	renderDiagram = func(src string, width int, tight bool) (string, error) { calls++; return old(src, width, tight) }
 	defer func() { renderDiagram = old }()
 	render := WithMermaid(note.Plain)
 	for i := 0; i < 5; i++ {

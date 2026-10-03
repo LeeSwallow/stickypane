@@ -14,7 +14,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 	if file, err := a.Write("docs/guide", Options{Title: "Guide"}, []byte("how to\n")); err != nil || file != "docs/guide.md" {
 		t.Fatalf("Write = %q, %v", file, err)
 	}
-	if b, err := a.Show("docs/guide"); err != nil || string(b) != "---\ntitle: Guide\n---\nhow to\n" {
+	if b, err := a.Cat("docs/guide"); err != nil || string(b) != "---\ntitle: Guide\n---\nhow to\n" {
 		t.Errorf("Show = %q, %v", b, err)
 	}
 	if got, err := a.Todo("docs/todo", "add", "first"); err != nil || got != "docs/todo.md: 0/1" {
@@ -24,7 +24,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 		t.Errorf("Log to a .log file = %q, %v, %q", got, err, read(t, dir, "build.log"))
 	}
 	for _, bad := range []string{"../x", "a/b/c", "/abs", "docs/.hidden", "docs/", "/x", "a\\b", "x.png", "docs/x.png", ".x/y"} {
-		if _, err := a.Show(bad); err != ErrBadName {
+		if _, err := a.Cat(bad); err != ErrBadName {
 			t.Errorf("Show(%q) = %v, want ErrBadName", bad, err)
 		}
 	}
@@ -83,8 +83,8 @@ func TestSetPutsTheArrangementInStickyJSON(t *testing.T) {
 	if _, err := a.Set("build.log", []string{"open=true"}); err != nil {
 		t.Errorf("a log can be arranged: %v", err)
 	}
-	if _, err := a.Set("build.log", []string{"title=Build"}); err == nil || !strings.Contains(err.Error(), "Markdown") {
-		t.Errorf("a log has no front matter to put a title in: %v", err)
+	if _, err := a.Set("build.log", []string{"type=board"}); err == nil || !strings.Contains(err.Error(), "Markdown") {
+		t.Errorf("a log has no front matter to put a type in: %v", err)
 	}
 	if got, err := a.Set("docs", []string{"open=true"}); err != nil || got != "docs: set open" {
 		t.Errorf("a book is arranged by its folder's name: %q, %v", got, err)
@@ -93,5 +93,26 @@ func TestSetPutsTheArrangementInStickyJSON(t *testing.T) {
 		if _, err := a.Set("a", bad); err == nil {
 			t.Errorf("Set(%v) should fail", bad)
 		}
+	}
+}
+
+func TestSetNamesANoteThatHasNoFrontMatter(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"build.log": "x\n"})
+	if _, err := a.Write("docs/p", Options{}, []byte("p\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := a.Set("build.log", []string{"title=CI build"}); err != nil || got != "build.log: set title" {
+		t.Fatalf("Set = %q, %v", got, err)
+	}
+	if got, err := a.Set("docs", []string{"title=Handbook"}); err != nil || got != "docs: set title" {
+		t.Fatalf("Set on a book = %q, %v", got, err)
+	}
+	v, _ := store.Open(dir).Views()
+	if v["build.log"].Title != "CI build" || v["docs"].Title != "Handbook" || read(t, dir, "build.log") != "x\n" {
+		t.Errorf("Views = %+v", v)
+	}
+	infos, _ := a.List()
+	if infos[0].Title != "CI build" {
+		t.Errorf("List should show the name: %+v", infos[0])
 	}
 }

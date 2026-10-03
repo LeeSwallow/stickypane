@@ -62,12 +62,12 @@ func TestListDescribesEveryNote(t *testing.T) {
 func TestShowReturnsTheFile(t *testing.T) {
 	a, _ := newAPI(t, map[string]string{"a.md": "---\ntitle: T\n---\nbody\n"})
 	for _, name := range []string{"a.md", "a"} {
-		got, err := a.Show(name)
+		got, err := a.Cat(name)
 		if err != nil || string(got) != "---\ntitle: T\n---\nbody\n" {
 			t.Errorf("Show(%q) = %q, %v", name, got, err)
 		}
 	}
-	if _, err := a.Show("missing"); !errors.Is(err, os.ErrNotExist) {
+	if _, err := a.Cat("missing"); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("Show(missing): err = %v, want not-exist", err)
 	}
 }
@@ -120,7 +120,7 @@ func TestBadNamesAreRejected(t *testing.T) {
 		if _, err := a.Write(name, Options{}, []byte("x\n")); !errors.Is(err, ErrBadName) {
 			t.Errorf("Write(%q): err = %v, want ErrBadName", name, err)
 		}
-		if _, err := a.Show(name); !errors.Is(err, ErrBadName) {
+		if _, err := a.Cat(name); !errors.Is(err, ErrBadName) {
 			t.Errorf("Show(%q): err = %v, want ErrBadName", name, err)
 		}
 	}

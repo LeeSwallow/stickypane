@@ -203,7 +203,8 @@ func tidy(src string) string {
 }
 
 // drawMermaid renders Mermaid source as text no wider than width. A
-// left-to-right flowchart that does not fit is drawn top-down instead.
+// flowchart that does not fit is drawn tighter, then top-down, then both,
+// before giving up.
 func drawMermaid(src string, width int) (string, error) {
 	lines := 0
 	for _, l := range strings.Split(src, "\n") {
@@ -218,21 +219,43 @@ func drawMermaid(src string, width int) (string, error) {
 		return "", fmt.Errorf("the diagram has %d lines, more than %d", lines, maxDiagramLines)
 	}
 	src = tidy(src)
-	out, err := renderDiagram(src, width)
-	if err != nil {
-		return "", err
-	}
-	cells := widest(out)
-	if cells <= width {
-		return out, nil
-	}
-	if m := flowRe.FindStringSubmatch(src); m != nil && (m[2] == "LR" || m[2] == "RL") {
-		down := flowRe.ReplaceAllString(src, "${1}TD")
-		if out, err := renderDiagram(down, width); err == nil && widest(out) <= width {
-			return out, nil
+	// Every way of drawing it, from the one asked for to the most compact.
+	tries := []struct {
+		src   string
+		tight bool
+	}{{src, false}}
+	if m := flowRe.FindStringSubmatch(src); m != nil {
+		tries = append(tries, struct {
+			src   string
+			tight bool
+		}{src, true})
+		if m[2] == "LR" || m[2] == "RL" {
+			down := flowRe.ReplaceAllString(src, "${1}TD")
+			tries = append(tries, struct {
+				src   string
+				tight bool
+			}{down, false}, struct {
+				src   string
+				tight bool
+			}{down, true})
 		}
 	}
-	return "", errTooWide{cells}
+	cells, failed := 0, error(nil)
+	for _, try := range tries {
+		out, err := renderDiagram(try.src, width, try.tight)
+		switch {
+		case err != nil:
+			failed = err
+		case widest(out) <= width:
+			return out, nil
+		default:
+			cells = max(cells, widest(out))
+		}
+	}
+	if cells > 0 {
+		return "", errTooWide{cells}
+	}
+	return "", failed
 }
 
 func widest(s string) int {
@@ -246,14 +269,20 @@ func widest(s string) int {
 // renderDiagram runs the Mermaid renderer. It is a variable so tests can
 // count its calls. The renderer is a parser for text an agent wrote, so a
 // panic inside it is treated like any other failure to draw.
-var renderDiagram = func(src string, width int) (out string, err error) {
+var renderDiagram = func(src string, width int, tight bool) (out string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			out, err = "", fmt.Errorf("mermaid: %v", r)
 		}
 	}()
 	cfg := diagram.DefaultConfig()
-	cfg.MaxWidth = max(width, 0)
+	// The renderer's own fitting to a width is not used: it is what fails
+	// on a narrow pane. Drawing tighter and top-down is done here instead.
+	_ = width
+	if tight {
+		// Less air between the boxes, for a narrow pane.
+		cfg.PaddingBetweenX, cfg.PaddingBetweenY, cfg.BoxBorderPadding = 2, 1, 0
+	}
 	drawing, err := render.RenderDiagram(src, cfg)
 	if err != nil {
 		return "", err

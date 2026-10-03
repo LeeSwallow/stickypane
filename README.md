@@ -22,16 +22,18 @@ A note board in your terminal, for you and your coding agent.
 h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
 ```
 
-Your agent jots things down as plain Markdown files. stickypane shows them in
-a pane next to it: plain notes, kanban boards, checklists, logs, charts,
-Mermaid diagrams, and forms you answer with a key press. The line
+Your agent jots things down as plain files in a folder. stickypane shows that
+folder in a pane next to it: plain notes, kanban boards, checklists, charts,
+Mermaid diagrams, forms you answer with a key press, logs that are followed
+as they grow, and shell scripts with a Run button. The line
 at the top lists every note (`●` open, `○` folded away). The ones you open
 tile the screen below it, each in a pane of its own: a note longer than its
 pane scrolls inside it, and when more notes are open than fit, the rest are
 on the next screen. Move a card or tick a box and the change lands in the
 same file, so the agent sees it too.
 
-- **Nothing to configure.** No config file, no server, no hooks.
+- **Nothing to configure.** No server, no hooks. The one settings file,
+  `sticky.json`, is written by the board as you arrange it.
 - **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
   and others.
 - **Any terminal.** A plain window, tmux, WezTerm, Zellij. stickypane is a
@@ -51,7 +53,7 @@ macOS and Linux are supported.
 
 ```sh
 cd your-project
-stickypane init    # creates .stickypane/ and tells your agent about it
+stickypane init    # creates .sticky/ and tells your agent about it
 stickypane         # opens the board
 ```
 
@@ -71,32 +73,110 @@ tmux display-popup -E stickypane            # tmux popup
 wezterm cli split-pane --right -- stickypane
 ```
 
-## Notes are files
+## The folder is the board
 
-One Markdown file in `.stickypane/` is one note. Create a file to stick a
-note, edit it to update the note, delete it to take the note down. A one-line
-file is a complete note:
+One file in `.sticky/` is one note. Create a file to stick a note, edit it to
+update the note, delete it to take the note down. A one-line file is a
+complete note:
 
 ```markdown
 check env before deploy
 ```
 
-Front matter says how a note looks. Every key is optional, and you never have
-to type one: the keys in the next section change them for you.
+What a file is depends on its name:
+
+| File                    | Is                                                    |
+| ----------------------- | ----------------------------------------------------- |
+| `*.md`                  | a note; its front matter may give it a shape (below)   |
+| `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
+| `*.sh`                  | a script: shown with a Run button                      |
+| a folder                | a book: one note whose pages are the files in it       |
+| anything else           | not shown                                              |
+
+```
+.sticky/
+  10-plan.md          a checklist
+  build.log           a log, followed live
+  deploy.sh           a script; its output goes to deploy.log
+  docs/               one note with three pages
+    01-intro.md
+    02-usage.md
+    03-faq.md
+  sticky.json         how you arranged all this
+```
+
+**Books.** A folder is shown as one pane that scrolls like one long note:
+its files follow one another, each under a rule with its name, and the
+border says which page the view is on (`docs · 02-usage  2/3`). `j` `k`, the
+wheel and the paging keys scroll through all of it; `,` and `.` jump to the
+page before or after; every other key acts on the page the view is on.
+Folders are read one level deep. `stickypane link
+docs` puts a folder of your project on the board as a book without copying
+it, and `stickypane link README.md` does the same for a file; both make a
+symbolic link, so what you change on the board is changed in the real file.
+
+**Scripts.** `enter` on a script asks first (`Run deploy.sh in myproject?`),
+then runs it with `sh` in the project folder. The output is written to a log
+of the same name next to the script, which the board opens and follows while
+the script runs. A script never runs without that yes, each time: it is a
+file your agent may have written.
+
+**Markdown notes.** Front matter says what a note is. Every key is optional.
 
 | Key     | Values                                                 |
 | ------- | ------------------------------------------------------ |
 | `type`  | `note` (default), `board`, `checklist`, `log`, `chart`, `form` |
 | `title` | shown in the title bar and the note's border            |
-| `open`  | `true` draws the note on the screen, `false` folds it away |
-| `size`  | `page` (whole width), `half`, `card`                    |
-| `rows`  | the height in lines the note asks for                   |
-| `color` | `yellow`, `pink`, `blue`, `green`, `purple`, `orange`   |
-| `pin`   | `true` keeps the note first                             |
+| `view`  | for a chart: `bar`, `spark`, `heat`                     |
 
-A note without `open` is folded away, except that a note that appears while
-stickypane is running is shown for that run. What your agent just wrote is in
-front of you at once, and the file is left alone.
+## sticky.json: how the board is arranged
+
+Where a note is on the screen is not written into the note. It goes to
+`.sticky/sticky.json`, which the board writes as you press keys:
+
+```json
+{
+  "notes": {
+    "10-plan.md": { "open": true, "size": "half", "pin": true },
+    "build.log": { "title": "CI build", "open": true, "rows": 12 },
+    "docs": { "open": true, "color": "blue" }
+  },
+  "order": ["docs", "10-plan.md", "build.log"],
+  "ignore": ["drafts", "*.tmp.md"],
+  "theme": "catppuccin-mocha",
+  "version": 1
+}
+```
+
+| Key in `notes` | Values                                        | Key on the board |
+| -------------- | --------------------------------------------- | ---------------- |
+| `open`         | `true` shows the note, `false` folds it away  | `o`, `enter`     |
+| `size`         | `page` (whole width), `half`, `card`          | `+` `-`          |
+| `rows`         | the height in lines the note asks for         |                  |
+| `color`        | `yellow` `pink` `blue` `green` `purple` `orange` | `c`           |
+| `pin`          | `true` keeps the note first                   | `p`              |
+| `title`        | a name for a book, a log or a script          | `R`              |
+
+Next to `notes`, `theme` names the theme (`T` on the board), `order` lists
+the notes you moved and `ignore` what to leave out.
+
+`order` lists the notes you moved with `{` and `}`; the others follow by
+name. `ignore` is the one part you write by hand: names or patterns the
+board should not show.
+
+Keeping this apart from the notes means three things. A log, a script or a
+linked README can be opened, sized and named although it has no front matter.
+The board never rewrites a note because you rearranged the screen, so it
+cannot collide with your agent writing that note. And you can commit the file
+to share a layout, or leave it out of git to keep it yours.
+
+A Markdown note may still carry `open`, `size`, `rows`, `color` and `pin` in
+its front matter. That is the note's own proposal, which is how an agent says
+"show this now"; what `sticky.json` says wins. A note that neither opens is
+folded away, except that a note that appears while stickypane is running is
+shown for that run, so what your agent just wrote is in front of you at once.
+
+## Shapes of a Markdown note
 
 **Board.** Each `## Heading` is a column and each top-level list item is a
 card. Indented lines under a card are its details. Any other line under a
@@ -120,8 +200,9 @@ open: true
 
 **Checklist.** `- [ ]` and `- [x]` lines, shown with a progress bar.
 
-**Log.** One entry per line. The note shows the latest ten lines and follows
-along as the file grows.
+**Log.** One entry per line. Next to other notes it asks for ten lines, and
+it follows its end as the file grows until you scroll up. A `.log` file is
+the same thing without front matter.
 
 **Chart.** Each `label: number` line is a value; any other line is shown as
 text above the chart. `view` picks the drawing: `bar` (default), `spark` for
@@ -221,9 +302,8 @@ stickypane wait deploy --timeout 10m
 # Note: after lunch
 ```
 
-Notes are ordered by file name, pinned ones first. Prefix a number
-(`10-plan.md`) to control the order. A file that does not fit its shape is
-still shown, never hidden.
+Notes are ordered by file name, pinned ones first, until you move them. A
+file that does not fit its shape is still shown, never hidden.
 
 ## Keys
 
@@ -235,10 +315,14 @@ still shown, never hidden.
 | `+` / `-`           | bigger, smaller         | `J` `K`                 | reorder a card       |
 | `N`                 | jot a note              | `space`                 | tick an item         |
 | `a`                 | add by shape            | `n`                     | new card or item     |
-| `p` / `c` / `R`     | pin, color, rename      |                         |                      |
-| `x` / `D`           | archive, delete         | **Zoomed note**         |                      |
+| `p` / `c` / `R`     | pin, color, rename      | **Open script**         |                      |
+| `{` / `}`           | move earlier, later     | `enter`                 | run, after a yes     |
+| `,` / `.`           | turn a book's pages     |                         |                      |
+| `m`                 | move to a folder        |                         |                      |
+| `x` / `D` / `u`     | archive, delete, undo   | **Zoomed note**         |                      |
 | `e` / `E`           | edit here, in `$EDITOR` | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
+| `T`                 | next theme              |                         |                      |
 | `z`                 | zoom                    | **Open form**           |                      |
 | `[` / `]`           | previous, next screen   |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
@@ -259,6 +343,63 @@ at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
+## Themes
+
+Everything on the screen is drawn from a dozen color roles (text, muted,
+accent, selection, good, warn, bad, info, and the six note colors), so a
+theme is one palette and the whole board follows it. `T` tries the next
+theme, `stickypane theme` lists them and `stickypane theme nord` chooses one;
+the choice is kept in `sticky.json` as `"theme"`. With no choice (`auto`) the
+board asks the terminal whether it is dark and picks `stickypane-dark` or
+`stickypane-light`.
+
+| Theme                                 | For a   | Palette from                               |
+| ------------------------------------- | ------- | ------------------------------------------ |
+| `stickypane-dark`, `stickypane-light` | dark, light | stickypane                             |
+| `catppuccin-mocha`, `catppuccin-latte` | dark, light | [catppuccin/nvim](https://github.com/catppuccin/nvim) (MIT) |
+| `tokyonight-night`, `tokyonight-day`  | dark, light | [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) (Apache-2.0) |
+| `gruvbox-dark`, `gruvbox-light`       | dark, light | [ellisonleao/gruvbox.nvim](https://github.com/ellisonleao/gruvbox.nvim) (MIT) |
+| `nord`                                | dark    | [gbprod/nord.nvim](https://github.com/gbprod/nord.nvim) (WTFPL) |
+| `dracula`                             | dark    | [Mofiqul/dracula.nvim](https://github.com/Mofiqul/dracula.nvim) (MIT) |
+
+The palettes are those themes' own values, used the way the themes use
+them: blue for focus, mauve for headings, the comment color for what is
+muted. A theme never paints the background; the terminal's stays, so pick a
+theme made for the background you have.
+
+How the colors are used follows what terminal tools agree on: focus is the
+border color, not a different shape alone; the title sits in the top border
+in the note's color; the selected line has a background tint; key hints are
+the accent; everything secondary is muted; and `faint` is never used, since
+it is unreadable on a light background.
+
+## Deleting and moving
+
+Nothing you do on the board erases a file.
+
+- `D` asks, then moves the note to `.sticky/.trash/`. `x` moves it to
+  `.sticky/archive/` without asking. `u` takes back whichever you did last.
+- `m` lists the folders: pick one and the note becomes a page of that book,
+  pick the top level to take a page out of its book, or name a new folder.
+- `{` and `}` swap the note with its neighbor; the order is kept in
+  `sticky.json`.
+- `R` renames what you see, not the file: a Markdown note's `title`, or for
+  a book, a log or a script the `title` in `sticky.json`.
+
+From the command line:
+
+```sh
+stickypane mv plan docs/         # into the book docs
+stickypane mv docs/plan .        # back to the top level
+stickypane mv plan roadmap       # a new name; it keeps its place on the screen
+stickypane rm roadmap            # to .sticky/.trash/
+stickypane restore roadmap       # and back
+stickypane archive roadmap       # to .sticky/archive/
+stickypane link README.md        # show a project file without copying it
+```
+
+None of these writes over another note or reaches outside `.sticky/`.
+
 ## Editing a note
 
 `e` opens the focused note's file in a small editor that works like vi, so
@@ -276,9 +417,11 @@ instead.
 | `:w` `:q` `:wq` `ZZ` `:q!`    | save, quit, both, quit without saving  |
 
 The border shows the cursor's line and column and which page of the file it
-is on. If the file changed on disk while you were editing, usually because
-your agent wrote to it, `:w` does not overwrite it: `:w!` does, and `:e!`
-loads the file again. Counts (`3dd`) and visual mode are not there.
+is on. If the file changes on disk while it is open, usually because your
+agent wrote to it, a buffer you have not touched follows the file. One with
+your changes is kept, you are told, and `:w` does not overwrite the file:
+`:w!` does, and `:e!` loads it again. Counts (`3dd`) and visual mode are not
+there.
 
 ## Mouse
 
@@ -297,9 +440,21 @@ In tmux the mouse reaches stickypane only with `set -g mouse on`.
 Editing the files is all an agent needs. For scripts, and for agents that
 would rather call a tool, the same notes are reachable two more ways.
 
+The shortest path: put something in front of the user.
+
+```sh
+stickypane show plan                 # a note, by name
+stickypane show README.md            # any file of the project: linked and shown
+stickypane show logs/app.log         # a log file: linked, shown and followed live
+stickypane show docs/                # a folder: shown as a book of its files
+stickypane hide plan
+```
+
+Everything else:
+
 ```sh
 stickypane list --json                       # every note: name, title, type, open, size
-stickypane show plan                         # print a note's file
+stickypane cat plan                          # print a note's file
 echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
 stickypane answers deploy                    # what the user answered in a form
 stickypane wait deploy --timeout 10m         # the same, once a button is pressed
@@ -319,7 +474,8 @@ stickypane card work move login --to Done    # work.md: 2 cards
 stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
-stickypane set plan open=true size=half      # front matter keys only
+stickypane set plan open=true size=half      # to sticky.json
+stickypane set plan title="The plan"         # to the note's front matter
 ```
 
 A note that does not exist yet is made, open on the screen, so an agent never
@@ -330,15 +486,17 @@ what there is.
 
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
 input and output. Its tools are the commands above: `list_notes`,
-`read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `set_keys`,
-`read_answers` and `guide`.
+`read_note`, `write_note`, `show_note`, `hide_note`, `todo`, `card`, `chart`,
+`log`, `set_keys`, `move_note`, `remove_note`, `restore_note`, `read_answers`
+and `guide`.
 
 ```sh
 claude mcp add stickypane -- stickypane mcp
 ```
 
 `write` and `write_note` replace the whole note, exactly as overwriting the
-file would. Read a note before rewriting it.
+file would. Read a note before rewriting it. A name may point into a book
+(`docs/intro`) or at a log (`build.log`).
 
 ## How edits are written
 
@@ -351,7 +509,7 @@ symlink is edited where it really lives.
 Replacing the file has two limits:
 
 - A program that keeps a note open and keeps appending to it
-  (`some-command >> .stickypane/log.md`) goes on writing to the old file after
+  (`some-command >> .sticky/log.md`) goes on writing to the old file after
   you edit that note from the board. Writing a line at a time, the way agents
   do, is fine.
 - A write that lands in the instant between the board reading a file and

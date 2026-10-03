@@ -138,3 +138,23 @@ func TestTheWheelMovesInTheEditor(t *testing.T) {
 		t.Errorf("the wheel should move down through the file:\n%s", s)
 	}
 }
+
+func TestTheEditorFollowsAFileItHasNotChanged(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("first\n")})
+	press(m, "e")
+	writeFile(t, dir, "a.md", opened("the agent rewrote this\n"))
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "the agent rewrote this") || strings.Contains(s, "[+]") {
+		t.Fatalf("an untouched buffer should follow the file:\n%s", s)
+	}
+	typeKeys(m, "GA mine<esc>")
+	writeFile(t, dir, "a.md", opened("rewritten again\n"))
+	m.Update(changedMsg{})
+	s := screen(m)
+	if !strings.Contains(s, "the agent rewrote this mine") || strings.Contains(s, "rewritten again") {
+		t.Fatalf("a buffer with changes is never replaced behind the user's back:\n%s", s)
+	}
+	if !strings.Contains(s, "changed on disk") {
+		t.Errorf("the user should be told the file changed:\n%s", s)
+	}
+}

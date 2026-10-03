@@ -26,12 +26,18 @@ func TestWriteListAndShow(t *testing.T) {
 		t.Fatalf("write: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
 	want := "---\ntype: checklist\ntitle: Release\nopen: true\nsize: half\n---\n- [ ] build\n- [ ] ship\n"
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "release.md")); string(b) != want {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "release.md")); string(b) != want {
 		t.Errorf("file = %q", b)
 	}
 
-	code, out, _ = exec(t, "show", "release")
+	code, out, _ = exec(t, "cat", "release")
 	if code != 0 || out != want {
+		t.Errorf("cat: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "hide", "release"); code != 0 || out != "hidden release.md\n" {
+		t.Errorf("hide: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "show", "release"); code != 0 || out != "showing release.md\n" {
 		t.Errorf("show: code = %d, out = %q", code, out)
 	}
 
@@ -52,6 +58,9 @@ func TestWriteListAndShow(t *testing.T) {
 
 func TestNoteCommandsReportProblems(t *testing.T) {
 	project(t)
+	if code, _, errOut := exec(t, "cat", "missing"); code != 1 || errOut == "" {
+		t.Errorf("cat missing: code = %d, stderr = %q", code, errOut)
+	}
 	if code, _, errOut := exec(t, "show", "missing"); code != 1 || errOut == "" {
 		t.Errorf("show missing: code = %d, stderr = %q", code, errOut)
 	}
@@ -81,7 +90,7 @@ func TestMCPServesOverStandardIO(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "hello.md") {
 		t.Fatalf("mcp: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
-	if _, show, _ := exec(t, "show", "hello"); show != "---\nopen: true\n---\nfrom mcp\n" {
+	if _, show, _ := exec(t, "cat", "hello"); show != "---\nopen: true\n---\nfrom mcp\n" {
 		t.Errorf("note written through MCP = %q", show)
 	}
 }
@@ -90,7 +99,7 @@ const formNote = "---\ntype: form\n---\n## Where?\n- (x) staging\n- ( ) producti
 
 func TestAnswersAndWait(t *testing.T) {
 	root := project(t)
-	file := filepath.Join(root, ".stickypane", "deploy.md")
+	file := filepath.Join(root, ".sticky", "deploy.md")
 	if err := os.WriteFile(file, []byte(formNote), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +146,7 @@ func TestAnswersAndWait(t *testing.T) {
 
 func TestWaitRejectsANegativeTimeout(t *testing.T) {
 	root := project(t)
-	if err := os.WriteFile(filepath.Join(root, ".stickypane", "deploy.md"), []byte(formNote), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".sticky", "deploy.md"), []byte(formNote), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if code, _, errOut := exec(t, "wait", "deploy", "--timeout", "-1s"); code != 2 || errOut == "" {
@@ -166,10 +175,10 @@ func TestSmallEditsFromTheCommandLine(t *testing.T) {
 			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
 		}
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
 		t.Errorf("work.md = %q", b)
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
 		t.Errorf("plan.md = %q", b)
 	}
 	for _, bad := range [][]string{{"todo"}, {"todo", "plan"}, {"todo", "plan", "add"}, {"card", "work", "move", "login"}, {"chart", "tokens", "set", "input"}, {"log", "worklog"}, {"set", "plan"}} {
@@ -187,7 +196,7 @@ func TestLogCanStampTheTime(t *testing.T) {
 	if code, _, errOut := exec(t, "log", "worklog", "--time", "deployed"); code != 0 {
 		t.Fatalf("code = %d, stderr = %q", code, errOut)
 	}
-	b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "worklog.md"))
+	b, _ := os.ReadFile(filepath.Join(root, ".sticky", "worklog.md"))
 	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
 	last := lines[len(lines)-1]
 	if len(last) < 6 || last[2] != ':' || !strings.HasSuffix(last, " deployed") {
@@ -197,7 +206,7 @@ func TestLogCanStampTheTime(t *testing.T) {
 
 func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
 	root := project(t)
-	dir := filepath.Join(root, ".stickypane")
+	dir := filepath.Join(root, ".sticky")
 	if err := os.WriteFile(filepath.Join(dir, "plan.md"), []byte("the plan\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -227,5 +236,28 @@ func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
 	}
 	if code, _, errOut := exec(t, "rm", "nothing"); code != 1 || !strings.Contains(errOut, "nothing.md") {
 		t.Errorf("rm of a missing note: code = %d, stderr = %q", code, errOut)
+	}
+}
+
+func TestThemeCommand(t *testing.T) {
+	root := project(t)
+	code, out, _ := exec(t, "theme")
+	if code != 0 || !strings.Contains(out, "stickypane-dark") || !strings.Contains(out, "auto") {
+		t.Fatalf("theme should list the themes: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "theme", "Nord"); code != 0 || out != "theme: nord\n" {
+		t.Fatalf("theme nord: code = %d, out = %q", code, out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "sticky.json")); !strings.Contains(string(b), `"theme": "nord"`) {
+		t.Errorf("sticky.json = %s", b)
+	}
+	if code, out, _ := exec(t, "theme"); code != 0 || !strings.Contains(out, "* nord") {
+		t.Errorf("the chosen theme should be marked: %q", out)
+	}
+	if code, _, errOut := exec(t, "theme", "no-such-theme"); code != 1 || !strings.Contains(errOut, "nord") {
+		t.Errorf("an unknown theme should be refused and the themes listed: code = %d, stderr = %q", code, errOut)
+	}
+	if code, out, _ := exec(t, "theme", "auto"); code != 0 || out != "theme: auto\n" {
+		t.Errorf("auto: code = %d, out = %q", code, out)
 	}
 }

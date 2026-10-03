@@ -20,7 +20,10 @@ import (
 
 const (
 	// DirName is the notes folder inside a project.
-	DirName = ".stickypane"
+	DirName = ".sticky"
+	// LegacyDirName is what the folder was called before. A project that
+	// has it keeps working.
+	LegacyDirName = ".stickypane"
 	// ArchiveDir is where detached notes go, inside DirName.
 	ArchiveDir = "archive"
 	// TrashDir is where deleted notes go, inside DirName, until restored.
@@ -45,6 +48,14 @@ var (
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
 var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true}
+
+// Linked reports whether the note is a symbolic link to a file elsewhere.
+// Such a file belongs to the project, not to the board: what the board
+// arranges about it is kept in sticky.json, never written into it.
+func (s *Store) Linked(name string) bool {
+	fi, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return err == nil && fi.Mode()&os.ModeSymlink != 0
+}
 
 // IsNote reports whether a file name is one the board shows.
 func IsNote(name string) bool {
@@ -84,9 +95,11 @@ func Find(start string) (string, error) {
 		return "", err
 	}
 	for {
-		candidate := filepath.Join(dir, DirName)
-		if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
-			return candidate, nil
+		for _, name := range []string{DirName, LegacyDirName} {
+			candidate := filepath.Join(dir, name)
+			if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
+				return candidate, nil
+			}
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -102,7 +115,7 @@ func Resolve(arg string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if filepath.Base(abs) == DirName {
+	if base := filepath.Base(abs); base == DirName || base == LegacyDirName {
 		if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
 			return abs, nil
 		}
@@ -120,14 +133,15 @@ func (s *Store) Scan() ([]Note, error) {
 		return nil, err
 	}
 	var notes []Note
+	ignored := s.ignored()
 	for _, e := range entries {
 		name := e.Name()
-		if strings.HasPrefix(name, ".") || name == ArchiveDir {
+		if strings.HasPrefix(name, ".") || name == ArchiveDir || ignored(name) {
 			continue
 		}
 		// Stat follows a link, so a linked folder is a book too.
 		if fi, err := os.Stat(filepath.Join(s.Dir, name)); err == nil && fi.IsDir() {
-			if book, ok := s.book(name); ok {
+			if book, ok := s.book(name, ignored); ok {
 				notes = append(notes, book)
 			}
 			continue
@@ -140,14 +154,14 @@ func (s *Store) Scan() ([]Note, error) {
 }
 
 // book reads a folder as one note. A folder without notes is not a book.
-func (s *Store) book(name string) (Note, bool) {
+func (s *Store) book(name string, ignored func(string) bool) (Note, bool) {
 	b := Note{Name: name, Path: filepath.Join(s.Dir, name)}
 	entries, err := os.ReadDir(b.Path)
 	if err != nil {
 		return b, false
 	}
 	for _, e := range entries {
-		if e.IsDir() || !IsNote(e.Name()) {
+		if e.IsDir() || !IsNote(e.Name()) || ignored(name+"/"+e.Name()) {
 			continue
 		}
 		// A page is named with "/" on every system: it is a name, not a path.

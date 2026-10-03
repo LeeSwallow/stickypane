@@ -1,4 +1,4 @@
-// Command stickypane shows the notes in .stickypane/ as a board.
+// Command stickypane shows the notes in .sticky/ as a board.
 package main
 
 import (
@@ -22,6 +22,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -33,15 +34,20 @@ const usage = `stickypane - a note board for you and your coding agent
 
 Usage:
   stickypane [path]      open the board of the project at path (default: here)
-  stickypane init        create .stickypane/ and add the agent guide to
+  stickypane init        create .sticky/ and add the agent guide to
                          AGENTS.md or CLAUDE.md (--no-agent-docs skips that;
                          --skill installs it as a Claude Code skill instead)
+  stickypane theme [name]  list the themes, or choose one ("auto" follows the
+                         terminal's background)
   stickypane guide       print the agent guide
   stickypane version     print the version
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane list [--json]       list the notes
-  stickypane show <name>         print a note's file
+  stickypane show <name|path>    put a note on the screen; a path to any file or
+                                 folder of the project is linked onto the board
+  stickypane hide <name>         fold a note away
+  stickypane cat <name>          print a note's file
   stickypane write <name> [--type T] [--title X] [--open] [--size S]
                                  create or replace a note from standard input
   stickypane todo <name> add|check|uncheck <item>
@@ -55,6 +61,8 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane mv <name> <to>      rename a note, or move it: <to> is a new name, a
                                  folder (docs/) to make it a page of that book,
                                  or . for the top level
+  stickypane link <path> [name]  show a file or a folder of the project on the
+                                 board without copying it (a symbolic link)
   stickypane rm <name>           move a note, a page or a folder to .trash/
   stickypane restore <name>      bring back what rm removed last under that name
   stickypane archive <name>      move a note out of sight into archive/
@@ -77,7 +85,7 @@ func fileOf(name string) string {
 	return name
 }
 
-const noBoard = "No .stickypane directory found. Run `stickypane init` in your project first."
+const noBoard = "No .sticky directory found. Run `stickypane init` in your project first."
 
 func main() { os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
 
@@ -105,12 +113,16 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		case "help", "--help", "-h":
 			fmt.Fprint(stdout, usage)
 			return 0
-		case "list", "show", "write", "answers", "wait", "mcp":
+		case "list", "cat", "write", "answers", "wait", "mcp":
 			return notes(args[0], args[1:], stdin, stdout, stderr)
+		case "show", "hide":
+			return manage(args[0], args[1:], stdout, stderr)
 		case "todo", "card", "chart", "log", "set":
 			return edit(args[0], args[1:], stdout, stderr)
-		case "rm", "restore", "archive", "mv":
+		case "rm", "restore", "archive", "mv", "link":
 			return manage(args[0], args[1:], stdout, stderr)
+		case "theme":
+			return themeCmd(args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			fmt.Fprint(stderr, usage)
@@ -153,13 +165,72 @@ func open(stderr io.Writer) (*api.API, int) {
 	return api.New(store.Open(dir), kinds.Default(note.Plain)), 0
 }
 
+// themeCmd lists the themes or chooses one.
+func themeCmd(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 1 {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+	dir, err := store.Resolve(".")
+	if errors.Is(err, store.ErrNotFound) {
+		fmt.Fprintln(stderr, noBoard)
+		return 1
+	}
+	if err != nil {
+		return report(stderr, err)
+	}
+	st := store.Open(dir)
+	list := func(w io.Writer) {
+		current := st.Theme()
+		if current == "" {
+			current = "auto"
+		}
+		mark := func(name string) string {
+			if strings.EqualFold(name, current) {
+				return "* "
+			}
+			return "  "
+		}
+		fmt.Fprintf(w, "%sauto  (follows the terminal: %s or %s)\n", mark("auto"), theme.DefaultDark, theme.DefaultLight)
+		for _, t := range theme.All() {
+			kind := "dark"
+			if !t.Dark {
+				kind = "light"
+			}
+			fmt.Fprintf(w, "%s%s  (%s)\n", mark(t.Name), t.Name, kind)
+		}
+	}
+	if len(args) == 0 {
+		list(stdout)
+		return 0
+	}
+	name := strings.TrimSpace(args[0])
+	if strings.EqualFold(name, "auto") {
+		name = "auto"
+	} else if t, ok := theme.Lookup(name); ok {
+		name = t.Name
+	} else {
+		fmt.Fprintf(stderr, "stickypane: there is no theme %q. The themes are:\n", args[0])
+		list(stderr)
+		return 1
+	}
+	if err := st.SetTheme(name); err != nil {
+		return report(stderr, err)
+	}
+	fmt.Fprintln(stdout, "theme:", name)
+	return 0
+}
+
 // manage runs the commands that remove, restore and move notes.
 func manage(cmd string, args []string, stdout, stderr io.Writer) int {
-	want := 1
-	if cmd == "mv" {
-		want = 2
+	least, most := 1, 1
+	switch cmd {
+	case "mv":
+		least, most = 2, 2
+	case "link":
+		most = 2
 	}
-	if len(args) != want {
+	if len(args) < least || len(args) > most {
 		fmt.Fprint(stderr, usage)
 		return 2
 	}
@@ -176,6 +247,16 @@ func manage(cmd string, args []string, stdout, stderr io.Writer) int {
 		out, err = a.Restore(args[0])
 	case "archive":
 		out, err = a.Archive(args[0])
+	case "show":
+		out, err = a.Show(args[0])
+	case "hide":
+		out, err = a.Hide(args[0])
+	case "link":
+		name := ""
+		if len(args) == 2 {
+			name = args[1]
+		}
+		out, err = a.Link(args[0], name)
 	default:
 		out, err = a.Move(args[0], args[1])
 	}
@@ -319,8 +400,8 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", n.Name, n.Type, n.Size, state, n.Title)
 		}
 		return report(stderr, w.Flush())
-	case "show":
-		b, err := a.Show(name)
+	case "cat":
+		b, err := a.Cat(name)
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -378,9 +459,8 @@ func board(dir string) error {
 	defer cancel()
 	watch, watchErr := st.Watch(ctx)
 
-	theme := &kinds.Theme{Dark: true}
-	m := app.New(st, kinds.Default(kinds.Markdown(theme)), watch)
-	m.OnBackground = func(dark bool) { theme.Dark = dark }
+	th := theme.NewHolder(theme.Pick(st.Theme(), true))
+	m := app.New(st, kinds.Default(kinds.Markdown(th)), watch, th)
 	if watchErr != nil {
 		m.SetStatus("File watching is unavailable. Press r to refresh.")
 	}

@@ -158,6 +158,16 @@ var tools = []tool{
 		}),
 	},
 	{
+		Name:        "show_note",
+		Description: "Put a note on the user's screen. The name may be a path to any file or folder of the project, which is then linked onto the board. This is how to put something in front of the user.",
+		InputSchema: object([]string{"name"}, map[string]any{"name": str(`A note's file name, or a path such as "README.md" or "docs/".`)}),
+	},
+	{
+		Name:        "hide_note",
+		Description: "Fold a note away from the screen. It stays on the board.",
+		InputSchema: object([]string{"name"}, map[string]any{"name": str("The note's file name.")}),
+	},
+	{
 		Name:        "move_note",
 		Description: "Rename a note or move it. A note that is moved keeps where it was on the screen.",
 		InputSchema: object([]string{"name", "to"}, map[string]any{
@@ -375,7 +385,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			text = string(b)
 		}
 	case "read_note":
-		b, rerr := s.API.Show(a.Name)
+		b, rerr := s.API.Cat(a.Name)
 		text, err = string(b), rerr
 	case "write_note":
 		if a.Content == nil {
@@ -394,6 +404,10 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		text, err = s.API.Chart(a.Name, a.Action, a.Label, plain(a.Value))
 	case "log":
 		text, err = s.API.Log(a.Name, a.Line)
+	case "show_note":
+		text, err = s.API.Show(a.Name)
+	case "hide_note":
+		text, err = s.API.Hide(a.Name)
 	case "move_note":
 		text, err = s.API.Move(a.Name, a.To)
 	case "remove_note":

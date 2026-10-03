@@ -1,8 +1,13 @@
 package app
 
 import (
+	"image/color"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
@@ -16,7 +21,7 @@ func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
 	if v.Open == nil || !*v.Open || v.Pin == nil || !*v.Pin || v.Size == "" || v.Color == "" {
 		t.Errorf("the arrangement goes to sticky.json: %+v", v)
 	}
-	if s := screen(m); !strings.Contains(s, "● ✎ Plan 📌") || !strings.Contains(s, "the plan") {
+	if s := screen(m); !strings.Contains(s, "✎ Plan") || !strings.Contains(s, "the plan") || !m.pinned(m.items[0]) {
 		t.Errorf("the screen should show the arrangement:\n%s", s)
 	}
 	press(m, "o", "p")
@@ -30,12 +35,12 @@ func TestStickyJSONWinsOverFrontMatter(t *testing.T) {
 		"a.md": "---\nopen: true\nsize: page\npin: true\ncolor: blue\n---\nnote a\n",
 		"b.md": "---\nopen: true\n---\nnote b\n",
 	})
-	if s := screen(m); !strings.Contains(s, "note a") || !strings.Contains(s, "📌") {
+	if s := screen(m); !strings.Contains(s, "note a") || !m.pinned(m.items[0]) {
 		t.Fatalf("front matter arranges a note until the user says otherwise:\n%s", s)
 	}
 	writeView(t, dir, `{"notes":{"a.md":{"open":false,"pin":false}}}`)
 	press(m, "r")
-	if s := screen(m); strings.Contains(s, "note a") || strings.Contains(s, "📌") || !strings.Contains(s, "note b") {
+	if s := screen(m); strings.Contains(s, "note a") || m.pinned(m.items[0]) || !strings.Contains(s, "note b") {
 		t.Errorf("what sticky.json says wins:\n%s", s)
 	}
 }
@@ -102,5 +107,74 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 	press(m, "p", "{")
 	if got := order(); got != "a.md b.md c.md 0-new.md" {
 		t.Errorf("a pinned note is first and does not trade places with an unpinned one: %s", got)
+	}
+}
+
+func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"build.log": "compiled\n"})
+	mkdir(t, dir, "docs")
+	writeFile(t, dir, "docs/a.md", "page a\n")
+	press(m, "r", "R")
+	if m.mode != modeInput {
+		t.Fatalf("R on a log should ask for a name, mode = %v", m.mode)
+	}
+	typeText(m, "CI build")
+	press(m, "enter")
+	if got := readFile(t, dir, "build.log"); got != "compiled\n" {
+		t.Fatalf("a log has no front matter to put a title in: %q", got)
+	}
+	if v := viewsOf(t, dir)["build.log"]; v.Title != "CI build" {
+		t.Errorf("the name goes to sticky.json: %+v", v)
+	}
+	if s := screen(m); !strings.Contains(s, "≣ CI build") {
+		t.Errorf("the title bar should show the name:\n%s", s)
+	}
+	// A book is named the same way; the folder keeps its name.
+	writeView(t, dir, `{"notes":{"docs":{"open":true,"title":"Handbook"}}}`)
+	press(m, "r")
+	if s := screen(m); !strings.Contains(s, "Handbook · a") || !fileExists(dir, "docs/a.md") {
+		t.Errorf("a book goes by the name sticky.json gives it:\n%s", s)
+	}
+}
+
+func TestRenamingALinkedNoteLeavesItsFileAlone(t *testing.T) {
+	m, dir := newModel(t, nil)
+	outside := filepath.Join(filepath.Dir(dir), "README.md")
+	if err := os.WriteFile(outside, []byte("# Readme\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dir, "README.md")); err != nil {
+		t.Skip("symlinks are not available:", err)
+	}
+	press(m, "r", "R")
+	typeText(m, "Read me")
+	press(m, "enter")
+	if b, _ := os.ReadFile(outside); string(b) != "# Readme\n" {
+		t.Fatalf("the project's file must not get front matter: %q", b)
+	}
+	if v := viewsOf(t, dir)["README.md"]; v.Title != "Read me" {
+		t.Errorf("the name goes to sticky.json: %+v", v)
+	}
+}
+
+func TestTCyclesThemesAndKeepsTheChoice(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
+	first := m.theme.Get().Name
+	before := m.render()
+	press(m, "T")
+	next := m.theme.Get().Name
+	if next == first || !strings.Contains(screen(m), "Theme: "+next) {
+		t.Fatalf("T should switch to the next theme and say so: %q -> %q\n%s", first, next, screen(m))
+	}
+	if m.render() == before {
+		t.Error("the screen should be drawn in the new colors")
+	}
+	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"theme": "`+next+`"`) {
+		t.Errorf("the choice goes to sticky.json:\n%s", got)
+	}
+	// A chosen theme stays whatever the terminal says about its background.
+	m.Update(tea.BackgroundColorMsg{Color: color.White})
+	if got := m.theme.Get().Name; got != next {
+		t.Errorf("theme after a background report = %q, want %q", got, next)
 	}
 }

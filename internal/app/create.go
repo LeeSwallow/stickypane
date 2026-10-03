@@ -107,7 +107,7 @@ func catalogBody(m *Model, h int) []string {
 			example, _ := kind.Parse(doc.Parse([]byte(kind.Example))).Draw(side-4, false)
 			detail = append(detail, "")
 			detail = append(detail, strings.Split(frame(box{
-				title: "example", icon: kind.Icon, body: example, width: side, color: palette[m.catalogIdx%len(palette)].color,
+				title: "example", icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),
 			}), "\n")...)
 		}
 	}
@@ -127,5 +127,5 @@ func catalogBody(m *Model, h int) []string {
 			body = append(body, widget.Pad(left, catalogList)+right)
 		}
 	}
-	return dialog("Add a note", body, boxW, m.width, h)
+	return dialog("Add a note", body, boxW, m.width, h, m.accent())
 }

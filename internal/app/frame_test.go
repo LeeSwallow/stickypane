@@ -1,6 +1,8 @@
 package app
 
 import (
+	"charm.land/lipgloss/v2"
+
 	"strings"
 	"testing"
 
@@ -29,7 +31,7 @@ func TestFrameTopBorder(t *testing.T) {
 	}
 	for _, c := range cases {
 		c.b.body = "x"
-		c.b.color = palette[0].color
+		c.b.color = lipgloss.Color("#F2D45C")
 		if got := top(c.b); got != c.want {
 			t.Errorf("%s:\n got %q\nwant %q", c.name, got, c.want)
 		}
@@ -41,7 +43,7 @@ func TestFrameKeepsWidthWithWideText(t *testing.T) {
 	for _, focused := range []bool{false, true} {
 		for _, title := range []string{"", "인증 설계 보고서", "아주 긴 제목입니다 정말로 길어서 잘려야 하는 제목"} {
 			for _, summary := range []string{"", "23 cards", "요약도 아주 길어서 들어갈 자리가 없습니다"} {
-				b := box{title: title, icon: "▦", summary: summary, body: body, width: 36, color: palette[1].color, focused: focused}
+				b := box{title: title, icon: "▦", summary: summary, body: body, width: 36, color: lipgloss.Color("#F28FB1"), focused: focused}
 				for _, line := range strings.Split(frame(b), "\n") {
 					if w := widget.Width(line); w != 36 {
 						t.Errorf("title %q, summary %q: line %q is %d cells wide, want 36", title, summary, ansi.Strip(line), w)
@@ -53,13 +55,13 @@ func TestFrameKeepsWidthWithWideText(t *testing.T) {
 }
 
 func TestFrameHeightFollowsTheBody(t *testing.T) {
-	if n := strings.Count(frame(box{body: "a\nb\nc", width: 20, color: palette[0].color}), "\n") + 1; n != 5 {
+	if n := strings.Count(frame(box{body: "a\nb\nc", width: 20, color: lipgloss.Color("#F2D45C")}), "\n") + 1; n != 5 {
 		t.Errorf("three body lines should give 5 lines, got %d", n)
 	}
 }
 
 func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
-	lines := dialog("Keys", []string{"one", "two"}, 20, 60, 12)
+	lines := dialog("Keys", []string{"one", "two"}, 20, 60, 12, lipgloss.Color("#7FB3F5"))
 	var first string
 	for _, l := range lines {
 		if strings.TrimSpace(ansi.Strip(l)) != "" {
@@ -67,7 +69,7 @@ func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
 			break
 		}
 	}
-	if !strings.HasPrefix(first, strings.Repeat(" ", 20)+"╭ Keys ") {
+	if !strings.HasPrefix(first, strings.Repeat(" ", 20)+"╔ Keys ") {
 		t.Errorf("the dialog should be centered in 60 cells: %q", first)
 	}
 	for _, l := range lines {
@@ -75,10 +77,10 @@ func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
 			t.Errorf("line is %d cells wide", w)
 		}
 	}
-	if got := dialog("Keys", []string{"one", "two"}, 20, 10, 12); len(got) != 2 || got[0] != "one" {
+	if got := dialog("Keys", []string{"one", "two"}, 20, 10, 12, lipgloss.Color("#7FB3F5")); len(got) != 2 || got[0] != "one" {
 		t.Errorf("without room for a frame the body should come back as it is: %q", got)
 	}
-	if got := dialog("Keys", []string{"one", "two"}, 20, 60, 3); len(got) != 2 {
+	if got := dialog("Keys", []string{"one", "two"}, 20, 60, 3, lipgloss.Color("#7FB3F5")); len(got) != 2 {
 		t.Errorf("without height for a frame the body should come back as it is: %q", got)
 	}
 }
@@ -100,8 +102,8 @@ func TestHintsPairKeysWithLabels(t *testing.T) {
 }
 
 func TestColorIndex(t *testing.T) {
-	if got := colorIndex("a.md", "blue"); palette[got].name != "blue" {
-		t.Errorf("a named color should win, got %q", palette[got].name)
+	if got := colorIndex("a.md", "blue"); palette[got] != "blue" {
+		t.Errorf("a named color should win, got %q", palette[got])
 	}
 	if colorIndex("a.md", "BLUE") != colorIndex("a.md", "blue") {
 		t.Error("color names are case-insensitive")

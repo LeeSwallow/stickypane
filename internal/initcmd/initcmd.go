@@ -67,7 +67,15 @@ func GuideText() string {
 // Run prepares the project at root. It is safe to run again: an existing
 // notes folder is left as it is, and the guide is replaced in place.
 func Run(root string, opts Options, out io.Writer) error {
-	dir := filepath.Join(root, store.DirName)
+	// A project set up before the folder was renamed keeps its folder: a
+	// second, empty one would hide its notes.
+	name := store.DirName
+	if fi, err := os.Stat(filepath.Join(root, store.LegacyDirName)); err == nil && fi.IsDir() {
+		if _, err := os.Stat(filepath.Join(root, store.DirName)); errors.Is(err, fs.ErrNotExist) {
+			name = store.LegacyDirName
+		}
+	}
+	dir := filepath.Join(root, name)
 	switch _, err := os.Stat(dir); {
 	case errors.Is(err, fs.ErrNotExist):
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -76,11 +84,16 @@ func Run(root string, opts Options, out io.Writer) error {
 		if err := os.WriteFile(filepath.Join(dir, "welcome.md"), []byte(welcome), 0o644); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "Created %s/ with a welcome note.\n", store.DirName)
+		// Deleted notes wait in the trash to be restored. They are the
+		// user's own undo history and do not belong in the repository.
+		if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"), 0o644); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Created %s/ with a welcome note.\n", name)
 	case err != nil:
 		return err
 	default:
-		fmt.Fprintf(out, "%s/ already exists.\n", store.DirName)
+		fmt.Fprintf(out, "%s/ already exists.\n", name)
 	}
 
 	if opts.Skill {

@@ -26,7 +26,7 @@
 ### 2-2. 폴더 = 페이지가 있는 노트 (책)
 
 - 노트 폴더 안의 하위 폴더 하나가 창 하나다. 그 안의 파일 하나가 페이지 하나다.
-- 창 테두리에 `폴더 이름 · 페이지 제목`과 `2/5`가 나온다. `,` `.`(또는 `<` `>`)로 페이지를 넘긴다. 페이지마다 스크롤 위치를 따로 기억한다.
+- 책은 페이지가 이어진 **하나의 긴 노트**처럼 스크롤한다. 페이지마다 이름이 적힌 구분선이 있고, 창 테두리에 `폴더 이름 · 페이지 제목`과 `2/5`가 나온다. `j` `k`·휠·페이지 키는 다른 노트와 같은 스크롤이고, `,` `.`(또는 `<` `>`)은 앞뒤 페이지 시작으로 점프한다. 키는 화면 위쪽에 있는 페이지에 간다. (처음에는 페이지를 따로 넘기는 모드로 만들었다가, 넘기기가 스크롤과 다른 장치처럼 보인다는 지적에 합쳤다.)
 - 폴더는 한 단계만 본다. `archive/`와 `.`으로 시작하는 폴더는 보지 않는다.
 - 보드 조작(체크, 카드 이동, 편집, 삭제)은 지금 보이는 페이지의 파일에 적용한다. 열기·크기·색·고정은 폴더(창)에 적용한다.
 - 명령과 MCP에서는 `docs/guide`처럼 폴더를 붙여 페이지를 가리킨다.
@@ -75,15 +75,31 @@
 
 `e`로 노트 파일을 vi 방식으로 고친다. `E`는 `$EDITOR`.
 
+### 2-8. 삭제·이동 (구현됨, 오픈소스 조사 기반)
+
+sampler, wtf, zellij, lazygit, yazi, taskwarrior-tui, kanban-md, redthread, tuiboard, Backlog.md, sidecar, 그리고 resterm과 Bruno의 소스를 읽고 공통 패턴을 따랐다.
+
+- 삭제는 지우지 않는다. `D`는 확인 뒤 `.sticky/.trash/`로, `x`는 `archive/`로 옮기고 `u`가 마지막 것을 되돌린다 (yazi의 trash, redthread·taskwarrior-tui의 undo).
+- `{` `}`로 이웃과 자리를 바꾼다 (yazi 탭, redthread 보드). 순서는 `sticky.json`의 `order`에 쓰고, 없는 노트는 이름순으로 뒤에 선다 (Bruno의 `seq`: 없는 항목도 자리를 가진다).
+- `m`은 옮길 폴더 목록을 띄우고 Enter로 확정, Esc로 취소한다 (kanban-md `m`, Backlog.md 이동 모드).
+- 명령줄은 화면과 같은 저장소 함수를 쓴다: `rm` `restore` `archive` `mv` `link` (kanban-md의 CLI 미러링). 어느 것도 다른 노트를 덮어쓰거나 `.sticky/` 밖으로 나가지 않는다 (Bruno의 `validatePathIsInsideCollection`, 충돌 시 접미사).
+- 표시 이름은 파일 이름과 다르다 (Bruno의 name/filename 분리): 폴더·로그·스크립트·링크된 파일의 이름은 `sticky.json`의 `title`에 두고 `R`로 바꾼다. 파일은 그대로다.
+- `sticky.json`은 경로로 키를 잡고, `version`을 갖고, 임시 파일에 쓴 뒤 바꿔치기하며, 손으로 쓰는 `ignore` 목록을 둔다 (Bruno `bruno.json`의 `ignore`, sampler의 title 매칭이 깨지는 문제를 피함).
+- 편집 중 파일이 바뀌면: 고친 게 없으면 조용히 다시 읽고, 있으면 버퍼를 지키고 알린다 (resterm).
+- 휴지통은 `.sticky/.gitignore`로 git에서 뺀다 (resterm·Bruno의 init이 `.gitignore`를 쓰는 것을 따름).
+
+따르지 않은 것: Bruno의 "공유 상태(구조)와 개인 상태(열린 탭)를 다른 파일에" 분리. `sticky.json` 하나에 열림까지 두었다. 혼자 쓰는 동안은 파일 하나가 단순하고, 팀이 커밋해서 쓰다가 충돌이 잦아지면 그때 `open`만 로컬 파일로 뺀다.
+
 ## 3. 구현 순서
 
 1. 고정 창 배치 (끝남)
 2. 작은 수정 명령, 스킬 (끝남)
 3. 내장 편집기 (끝남)
-4. 파일 종류와 폴더(책)
-5. `sticky.json`
-6. 스크립트 실행
-7. `.sticky/` 이름, `link` 명령
+4. 파일 종류와 폴더(책) (끝남)
+5. `sticky.json` (끝남)
+6. 스크립트 실행 (끝남)
+7. `.sticky/` 이름, `link` 명령 (끝남)
+8. 삭제·이동·되돌리기 (끝남, 2-8절)
 
 ## 4. 하지 않은 것
 
@@ -91,3 +107,14 @@
 - `.csv`를 차트나 표로 그리는 것. 표 위젯과 함께 한다.
 - 스크립트 출력에 입력을 보내는 것, 실행 중 중단.
 - 편집기의 횟수 접두(`3dd`)와 비주얼 모드.
+
+## 5. 디자인 시스템: 테마 (구현됨)
+
+resterm, lazygit, zellij, yazi, k9s, crush와 Neovim 테마(catppuccin, tokyonight, gruvbox, nord, dracula)의 소스를 읽고 정했다.
+
+- 화면의 모든 색은 **역할** 열두어 개로 그린다: `text`, `muted`, `accent`, `select`, `good`, `warn`, `bad`, `info`, 노트 색 여섯. 위젯은 역할 이름의 스타일만 쓰고, 테마가 바뀌면 전부 따라온다 (`internal/theme`).
+- 관례를 따른 결정: 포커스는 테두리 **색**으로 보인다(모양만 바꾸지 않는다. lazygit `activeBorderColor`, zellij `frame_selected`, resterm `PaneBorderFocus`); 포커스 없는 창은 중립 회색 테두리에 제목만 노트 색; 선택 줄은 반전이 아니라 배경 색(catppuccin `Visual`, lazygit `selectedLineBgColor`); 키 힌트는 accent(lazygit `optionsTextColor`, k9s `menu.keyColor`); 밝은 배경에서는 `faint` 속성을 쓰지 않고 muted 색을 쓴다(resterm `theme_runtime.go`).
+- 테마는 배경을 칠하지 않는다. 터미널 배경을 그대로 두고 그에 맞는 전경색만 고른다. `auto`는 터미널이 보고한 배경에 따라 기본 dark/light를 고른다(lazygit의 `darkTheme`/`lightTheme` 방식).
+- 내장 테마 10개: stickypane dark/light, catppuccin mocha/latte, tokyonight night/day, gruvbox dark/light, nord, dracula. 값은 각 테마 소스 그대로이고 README에 출처와 라이선스를 적었다.
+- 선택은 `sticky.json`의 `theme`에 저장한다. 보드에서 `T`, 명령줄에서 `stickypane theme <이름>`.
+- 하지 않은 것: 사용자 정의 테마 파일(resterm의 TOML 테마). 역할이 열두 개뿐이라 내장 테마로 충분할 때까지 미룬다.
