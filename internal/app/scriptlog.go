@@ -68,7 +68,16 @@ func logsOfScripts(notes []store.Note) map[string]store.Note {
 // run reads what the log says about the last run: its output, and the
 // exit code and duration from the last line.
 func (w *withLog) run() (output []string, ended string, failed bool) {
-	lines := doc.Lines(strings.TrimRight(w.log.Doc.Body, "\n"))
+	body := w.log.Doc.Body
+	// A .http file's log has a part per request: show the picked one's.
+	if picker, ok := w.script.(interface{ Selected() string }); ok && httpfile.HasSections(body) {
+		part, sent := httpfile.Section(body, picker.Selected())
+		if !sent {
+			return []string{widget.T("not sent yet: enter sends it")}, "", false
+		}
+		body = part
+	}
+	lines := doc.Lines(strings.TrimRight(body, "\n"))
 	if len(lines) > 0 && strings.HasPrefix(lines[0], "$ ") {
 		lines = lines[1:] // the command and when, said by the divider
 	}

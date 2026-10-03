@@ -234,5 +234,84 @@ func SendNote(ctx context.Context, notes Notes, dir, name string, part int, env 
 			return res, err
 		}
 	}
-	return res, notes.Write(LogName(name), []byte(Log(res)))
+	order := make([]string, len(f.Requests))
+	for i, r := range f.Requests {
+		order[i] = r.Title()
+	}
+	old, _ := notes.Read(LogName(name))
+	return res, notes.Write(LogName(name), []byte(PutSection(string(old), res.Request.Title(), Log(res), order)))
+}
+
+// sectionHead starts a request's part of a .http file's log.
+const sectionHead = "### "
+
+// sections splits a log into its requests' parts, by title. A log with no
+// "### " line has none.
+func sections(log string) (titles []string, parts map[string]string) {
+	parts = map[string]string{}
+	var title string
+	var b strings.Builder
+	flush := func() {
+		if title != "" {
+			parts[title] = strings.TrimRight(b.String(), "\n") + "\n"
+			titles = append(titles, title)
+		}
+		b.Reset()
+	}
+	for _, l := range strings.Split(log, "\n") {
+		if strings.HasPrefix(l, sectionHead) {
+			flush()
+			title = strings.TrimSpace(strings.TrimPrefix(l, sectionHead))
+			continue
+		}
+		if title != "" {
+			b.WriteString(l + "\n")
+		}
+	}
+	flush()
+	return titles, parts
+}
+
+// Section is the part of a .http file's log that a request wrote when it
+// was last sent: from its "### title" line to the next.
+func Section(log, title string) (string, bool) {
+	_, parts := sections(log)
+	s, ok := parts[title]
+	return s, ok
+}
+
+// HasSections reports whether a log is written in sections, one per request.
+func HasSections(log string) bool {
+	titles, _ := sections(log)
+	return len(titles) > 0
+}
+
+// PutSection puts what a request got into the log under its title,
+// replacing what it got last time and keeping the other requests' parts,
+// in the order of order (the file's requests). A log from before sections
+// is dropped.
+func PutSection(log, title, content string, order []string) string {
+	titles, parts := sections(log)
+	parts[title] = strings.TrimRight(content, "\n") + "\n"
+	seen := map[string]bool{}
+	var b strings.Builder
+	write := func(t string) {
+		if seen[t] {
+			return
+		}
+		if p, ok := parts[t]; ok {
+			seen[t] = true
+			if b.Len() > 0 {
+				b.WriteString("\n")
+			}
+			b.WriteString(sectionHead + t + "\n" + p)
+		}
+	}
+	for _, t := range order {
+		write(t)
+	}
+	for _, t := range append(titles, title) { // requests renamed or gone since
+		write(t)
+	}
+	return b.String()
 }

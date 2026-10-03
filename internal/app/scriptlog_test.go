@@ -67,3 +67,23 @@ func TestAFormShowsWhatTheAgentDidWithIt(t *testing.T) {
 		t.Errorf("the form's pane should show its output:\n%s", s)
 	}
 }
+
+// A .http note shows, under its requests, the response of the one the
+// cursor is on.
+func TestARequestsNoteShowsTheResponseOfThePickedRequest(t *testing.T) {
+	file := "### Health\nGET http://x/health\n\n### Chat\nGET ws://x/chat\n"
+	log := "### Health\n$ curl -sS 'http://x/health'\n{\"ok\": true}\n[200 OK · 3ms · Health]\n\n" +
+		"### Chat\n$ websocat 'ws://x/chat'\n← 14:02:01.120  {\"type\":\"welcome\"}\n[101 Switching Protocols · 9ms · Chat · 0↑ 1↓]\n"
+	m, dir := newModel(t, map[string]string{"svc.http": file, "svc.log": log})
+	writeView(t, dir, `{"notes":{"svc.http":{"open":true}}}`)
+	m.Update(changedMsg{})
+	s := screen(m)
+	if !strings.Contains(s, `"ok": true`) || !strings.Contains(s, "200 OK · 3ms · Health") || strings.Contains(s, "welcome") {
+		t.Errorf("the first request's response:\n%s", s)
+	}
+	press(m, "j")
+	s = screen(m)
+	if !strings.Contains(s, "welcome") || !strings.Contains(s, "101 Switching Protocols") || strings.Contains(s, `"ok": true`) {
+		t.Errorf("the second request's response:\n%s", s)
+	}
+}

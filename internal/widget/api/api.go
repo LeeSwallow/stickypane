@@ -159,6 +159,16 @@ func (a *API) block(r httpfile.Request) []string {
 	return ls
 }
 
+// Selected is the title of the request the cursor is on, whose response
+// the board shows under the list.
+func (a *API) Selected() string {
+	a.clamp()
+	if len(a.file.Requests) == 0 {
+		return ""
+	}
+	return a.file.Requests[a.cursor].Title()
+}
+
 // Summary implements widget.Widget: how many requests.
 func (a *API) Summary() string {
 	switch n := len(a.file.Requests); n {

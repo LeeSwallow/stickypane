@@ -46,6 +46,7 @@
     "1 card": "카드 1개",
     "%d cards": "카드 %d개",
     "1 message": "메시지 1개",
+    "not sent yet: enter sends it": "아직 보내지 않았습니다: enter로 보내기",
     "%d messages": "메시지 %d개",
     "Say": "말하기",
     "nothing said yet: n to say something": "아직 대화가 없습니다: n으로 말하기",

@@ -200,3 +200,28 @@ func TestReflectionAndRawCallsNeedNoDescriptorFile(t *testing.T) {
 		t.Errorf("raw: %v, %+v\n%s", res.Err, res.GRPC, Log(res))
 	}
 }
+
+// A .http file's log keeps the last response of each request under its
+// title, so sending one request does not wipe out what another got.
+func TestALogKeepsASectionPerRequest(t *testing.T) {
+	order := []string{"Chat", "Get user"}
+	log := PutSection("", "Get user", "$ grpcurl x\n[200 OK · 1ms · Get user]\n", order)
+	log = PutSection(log, "Chat", "$ websocat y\n[101 Switching Protocols · 3ms · Chat]\n", order)
+	if !strings.HasPrefix(log, "### Chat\n$ websocat y\n") || !strings.Contains(log, "\n### Get user\n$ grpcurl x\n") {
+		t.Fatalf("sections in the file's order:\n%s", log)
+	}
+	log = PutSection(log, "Get user", "$ grpcurl z\n[404 NOT_FOUND · 2ms · Get user]\n", order)
+	if s, ok := Section(log, "Get user"); !ok || !strings.Contains(s, "grpcurl z") || strings.Contains(s, "grpcurl x") {
+		t.Errorf("a resend replaces its section: %q", s)
+	}
+	if s, ok := Section(log, "Chat"); !ok || !strings.Contains(s, "websocat y") {
+		t.Errorf("the other section stays: %q", s)
+	}
+	if _, ok := Section(log, "Nope"); ok {
+		t.Error("a request never sent has no section")
+	}
+	// A log written before sections is replaced, not mixed in.
+	if got := PutSection("$ curl old\n[200 OK]\n", "Chat", "new\n", order); strings.Contains(got, "old") {
+		t.Errorf("an old log goes: %q", got)
+	}
+}
