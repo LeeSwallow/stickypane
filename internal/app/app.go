@@ -6,6 +6,7 @@ import (
 	"errors"
 	"image/color"
 	"path"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/editor"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/layout"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
@@ -63,6 +65,30 @@ var (
 	boardKeys = map[string]func(*Model) tea.Cmd{}
 )
 
+// tr is what the screen says, in the language in use. One board runs per
+// process, so the strings are the package's.
+var tr = i18n.English()
+
+// Message returns a message of the screen's language by its field name,
+// for callers outside the package. An unknown name gives "".
+func Message(field string) string {
+	v := reflect.ValueOf(tr).FieldByName(field)
+	if v.IsValid() && v.Kind() == reflect.String {
+		return v.String()
+	}
+	return ""
+}
+
+// say fills a message's placeholders.
+func say(s string, values map[string]any) string { return i18n.Fill(s, values) }
+
+// UseLanguage makes the screen speak the language of a choice ("ko",
+// "auto") from now on. Widgets are told too.
+func UseLanguage(choice string) {
+	tr = i18n.Pick(choice)
+	widget.Translate = tr.L
+}
+
 // item is a note with the widget that draws it. A book, which is a folder,
 // has pages: its widget is the book, drawn as one scroll of all of them, and
 // its kind is that of the page the view is on.
@@ -107,6 +133,12 @@ type Model struct {
 	peek    map[string]bool      // notes shown open for this run without an "open" key
 	views   store.Views          // how the user arranged the notes, from sticky.json
 	anchors map[string]anchor    // where the view is in each book, by the book's name
+
+	tabList  []store.Tab       // the tabs of the board: the root and each folder
+	tab      int               // the active tab
+	tabName  string            // its folder name, "" for the root
+	tabFocus map[string]string // the focused note of each tab, by tab name
+	tabHits  []hit             // where each tab is on the first line of the screen
 
 	width, height int
 	bar           []string       // the title bar, one or more lines
@@ -167,7 +199,8 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, reveal: revealNote, theme: th, dark: true}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, tabFocus: map[string]string{}, reveal: revealNote, theme: th, dark: true}
+	UseLanguage(st.Language())
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m
@@ -185,11 +218,11 @@ func (m *Model) useTheme(t theme.Theme) {
 // in sticky.json and says which theme that is.
 func (m *Model) chooseTheme(name string) {
 	if err := m.store.SetTheme(name); err != nil {
-		m.status = "The theme was not saved: " + err.Error()
+		m.status = say(tr.ThemeNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.useTheme(theme.Pick(name, m.dark))
 	m.reload()
-	m.status = "Theme: " + m.theme.Get().Name + ". T tries the next one."
+	m.status = say(tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
 }
 
 // SetStatus shows a message on the bottom line until the next key.
@@ -278,8 +311,24 @@ func (m *Model) index(name string) int {
 
 func (m *Model) setFocus(name string) {
 	m.focus = name
+	m.tabFocus[m.tabName] = name
 	m.reveal = revealNote
 	m.markSeen(name)
+}
+
+// switchTab shows another tab. The choice is written to the root
+// sticky.json, so it survives a restart and an agent can read it.
+func (m *Model) switchTab(i int) {
+	if i < 0 || i >= len(m.tabList) || i == m.tab {
+		return
+	}
+	if err := m.store.SetTab(m.tabList[i].Name); err != nil {
+		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		return
+	}
+	m.focus = ""
+	m.reload()
+	m.reveal = revealNote
 }
 
 func (m *Model) markSeen(name string) {
@@ -371,7 +420,7 @@ func (m *Model) color(it item) color.Color {
 // setView changes how a note is arranged and shows the result.
 func (m *Model) setView(name string, change func(*store.View)) {
 	if err := m.store.SetView(name, change); err != nil {
-		m.status = "The arrangement was not saved: " + err.Error()
+		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 }
@@ -405,13 +454,25 @@ func (m *Model) widgetFor(n store.Note, old page, had bool) (widget.Kind, widget
 	return kind, old.w.Sync(n.Doc)
 }
 
-// reload rescans the folder and reads the arrangement again.
+// reload rescans the folder and reads the arrangement again. The notes
+// shown are those of the active tab; a tab chosen from outside (an agent's
+// stickypane show) is followed.
 func (m *Model) reload() {
-	notes, err := m.store.Scan()
+	tabs, err := m.store.Tabs()
 	if err != nil {
-		m.status = "Cannot read notes: " + err.Error()
+		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
+	m.tabList = tabs
+	m.tabName = m.store.Tab()
+	m.tab = 0
+	for i, t := range tabs {
+		if t.Name == m.tabName {
+			m.tab = i
+		}
+	}
+	m.tabName = tabs[m.tab].Name
+	notes := tabs[m.tab].Notes
 	// What each file showed before, by file name: a note or a book's page.
 	old := map[string]page{}
 	wasOpen := make(map[string]bool, len(m.items))
@@ -429,13 +490,13 @@ func (m *Model) reload() {
 
 	views, err := m.store.Views()
 	if err != nil {
-		m.status = err.Error() + ". Notes are shown as they arrange themselves."
+		m.status = say(tr.ViewsBroken, map[string]any{"Err": err.Error()})
 	}
 	m.views = views
 
 	unreadable := func(n store.Note) store.Note {
 		if n.Err != nil {
-			n.Doc = doc.Document{Body: "Cannot show this note: " + n.Err.Error()}
+			n.Doc = doc.Document{Body: say(tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
 		}
 		return n
 	}
@@ -480,7 +541,7 @@ func (m *Model) reload() {
 	// moved come first in the order they were given, and pinned ones before
 	// everything.
 	place := map[string]int{}
-	for i, name := range m.store.Order() {
+	for i, name := range m.store.Order(m.tabName) {
 		place[name] = i + 1
 	}
 	rank := func(it item) int {
@@ -504,17 +565,21 @@ func (m *Model) reload() {
 		}
 	}
 	if m.index(m.focus) < 0 {
-		m.focus = ""
-		if len(items) > 0 {
-			m.focus = items[max(min(prev, len(items)-1), 0)].note.Name
+		m.focus = m.tabFocus[m.tabName]
+		if m.index(m.focus) < 0 {
+			m.focus = ""
+			if len(items) > 0 {
+				m.focus = items[max(min(prev, len(items)-1), 0)].note.Name
+			}
 		}
 		m.reveal = revealNote
 	}
+	m.tabFocus[m.tabName] = m.focus
 	m.markSeen(m.focus)
 	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
 		m.mode = modeBoard
-		m.status = "The note was removed."
+		m.status = tr.NoteRemoved
 	}
 }
 
@@ -582,9 +647,9 @@ func (m *Model) apply(name string, op doc.Op) {
 	err := m.store.Apply(name, op)
 	switch {
 	case errors.Is(err, doc.ErrConflict):
-		m.status = "The file changed on disk, so the change was not applied."
+		m.status = tr.Conflict
 	case err != nil:
-		m.status = "Write failed: " + err.Error()
+		m.status = say(tr.WriteFailed, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 	i := m.showing(name)
@@ -664,7 +729,7 @@ func (m *Model) heading(it item) string {
 // running says so instead.
 func (m *Model) summary(it item) string {
 	if m.running[it.file().Name] {
-		return "running…"
+		return tr.Running
 	}
 	return it.w.Summary()
 }
@@ -715,8 +780,11 @@ func (m *Model) relayout() {
 	if m.width <= 0 {
 		return
 	}
-	if len(m.items) > 0 {
+	if len(m.items) > 0 || len(m.tabList) > 1 {
 		m.bar = []string{""} // one line, drawn once the screens are known
+		if len(m.tabList) > 1 {
+			m.bar = append(m.bar, "") // and one for the tabs above it
+		}
 	}
 	h := m.bodyHeight()
 

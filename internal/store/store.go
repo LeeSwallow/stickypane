@@ -123,52 +123,104 @@ func Resolve(arg string) (string, error) {
 	return Find(abs)
 }
 
-// Scan reads every note, sorted by name. A folder with notes in it is one
-// note, a book, with those files as its pages; folders are read one level
-// deep, and the archive and hidden folders are not read. A file that cannot
-// be read still appears, carrying its error.
-func (s *Store) Scan() ([]Note, error) {
-	entries, err := os.ReadDir(s.Dir) // sorted by name
+// Tab is one screen of the board: the notes folder itself (the root tab,
+// named after the project) or one folder in it. Its notes are the files in
+// the folder, and a folder in it is a book whose pages are its files.
+type Tab struct {
+	Name  string // "" for the root, else the folder's name
+	Title string // the folder's name, or what its sticky.json calls it
+	Notes []Note
+}
+
+// Tabs reads the board: the root tab, then one tab per folder, in name
+// order. Folders are read two levels deep: a folder in a tab is a book.
+// The archive, hidden folders and ignored names are not read; a folder
+// with nothing to show is not a tab. A file that cannot be read still
+// appears, carrying its error.
+func (s *Store) Tabs() ([]Tab, error) {
+	ignored := s.ignored()
+	root := Tab{Title: filepath.Base(filepath.Dir(s.Dir))}
+	if title := s.TabTitle(""); title != "" {
+		root.Title = title
+	}
+	tabs := []Tab{root}
+	entries, err := os.ReadDir(s.Dir)
 	if err != nil {
 		return nil, err
 	}
-	var notes []Note
-	ignored := s.ignored()
 	for _, e := range entries {
 		name := e.Name()
 		if strings.HasPrefix(name, ".") || name == ArchiveDir || ignored(name) {
 			continue
 		}
-		// Stat follows a link, so a linked folder is a book too.
 		if fi, err := os.Stat(filepath.Join(s.Dir, name)); err == nil && fi.IsDir() {
-			if book, ok := s.book(name, ignored); ok {
-				notes = append(notes, book)
+			tab := Tab{Name: name, Title: name}
+			if title := s.TabTitle(name); title != "" {
+				tab.Title = title
+			}
+			tab.Notes = s.notesIn(name, ignored, true)
+			if len(tab.Notes) > 0 {
+				tabs = append(tabs, tab)
 			}
 			continue
 		}
 		if IsNote(name) {
-			notes = append(notes, s.read(name))
+			tabs[0].Notes = append(tabs[0].Notes, s.read(name))
 		}
+	}
+	return tabs, nil
+}
+
+// notesIn reads the notes of a folder: its files, and when books is set,
+// its folders as books.
+func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Note {
+	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
+	if err != nil {
+		return nil
+	}
+	var notes []Note
+	for _, e := range entries {
+		name := e.Name()
+		full := dir + "/" + name
+		if strings.HasPrefix(name, ".") || ignored(full) {
+			continue
+		}
+		if fi, err := os.Stat(filepath.Join(s.Dir, filepath.FromSlash(full))); err == nil && fi.IsDir() {
+			if books {
+				if book, ok := s.book(full, ignored); ok {
+					notes = append(notes, book)
+				}
+			}
+			continue
+		}
+		if IsNote(name) {
+			notes = append(notes, s.read(full))
+		}
+	}
+	return notes
+}
+
+// Scan reads every note of every tab as one list, sorted by name, for
+// callers that do not show screens: the command line and the MCP server.
+func (s *Store) Scan() ([]Note, error) {
+	tabs, err := s.Tabs()
+	if err != nil {
+		return nil, err
+	}
+	var notes []Note
+	for _, t := range tabs {
+		notes = append(notes, t.Notes...)
 	}
 	return notes, nil
 }
 
 // book reads a folder as one note. A folder without notes is not a book.
 func (s *Store) book(name string, ignored func(string) bool) (Note, bool) {
-	b := Note{Name: name, Path: filepath.Join(s.Dir, name)}
-	entries, err := os.ReadDir(b.Path)
-	if err != nil {
-		return b, false
-	}
-	for _, e := range entries {
-		if e.IsDir() || !IsNote(e.Name()) || ignored(name+"/"+e.Name()) {
-			continue
-		}
-		// A page is named with "/" on every system: it is a name, not a path.
-		page := s.read(name + "/" + e.Name())
-		b.Pages = append(b.Pages, page)
-		if page.ModTime.After(b.ModTime) {
-			b.ModTime = page.ModTime
+	b := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
+	b.Pages = s.notesIn(name, ignored, false)
+	for _, p := range b.Pages {
+		if p.ModTime.After(b.ModTime) {
+			b.ModTime = p.ModTime
 		}
 	}
 	return b, len(b.Pages) > 0

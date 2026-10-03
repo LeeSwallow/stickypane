@@ -31,7 +31,7 @@ func mkdir(t *testing.T, dir, name string) {
 	}
 }
 
-const openAll = `{"notes":{"build.log":{"open":true},"docs":{"open":true}}}`
+const openAll = `{"notes":{"build.log":{"open":true}},"tab":"t"}`
 
 func TestALogFileIsShownAsItIs(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"build.log": "---\nnot front matter\n---\ncompiled **ok**\n"})
@@ -55,18 +55,18 @@ func TestALogFileIsShownAsItIs(t *testing.T) {
 
 func TestAFolderIsOneNoteWithPages(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("another note\n")})
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/01-intro.md", "---\ntitle: Introduction\n---\nthe first page\n")
-	writeFile(t, dir, "docs/02-usage.md", "the second page\n")
-	writeFile(t, dir, "docs/03-run.log", "a log page\n")
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/01-intro.md", "---\ntitle: Introduction\n---\nthe first page\n")
+	writeFile(t, dir, "t/docs/02-usage.md", "the second page\n")
+	writeFile(t, dir, "t/docs/03-run.log", "a log page\n")
 	writeView(t, dir, openAll)
 	press(m, "r", "tab")
 	s := screen(m)
 	if strings.Count(s, "docs") < 2 || !strings.Contains(s, "docs · Introduction") || !strings.Contains(s, "1/3") {
 		t.Fatalf("a folder is one note in the bar and one pane, on its first page:\n%s", s)
 	}
-	if !strings.Contains(s, "─ Introduction ─") || !strings.Contains(s, "the first page") || !strings.Contains(s, "another note") {
-		t.Fatalf("the pages follow one another under a rule with the page's name:\n%s", s)
+	if !strings.Contains(s, "─ Introduction ─") || !strings.Contains(s, "the first page") || strings.Contains(s, "another note") {
+		t.Fatalf("the pages follow one another under a rule with the page's name; the root tab's note is on another tab:\n%s", s)
 	}
 	press(m, ".")
 	if s := screen(m); !strings.Contains(s, "the second page") || !strings.Contains(s, "docs · 02-usage") || !strings.Contains(s, "2/3") {
@@ -91,19 +91,19 @@ func TestAFolderIsOneNoteWithPages(t *testing.T) {
 
 func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 	m, dir := newModel(t, nil)
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a-notes.md", "just text\n")
-	writeFile(t, dir, "docs/b-todo.md", "---\ntype: checklist\n---\n- [ ] one\n- [ ] two\n")
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a-notes.md", "just text\n")
+	writeFile(t, dir, "t/docs/b-todo.md", "---\ntype: checklist\n---\n- [ ] one\n- [ ] two\n")
 	writeView(t, dir, openAll)
 	press(m, "r", ".", "j", "space")
-	if got := readFile(t, dir, "docs/b-todo.md"); !strings.HasSuffix(got, "- [ ] one\n- [x] two\n") {
+	if got := readFile(t, dir, "t/docs/b-todo.md"); !strings.HasSuffix(got, "- [ ] one\n- [x] two\n") {
 		t.Fatalf("space should tick the item of the page the view is on: %q", got)
 	}
 	if s := screen(m); !strings.Contains(s, "2/2 · 1/2") {
 		t.Errorf("the border should show the page and the page's own summary:\n%s", s)
 	}
 	// The page the view is on stays when the files change.
-	writeFile(t, dir, "docs/a-first.md", "a new first page\n")
+	writeFile(t, dir, "t/docs/a-first.md", "a new first page\n")
 	press(m, "r")
 	if s := screen(m); !strings.Contains(s, "☑ two") || !strings.Contains(s, "3/3") {
 		t.Errorf("a new page must not move the view off its page:\n%s", s)
@@ -112,9 +112,9 @@ func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 
 func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 	m, dir := newModel(t, nil)
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", numbered(40))
-	writeFile(t, dir, "docs/b.md", strings.ReplaceAll(numbered(40), "line", "row"))
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a.md", numbered(40))
+	writeFile(t, dir, "t/docs/b.md", strings.ReplaceAll(numbered(40), "line", "row"))
 	writeView(t, dir, openAll)
 	press(m, "r", "G")
 	if s := screen(m); !strings.Contains(s, "row 40") || !strings.Contains(s, "2/2") {
@@ -138,17 +138,17 @@ func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 
 func TestEditingAndDeletingAPage(t *testing.T) {
 	m, dir := newModel(t, nil)
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", "page a\n")
-	writeFile(t, dir, "docs/b.md", "page b\n")
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a.md", "page a\n")
+	writeFile(t, dir, "t/docs/b.md", "page b\n")
 	writeView(t, dir, openAll)
 	press(m, "r", ".", "e")
-	if s := screen(m); m.mode != modeEdit || !strings.Contains(s, "docs/b.md") || !strings.Contains(s, "page b") {
+	if s := screen(m); m.mode != modeEdit || !strings.Contains(s, "t/docs/b.md") || !strings.Contains(s, "page b") {
 		t.Fatalf("e should edit the file of the page the view is on:\n%s", s)
 	}
 	typeKeys(m, "A!<esc>:wq<enter>")
-	if got := readFile(t, dir, "docs/b.md"); got != "page b!\n" {
-		t.Fatalf("docs/b.md = %q", got)
+	if got := readFile(t, dir, "t/docs/b.md"); got != "page b!\n" {
+		t.Fatalf("t/docs/b.md = %q", got)
 	}
 	press(m, "D")
 	if s := screen(m); !strings.Contains(s, "b") || m.mode != modeConfirm {
@@ -165,9 +165,9 @@ func TestEditingAndDeletingAPage(t *testing.T) {
 
 func TestABookZooms(t *testing.T) {
 	m, dir := newModel(t, nil)
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", "page a\n")
-	writeFile(t, dir, "docs/b.md", "page b\n")
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a.md", "page a\n")
+	writeFile(t, dir, "t/docs/b.md", "page b\n")
 	writeView(t, dir, openAll)
 	press(m, "r", "z", ".")
 	if s := screen(m); m.mode != modeZoom || !strings.Contains(s, "page b") || !strings.Contains(s, "2/2") {

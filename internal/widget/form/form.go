@@ -308,7 +308,7 @@ func (f *Form) Draw(width int, active bool) (string, widget.Span) {
 		}
 	}
 	if f.submitted != "" {
-		sent := "sent"
+		sent := widget.T("sent")
 		if t, err := time.Parse(time.RFC3339, f.at); err == nil {
 			sent += " " + t.Local().Format("15:04")
 		}
@@ -419,7 +419,7 @@ func drawField(text string, width int, selected bool) []string {
 	if text == "" {
 		lines, st = []string{""}, widget.Faint
 		if selected {
-			lines = []string{widget.Truncate(placeholder, inner)}
+			lines = []string{widget.Truncate(widget.T(placeholder), inner)}
 		}
 	}
 	if selected {

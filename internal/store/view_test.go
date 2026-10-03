@@ -78,23 +78,23 @@ func TestStickyJSONIsNotANote(t *testing.T) {
 func TestOrderIsKeptNextToTheViews(t *testing.T) {
 	s := newStore(t)
 	write(t, s, "a.md", "a\n")
-	if got := s.Order(); len(got) != 0 {
+	if got := s.Order(""); len(got) != 0 {
 		t.Fatalf("Order = %v", got)
 	}
 	if err := s.SetView("a.md", func(v *View) { v.Size = "half" }); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.SetOrder([]string{"b.md", "a.md"}); err != nil {
+	if err := s.SetOrder("", []string{"b.md", "a.md"}); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.Order(); strings.Join(got, ",") != "b.md,a.md" {
+	if got := s.Order(""); strings.Join(got, ",") != "b.md,a.md" {
 		t.Errorf("Order = %v", got)
 	}
 	if v, _ := s.Views(); v["a.md"].Size != "half" {
 		t.Errorf("writing the order must keep the views: %+v", v)
 	}
 	write(t, s, ViewFile, "{ broken")
-	if err := s.SetOrder([]string{"a.md"}); err == nil || s.Order() != nil {
+	if err := s.SetOrder("", []string{"a.md"}); err == nil || s.Order("") != nil {
 		t.Error("a broken file is neither read nor overwritten")
 	}
 }
@@ -117,13 +117,13 @@ func TestATitleAndAnIgnoreListLiveInStickyJSON(t *testing.T) {
 		t.Errorf("sticky.json =\n%s", got)
 	}
 	notes, _ := s.Scan()
-	if got := names(notes); got != "build.log,docs[docs/a.md docs/wip-b.md],drafts[drafts/a.md],keep.md,scratch.tmp.md" {
+	if got := names(notes); got != "build.log,keep.md,scratch.tmp.md,docs/a.md,docs/wip-b.md,drafts/a.md" {
 		t.Fatalf("without an ignore list everything is shown: %s", got)
 	}
 	// The list is written by hand; the board keeps it when it writes.
 	write(t, s, ViewFile, `{"ignore":["drafts","*.tmp.md","docs/wip-*"],"notes":{"build.log":{"title":"CI build"}}}`)
 	notes, _ = s.Scan()
-	if got := names(notes); got != "build.log,docs[docs/a.md],keep.md" {
+	if got := names(notes); got != "build.log,keep.md,docs/a.md" {
 		t.Errorf("ignored names and patterns are not shown: %s", got)
 	}
 	if err := s.SetView("keep.md", func(v *View) { v.Size = "half" }); err != nil {

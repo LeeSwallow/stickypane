@@ -31,17 +31,17 @@ func init() {
 	boardKeys["u"] = func(m *Model) tea.Cmd {
 		u := m.undo
 		if u == nil {
-			m.status = "Nothing to undo."
+			m.status = tr.NothingToUndo
 			return nil
 		}
 		m.undo = nil
 		if err := m.store.Restore(u.from, u.to); err != nil {
-			m.status = "Cannot bring " + u.label + " back: it is still in " + u.from + " (" + err.Error() + ")"
+			m.status = say(tr.CannotRestore, map[string]any{"Name": u.label, "Where": u.from, "Err": err.Error()})
 			return nil
 		}
 		m.reload()
 		m.focusFile(u.to)
-		m.status = "Restored " + u.label + "."
+		m.status = say(tr.Restored, map[string]any{"Name": u.label})
 		return nil
 	}
 
@@ -55,7 +55,16 @@ func init() {
 		here := path.Dir(file)
 		m.moveTargets = nil
 		if here != "." {
-			m.moveTargets = append(m.moveTargets, "")
+			m.moveTargets = append(m.moveTargets, "") // the top level: the root tab
+		}
+		// The other tabs, then the books of this tab.
+		for _, t := range m.tabList {
+			if t.Name != "" && t.Name != here && t.Name != m.tabName {
+				m.moveTargets = append(m.moveTargets, t.Name)
+			}
+		}
+		if m.tabName != "" && here != m.tabName {
+			m.moveTargets = append(m.moveTargets, m.tabName)
 		}
 		for _, other := range m.items {
 			if len(other.pages) > 0 && other.note.Name != here {
@@ -88,7 +97,7 @@ func moveUpdate(m *Model, msg tea.Msg) tea.Cmd {
 			m.moveTo(target)
 			break
 		}
-		m.ask("Folder", "", func(name string) {
+		m.ask(tr.Folder, "", func(name string) {
 			// A folder is named like a note: a short, plain file name.
 			m.moveTo(store.Slug(name, time.Time{}))
 		})
@@ -104,8 +113,13 @@ func (m *Model) moveTo(folder string) {
 		to = folder + "/" + to
 	}
 	if err := m.store.Move(m.moveFile, to); err != nil {
-		m.status = "Cannot move the note: " + err.Error()
+		m.status = say(tr.CannotMove, map[string]any{"Err": err.Error()})
 		return
+	}
+	// The board follows the note into its tab.
+	if tab := m.store.TabOf(to); tab != m.tabName {
+		_ = m.store.SetTab(tab)
+		m.focus = ""
 	}
 	m.reload()
 	m.focusFile(to)
@@ -140,10 +154,14 @@ func moveBody(m *Model, h int) []string {
 		label := t
 		switch t {
 		case "":
-			label = "(top level)"
+			label = tr.TopLevel
 		case newFolder:
+			label = tr.NewFolder
 		default:
 			label = "▤ " + t
+			if !strings.Contains(t, "/") {
+				label = "▣ " + t // a tab
+			}
 		}
 		if i == m.moveIdx {
 			body = append(body, widget.Selected.Render(widget.Pad("› "+label, moveWidth-4)))
@@ -152,7 +170,7 @@ func moveBody(m *Model, h int) []string {
 		}
 	}
 	base := path.Base(m.moveFile)
-	title := "Move " + widget.Clean(strings.TrimSuffix(base, path.Ext(base))) + " to"
+	title := say(tr.MoveTo, map[string]any{"Name": widget.Clean(strings.TrimSuffix(base, path.Ext(base)))})
 	return dialog(title, body, moveWidth, m.width, h, m.accent())
 }
 

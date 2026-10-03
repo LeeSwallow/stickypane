@@ -1,0 +1,43 @@
+name: Design feedback
+description: stickypane is at the design stage. Tell me what you wanted the board to do.
+title: "[design] "
+labels: ["design", "feedback wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. This is the most useful kind of issue right now: not "it crashed" but "I expected the board to do X and it did Y".
+  - type: textarea
+    id: trying
+    attributes:
+      label: What were you trying to do with your agent?
+      description: The situation, in a sentence or two. Which agent, what task.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect the board to show or do?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What did it do instead?
+      description: A screenshot or a pasted screen helps. Paste the output of `stickypane list` if it matters.
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockup, if you have one
+      description: A text drawing of what you wanted is perfect.
+      render: text
+  - type: dropdown
+    id: daily
+    attributes:
+      label: Would you use this daily if it worked the way you expect?
+      options:
+        - "Yes"
+        - "Maybe"
+        - "No, it was a one-off"
+    validations:
+      required: true

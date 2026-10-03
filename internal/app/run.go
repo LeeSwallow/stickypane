@@ -28,11 +28,11 @@ type scriptDoneMsg struct {
 // saying so, each time.
 func (m *Model) askRun(name string) {
 	if m.running[name] {
-		m.status = path.Base(name) + " is already running."
+		m.status = say(tr.AlreadyRunning, map[string]any{"Name": path.Base(name)})
 		return
 	}
 	root := filepath.Dir(m.store.Dir)
-	m.confirm(fmt.Sprintf("Run %s in %s? (y/n)", path.Base(name), filepath.Base(root)), func() {
+	m.confirm(say(tr.ConfirmRun, map[string]any{"Name": path.Base(name), "Dir": filepath.Base(root)}), func() {
 		m.pending = m.run(name)
 	})
 }
@@ -52,10 +52,12 @@ func (m *Model) run(name string) tea.Cmd {
 	started := m.now()
 	head := fmt.Sprintf("$ sh %s   (%s)\n", name, started.Format("2006-01-02 15:04:05"))
 	if err := m.store.Write(log, []byte(head)); err != nil {
-		m.status = "Cannot write " + log + ": " + err.Error()
+		m.status = say(tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
-	if !strings.Contains(log, "/") { // a page is shown by its book
+	// A note of the root or of a tab is opened; a page of a book is shown
+	// by its book.
+	if n := strings.Count(log, "/"); n == 0 || (n == 1 && m.store.TabOf(log) != "") {
 		open := true
 		_ = m.store.SetView(log, func(v *store.View) { v.Open = &open })
 	}
@@ -98,9 +100,9 @@ func (m *Model) finished(msg scriptDoneMsg) {
 	delete(m.running, msg.name)
 	switch base := path.Base(msg.name); {
 	case msg.err != nil:
-		m.status = base + " could not be run: " + msg.err.Error()
+		m.status = say(tr.CouldNotRun, map[string]any{"Name": base, "Err": msg.err.Error()})
 	default:
-		m.status = fmt.Sprintf("%s ended: exit %d after %s. Its output is in %s.", base, msg.code, msg.took.Round(10*time.Millisecond), path.Base(logOf(msg.name)))
+		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": msg.took.Round(10 * time.Millisecond).String(), "Log": path.Base(logOf(msg.name))})
 	}
 	m.reload()
 }

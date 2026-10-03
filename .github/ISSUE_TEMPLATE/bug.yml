@@ -1,0 +1,39 @@
+name: Bug report
+description: Something did not work.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `stickypane version`
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and OS
+      description: e.g. WezTerm in tmux 3.5 on macOS 15; Ghostty on Ubuntu 24.04
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      description: Steps, or the command and the files in `.sticky/` if they matter.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+      description: A screenshot, the pasted screen, or the error.
+    validations:
+      required: true

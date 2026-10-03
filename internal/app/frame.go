@@ -161,7 +161,7 @@ func hints(width int, pairs ...string) string {
 			break
 		}
 		used += w
-		parts = append(parts, widget.Accent.Bold(true).Render(pairs[i])+" "+widget.Faint.Render(pairs[i+1]))
+		parts = append(parts, widget.Accent.Bold(true).Render(pairs[i])+" "+widget.Faint.Render(tr.L(pairs[i+1])))
 	}
 	return strings.Join(parts, "  ")
 }

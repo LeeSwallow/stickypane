@@ -57,16 +57,16 @@ type API struct {
 func New(st *store.Store, reg widget.Registry) *API { return &API{st: st, reg: reg} }
 
 // fileName turns a note name into its file name, adding ".md" when it has
-// no extension. A name may have one folder in front, for a page of a book.
-// Anything that could leave the notes folder or hide the file is rejected,
-// and so is a file the board does not show.
+// no extension. A name may have folders in front: a tab, and a book in it
+// ("deploy/docs/plan"). Anything that could leave the notes folder or hide
+// the file is rejected, and so is a file the board does not show.
 func fileName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" || strings.Contains(name, `\`) || strings.ContainsFunc(name, unicode.IsControl) {
 		return "", ErrBadName
 	}
 	parts := strings.Split(name, "/")
-	if len(parts) > 2 {
+	if len(parts) > 3 {
 		return "", ErrBadName
 	}
 	for _, p := range parts {

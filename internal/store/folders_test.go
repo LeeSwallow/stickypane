@@ -45,15 +45,19 @@ func TestScanReadsLogsScriptsAndFolders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := names(notes); got != "a.md,build.log,deploy.sh,docs[docs/01-intro.md docs/02-usage.md],notes.txt" {
+	// docs is a tab, whose files are notes and whose folder deeper is a book.
+	if got := names(notes); got != "a.md,build.log,deploy.sh,notes.txt,docs/01-intro.md,docs/02-usage.md,docs/deeper[docs/deeper/skip.md]" {
 		t.Fatalf("Scan = %s", got)
 	}
 	if log := notes[1]; log.Doc.HasFront || log.Doc.Body != "---\nnot front matter\n---\nline\n" {
 		t.Errorf("only Markdown has front matter; a log is shown as it is: %+v", log.Doc)
 	}
-	book := notes[3]
-	if !book.Book() || book.Pages[0].Doc.Body != "intro\n" || book.Path != filepath.Join(s.Dir, "docs") || book.ModTime.IsZero() {
-		t.Errorf("a folder is one note whose pages are its files: %+v", book)
+	book := notes[6]
+	if !book.Book() || book.Pages[0].Doc.Body != "too deep\n" || book.Path != filepath.Join(s.Dir, "docs", "deeper") || book.ModTime.IsZero() {
+		t.Errorf("a folder in a tab is one note whose pages are its files: %+v", book)
+	}
+	if notes[4].Doc.Body != "intro\n" {
+		t.Errorf("a file in a tab is a note: %+v", notes[4])
 	}
 	if notes[0].Book() {
 		t.Error("a file is not a book")

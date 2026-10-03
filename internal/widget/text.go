@@ -26,6 +26,13 @@ var (
 
 func init() { Apply(theme.Pick("auto", true).Styles()) }
 
+// Translate turns a phrase a widget shows into the user's language. The
+// app sets it; until then phrases stay as written.
+var Translate = func(phrase string) string { return phrase }
+
+// T translates a phrase a widget shows.
+func T(phrase string) string { return Translate(phrase) }
+
 // Apply makes every widget draw with the styles of a theme from now on.
 func Apply(s theme.Styles) {
 	Bold, Faint, Selected, Accent = s.Bold, s.Faint, s.Selected, s.Accent

@@ -18,6 +18,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/app"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
@@ -39,6 +40,8 @@ Usage:
                          --skill installs it as a Claude Code skill instead)
   stickypane theme [name]  list the themes, or choose one ("auto" follows the
                          terminal's background)
+  stickypane language [code]  list the languages of the screen, or choose one
+                         ("auto" follows LANG); the agent guide stays English
   stickypane guide       print the agent guide
   stickypane version     print the version
 
@@ -123,6 +126,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return manage(args[0], args[1:], stdout, stderr)
 		case "theme":
 			return themeCmd(args[1:], stdout, stderr)
+		case "language":
+			return languageCmd(args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			fmt.Fprint(stderr, usage)
@@ -218,6 +223,56 @@ func themeCmd(args []string, stdout, stderr io.Writer) int {
 		return report(stderr, err)
 	}
 	fmt.Fprintln(stdout, "theme:", name)
+	return 0
+}
+
+// languageCmd lists the languages the screen can speak or chooses one.
+func languageCmd(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 1 {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+	dir, err := store.Resolve(".")
+	if errors.Is(err, store.ErrNotFound) {
+		fmt.Fprintln(stderr, noBoard)
+		return 1
+	}
+	if err != nil {
+		return report(stderr, err)
+	}
+	st := store.Open(dir)
+	list := func(w io.Writer) {
+		current := st.Language()
+		if current == "" {
+			current = "auto"
+		}
+		mark := func(code string) string {
+			if strings.EqualFold(code, current) {
+				return "* "
+			}
+			return "  "
+		}
+		fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect())
+		for _, code := range i18n.Languages() {
+			fmt.Fprintf(w, "%s%s\n", mark(code), code)
+		}
+	}
+	if len(args) == 0 {
+		list(stdout)
+		return 0
+	}
+	code := strings.ToLower(strings.TrimSpace(args[0]))
+	if code != "auto" {
+		if _, err := i18n.Load(code); err != nil {
+			fmt.Fprintf(stderr, "stickypane: there is no translation for %q. The languages are:\n", args[0])
+			list(stderr)
+			return 1
+		}
+	}
+	if err := st.SetLanguage(code); err != nil {
+		return report(stderr, err)
+	}
+	fmt.Fprintln(stdout, "language:", code)
 	return 0
 }
 
@@ -462,7 +517,7 @@ func board(dir string) error {
 	th := theme.NewHolder(theme.Pick(st.Theme(), true))
 	m := app.New(st, kinds.Default(kinds.Markdown(th)), watch, th)
 	if watchErr != nil {
-		m.SetStatus("File watching is unavailable. Press r to refresh.")
+		m.SetStatus(app.Message("WatchUnavailable"))
 	}
 	_, err := tea.NewProgram(m).Run()
 	return err

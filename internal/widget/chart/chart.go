@@ -92,7 +92,7 @@ func parse(d doc.Document) *Chart {
 func (c *Chart) Draw(width int, _ bool) (string, widget.Span) {
 	var lines []string
 	if len(c.points) == 0 {
-		lines = append(lines, widget.Faint.Render(widget.Truncate(formatHint, width)))
+		lines = append(lines, widget.Faint.Render(widget.Truncate(widget.T(formatHint), width)))
 	}
 	for _, p := range c.prose {
 		lines = append(lines, widget.Wrap(widget.Clean(p), max(width, 1))...)
@@ -302,9 +302,9 @@ func (c *Chart) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return "1 value"
+		return widget.T("1 value")
 	default:
-		return fmt.Sprintf("%d values", n)
+		return fmt.Sprintf(widget.T("%d values"), n)
 	}
 }
 

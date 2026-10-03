@@ -112,8 +112,8 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 
 func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"build.log": "compiled\n"})
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", "page a\n")
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a.md", "page a\n")
 	press(m, "r", "R")
 	if m.mode != modeInput {
 		t.Fatalf("R on a log should ask for a name, mode = %v", m.mode)
@@ -130,9 +130,10 @@ func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
 		t.Errorf("the title bar should show the name:\n%s", s)
 	}
 	// A book is named the same way; the folder keeps its name.
-	writeView(t, dir, `{"notes":{"docs":{"open":true,"title":"Handbook"}}}`)
+	writeFile(t, dir, "t/sticky.json", `{"notes":{"docs":{"open":true,"title":"Handbook"}}}`)
+	writeView(t, dir, `{"tab":"t"}`)
 	press(m, "r")
-	if s := screen(m); !strings.Contains(s, "Handbook · a") || !fileExists(dir, "docs/a.md") {
+	if s := screen(m); !strings.Contains(s, "Handbook · a") || !fileExists(dir, "t/docs/a.md") {
 		t.Errorf("a book goes by the name sticky.json gives it:\n%s", s)
 	}
 }
@@ -176,5 +177,29 @@ func TestTCyclesThemesAndKeepsTheChoice(t *testing.T) {
 	m.Update(tea.BackgroundColorMsg{Color: color.White})
 	if got := m.theme.Get().Name; got != next {
 		t.Errorf("theme after a background report = %q, want %q", got, next)
+	}
+}
+
+func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
+	if s := screen(m); !strings.Contains(s, "Nothing is open") {
+		t.Fatalf("English by default:\n%s", s)
+	}
+	writeView(t, dir, `{"language":"ko"}`)
+	UseLanguage(m.store.Language())
+	m.reload()
+	s := screen(m)
+	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
+		t.Errorf("the screen and the hints should be Korean:\n%s", s)
+	}
+	press(m, "o", "D")
+	if s := screen(m); !strings.Contains(s, "삭제할까요") {
+		t.Errorf("messages with names are filled in Korean:\n%s", s)
+	}
+	press(m, "n")
+	UseLanguage("en")
+	if s := screen(m); strings.Contains(s, "도움말") {
+		t.Errorf("back to English:\n%s", s)
 	}
 }

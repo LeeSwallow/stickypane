@@ -72,19 +72,19 @@ func TestASecondRunStartsTheLogAgain(t *testing.T) {
 	}
 }
 
-func TestAScriptInABookLogsIntoThatBook(t *testing.T) {
+func TestAScriptInATabLogsIntoThatTab(t *testing.T) {
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "ops")
 	writeFile(t, dir, "ops/build.sh", "echo built\n")
-	writeView(t, dir, `{"notes":{"ops":{"open":true}}}`)
+	writeView(t, dir, `{"tab":"ops"}`)
 	press(m, "r", "enter")
 	_, cmd := m.Update(key("y"))
 	finish(t, m, cmd)
 	if got := readFile(t, dir, "ops/build.log"); !strings.Contains(got, "built") {
 		t.Errorf("ops/build.log = %q", got)
 	}
-	if s := screen(m); !strings.Contains(s, "/2") {
-		t.Errorf("the log is a new page of the same book:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "≣ build") || !strings.Contains(s, "built") {
+		t.Errorf("the log is a note of the same tab, open:\n%s", s)
 	}
 }
 

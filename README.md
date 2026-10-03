@@ -1,43 +1,74 @@
 # stickypane
 
-A note board in your terminal, for you and your coding agent.
+**A board in your terminal that your coding agent writes to and you read.**
+
+[![CI](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LeeSwallow/stickypane?include_prereleases)](https://github.com/LeeSwallow/stickypane/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/LeeSwallow/stickypane)](https://goreportcard.com/report/github.com/LeeSwallow/stickypane)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+English · [한국어](README.ko.md)
+
+[Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Plugin](#install) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
 
 ```
- ● ▦ Auth work  ● ☑ Login API  ● ≣ Work log  ○ ✎ Auth design  ○ ✎ memo
-──────────────────────────────────────────────────────────────────────────────
-╔ ▦ Auth work ══════════════════════════════════════════════════════ 4 cards ╗
-║ To do (1)               Doing (1)               Done (2)                   ║
-║ ──────────────────────  ──────────────────────  ──────────────────────     ║
-║ ▎ payments              › login API             ▎ schema                   ║
-║                             refresh tokens                                 ║
-║                             come later          ▎ CI setup                 ║
-╚════════════════════════════════════════════════════════════════════════════╝
-╭ ☑ Login API ─────────────────── 2/3 ╮╭ ≣ Work log ──────────────── 2 lines ╮
-│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3            ││ 14:02 tests passed                  │
-│                                     ││ 14:10 started on review feedback    │
-│   ☑ Add endpoint                    │╰─────────────────────────────────────╯
-│   ☑ Validate input                  │
-│   ☐ Write tests                     │
-╰─────────────────────────────────────╯
-h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
+ ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
+╔ ▦ Auth work ═══════════════════════════════════════════════════════════ 4 cards ╗
+║ To do (1)               Doing (1)               Done (2)                       ║
+║ ─────────────────────   ─────────────────────   ─────────────────────          ║
+║ ▎ payments              › login API             ▎ schema                       ║
+║                             refresh tokens      ▎ CI setup                     ║
+╚═════════════════════════════════════════════════════════════════════════════════╝
+╭ ☑ Login API ─────────────── 2/3 ╮╭ ≣ build ──────────────────────── 212 lines ╮
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3        ││ ok   internal/store      0.41s             █
+│   ☑ Add endpoint                ││ ok   internal/widget     0.38s             █
+│   ☑ Validate input              ││ [exit 0 · 7.15s]                           █
+│   ☐ Write tests                 │╰────────────────────────────────────────────╯
+╰─────────────────────────────────╯╭ ◉ Deploy now? ─────────────────────── 1/2 ╮
+                                   │   ○ staging      ◉ production              │
+                                   │ ┏━━━━━━━━┓ ╭────────╮                      │
+                                   │ ┃ Deploy ┃ │ Cancel │                      │
+h l j k move  H L shift card  n new card  enter zoom  o close  tab next  ? help
 ```
 
-Your agent jots things down as plain files in a folder. stickypane shows that
-folder in a pane next to it: plain notes, kanban boards, checklists, charts,
-Mermaid diagrams, forms you answer with a key press, logs that are followed
-as they grow, and shell scripts with a Run button. The line
-at the top lists every note (`●` open, `○` folded away). The ones you open
-tile the screen below it, each in a pane of its own: a note longer than its
-pane scrolls inside it, and when more notes are open than fit, the rest are
-on the next screen. Move a card or tick a box and the change lands in the
-same file, so the agent sees it too.
+An agent working in the pane next to you produces a lot of text, and the
+things that matter scroll away with it: where the plan stands, what is done,
+what it wants you to decide. Chat is the wrong place for that. A board is
+the right one.
 
-- **Nothing to configure.** No server, no hooks. The one settings file,
-  `sticky.json`, is written by the board as you arrange it.
-- **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
-  and others.
-- **Any terminal.** A plain window, tmux, WezTerm, Zellij. stickypane is a
-  visualization layer, not a terminal plugin.
+stickypane is that board. It is a folder of plain files (`.sticky/`), shown
+as panes in a terminal window: your agent writes a file, it appears; it
+ticks an item, the box ticks; it asks a question, a form with buttons shows
+up, you press one, and the agent reads your answer back. You work the board
+with keys or the mouse and every change lands in the same files, so the
+agent sees what you did without being told.
+
+**What it shows.** Notes in Markdown, kanban boards, checklists, charts,
+Mermaid diagrams, forms you answer, logs followed as they grow, shell
+scripts with a Run button, and folders as books of pages. Any file of your
+project — the README, a log under `logs/` — can be put on the board with one
+command.
+
+**What it asks of the agent.** Nothing it does not already know how to do.
+Writing a Markdown file is enough; for the rest there are one-line commands
+that need no reading first (`stickypane todo plan check tests`,
+`stickypane chart tokens add input 1200`, `stickypane show README.md`) and the
+same as MCP tools. A 50-line guide, added to `AGENTS.md` or installed as a
+skill, tells it all of this.
+
+**What it asks of you.** Nothing to configure: no server, no hooks, no
+terminal plugin. It runs in a plain window, in tmux, WezTerm or Zellij, next
+to Claude Code, Codex or any agent that can edit files. The files are yours,
+in your repository, readable without stickypane.
+
+> **Status: design stage.** stickypane is pre-1.0 and I am still deciding
+> how the board should behave; file names, command names and `sticky.json`
+> may change until v0.1.0. The most useful thing you can do is try it with
+> your agent for a day and tell me what you expected the board to do: open
+> a [design feedback issue](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)
+> or an [Idea](https://github.com/LeeSwallow/stickypane/discussions). The
+> open questions are in [ROADMAP.md](ROADMAP.md); the principles in
+> [VISION.md](VISION.md).
 
 ## Install
 
@@ -65,6 +96,19 @@ for it.
 Then ask it for anything: "keep a checklist of this refactor on the board",
 "explain the structure on the board as a page".
 
+**As a plugin.** The repository is also a Claude Code and Codex plugin, so
+the agent can learn the board without touching your `AGENTS.md`:
+
+```sh
+claude plugin marketplace add LeeSwallow/stickypane
+claude plugin install board@stickypane
+```
+
+It brings three skills (`using-the-board`, `asking-the-user`,
+`tracking-progress`), the commands `/board:show`, `/board:status`,
+`/board:ask` and `/board:setup`, and a session hook that tells the agent
+what is on the board when a session starts in a project that has one.
+
 Keep the board next to your agent:
 
 ```sh
@@ -90,30 +134,41 @@ What a file is depends on its name:
 | `*.md`                  | a note; its front matter may give it a shape (below)   |
 | `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
 | `*.sh`                  | a script: shown with a Run button                      |
-| a folder                | a book: one note whose pages are the files in it       |
+| a folder                | a tab: a screen of its own, with the files in it as notes |
+| a folder in a tab       | a book: one note whose pages are the files in it       |
 | anything else           | not shown                                              |
 
 ```
 .sticky/
-  10-plan.md          a checklist
+  sticky.json         the board: theme, language, which tab is open, the root tab's layout
+  10-plan.md          a note of the root tab, named after your project
   build.log           a log, followed live
-  deploy.sh           a script; its output goes to deploy.log
-  docs/               one note with three pages
-    01-intro.md
-    02-usage.md
-    03-faq.md
-  sticky.json         how you arranged all this
+  deploy/             a tab
+    sticky.json       this tab's title and layout
+    run.sh            a script; its output goes to run.log
+    docs/             one note with three pages
+      01-intro.md
+      02-usage.md
+      03-faq.md
 ```
 
-**Books.** A folder is shown as one pane that scrolls like one long note:
-its files follow one another, each under a rule with its name, and the
-border says which page the view is on (`docs · 02-usage  2/3`). `j` `k`, the
-wheel and the paging keys scroll through all of it; `,` and `.` jump to the
-page before or after; every other key acts on the page the view is on.
-Folders are read one level deep. `stickypane link
-docs` puts a folder of your project on the board as a book without copying
-it, and `stickypane link README.md` does the same for a file; both make a
-symbolic link, so what you change on the board is changed in the real file.
+**Tabs.** Each folder of `.sticky/` is a tab, listed on the first line of
+the screen with its number; the files in the folder are its notes, and the
+root folder is the first tab, named after the project. `1`–`9`, `(` `)` or
+a click switch tabs; the active tab is remembered. A tab's folder can hold
+its own `sticky.json` with a `title` and the layout of its notes, so one
+folder is one complete, shareable screen. `stickypane show deploy/run.sh`
+switches to that tab.
+
+**Books.** A folder inside a tab is shown as one pane that scrolls like one
+long note: its files follow one another, each under a rule with its name,
+and the border says which page the view is on (`docs · 02-usage  2/3`).
+`j` `k`, the wheel and the paging keys scroll through all of it; `,` and
+`.` jump to the page before or after; every other key acts on the page the
+view is on. `stickypane link docs` puts a folder of your project on the
+board without copying it, and `stickypane link README.md` does the same for
+a file; both make a symbolic link, so what you change on the board is
+changed in the real file.
 
 **Scripts.** `enter` on a script asks first (`Run deploy.sh in myproject?`),
 then runs it with `sh` in the project folder. The output is written to a log
@@ -132,7 +187,9 @@ file your agent may have written.
 ## sticky.json: how the board is arranged
 
 Where a note is on the screen is not written into the note. It goes to
-`.sticky/sticky.json`, which the board writes as you press keys:
+`sticky.json`: the root one for the root tab and for the board as a whole,
+and one in each tab's folder for that tab's notes, the way Bruno keeps a
+folder's settings in the folder. The board writes them as you press keys:
 
 ```json
 {
@@ -144,9 +201,14 @@ Where a note is on the screen is not written into the note. It goes to
   "order": ["docs", "10-plan.md", "build.log"],
   "ignore": ["drafts", "*.tmp.md"],
   "theme": "catppuccin-mocha",
+  "tab": "deploy",
   "version": 1
 }
 ```
+
+A tab's own file (`deploy/sticky.json`) has `title`, `notes` keyed by the
+names inside the tab, and `order`; `theme`, `language`, `ignore` and `tab`
+are only in the root file.
 
 | Key in `notes` | Values                                        | Key on the board |
 | -------------- | --------------------------------------------- | ---------------- |
@@ -157,8 +219,9 @@ Where a note is on the screen is not written into the note. It goes to
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
 
-Next to `notes`, `theme` names the theme (`T` on the board), `order` lists
-the notes you moved and `ignore` what to leave out.
+Next to `notes`, `theme` names the theme (`T` on the board), `language` the
+language of the screen (`stickypane language ko`; `auto` follows `LANG`),
+`order` lists the notes you moved and `ignore` what to leave out.
 
 `order` lists the notes you moved with `{` and `}`; the others follow by
 name. `ignore` is the one part you write by hand: names or patterns the
@@ -325,6 +388,7 @@ file that does not fit its shape is still shown, never hidden.
 | `T`                 | next theme              |                         |                      |
 | `z`                 | zoom                    | **Open form**           |                      |
 | `[` / `]`           | previous, next screen   |                         |                      |
+| `1`–`9` / `(` `)`   | switch tab              |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
 |                     |                         | `enter` / `space`       | choose, type, press  |
 
@@ -342,6 +406,12 @@ rest, so the screen is always full and never scrolls as a whole. A note gets
 at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Languages
+
+The screen speaks English and Korean: `stickypane language ko`, or leave it
+on `auto` and set `LANG`. Key names and the agent's guide stay English; see
+[docs/translating.md](docs/translating.md) to add a language.
 
 ## Themes
 
@@ -520,6 +590,26 @@ Replacing the file has two limits:
 A shape is one package under `internal/widget/` that implements the
 `widget.Widget` interface, plus one line in `internal/kinds/kinds.go`.
 
+## Feedback and contributing
+
+Design feedback is worth more than code right now: see
+[CONTRIBUTING.md](CONTRIBUTING.md) for what helps and how, and
+[Discussions](https://github.com/LeeSwallow/stickypane/discussions) for
+the open questions. Bugs go to the
+[issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose).
+
+## Alternatives
+
+If you want a kanban that lives in Markdown files and nothing else,
+[kanban-md](https://github.com/antopolskiy/kanban-md) and
+[Backlog.md](https://github.com/MrLesk/Backlog.md) do that well. If you want
+to watch commands and metrics in a configured dashboard,
+[sampler](https://github.com/sqshq/sampler) and
+[wtf](https://github.com/wtfutil/wtf) are for that. stickypane is for the
+space between you and an agent: files the agent writes, a screen you read,
+and answers that go back.
+
 ## License
 
-MIT
+MIT. Third-party palettes and libraries are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

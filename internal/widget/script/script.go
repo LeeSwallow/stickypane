@@ -53,7 +53,7 @@ func parse(d doc.Document) *Script {
 func (s *Script) Draw(width int, active bool) (string, widget.Span) {
 	if len(s.lines) == 0 {
 		s.button = widget.NoSpan
-		return widget.Fit(widget.Faint.Render("(empty script)"), width), widget.NoSpan
+		return widget.Fit(widget.Faint.Render(widget.T("(empty script)")), width), widget.NoSpan
 	}
 	var out []string
 	inner := widget.Width(label)
@@ -94,9 +94,9 @@ func (s *Script) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return "1 line"
+		return widget.T("1 line")
 	default:
-		return fmt.Sprintf("%d lines", n)
+		return fmt.Sprintf(widget.T("%d lines"), n)
 	}
 }
 
