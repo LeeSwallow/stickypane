@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -19,6 +20,9 @@ import (
 // keep them in; the board then never rewrites a note just because the user
 // rearranged the screen; and the file can be committed to share a layout.
 type View struct {
+	// Title is the name shown for a note that cannot carry one itself: a
+	// book, a log, a script. Renaming it does not rename the file.
+	Title string `json:"title,omitempty"`
 	Open  *bool  `json:"open,omitempty"`
 	Pin   *bool  `json:"pin,omitempty"`
 	Size  string `json:"size,omitempty"`
@@ -27,7 +31,7 @@ type View struct {
 }
 
 func (v View) empty() bool {
-	return v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == ""
+	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == ""
 }
 
 // Views maps a note's name to its view.
@@ -39,6 +43,7 @@ const (
 	viewKey    = "notes"
 	orderKey   = "order"
 	versionKey = "version"
+	ignoreKey  = "ignore"
 )
 
 // readViews returns the file's top-level keys and the views among them.
@@ -69,6 +74,29 @@ func (s *Store) readViews() (map[string]json.RawMessage, Views, error) {
 func (s *Store) Views() (Views, error) {
 	_, views, err := s.readViews()
 	return views, err
+}
+
+// ignored returns a test for the names the file's "ignore" list leaves
+// out. An entry is a name or a pattern such as "*.tmp.md", matched against
+// the note's name inside the notes folder ("docs/draft.md") and against its
+// last part ("draft.md"). The list is written by hand.
+func (s *Store) ignored() func(name string) bool {
+	top, _, err := s.readViews()
+	var patterns []string
+	if err == nil {
+		_ = json.Unmarshal(top[ignoreKey], &patterns)
+	}
+	return func(name string) bool {
+		for _, p := range patterns {
+			if ok, _ := path.Match(p, name); ok {
+				return true
+			}
+			if ok, _ := path.Match(p, path.Base(name)); ok {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 // Order returns the notes the user put in an order of their own, first to

@@ -46,10 +46,16 @@ func init() {
 	})
 	// The title, the archive and delete act on the file that is shown: a
 	// note's own, or the page of a book.
+	// A Markdown note keeps its title in its front matter. A book, a log
+	// or a script has none, so its name is kept in sticky.json; the file or
+	// folder is not renamed either way.
 	boardKeys["R"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
-		if !strings.EqualFold(path.Ext(file.Name), ".md") {
-			m.status = "Only a Markdown note has a title."
+		if len(it.pages) > 0 || !strings.EqualFold(path.Ext(file.Name), ".md") || m.store.Linked(file.Name) {
+			name := it.note.Name
+			m.ask("Name", m.views[name].Title, func(title string) {
+				m.setView(name, func(v *store.View) { v.Title = title })
+			})
 			return nil
 		}
 		current, _ := file.Doc.Get("title")

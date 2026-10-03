@@ -276,6 +276,10 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 			set = append(set, key)
 		}
 		change, isView, err := arrange(key, value)
+		if key == "title" && (book || !strings.EqualFold(filepath.Ext(file), ".md") || a.st.Linked(file)) {
+			// A note without front matter is named in sticky.json.
+			change, isView = func(v *store.View) { v.Title = value }, true
+		}
 		switch {
 		case err != nil:
 			return "", err
@@ -438,4 +442,54 @@ func (a *API) Move(name, to string) (string, error) {
 		}
 	}
 	return fmt.Sprintf("moved %s to %s", file, dest), nil
+}
+
+// Link shows a file or a folder of the project on the board without
+// copying it: it makes a symbolic link in the notes folder, relative so the
+// project can be moved, and opens the note. A file becomes a note, a folder
+// a book. name is what to call it; empty means the name it has. What the
+// board changes in a linked note is changed in the file it points to.
+func (a *API) Link(target, name string) (string, error) {
+	abs, err := filepath.Abs(target)
+	if err != nil {
+		return "", err
+	}
+	fi, err := os.Stat(abs)
+	if err != nil {
+		return "", fmt.Errorf("cannot link %s: %w", target, err)
+	}
+	if name = strings.TrimSpace(name); name == "" {
+		name = filepath.Base(abs)
+	}
+	if fi.IsDir() {
+		if strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") || name == store.ArchiveDir {
+			return "", ErrBadName
+		}
+	} else {
+		if filepath.Ext(name) == "" {
+			name += filepath.Ext(abs)
+		}
+		if !store.IsNote(name) || strings.ContainsAny(name, `/\`) {
+			return "", fmt.Errorf("%s is not a file the board shows: it shows .md, .log, .txt, .out and .sh files, and folders of them", name)
+		}
+	}
+	dir, err := filepath.EvalSymlinks(a.st.Dir)
+	if err != nil {
+		return "", err
+	}
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		abs = real
+	}
+	rel, err := filepath.Rel(dir, abs)
+	if err != nil {
+		rel = abs
+	}
+	if err := os.Symlink(rel, filepath.Join(a.st.Dir, name)); err != nil {
+		return "", err
+	}
+	open := true
+	if err := a.st.SetView(name, func(v *store.View) { v.Open = &open }); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("linked %s to %s", name, filepath.ToSlash(rel)), nil
 }

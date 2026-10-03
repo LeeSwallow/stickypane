@@ -84,6 +84,25 @@ func (m *Model) save(force bool) bool {
 	return true
 }
 
+// followEdit keeps the editor honest about a file that changed on disk
+// while it was open, the way resterm does: a buffer the user has not
+// touched follows the file, and one with changes is kept and the user told.
+func (m *Model) followEdit() {
+	if m.mode != modeEdit || m.edit == nil {
+		return
+	}
+	b, err := m.store.Read(m.editName)
+	if err != nil || string(b) == m.editDisk {
+		return
+	}
+	if m.edit.Dirty() {
+		m.edit.SetMessage("The file changed on disk. :e! loads it, :w! overwrites it.")
+		return
+	}
+	m.edit.Load(string(b))
+	m.editDisk = string(b)
+}
+
 func (m *Model) leaveEditor() {
 	m.mode, m.edit = m.editBack, nil
 	m.reload()

@@ -108,7 +108,11 @@ func (a *API) List() ([]Info, error) {
 		if v.Pin != nil {
 			info.Pinned = *v.Pin
 		}
-		if info.Title, _ = n.Doc.Get("title"); info.Title == "" {
+		info.Title = views[n.Name].Title
+		if info.Title == "" {
+			info.Title, _ = n.Doc.Get("title")
+		}
+		if info.Title == "" {
 			base := filepath.Base(n.Name)
 			info.Title = strings.TrimSuffix(base, filepath.Ext(base))
 		}

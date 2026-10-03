@@ -37,7 +37,7 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if n := strings.Count(g, "\n"); n > 55 {
 		t.Errorf("the guide is %d lines, want at most 55", n)
 	}
-	for _, want := range []string{".stickypane/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "stickypane todo", "stickypane card", "stickypane chart", "stickypane log", "stickypane set", "- [ ]", "## Heading", "color", "pin: true", "open: true", "`size`"} {
+	for _, want := range []string{".sticky/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "stickypane todo", "stickypane card", "stickypane chart", "stickypane log", "stickypane set", "- [ ]", "## Heading", "open: true", "sticky.json", "name.sh", "name.log", "stickypane mv", "A folder"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}
@@ -47,7 +47,7 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 func TestRunCreatesBoardWelcomeNoteAndAgentsFile(t *testing.T) {
 	root := t.TempDir()
 	out := run(t, root, Options{})
-	welcome := doc.Parse([]byte(read(t, filepath.Join(root, ".stickypane", "welcome.md"))))
+	welcome := doc.Parse([]byte(read(t, filepath.Join(root, ".sticky", "welcome.md"))))
 	if open, _ := welcome.Get("open"); open != "true" {
 		t.Errorf("the welcome note should be open on first run, open = %q", open)
 	}
@@ -84,7 +84,7 @@ func TestRunTwiceChangesNothing(t *testing.T) {
 	root := t.TempDir()
 	run(t, root, Options{})
 	agents := filepath.Join(root, "AGENTS.md")
-	welcome := filepath.Join(root, ".stickypane", "welcome.md")
+	welcome := filepath.Join(root, ".sticky", "welcome.md")
 	first := read(t, agents)
 	if err := os.Remove(welcome); err != nil { // the user took the note down
 		t.Fatal(err)
@@ -114,7 +114,7 @@ func TestRunReplacesAnOldGuide(t *testing.T) {
 func TestNoAgentDocs(t *testing.T) {
 	root := t.TempDir()
 	run(t, root, Options{NoAgentDocs: true})
-	if _, err := os.Stat(filepath.Join(root, ".stickypane")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".sticky")); err != nil {
 		t.Errorf("the board should still be created: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); !errors.Is(err, os.ErrNotExist) {
@@ -155,5 +155,29 @@ func TestSkillInstallsASkillInsteadOfTheGuide(t *testing.T) {
 	run(t, root, Options{Skill: true})
 	if again := read(t, filepath.Join(root, ".claude", "skills", "stickypane", "SKILL.md")); again != skill {
 		t.Error("running again should change nothing")
+	}
+}
+
+func TestRunKeepsAnOlderNotesFolder(t *testing.T) {
+	root := t.TempDir()
+	old := filepath.Join(root, ".stickypane")
+	if err := os.MkdirAll(old, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	out := run(t, root, Options{NoAgentDocs: true})
+	if _, err := os.Stat(filepath.Join(root, ".sticky")); !errors.Is(err, os.ErrNotExist) {
+		t.Error("a project that has .stickypane/ must not get a second, empty notes folder")
+	}
+	if !strings.Contains(out, ".stickypane/ already exists") {
+		t.Errorf("the output should name the folder that is used: %q", out)
+	}
+}
+
+func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
+	root := t.TempDir()
+	run(t, root, Options{NoAgentDocs: true})
+	ignore := read(t, filepath.Join(root, ".sticky", ".gitignore"))
+	if !strings.Contains(ignore, ".trash/") {
+		t.Errorf(".sticky/.gitignore = %q", ignore)
 	}
 }

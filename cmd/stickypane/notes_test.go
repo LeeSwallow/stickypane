@@ -26,7 +26,7 @@ func TestWriteListAndShow(t *testing.T) {
 		t.Fatalf("write: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
 	want := "---\ntype: checklist\ntitle: Release\nopen: true\nsize: half\n---\n- [ ] build\n- [ ] ship\n"
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "release.md")); string(b) != want {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "release.md")); string(b) != want {
 		t.Errorf("file = %q", b)
 	}
 
@@ -90,7 +90,7 @@ const formNote = "---\ntype: form\n---\n## Where?\n- (x) staging\n- ( ) producti
 
 func TestAnswersAndWait(t *testing.T) {
 	root := project(t)
-	file := filepath.Join(root, ".stickypane", "deploy.md")
+	file := filepath.Join(root, ".sticky", "deploy.md")
 	if err := os.WriteFile(file, []byte(formNote), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestAnswersAndWait(t *testing.T) {
 
 func TestWaitRejectsANegativeTimeout(t *testing.T) {
 	root := project(t)
-	if err := os.WriteFile(filepath.Join(root, ".stickypane", "deploy.md"), []byte(formNote), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".sticky", "deploy.md"), []byte(formNote), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if code, _, errOut := exec(t, "wait", "deploy", "--timeout", "-1s"); code != 2 || errOut == "" {
@@ -166,10 +166,10 @@ func TestSmallEditsFromTheCommandLine(t *testing.T) {
 			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
 		}
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
 		t.Errorf("work.md = %q", b)
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
 		t.Errorf("plan.md = %q", b)
 	}
 	for _, bad := range [][]string{{"todo"}, {"todo", "plan"}, {"todo", "plan", "add"}, {"card", "work", "move", "login"}, {"chart", "tokens", "set", "input"}, {"log", "worklog"}, {"set", "plan"}} {
@@ -187,7 +187,7 @@ func TestLogCanStampTheTime(t *testing.T) {
 	if code, _, errOut := exec(t, "log", "worklog", "--time", "deployed"); code != 0 {
 		t.Fatalf("code = %d, stderr = %q", code, errOut)
 	}
-	b, _ := os.ReadFile(filepath.Join(root, ".stickypane", "worklog.md"))
+	b, _ := os.ReadFile(filepath.Join(root, ".sticky", "worklog.md"))
 	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
 	last := lines[len(lines)-1]
 	if len(last) < 6 || last[2] != ':' || !strings.HasSuffix(last, " deployed") {
@@ -197,7 +197,7 @@ func TestLogCanStampTheTime(t *testing.T) {
 
 func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
 	root := project(t)
-	dir := filepath.Join(root, ".stickypane")
+	dir := filepath.Join(root, ".sticky")
 	if err := os.WriteFile(filepath.Join(dir, "plan.md"), []byte("the plan\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

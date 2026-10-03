@@ -491,6 +491,7 @@ func (m *Model) reload() {
 		m.reveal = revealNote
 	}
 	m.markSeen(m.focus)
+	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
 		m.mode = modeBoard
 		m.status = "The note was removed."
@@ -601,20 +602,26 @@ func nameOf(n store.Note) string {
 	return widget.Clean(strings.TrimSuffix(base, path.Ext(base)))
 }
 
-// label names a note in the title bar and in prompts: its title, or its
-// name without the extension. A book goes by its folder's name.
-func label(it item) string { return nameOf(it.note) }
+// label names a note in the title bar and in prompts: the name sticky.json
+// gives it, else its title, else its name without the extension. A book
+// goes by its folder's name unless it was given one.
+func (m *Model) label(it item) string {
+	if t := m.views[it.note.Name].Title; t != "" {
+		return widget.Clean(t)
+	}
+	return nameOf(it.note)
+}
 
 // heading is the text in a note's top border. A plain note without a title
 // has none, like a sticky note; other shapes fall back to the file name. A
 // book shows its name and the page it is on.
 func (m *Model) heading(it item) string {
 	if len(it.pages) > 0 {
-		return label(it) + " · " + nameOf(it.file())
+		return m.label(it) + " · " + nameOf(it.file())
 	}
 	t, _ := it.note.Doc.Get("title")
-	if t == "" && (it.kind.Name != m.reg[0].Name || it.note.Err != nil) {
-		return label(it)
+	if named := m.views[it.note.Name].Title; named != "" || (t == "" && (it.kind.Name != m.reg[0].Name || it.note.Err != nil)) {
+		return m.label(it)
 	}
 	return widget.Clean(t)
 }

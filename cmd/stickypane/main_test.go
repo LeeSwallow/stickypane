@@ -58,13 +58,13 @@ func TestInitSetsUpTheCurrentDirectory(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code = %d, stderr = %q", code, errOut)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".stickypane", "welcome.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".sticky", "welcome.md")); err != nil {
 		t.Errorf("welcome note is missing: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); err == nil {
 		t.Error("--no-agent-docs must not create AGENTS.md")
 	}
-	if !strings.Contains(out, ".stickypane") {
+	if !strings.Contains(out, ".sticky") {
 		t.Errorf("out = %q", out)
 	}
 }

@@ -139,7 +139,7 @@ func (m *Model) titleBar() []string {
 		if it.kind.Icon != "" {
 			text += it.kind.Icon + " "
 		}
-		text += label(it)
+		text += m.label(it)
 		if m.pinned(it) {
 			text += " 📌"
 		}

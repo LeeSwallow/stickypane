@@ -98,3 +98,38 @@ func TestOrderIsKeptNextToTheViews(t *testing.T) {
 		t.Error("a broken file is neither read nor overwritten")
 	}
 }
+
+func TestATitleAndAnIgnoreListLiveInStickyJSON(t *testing.T) {
+	s := newStore(t)
+	write(t, s, "build.log", "x\n")
+	write(t, s, "keep.md", "x\n")
+	write(t, s, "scratch.tmp.md", "x\n")
+	write(t, s, "drafts/a.md", "x\n")
+	write(t, s, "docs/a.md", "x\n")
+	write(t, s, "docs/wip-b.md", "x\n")
+	if err := s.SetView("build.log", func(v *View) { v.Title = "CI build" }); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := s.Views(); v["build.log"].Title != "CI build" {
+		t.Errorf("Views = %+v", v)
+	}
+	if got := read(t, s, ViewFile); !strings.Contains(got, `"title": "CI build"`) {
+		t.Errorf("sticky.json =\n%s", got)
+	}
+	notes, _ := s.Scan()
+	if got := names(notes); got != "build.log,docs[docs/a.md docs/wip-b.md],drafts[drafts/a.md],keep.md,scratch.tmp.md" {
+		t.Fatalf("without an ignore list everything is shown: %s", got)
+	}
+	// The list is written by hand; the board keeps it when it writes.
+	write(t, s, ViewFile, `{"ignore":["drafts","*.tmp.md","docs/wip-*"],"notes":{"build.log":{"title":"CI build"}}}`)
+	notes, _ = s.Scan()
+	if got := names(notes); got != "build.log,docs[docs/a.md],keep.md" {
+		t.Errorf("ignored names and patterns are not shown: %s", got)
+	}
+	if err := s.SetView("keep.md", func(v *View) { v.Size = "half" }); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, ViewFile); !strings.Contains(got, `"ignore"`) || !strings.Contains(got, "drafts") {
+		t.Errorf("the ignore list must survive a write:\n%s", got)
+	}
+}

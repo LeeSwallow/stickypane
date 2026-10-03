@@ -1,4 +1,4 @@
-// Command stickypane shows the notes in .stickypane/ as a board.
+// Command stickypane shows the notes in .sticky/ as a board.
 package main
 
 import (
@@ -33,7 +33,7 @@ const usage = `stickypane - a note board for you and your coding agent
 
 Usage:
   stickypane [path]      open the board of the project at path (default: here)
-  stickypane init        create .stickypane/ and add the agent guide to
+  stickypane init        create .sticky/ and add the agent guide to
                          AGENTS.md or CLAUDE.md (--no-agent-docs skips that;
                          --skill installs it as a Claude Code skill instead)
   stickypane guide       print the agent guide
@@ -55,6 +55,8 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane mv <name> <to>      rename a note, or move it: <to> is a new name, a
                                  folder (docs/) to make it a page of that book,
                                  or . for the top level
+  stickypane link <path> [name]  show a file or a folder of the project on the
+                                 board without copying it (a symbolic link)
   stickypane rm <name>           move a note, a page or a folder to .trash/
   stickypane restore <name>      bring back what rm removed last under that name
   stickypane archive <name>      move a note out of sight into archive/
@@ -77,7 +79,7 @@ func fileOf(name string) string {
 	return name
 }
 
-const noBoard = "No .stickypane directory found. Run `stickypane init` in your project first."
+const noBoard = "No .sticky directory found. Run `stickypane init` in your project first."
 
 func main() { os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
 
@@ -109,7 +111,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return notes(args[0], args[1:], stdin, stdout, stderr)
 		case "todo", "card", "chart", "log", "set":
 			return edit(args[0], args[1:], stdout, stderr)
-		case "rm", "restore", "archive", "mv":
+		case "rm", "restore", "archive", "mv", "link":
 			return manage(args[0], args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
@@ -155,11 +157,14 @@ func open(stderr io.Writer) (*api.API, int) {
 
 // manage runs the commands that remove, restore and move notes.
 func manage(cmd string, args []string, stdout, stderr io.Writer) int {
-	want := 1
-	if cmd == "mv" {
-		want = 2
+	least, most := 1, 1
+	switch cmd {
+	case "mv":
+		least, most = 2, 2
+	case "link":
+		most = 2
 	}
-	if len(args) != want {
+	if len(args) < least || len(args) > most {
 		fmt.Fprint(stderr, usage)
 		return 2
 	}
@@ -176,6 +181,12 @@ func manage(cmd string, args []string, stdout, stderr io.Writer) int {
 		out, err = a.Restore(args[0])
 	case "archive":
 		out, err = a.Archive(args[0])
+	case "link":
+		name := ""
+		if len(args) == 2 {
+			name = args[1]
+		}
+		out, err = a.Link(args[0], name)
 	default:
 		out, err = a.Move(args[0], args[1])
 	}

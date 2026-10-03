@@ -1,6 +1,8 @@
 package app
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -102,5 +104,52 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 	press(m, "p", "{")
 	if got := order(); got != "a.md b.md c.md 0-new.md" {
 		t.Errorf("a pinned note is first and does not trade places with an unpinned one: %s", got)
+	}
+}
+
+func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"build.log": "compiled\n"})
+	mkdir(t, dir, "docs")
+	writeFile(t, dir, "docs/a.md", "page a\n")
+	press(m, "r", "R")
+	if m.mode != modeInput {
+		t.Fatalf("R on a log should ask for a name, mode = %v", m.mode)
+	}
+	typeText(m, "CI build")
+	press(m, "enter")
+	if got := readFile(t, dir, "build.log"); got != "compiled\n" {
+		t.Fatalf("a log has no front matter to put a title in: %q", got)
+	}
+	if v := viewsOf(t, dir)["build.log"]; v.Title != "CI build" {
+		t.Errorf("the name goes to sticky.json: %+v", v)
+	}
+	if s := screen(m); !strings.Contains(s, "≣ CI build") {
+		t.Errorf("the title bar should show the name:\n%s", s)
+	}
+	// A book is named the same way; the folder keeps its name.
+	writeView(t, dir, `{"notes":{"docs":{"open":true,"title":"Handbook"}}}`)
+	press(m, "r")
+	if s := screen(m); !strings.Contains(s, "Handbook · a") || !fileExists(dir, "docs/a.md") {
+		t.Errorf("a book goes by the name sticky.json gives it:\n%s", s)
+	}
+}
+
+func TestRenamingALinkedNoteLeavesItsFileAlone(t *testing.T) {
+	m, dir := newModel(t, nil)
+	outside := filepath.Join(filepath.Dir(dir), "README.md")
+	if err := os.WriteFile(outside, []byte("# Readme\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dir, "README.md")); err != nil {
+		t.Skip("symlinks are not available:", err)
+	}
+	press(m, "r", "R")
+	typeText(m, "Read me")
+	press(m, "enter")
+	if b, _ := os.ReadFile(outside); string(b) != "# Readme\n" {
+		t.Fatalf("the project's file must not get front matter: %q", b)
+	}
+	if v := viewsOf(t, dir)["README.md"]; v.Title != "Read me" {
+		t.Errorf("the name goes to sticky.json: %+v", v)
 	}
 }

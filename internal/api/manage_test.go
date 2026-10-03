@@ -100,3 +100,70 @@ func TestMovingANoteTakesItsArrangementAlong(t *testing.T) {
 		t.Errorf("the old name should be gone from sticky.json: %+v", v)
 	}
 }
+
+func TestLinkShowsAFileOfTheProjectWithoutCopyingIt(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	root := filepath.Dir(dir)
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Readme\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "docs", "guide.md"), []byte("guide\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := a.Link(filepath.Join(root, "README.md"), "")
+	if err != nil {
+		t.Skip("symlinks are not available:", err)
+	}
+	if got != "linked README.md to ../README.md" || read(t, dir, "README.md") != "# Readme\n" {
+		t.Errorf("Link = %q", got)
+	}
+	if target, _ := os.Readlink(filepath.Join(dir, "README.md")); target != filepath.Join("..", "README.md") {
+		t.Errorf("the link should be relative so the project can be moved: %q", target)
+	}
+	v, _ := store.Open(dir).Views()
+	if n := v["README.md"]; n.Open == nil || !*n.Open {
+		t.Errorf("a linked note is opened: %+v", v)
+	}
+	if got, err := a.Link(filepath.Join(root, "docs"), "handbook"); err != nil || got != "linked handbook to ../docs" || read(t, dir, "handbook/guide.md") != "guide\n" {
+		t.Errorf("a folder is linked as a book, under a name of its own if one is given: %q, %v", got, err)
+	}
+	if infos, _ := a.List(); len(infos) != 2 || infos[1].Name != "handbook/guide.md" {
+		t.Errorf("List = %+v", infos)
+	}
+	if _, err := a.Link(filepath.Join(root, "README.md"), ""); err == nil {
+		t.Error("a name that is taken is refused")
+	}
+	if _, err := a.Link(filepath.Join(root, "missing.md"), ""); err == nil {
+		t.Error("a file that is not there cannot be linked")
+	}
+	if err := os.WriteFile(filepath.Join(root, "logo.png"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Link(filepath.Join(root, "logo.png"), ""); err == nil || !strings.Contains(err.Error(), ".md") {
+		t.Errorf("a file the board cannot show is refused, saying what it can: %v", err)
+	}
+}
+
+func TestALinkedNoteIsNamedWithoutTouchingItsFile(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	root := filepath.Dir(dir)
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Readme\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Link(filepath.Join(root, "README.md"), ""); err != nil {
+		t.Skip("symlinks are not available:", err)
+	}
+	if got, err := a.Set("README.md", []string{"title=Read me", "size=half"}); err != nil || got != "README.md: set title, size" {
+		t.Fatalf("Set = %q, %v", got, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, "README.md")); string(b) != "# Readme\n" {
+		t.Errorf("the project's file must not get front matter: %q", b)
+	}
+	v, _ := store.Open(dir).Views()
+	if v["README.md"].Title != "Read me" {
+		t.Errorf("the name goes to sticky.json: %+v", v)
+	}
+}

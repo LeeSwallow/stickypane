@@ -139,3 +139,26 @@ func TestWatchSeesChangesInsideAFolderAndBehindALink(t *testing.T) {
 		t.Error("a change inside a folder made while watching should be signalled")
 	}
 }
+
+func TestFindKnowsBothFolderNames(t *testing.T) {
+	if DirName != ".sticky" {
+		t.Fatalf("new projects use .sticky, DirName = %q", DirName)
+	}
+	root := t.TempDir()
+	old := filepath.Join(root, "old", ".stickypane")
+	both := filepath.Join(root, "both")
+	for _, d := range []string{old, filepath.Join(both, ".stickypane"), filepath.Join(both, ".sticky"), filepath.Join(root, "old", "deep", "er")} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, err := Find(filepath.Join(root, "old", "deep", "er")); err != nil || got != old {
+		t.Errorf("a project that still has .stickypane is found: %q, %v", got, err)
+	}
+	if got, err := Find(both); err != nil || got != filepath.Join(both, ".sticky") {
+		t.Errorf("with both, .sticky is the one: %q, %v", got, err)
+	}
+	if got, err := Resolve(old); err != nil || got != old {
+		t.Errorf("Resolve takes the old folder itself: %q, %v", got, err)
+	}
+}

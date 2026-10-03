@@ -75,15 +75,31 @@
 
 `e`로 노트 파일을 vi 방식으로 고친다. `E`는 `$EDITOR`.
 
+### 2-8. 삭제·이동 (구현됨, 오픈소스 조사 기반)
+
+sampler, wtf, zellij, lazygit, yazi, taskwarrior-tui, kanban-md, redthread, tuiboard, Backlog.md, sidecar, 그리고 resterm과 Bruno의 소스를 읽고 공통 패턴을 따랐다.
+
+- 삭제는 지우지 않는다. `D`는 확인 뒤 `.sticky/.trash/`로, `x`는 `archive/`로 옮기고 `u`가 마지막 것을 되돌린다 (yazi의 trash, redthread·taskwarrior-tui의 undo).
+- `{` `}`로 이웃과 자리를 바꾼다 (yazi 탭, redthread 보드). 순서는 `sticky.json`의 `order`에 쓰고, 없는 노트는 이름순으로 뒤에 선다 (Bruno의 `seq`: 없는 항목도 자리를 가진다).
+- `m`은 옮길 폴더 목록을 띄우고 Enter로 확정, Esc로 취소한다 (kanban-md `m`, Backlog.md 이동 모드).
+- 명령줄은 화면과 같은 저장소 함수를 쓴다: `rm` `restore` `archive` `mv` `link` (kanban-md의 CLI 미러링). 어느 것도 다른 노트를 덮어쓰거나 `.sticky/` 밖으로 나가지 않는다 (Bruno의 `validatePathIsInsideCollection`, 충돌 시 접미사).
+- 표시 이름은 파일 이름과 다르다 (Bruno의 name/filename 분리): 폴더·로그·스크립트·링크된 파일의 이름은 `sticky.json`의 `title`에 두고 `R`로 바꾼다. 파일은 그대로다.
+- `sticky.json`은 경로로 키를 잡고, `version`을 갖고, 임시 파일에 쓴 뒤 바꿔치기하며, 손으로 쓰는 `ignore` 목록을 둔다 (Bruno `bruno.json`의 `ignore`, sampler의 title 매칭이 깨지는 문제를 피함).
+- 편집 중 파일이 바뀌면: 고친 게 없으면 조용히 다시 읽고, 있으면 버퍼를 지키고 알린다 (resterm).
+- 휴지통은 `.sticky/.gitignore`로 git에서 뺀다 (resterm·Bruno의 init이 `.gitignore`를 쓰는 것을 따름).
+
+따르지 않은 것: Bruno의 "공유 상태(구조)와 개인 상태(열린 탭)를 다른 파일에" 분리. `sticky.json` 하나에 열림까지 두었다. 혼자 쓰는 동안은 파일 하나가 단순하고, 팀이 커밋해서 쓰다가 충돌이 잦아지면 그때 `open`만 로컬 파일로 뺀다.
+
 ## 3. 구현 순서
 
 1. 고정 창 배치 (끝남)
 2. 작은 수정 명령, 스킬 (끝남)
 3. 내장 편집기 (끝남)
-4. 파일 종류와 폴더(책)
-5. `sticky.json`
-6. 스크립트 실행
-7. `.sticky/` 이름, `link` 명령
+4. 파일 종류와 폴더(책) (끝남)
+5. `sticky.json` (끝남)
+6. 스크립트 실행 (끝남)
+7. `.sticky/` 이름, `link` 명령 (끝남)
+8. 삭제·이동·되돌리기 (끝남, 2-8절)
 
 ## 4. 하지 않은 것
 
