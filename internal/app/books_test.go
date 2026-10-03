@@ -69,7 +69,7 @@ func TestAFolderIsOneNoteWithPages(t *testing.T) {
 		t.Fatalf("the pages follow one another under a rule with the page's name; the root tab's note is on another tab:\n%s", s)
 	}
 	press(m, ".")
-	if s := screen(m); !strings.Contains(s, "the second page") || !strings.Contains(s, "docs · 02-usage") || !strings.Contains(s, "2/3") {
+	if s := screen(m); !strings.Contains(s, "the second page") || !strings.Contains(s, "docs · usage") || !strings.Contains(s, "2/3") {
 		t.Fatalf(". should scroll to the next page:\n%s", s)
 	}
 	press(m, ".")

@@ -141,3 +141,13 @@ func TestSayMakesAChatAndAddsMessages(t *testing.T) {
 		t.Error("an empty message is refused")
 	}
 }
+
+func TestANewNoteIsTitledWithoutItsOrderNumber(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	if _, err := a.Say("04-chat", "claude", "hello"); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, dir, "04-chat.md"); !strings.Contains(got, "title: chat\n") {
+		t.Errorf("file = %q", got)
+	}
+}

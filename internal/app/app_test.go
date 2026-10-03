@@ -296,9 +296,9 @@ func TestARewriteThatDropsOpenDoesNotCloseTheNote(t *testing.T) {
 func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
 	files := map[string]string{}
 	for i := 0; i < 30; i++ {
-		files[fmt.Sprintf("%02d-note-number.md", i)] = "body\n"
+		files[fmt.Sprintf("%02d-long-note-%02d.md", i, i)] = "body\n"
 	}
-	files["00-note-number.md"] = opened("first body\n")
+	files["00-long-note-00.md"] = opened("first body\n")
 	m, _ := newModel(t, files)
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 16})
 	if s := screen(m); !strings.Contains(s, "first body") {
@@ -306,7 +306,7 @@ func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
 	}
 	for i := 0; i < 30; i++ {
 		bar := strings.Split(screen(m), "\n")[0]
-		if want := fmt.Sprintf("%02d-note-number", i); !strings.Contains(bar, want) || widget.Width(bar) > 40 {
+		if want := fmt.Sprintf("long-note-%02d", i); !strings.Contains(bar, want) || widget.Width(bar) > 40 {
 			t.Fatalf("the focused tab %s should be visible in the one-line title bar:\n%s", want, bar)
 		}
 		if i > 0 && !strings.Contains(bar, "‹") {

@@ -14,6 +14,7 @@ package arrange
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -102,11 +103,22 @@ func Title(v store.View, front doc.Document, name string) string {
 	return FileTitle(name)
 }
 
-// FileTitle is a file's name without the folder and the extension.
+// FileTitle is a file's name without the folder, the extension and the
+// number in front that orders the notes ("10-plan.md" is "plan"). A name
+// that is only numbers, such as a date, stays as it is.
 func FileTitle(name string) string {
 	base := path.Base(name)
-	return strings.TrimSuffix(base, path.Ext(base))
+	base = strings.TrimSuffix(base, path.Ext(base))
+	if m := orderRe.FindStringSubmatch(base); m != nil {
+		return m[1]
+	}
+	return base
 }
+
+// orderRe is a name with a number in front to order it: digits, a dash,
+// an underscore or a space, then something that does not start with a
+// digit.
+var orderRe = regexp.MustCompile(`^\d+[-_ ]+(\D.*)$`)
 
 // Change returns the change a key about the arrangement makes to a view,
 // as `stickypane set` and the MCP server take it, or false when the key

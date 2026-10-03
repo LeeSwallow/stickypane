@@ -77,8 +77,8 @@ func TestTheKindDecidesLast(t *testing.T) {
 	if Pinned(none, plain) || Color(none, plain) != "" {
 		t.Error("nothing pins or colors a plain note")
 	}
-	if got := Title(none, plain, "docs/02-usage.md"); got != "02-usage" {
-		t.Errorf("Title = %q; the file name without folder and extension", got)
+	if got := Title(none, plain, "docs/02-usage.md"); got != "usage" {
+		t.Errorf("Title = %q; the file name without folder, extension and order number", got)
 	}
 }
 
@@ -105,6 +105,22 @@ func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
 	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"rows", "0"}, {"color", "teal"}} {
 		if _, ok, err := Change(kv[0], kv[1]); !ok || err == nil {
 			t.Errorf("Change(%q, %q) should be refused", kv[0], kv[1])
+		}
+	}
+}
+
+func TestFileTitleDropsTheNumberThatOrdersNotes(t *testing.T) {
+	for name, want := range map[string]string{
+		"04-chat.md":        "chat",
+		"deploy/10_plan.md": "plan",
+		"05 parallel.md":    "parallel",
+		"plan.md":           "plan",
+		"2026-10-03.md":     "2026-10-03", // a date is a name, not an order
+		"42.md":             "42",
+		"build.log":         "build",
+	} {
+		if got := FileTitle(name); got != want {
+			t.Errorf("FileTitle(%q) = %q, want %q", name, got, want)
 		}
 	}
 }

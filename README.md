@@ -276,6 +276,10 @@ What a file is depends on its name:
       03-faq.md
 ```
 
+A number in front of a name orders the notes and the pages and is not part
+of the title: `10-plan.md` is shown as "plan", until front matter or
+`sticky.json` gives it a title of its own.
+
 **Tabs.** Each folder of `.sticky/` is a tab, listed on the first line of
 the screen with its number; the files in the folder are its notes, and the
 root folder is the first tab, named after the project. `1`–`9`, `(` `)` or
@@ -286,7 +290,7 @@ switches to that tab.
 
 **Books.** A folder inside a tab is shown as one pane that scrolls like one
 long note: its files follow one another, each under a rule with its name,
-and the border says which page the view is on (`docs · 02-usage  2/3`).
+and the border says which page the view is on (`docs · usage  2/3`).
 `j` `k`, the wheel and the paging keys scroll through all of it; `,` and
 `.` jump to the page before or after; every other key acts on the page the
 view is on. `stickypane link docs` puts a folder of your project on the

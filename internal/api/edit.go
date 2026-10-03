@@ -60,8 +60,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		// open. Another file is what its extension makes it.
 		var d doc.Document
 		if strings.EqualFold(filepath.Ext(file), ".md") {
-			base := filepath.Base(file)
-			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(strings.TrimSuffix(base, filepath.Ext(base)))).Set("open", "true"))
+			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"))
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
