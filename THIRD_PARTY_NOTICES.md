@@ -6,11 +6,12 @@ stickypane is MIT licensed (see LICENSE). It builds on these projects.
 
 | Project | License | Used for |
 | --- | --- | --- |
-| [charm.land/bubbletea](https://github.com/charmbracelet/bubbletea), [bubbles](https://github.com/charmbracelet/bubbles), [lipgloss](https://github.com/charmbracelet/lipgloss), [glamour](https://github.com/charmbracelet/glamour), [x/ansi](https://github.com/charmbracelet/x) | MIT | the terminal UI, styling and Markdown rendering |
+| [charm.land/bubbletea](https://github.com/charmbracelet/bubbletea), [lipgloss](https://github.com/charmbracelet/lipgloss), [x/ansi](https://github.com/charmbracelet/x) | MIT | the terminal UI and styling |
 | [AlexanderGrooff/mermaid-ascii](https://github.com/AlexanderGrooff/mermaid-ascii) | MIT | drawing Mermaid blocks as text |
 | [fsnotify/fsnotify](https://github.com/fsnotify/fsnotify) | BSD-3-Clause | following the notes folder |
 
-The full list is in `go.mod`; every module keeps its own license file in the
+Markdown and the one-line editor are stickypane's own (`internal/markdown`,
+`internal/lineedit`). The full list is in `go.mod`; every module keeps its own license file in the
 module cache.
 
 ## Color palettes

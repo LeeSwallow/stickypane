@@ -19,7 +19,7 @@ layer, fails the build.
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
-| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
+| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 
 The packages stay side by side under `internal/` rather than in folders by
 role. The layers do not split by role: widgets draw with the theme, the
@@ -49,6 +49,20 @@ What is PowerShell's own is in `powershell.go`, and each system's way of
 naming its locale in `locale_darwin.go`, `locale_windows.go` and
 `locale_other.go`. `stickypane env` prints what was found. A new pane tool
 is one entry in the table in `pane.go`.
+
+## What is ours and what is not
+
+The board keeps few dependencies, and writes the parts it uses little of:
+
+| Ours | Instead of | Why |
+| --- | --- | --- |
+| `internal/markdown` | glamour, goldmark, chroma, bluemonday | notes use a small part of Markdown; the renderer and its HTML, emoji and syntax-highlighting libraries were most of the binary |
+| `internal/lineedit` | bubbles' textinput | one line of text on the bottom line |
+| `internal/when`, `internal/env` | | how times and the environment are read is the board's own decision |
+
+Kept: bubbletea, lipgloss and x/ansi (the terminal itself), fsnotify
+(following the folder on every system) and mermaid-ascii (laying out
+diagrams is its own craft, and it costs a quarter of a megabyte).
 
 ## Reading and writing
 

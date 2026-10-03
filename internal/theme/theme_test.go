@@ -94,17 +94,12 @@ func TestNextCycles(t *testing.T) {
 	}
 }
 
-func TestStylesAndMarkdownComeFromTheTheme(t *testing.T) {
+// Markdown's colors come from the theme too: TestMarkdownFollowsTheTheme in
+// internal/kinds.
+func TestStylesComeFromTheTheme(t *testing.T) {
 	th, _ := Lookup("tokyonight-night")
 	st := th.Styles()
 	if !strings.Contains(st.Accent.Render("x"), "x") || st.Good.Render("ok") == "ok" {
 		t.Errorf("styles should color their text: %q", st.Good.Render("ok"))
-	}
-	cfg := th.Markdown()
-	if cfg.H1.Color == nil || cfg.Code.Color == nil || cfg.Link.Color == nil {
-		t.Error("the Markdown style should take its colors from the theme")
-	}
-	if cfg.Document.Margin == nil || *cfg.Document.Margin != 0 {
-		t.Error("notes are compact: no page margin")
 	}
 }

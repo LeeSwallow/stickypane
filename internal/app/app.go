@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/env"
+	"github.com/LeeSwallow/stickypane/internal/lineedit"
 	"github.com/LeeSwallow/stickypane/internal/when"
 
-	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/editor"
@@ -156,7 +156,7 @@ type Model struct {
 
 	helpScroll int // help.go
 
-	input      textinput.Model // input.go
+	input      *lineedit.Line // input.go
 	inputLabel string
 	inputEmpty bool // an empty line is submitted too
 	onSubmit   func(string)

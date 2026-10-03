@@ -3,9 +3,9 @@ package app
 import (
 	"strings"
 
-	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/lineedit"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -24,12 +24,7 @@ func (m *Model) ask(label, initial string, submit func(text string)) {
 	// The label comes from a note, so it is cleaned, and it never takes
 	// more than a third of the line: the text being typed must show.
 	label = widget.Truncate(widget.Clean(label), max(m.width/3, 8))
-	in := textinput.New()
-	in.Prompt = ""
-	in.SetValue(initial)
-	in.CursorEnd()
-	in.SetWidth(max(m.width-widget.Width(label)-3, 1))
-	in.Focus()
+	in := lineedit.New(initial, max(m.width-widget.Width(label)-3, 1))
 	m.input, m.inputLabel, m.onSubmit, m.inputEmpty = in, label, submit, false
 	m.back, m.mode = m.mode, modeInput
 }
@@ -49,7 +44,13 @@ func inputUpdate(m *Model, msg tea.Msg) tea.Cmd {
 			return nil
 		}
 	}
-	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	return cmd
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		if !m.input.Key(msg.String()) && msg.Text != "" {
+			m.input.Type(msg.Text)
+		}
+	case tea.PasteMsg:
+		m.input.Type(msg.Content)
+	}
+	return nil
 }

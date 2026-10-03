@@ -3,8 +3,9 @@
 package kinds
 
 import (
-	"charm.land/glamour/v2"
+	"charm.land/lipgloss/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/markdown"
 	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/api"
@@ -36,36 +37,29 @@ func Default(render note.Renderer) widget.Registry {
 // theme in use at each call, with Mermaid blocks drawn as diagrams.
 func Markdown(th *theme.Holder) note.Renderer { return WithMermaid(styled(th)) }
 
-// styled renders Markdown with Glamour in the colors of the theme, and
-// falls back to plain wrapping if Glamour fails.
+// styled renders Markdown in the colors of the theme in use at each call.
 func styled(th *theme.Holder) note.Renderer {
-	type key struct {
-		theme string
-		width int
-	}
-	renderers := map[key]*glamour.TermRenderer{}
-	return func(markdown string, width int) string {
+	return func(src string, width int) string {
 		if width <= 0 {
-			return markdown
+			return src
 		}
-		t := th.Get()
-		k := key{t.Name, width}
-		r, ok := renderers[k]
-		if !ok {
-			if len(renderers) > 64 {
-				clear(renderers)
-			}
-			var err error
-			r, err = glamour.NewTermRenderer(glamour.WithStyles(t.Markdown()), glamour.WithWordWrap(width))
-			if err != nil {
-				return note.Plain(markdown, width)
-			}
-			renderers[k] = r
-		}
-		out, err := r.Render(joinListLines(markdown))
-		if err != nil {
-			return note.Plain(markdown, width)
-		}
-		return out
+		return markdown.Render(src, width, markdownStyles(th.Get()))
+	}
+}
+
+// markdownStyles are a theme's colors for Markdown: headings in the info
+// color, links and bullets in the accent, code in the warning color, and
+// what steps back muted. The text keeps the terminal's own color.
+func markdownStyles(t theme.Theme) markdown.Styles {
+	fg := func(hex string) lipgloss.Style { return lipgloss.NewStyle().Foreground(lipgloss.Color(hex)) }
+	return markdown.Styles{
+		Heading: fg(t.Info).Bold(true),
+		Minor:   fg(t.Muted),
+		Muted:   fg(t.Muted),
+		Link:    fg(t.Accent).Underline(true),
+		Code:    fg(t.Warn),
+		Mark:    fg(t.Accent),
+		Strong:  lipgloss.NewStyle().Bold(true),
+		Emph:    lipgloss.NewStyle().Italic(true),
 	}
 }

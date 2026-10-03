@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/glamour/v2/ansi"
-	"charm.land/glamour/v2/styles"
 	"charm.land/lipgloss/v2"
 )
 
@@ -72,45 +70,6 @@ func (t Theme) Styles() Styles {
 		Key:      c(t.Accent).Bold(true),
 		Label:    c(t.Muted),
 	}
-}
-
-// Markdown makes the Glamour style of the theme: the stock dark or light
-// style with the theme's colors in the roles that show, and without the
-// page margin, so short notes stay compact.
-func (t Theme) Markdown() ansi.StyleConfig {
-	cfg := styles.LightStyleConfig
-	if t.Dark {
-		cfg = styles.DarkStyleConfig
-	}
-	var zero uint
-	cfg.Document.Margin = &zero
-	cfg.Document.BlockPrefix = ""
-	cfg.Document.BlockSuffix = ""
-	cfg.Document.Color = nil // the terminal's own text color
-	set := func(p *ansi.StylePrimitive, hex string) {
-		h := hex
-		p.Color = &h
-	}
-	set(&cfg.Heading.StylePrimitive, t.Info)
-	set(&cfg.H1.StylePrimitive, t.Info)
-	cfg.H1.BackgroundColor = nil
-	set(&cfg.H2.StylePrimitive, t.Info)
-	set(&cfg.H3.StylePrimitive, t.Info)
-	set(&cfg.H4.StylePrimitive, t.Info)
-	set(&cfg.H5.StylePrimitive, t.Info)
-	set(&cfg.H6.StylePrimitive, t.Muted)
-	set(&cfg.Link, t.Accent)
-	set(&cfg.LinkText, t.Accent)
-	set(&cfg.Code.StylePrimitive, t.Warn)
-	cfg.Code.BackgroundColor = nil
-	set(&cfg.BlockQuote.StylePrimitive, t.Muted)
-	set(&cfg.HorizontalRule, t.Muted)
-	set(&cfg.Enumeration, t.Accent)
-	set(&cfg.Item, t.Accent)
-	set(&cfg.Emph, t.Text)
-	set(&cfg.Strong, t.Text)
-	set(&cfg.Table.StylePrimitive, t.Text)
-	return cfg
 }
 
 // Default names the theme used when the user chose none.

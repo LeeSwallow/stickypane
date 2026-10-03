@@ -29,6 +29,8 @@ var rank = map[string]int{
 	"internal/httpfile": 5, // .http files: read, send, check; writes times with when
 	"internal/layout":   0,
 	"internal/editor":   0,
+	"internal/lineedit": 0, // the one-line editor of the bottom line
+	"internal/markdown": 0, // Markdown drawn for the terminal
 	// The notes folder.
 	"internal/store": 10,
 	// What a note is and how it is drawn: the contract, then the shapes.
