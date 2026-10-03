@@ -178,3 +178,27 @@ func TestTCyclesThemesAndKeepsTheChoice(t *testing.T) {
 		t.Errorf("theme after a background report = %q, want %q", got, next)
 	}
 }
+
+func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
+	if s := screen(m); !strings.Contains(s, "Nothing is open") {
+		t.Fatalf("English by default:\n%s", s)
+	}
+	writeView(t, dir, `{"language":"ko"}`)
+	UseLanguage(m.store.Language())
+	m.reload()
+	s := screen(m)
+	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
+		t.Errorf("the screen and the hints should be Korean:\n%s", s)
+	}
+	press(m, "o", "D")
+	if s := screen(m); !strings.Contains(s, "삭제할까요") {
+		t.Errorf("messages with names are filled in Korean:\n%s", s)
+	}
+	press(m, "n")
+	UseLanguage("en")
+	if s := screen(m); strings.Contains(s, "도움말") {
+		t.Errorf("back to English:\n%s", s)
+	}
+}

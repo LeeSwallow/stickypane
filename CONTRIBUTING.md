@@ -15,7 +15,8 @@ used. That shapes what helps most.
    there.
 3. **Bugs** with the version, the terminal and the pasted screen: the
    [bug template](https://github.com/LeeSwallow/stickypane/issues/new?template=bug.yml).
-4. Translations, once the strings are ready for it (see the roadmap).
+4. Translations: one JSON file per language, see
+   [docs/translating.md](docs/translating.md).
 
 ## Code
 

@@ -53,13 +53,13 @@ func init() {
 		file := it.file()
 		if len(it.pages) > 0 || !strings.EqualFold(path.Ext(file.Name), ".md") || m.store.Linked(file.Name) {
 			name := it.note.Name
-			m.ask("Name", m.views[name].Title, func(title string) {
+			m.ask(tr.Name, m.views[name].Title, func(title string) {
 				m.setView(name, func(v *store.View) { v.Title = title })
 			})
 			return nil
 		}
 		current, _ := file.Doc.Get("title")
-		m.ask("Title", current, func(title string) {
+		m.ask(tr.Title, current, func(title string) {
 			m.apply(file.Name, doc.SetKey{Key: "title", Value: title})
 		})
 		return nil
@@ -70,23 +70,23 @@ func init() {
 		file := it.file()
 		to, err := m.store.Archive(file.Name)
 		if err != nil {
-			m.status = "Cannot archive the note: " + err.Error()
+			m.status = say(tr.CannotArchive, map[string]any{"Err": err.Error()})
 		} else {
 			m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
-			m.status = "Moved " + nameOf(file) + " to archive/. u brings it back."
+			m.status = say(tr.Archived, map[string]any{"Name": nameOf(file)})
 		}
 		m.reload()
 		return nil
 	})
 	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
-		m.confirm("Delete "+nameOf(file)+"? (y/n)", func() {
+		m.confirm(say(tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
 			to, err := m.store.Trash(file.Name)
 			if err != nil {
-				m.status = "Cannot delete the note: " + err.Error()
+				m.status = say(tr.CannotDelete, map[string]any{"Err": err.Error()})
 			} else {
 				m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
-				m.status = "Deleted " + nameOf(file) + ". u brings it back."
+				m.status = say(tr.Deleted, map[string]any{"Name": nameOf(file)})
 			}
 			m.reload()
 		})
@@ -94,7 +94,7 @@ func init() {
 	})
 	boardKeys["E"] = onFocused(func(_ *Model, it item) tea.Cmd {
 		return tea.ExecProcess(editorCommand(it.file().Path), func(err error) tea.Msg {
-			return reloadMsg{what: "Editor failed", err: err}
+			return reloadMsg{what: tr.EditorFailed, err: err}
 		})
 	})
 }
@@ -136,7 +136,7 @@ func (m *Model) move(delta int) {
 	}
 	names[i], names[j] = names[j], names[i]
 	if err := m.store.SetOrder(names); err != nil {
-		m.status = "The arrangement was not saved: " + err.Error()
+		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 	m.reveal = revealNote

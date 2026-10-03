@@ -91,9 +91,9 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func mainBody(m *Model, h int) []string {
 	switch {
 	case len(m.items) == 0:
-		return dialog("", []string{"No notes yet.", "", "Press N to jot one down,", "or ask your agent to stick a note here."}, 46, m.width, h, m.accent())
+		return dialog("", append([]string{tr.NoNotes, ""}, strings.Split(tr.NoNotesHint, "\n")...), 46, m.width, h, m.accent())
 	case len(m.canvas) == 0:
-		return dialog("", []string{"Nothing is open.", "", "Pick a note with tab and press enter."}, 46, m.width, h, m.accent())
+		return dialog("", append([]string{tr.NothingOpen, ""}, strings.Split(tr.NothingOpenHint, "\n")...), 46, m.width, h, m.accent())
 	}
 	return widget.Window(m.canvas, 0, h)
 }
@@ -240,7 +240,7 @@ func (m *Model) stepFocus(delta int) {
 // explain why; rewriting its file would do no good.
 func (m *Model) editable(it item) bool {
 	if err := it.file().Err; err != nil {
-		m.status = "This note cannot be changed from here: " + err.Error()
+		m.status = say(tr.CannotChange, map[string]any{"Err": err.Error()})
 		return false
 	}
 	return true

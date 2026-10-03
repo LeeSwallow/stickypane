@@ -6,6 +6,7 @@ import (
 	"errors"
 	"image/color"
 	"path"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/editor"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/layout"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
@@ -62,6 +64,30 @@ var (
 	// the keys its kind lists first; these get the rest.
 	boardKeys = map[string]func(*Model) tea.Cmd{}
 )
+
+// tr is what the screen says, in the language in use. One board runs per
+// process, so the strings are the package's.
+var tr = i18n.English()
+
+// Message returns a message of the screen's language by its field name,
+// for callers outside the package. An unknown name gives "".
+func Message(field string) string {
+	v := reflect.ValueOf(tr).FieldByName(field)
+	if v.IsValid() && v.Kind() == reflect.String {
+		return v.String()
+	}
+	return ""
+}
+
+// say fills a message's placeholders.
+func say(s string, values map[string]any) string { return i18n.Fill(s, values) }
+
+// UseLanguage makes the screen speak the language of a choice ("ko",
+// "auto") from now on. Widgets are told too.
+func UseLanguage(choice string) {
+	tr = i18n.Pick(choice)
+	widget.Translate = tr.L
+}
 
 // item is a note with the widget that draws it. A book, which is a folder,
 // has pages: its widget is the book, drawn as one scroll of all of them, and
@@ -168,6 +194,7 @@ type reloadMsg struct {
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
 	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, reveal: revealNote, theme: th, dark: true}
+	UseLanguage(st.Language())
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m
@@ -185,11 +212,11 @@ func (m *Model) useTheme(t theme.Theme) {
 // in sticky.json and says which theme that is.
 func (m *Model) chooseTheme(name string) {
 	if err := m.store.SetTheme(name); err != nil {
-		m.status = "The theme was not saved: " + err.Error()
+		m.status = say(tr.ThemeNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.useTheme(theme.Pick(name, m.dark))
 	m.reload()
-	m.status = "Theme: " + m.theme.Get().Name + ". T tries the next one."
+	m.status = say(tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
 }
 
 // SetStatus shows a message on the bottom line until the next key.
@@ -371,7 +398,7 @@ func (m *Model) color(it item) color.Color {
 // setView changes how a note is arranged and shows the result.
 func (m *Model) setView(name string, change func(*store.View)) {
 	if err := m.store.SetView(name, change); err != nil {
-		m.status = "The arrangement was not saved: " + err.Error()
+		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 }
@@ -409,7 +436,7 @@ func (m *Model) widgetFor(n store.Note, old page, had bool) (widget.Kind, widget
 func (m *Model) reload() {
 	notes, err := m.store.Scan()
 	if err != nil {
-		m.status = "Cannot read notes: " + err.Error()
+		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
 	// What each file showed before, by file name: a note or a book's page.
@@ -429,13 +456,13 @@ func (m *Model) reload() {
 
 	views, err := m.store.Views()
 	if err != nil {
-		m.status = err.Error() + ". Notes are shown as they arrange themselves."
+		m.status = say(tr.ViewsBroken, map[string]any{"Err": err.Error()})
 	}
 	m.views = views
 
 	unreadable := func(n store.Note) store.Note {
 		if n.Err != nil {
-			n.Doc = doc.Document{Body: "Cannot show this note: " + n.Err.Error()}
+			n.Doc = doc.Document{Body: say(tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
 		}
 		return n
 	}
@@ -514,7 +541,7 @@ func (m *Model) reload() {
 	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
 		m.mode = modeBoard
-		m.status = "The note was removed."
+		m.status = tr.NoteRemoved
 	}
 }
 
@@ -582,9 +609,9 @@ func (m *Model) apply(name string, op doc.Op) {
 	err := m.store.Apply(name, op)
 	switch {
 	case errors.Is(err, doc.ErrConflict):
-		m.status = "The file changed on disk, so the change was not applied."
+		m.status = tr.Conflict
 	case err != nil:
-		m.status = "Write failed: " + err.Error()
+		m.status = say(tr.WriteFailed, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 	i := m.showing(name)
@@ -664,7 +691,7 @@ func (m *Model) heading(it item) string {
 // running says so instead.
 func (m *Model) summary(it item) string {
 	if m.running[it.file().Name] {
-		return "running…"
+		return tr.Running
 	}
 	return it.w.Summary()
 }

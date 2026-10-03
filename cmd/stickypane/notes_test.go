@@ -261,3 +261,22 @@ func TestThemeCommand(t *testing.T) {
 		t.Errorf("auto: code = %d, out = %q", code, out)
 	}
 }
+
+func TestLanguageCommand(t *testing.T) {
+	root := project(t)
+	if code, out, _ := exec(t, "language"); code != 0 || !strings.Contains(out, "en") || !strings.Contains(out, "ko") || !strings.Contains(out, "auto") {
+		t.Fatalf("language should list the languages: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "language", "ko"); code != 0 || out != "language: ko\n" {
+		t.Fatalf("language ko: code = %d, out = %q", code, out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "sticky.json")); !strings.Contains(string(b), `"language": "ko"`) {
+		t.Errorf("sticky.json = %s", b)
+	}
+	if code, _, errOut := exec(t, "language", "xx"); code != 1 || !strings.Contains(errOut, "ko") {
+		t.Errorf("an unknown language is refused: code = %d, stderr = %q", code, errOut)
+	}
+	if code, out, _ := exec(t, "language", "auto"); code != 0 || out != "language: auto\n" {
+		t.Errorf("auto: code = %d, out = %q", code, out)
+	}
+}

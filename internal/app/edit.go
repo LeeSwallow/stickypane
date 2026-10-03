@@ -28,7 +28,7 @@ func init() {
 		name := it.file().Name
 		b, err := m.store.Read(name)
 		if err != nil {
-			m.status = "Cannot read the note: " + err.Error()
+			m.status = say(tr.CannotReadNote, map[string]any{"Err": err.Error()})
 			return nil
 		}
 		m.edit, m.editName, m.editDisk = editor.New(string(b)), name, string(b)
@@ -56,7 +56,7 @@ func editUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case editor.Reload:
 		b, err := m.store.Read(m.editName)
 		if err != nil {
-			m.edit.SetMessage("Cannot read the file: " + err.Error())
+			m.edit.SetMessage(say(tr.CannotReadFile, map[string]any{"Err": err.Error()}))
 			break
 		}
 		m.edit.Load(string(b))
@@ -70,12 +70,12 @@ func editUpdate(m *Model, msg tea.Msg) tea.Cmd {
 // agent's: it is overwritten only when the user insists.
 func (m *Model) save(force bool) bool {
 	if now, err := m.store.Read(m.editName); !force && (err != nil || string(now) != m.editDisk) {
-		m.edit.SetMessage("The file changed on disk. :w! overwrites it, :e! loads it again.")
+		m.edit.SetMessage(tr.FileChangedSave)
 		return false
 	}
 	text := m.edit.Text()
 	if err := m.store.Write(m.editName, []byte(text)); err != nil {
-		m.edit.SetMessage("Write failed: " + err.Error())
+		m.edit.SetMessage(say(tr.WriteFailed, map[string]any{"Err": err.Error()}))
 		return false
 	}
 	m.edit.Saved()
@@ -96,7 +96,7 @@ func (m *Model) followEdit() {
 		return
 	}
 	if m.edit.Dirty() {
-		m.edit.SetMessage("The file changed on disk. :e! loads it, :w! overwrites it.")
+		m.edit.SetMessage(tr.FileChangedEdit)
 		return
 	}
 	m.edit.Load(string(b))

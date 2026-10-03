@@ -118,7 +118,7 @@ func TestEditorFailureIsReported(t *testing.T) {
 func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
-	for _, line := range strings.Split(helpText, "\n") {
+	for _, line := range strings.Split(tr.Help, "\n") {
 		if w := widget.Width(line); w > 40 {
 			t.Errorf("help line %q is %d cells wide, want at most 40", line, w)
 		}

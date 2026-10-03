@@ -29,7 +29,7 @@ func init() {
 	// jots; n jots too unless the focused open note uses n itself (a board
 	// adds a card, a checklist an item).
 	jot := func(m *Model) tea.Cmd {
-		m.ask("Jot", "", func(text string) { m.create(text, "", []byte(text+"\n")) })
+		m.ask(tr.Jot, "", func(text string) { m.create(text, "", []byte(text+"\n")) })
 		return nil
 	}
 	boardKeys["N"] = jot
@@ -50,7 +50,7 @@ func (m *Model) create(text, ext string, content []byte) {
 	}
 	name, err := m.store.Create(text, ext, content, m.now())
 	if err != nil {
-		m.status = "Cannot create the note: " + err.Error()
+		m.status = say(tr.CannotCreate, map[string]any{"Err": err.Error()})
 		return
 	}
 	open := true
@@ -73,7 +73,7 @@ func catalogUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case "enter":
 		kind := m.reg[m.catalogIdx]
 		m.mode = modeBoard
-		m.ask("Title", "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
+		m.ask(tr.Title, "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func catalogBody(m *Model, h int) []string {
 	kind := m.reg[m.catalogIdx]
 	var list []string
 	for i, k := range m.reg {
-		name := strings.TrimSpace(k.Icon + " " + k.Label)
+		name := strings.TrimSpace(k.Icon + " " + tr.L(k.Label))
 		if i == m.catalogIdx {
 			list = append(list, widget.Selected.Render(widget.Pad("› "+name, catalogList-1)))
 		} else {
@@ -100,14 +100,14 @@ func catalogBody(m *Model, h int) []string {
 	}
 	var detail []string
 	if side >= 16 {
-		for _, l := range widget.Wrap(kind.Blurb, side) {
+		for _, l := range widget.Wrap(tr.L(kind.Blurb), side) {
 			detail = append(detail, widget.Faint.Render(l))
 		}
 		if kind.Example != "" && kind.Parse != nil {
 			example, _ := kind.Parse(doc.Parse([]byte(kind.Example))).Draw(side-4, false)
 			detail = append(detail, "")
 			detail = append(detail, strings.Split(frame(box{
-				title: "example", icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),
+				title: tr.Example, icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),
 			}), "\n")...)
 		}
 	}
@@ -127,5 +127,5 @@ func catalogBody(m *Model, h int) []string {
 			body = append(body, widget.Pad(left, catalogList)+right)
 		}
 	}
-	return dialog("Add a note", body, boxW, m.width, h, m.accent())
+	return dialog(tr.AddANote, body, boxW, m.width, h, m.accent())
 }

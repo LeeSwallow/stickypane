@@ -115,7 +115,7 @@ func (c *Checklist) nth() int {
 func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 	done, total := c.counts()
 	if total == 0 {
-		lines := []string{widget.Faint.Render(widget.Truncate(formatHint, width))}
+		lines := []string{widget.Faint.Render(widget.Truncate(widget.T(formatHint), width))}
 		for _, e := range c.entries {
 			if e.text != "" {
 				lines = append(lines, widget.Wrap(widget.Clean(e.text), max(width, 1))...)

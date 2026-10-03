@@ -45,6 +45,7 @@ const (
 	versionKey = "version"
 	ignoreKey  = "ignore"
 	themeKey   = "theme"
+	langKey    = "language"
 )
 
 // readViews returns the file's top-level keys and the views among them.
@@ -109,6 +110,31 @@ func (s *Store) Theme() string {
 	var name string
 	_ = json.Unmarshal(top[themeKey], &name)
 	return name
+}
+
+// Language returns the language the user chose ("ko"), or "" for none.
+func (s *Store) Language() string {
+	top, _, err := s.readViews()
+	if err != nil {
+		return ""
+	}
+	var code string
+	_ = json.Unmarshal(top[langKey], &code)
+	return code
+}
+
+// SetLanguage writes the chosen language.
+func (s *Store) SetLanguage(code string) error {
+	top, _, err := s.readViews()
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(code)
+	if err != nil {
+		return err
+	}
+	top[langKey] = raw
+	return s.writeViews(top)
 }
 
 // SetTheme writes the name of the chosen theme.

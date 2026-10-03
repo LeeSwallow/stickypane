@@ -129,7 +129,7 @@ func (b *Board) Draw(width int, active bool) (string, widget.Span) {
 		out = append(out, wrapped(d, width, widget.Faint.Render)...)
 	}
 	if len(b.cols) == 0 {
-		hint := widget.Faint.Render(widget.Truncate(formatHint, width))
+		hint := widget.Faint.Render(widget.Truncate(widget.T(formatHint), width))
 		lines := []string{hint}
 		for _, d := range b.desc {
 			lines = append(lines, wrapped(d, width, nil)...)
@@ -278,9 +278,9 @@ func (b *Board) Summary() string {
 	case len(b.cols) == 0:
 		return ""
 	case n == 1:
-		return "1 card"
+		return widget.T("1 card")
 	}
-	return fmt.Sprintf("%d cards", n)
+	return fmt.Sprintf(widget.T("%d cards"), n)
 }
 
 // Update implements widget.Widget.

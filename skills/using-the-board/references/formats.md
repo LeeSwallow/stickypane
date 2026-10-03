@@ -52,4 +52,5 @@ by title, so show what the user should read now (`stickypane show`, or
 to arrange and is kept in `sticky.json`; do not edit that file. When progress
 changes, update the matching note instead of adding a new one. The user can
 edit notes from the board, so read a note again before you rewrite it. Notes
-are ordered by file name; prefix a number (`10-plan.md`).
+are ordered by file name; prefix a number (`10-plan.md`). Write notes in the
+language the user writes in.

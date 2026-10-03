@@ -7,6 +7,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/LeeSwallow/stickypane)](https://goreportcard.com/report/github.com/LeeSwallow/stickypane)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+English · [한국어](README.ko.md)
+
 [Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Plugin](#install) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
 
 ```
@@ -199,8 +201,9 @@ Where a note is on the screen is not written into the note. It goes to
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
 
-Next to `notes`, `theme` names the theme (`T` on the board), `order` lists
-the notes you moved and `ignore` what to leave out.
+Next to `notes`, `theme` names the theme (`T` on the board), `language` the
+language of the screen (`stickypane language ko`; `auto` follows `LANG`),
+`order` lists the notes you moved and `ignore` what to leave out.
 
 `order` lists the notes you moved with `{` and `}`; the others follow by
 name. `ignore` is the one part you write by hand: names or patterns the
@@ -384,6 +387,12 @@ rest, so the screen is always full and never scrolls as a whole. A note gets
 at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Languages
+
+The screen speaks English and Korean: `stickypane language ko`, or leave it
+on `auto` and set `LANG`. Key names and the agent's guide stay English; see
+[docs/translating.md](docs/translating.md) to add a language.
 
 ## Themes
 

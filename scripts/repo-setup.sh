@@ -30,6 +30,7 @@ label "enhancement"     "a2eeef" "Something better (release notes: Changed)"
 label "bug"             "d73a4a" "Something broken (release notes: Fixed)"
 label "docs"            "0075ca" "README, guide, skills (release notes: Docs and plugin)"
 label "plugin"          "0075ca" "The Claude Code / Codex plugin"
+label "translation"     "0075ca" "A language of the screen or of the README"
 label "skip-changelog"  "ededed" "Left out of the release notes"
 
 printf '\nDone. Still by hand: pin an Ideas post in Discussions titled "What should the board show you?", and open two or three "feedback wanted" issues from ROADMAP.md.\n'
