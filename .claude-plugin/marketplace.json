@@ -1,0 +1,16 @@
+{
+  "name": "stickypane",
+  "owner": {
+    "name": "LeeSwallow",
+    "url": "https://github.com/LeeSwallow"
+  },
+  "description": "stickypane: a board in the terminal that your coding agent writes to and you read",
+  "plugins": [
+    {
+      "name": "board",
+      "source": "./",
+      "description": "Skills, commands and a session hook for using the stickypane board",
+      "version": "0.1.0"
+    }
+  ]
+}

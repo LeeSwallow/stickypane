@@ -1,0 +1,21 @@
+{
+  "name": "board",
+  "displayName": "stickypane board",
+  "version": "0.1.0",
+  "description": "Put notes, checklists, kanban boards, charts, diagrams, logs and questions on the user's stickypane board, a terminal pane next to you, and read back what the user did there.",
+  "author": {
+    "name": "LeeSwallow",
+    "url": "https://github.com/LeeSwallow"
+  },
+  "repository": "https://github.com/LeeSwallow/stickypane",
+  "license": "MIT",
+  "keywords": [
+    "stickypane",
+    "board",
+    "notes",
+    "kanban",
+    "tui",
+    "agent"
+  ],
+  "hooks": "./hooks/claude-hooks.json"
+}

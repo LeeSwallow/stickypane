@@ -78,6 +78,19 @@ for it.
 Then ask it for anything: "keep a checklist of this refactor on the board",
 "explain the structure on the board as a page".
 
+**As a plugin.** The repository is also a Claude Code and Codex plugin, so
+the agent can learn the board without touching your `AGENTS.md`:
+
+```sh
+claude plugin marketplace add LeeSwallow/stickypane
+claude plugin install board@stickypane
+```
+
+It brings three skills (`using-the-board`, `asking-the-user`,
+`tracking-progress`), the commands `/board:show`, `/board:status`,
+`/board:ask` and `/board:setup`, and a session hook that tells the agent
+what is on the board when a session starts in a project that has one.
+
 Keep the board next to your agent:
 
 ```sh
