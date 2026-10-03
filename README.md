@@ -573,7 +573,7 @@ the open questions. Bugs go to the
 ## Alternatives
 
 If you want a kanban that lives in Markdown files and nothing else,
-[kanban-md](https://github.com/csobrinho/kanban-md) and
+[kanban-md](https://github.com/antopolskiy/kanban-md) and
 [Backlog.md](https://github.com/MrLesk/Backlog.md) do that well. If you want
 to watch commands and metrics in a configured dashboard,
 [sampler](https://github.com/sqshq/sampler) and
