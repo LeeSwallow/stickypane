@@ -156,6 +156,16 @@ Authorization: Bearer {{token}}
 - Read on the board only (resterm skips them): `# @pre cmd`, whose
   `name=value` lines become variables, and `# @post cmd`, which reads the
   response as JSON on standard input.
+- WebSocket: a `ws://` URL, or `# @websocket timeout=5s idle-timeout=1s
+  subprotocols=chat.v2`, with steps `# @ws send <text>`, `send-json`,
+  `send-base64`, `ping`, `pong`, `wait 500ms`, `close 1000 bye`. The log is
+  the transcript (`→` sent, `←` received); `response.received` counts the
+  messages and `response.json("[0].type")` reads them.
+- gRPC: `GRPC host:port` with `# @grpc package.Service/Method`,
+  `# @grpc-plaintext true` (HTTP/2 without TLS), `# @grpc-metadata k: v` and a
+  JSON body. Descriptors come from `# @grpc-descriptor api.protoset`, else
+  server reflection, else fields go by number (`{"1": 7}`).
+  `response.grpc.status == "OK"`; unary and server-streaming calls.
 - `stickypane api api "Log in"` sends one (`--all` every one, `--env prod`)
   and prints the response, checks and captures; it is in `api.log` too, with
   credentials hidden and a last line that says how it ended:

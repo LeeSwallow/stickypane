@@ -58,3 +58,14 @@ func TestSetEnv(t *testing.T) {
 		t.Fatalf("an empty name should take the line out: %q", d.Body)
 	}
 }
+
+func TestAWebSocketAndAGRPCCallShowTheirProtocol(t *testing.T) {
+	src := "### Chat\n# @ws send hi\n# @ws close\nGET ws://localhost/chat\n\n### Get user\n# @grpc users.v1.Users/Get\nGRPC localhost:9090\n\n{\"id\": 7}\n"
+	out, _ := Kind.Parse(doc.Document{Body: src}).Draw(80, false)
+	plain := ansi.Strip(out)
+	for _, want := range []string{"WS     Chat  ws://localhost/chat  2 steps", "GRPC   Get user  users.v1.Users/Get localhost:9090"} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("want %q in:\n%s", want, plain)
+		}
+	}
+}

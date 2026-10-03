@@ -52,7 +52,15 @@ func Log(r Result) string {
 	} else {
 		fmt.Fprintf(&b, "$ %s %s\n", r.Request.Method, r.Request.URL)
 	}
-	if len(r.Body) > 0 {
+	switch {
+	case r.Protocol == "websocket":
+		for _, f := range r.Frames {
+			b.WriteString(frameLine(f) + "\n")
+		}
+	case r.GRPC != nil && r.GRPC.Schema != "" && r.GRPC.Schema != "descriptor":
+		fmt.Fprintf(&b, "descriptors: %s\n", r.GRPC.Schema)
+	}
+	if len(r.Body) > 0 && r.Protocol != "websocket" {
 		body := pretty(r.Body)
 		ls := strings.Split(strings.TrimRight(body, "\n"), "\n")
 		if len(ls) > maxLogLines {
@@ -89,6 +97,12 @@ func End(r Result) string {
 		parts = append(parts, "error")
 	}
 	parts = append(parts, r.Request.Title())
+	if sent, received := r.Counts(); r.Protocol == "websocket" && r.Status > 0 {
+		parts = append(parts, fmt.Sprintf("%d↑ %d↓", sent, received))
+	}
+	if r.GRPC != nil && r.GRPC.Code != 0 && r.GRPC.Message != "" {
+		parts = append(parts, r.GRPC.Message)
+	}
 	if r.Env != "" {
 		parts = append(parts, r.Env)
 	}
@@ -103,6 +117,26 @@ func End(r Result) string {
 		parts = append(parts, strings.ReplaceAll(r.Err.Error(), "\n", " "))
 	}
 	return "[" + strings.Join(parts, " · ") + "]"
+}
+
+// frameLine writes one line of a WebSocket transcript: which way, when to
+// the millisecond, and what.
+func frameLine(f Frame) string {
+	dir := "←"
+	if f.Out {
+		dir = "→"
+	}
+	if f.Kind == "wait" {
+		return "· wait " + f.Data
+	}
+	at := f.At.Format("15:04:05.000")
+	switch f.Kind {
+	case "text":
+		return dir + " " + at + "  " + strings.ReplaceAll(f.Data, "\n", " ")
+	case "close":
+		return strings.TrimSpace(fmt.Sprintf("%s %s  close %d %s", dir, at, f.Code, f.Data))
+	}
+	return strings.TrimSpace(dir + " " + at + "  " + f.Kind + " " + f.Data)
 }
 
 // took writes how long a request took: milliseconds under a second, as
@@ -186,9 +220,11 @@ func SendNote(ctx context.Context, notes Notes, dir, name string, part int, env 
 	root := filepath.Dir(dir)
 	saved := filepath.Join(dir, SavedFile)
 	all, _ := LoadSaved(saved)
+	here := filepath.Dir(filepath.Join(dir, filepath.FromSlash(name)))
 	rn := &Runner{
 		Root:  root,
-		Dirs:  []string{filepath.Dir(filepath.Join(dir, filepath.FromSlash(name))), dir, root},
+		Here:  here,
+		Dirs:  []string{here, dir, root},
 		Env:   env,
 		Saved: all[name],
 	}

@@ -25,6 +25,7 @@ const maxBody = 4 << 20
 // Runner sends the requests of a file.
 type Runner struct {
 	Root  string            // the project folder: hooks run here and .env is read here
+	Here  string            // the .http file's folder: files it names are found here
 	Dirs  []string          // the folders environment files are looked for in, in order
 	Env   string            // the environment chosen; empty takes the file's, then dev
 	Saved map[string]string // what earlier responses captured; Send adds to it
@@ -42,6 +43,7 @@ type Check struct {
 // Result is what sending one request came to.
 type Result struct {
 	Request  Request
+	Protocol string // http, websocket or grpc
 	Env      string // the environment used, if any
 	Curl     string // the request as a curl command, to send it again by hand
 	Status   int
@@ -52,7 +54,24 @@ type Result struct {
 	Checks   []Check
 	Captured []string // the names captured
 	Hooks    []string // what the hooks printed
-	Err      error    // why it was not sent or a hook failed
+	Frames   []Frame     // a WebSocket session, in order
+	GRPC     *GRPCResult // a gRPC call's status and trailers
+	Err      error       // why it was not sent or a hook failed
+}
+
+// Counts says how many messages a WebSocket session sent and received.
+func (r Result) Counts() (sent, received int) {
+	for _, f := range r.Frames {
+		if f.Kind != "text" && f.Kind != "binary" {
+			continue
+		}
+		if f.Out {
+			sent++
+		} else {
+			received++
+		}
+	}
+	return sent, received
 }
 
 // Passed counts the checks that held.
@@ -88,7 +107,7 @@ func (rn *Runner) osEnv() func(string) (string, bool) {
 // variables, sends, checks and captures, and runs the post hooks.
 func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 	r := f.Requests[i]
-	res := Result{Request: r}
+	res := Result{Request: r, Protocol: r.Protocol()}
 	if rn.Saved == nil {
 		rn.Saved = map[string]string{}
 	}
@@ -152,16 +171,61 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 		header[j] = [2]string{h[0], fill(h[1])}
 	}
 	body := fill(r.Body)
-	res.Curl = Curl(r.Method, url, masked(header), body)
+	var steps []Step
+	var g GRPC
+	switch res.Protocol {
+	case "websocket":
+		if r.WS != nil {
+			for _, st := range r.WS.Steps {
+				steps = append(steps, Step{Op: st.Op, Arg: fill(st.Arg)})
+			}
+			res.Curl = Websocat(url, masked(header), r.WS.Subprotocols)
+		} else {
+			res.Curl = Websocat(url, masked(header), nil)
+		}
+	case "grpc":
+		g = GRPC{Reflection: true}
+		if r.GRPC != nil {
+			g = *r.GRPC
+		}
+		g.Method, g.Authority = fill(g.Method), fill(g.Authority)
+		md := g.Metadata
+		g.Metadata = nil
+		for _, kv := range md {
+			g.Metadata = append(g.Metadata, [2]string{kv[0], fill(kv[1])})
+		}
+		shown := g
+		shown.Metadata = masked(g.Metadata)
+		res.Curl = Grpcurl(url, body, masked(header), shown)
+	default:
+		res.Curl = Curl(r.Method, url, masked(header), body)
+	}
 	if len(missing) > 0 {
 		res.Err = fmt.Errorf("no value for %s", strings.Join(unique(missing), ", "))
 		return res
 	}
+	switch res.Protocol {
+	case "websocket":
+		rn.websocket(ctx, &res, url, header, steps)
+	case "grpc":
+		rn.grpc(ctx, &res, url, body, header, g)
+	default:
+		rn.http(ctx, &res, url, header, body)
+	}
+	if res.Err != nil {
+		return res
+	}
+	rn.after(ctx, &res, scope, osEnv)
+	return res
+}
 
+// http sends a plain HTTP request.
+func (rn *Runner) http(ctx context.Context, res *Result, url string, header [][2]string, body string) {
+	r := res.Request
 	req, err := http.NewRequestWithContext(ctx, r.Method, url, strings.NewReader(body))
 	if err != nil {
 		res.Err = err
-		return res
+		return
 	}
 	for _, h := range header {
 		if strings.EqualFold(h[0], "Host") {
@@ -172,14 +236,18 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 	}
 	client := rn.Client
 	if client == nil {
-		client = &http.Client{Timeout: 30 * time.Second}
+		timeout := 30 * time.Second
+		if r.Timeout > 0 {
+			timeout = r.Timeout
+		}
+		client = &http.Client{Timeout: timeout}
 	}
 	started := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		res.Err = err
 		res.Took = time.Since(started)
-		return res
+		return
 	}
 	res.Body, err = io.ReadAll(io.LimitReader(resp.Body, maxBody))
 	resp.Body.Close()
@@ -187,10 +255,15 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 	res.Status, res.Text, res.Header = resp.StatusCode, resp.Status, resp.Header
 	if err != nil {
 		res.Err = err
-		return res
 	}
+}
 
-	got := response{status: res.Status, header: res.Header, body: res.Body, took: res.Took}
+// after checks and captures what came back and runs the post hooks, the
+// same for every protocol.
+func (rn *Runner) after(ctx context.Context, res *Result, scope Scope, osEnv func(string) (string, bool)) {
+	r := res.Request
+	got := response{status: res.Status, header: res.Header, body: res.Body, took: res.Took, grpc: res.GRPC}
+	got.sent, got.received = res.Counts()
 	for _, a := range r.Asserts {
 		ok, seen := got.check(a)
 		res.Checks = append(res.Checks, Check{Expr: a, OK: ok, Got: seen})
@@ -213,7 +286,6 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 			}
 		}
 	}
-	return res
 }
 
 // secretHeaders are the headers whose values the log does not show: the
@@ -298,6 +370,9 @@ type response struct {
 	parsed any
 	isJSON bool
 	tried  bool
+	// What a WebSocket session or a gRPC call adds.
+	sent, received int
+	grpc           *GRPCResult
 }
 
 // json is what a post hook reads on its standard input.
@@ -348,6 +423,33 @@ func (r *response) lookup(expr string) (any, bool) {
 	switch head {
 	case "status", "statusCode", "code":
 		return float64(r.status), true
+	case "received", "sent":
+		if head == "received" {
+			return float64(r.received), true
+		}
+		return float64(r.sent), true
+	case "grpc":
+		if r.grpc == nil {
+			return nil, false
+		}
+		switch rest {
+		case "status":
+			return r.grpc.CodeName, true
+		case "code":
+			return float64(r.grpc.Code), true
+		case "message":
+			return r.grpc.Message, true
+		}
+		return nil, false
+	case "trailer", "trailers":
+		if r.grpc == nil || rest == "" {
+			return nil, false
+		}
+		v := r.grpc.Trailer.Values(rest)
+		if len(v) == 0 {
+			return nil, false
+		}
+		return strings.Join(v, ", "), true
 	case "time", "duration":
 		return float64(r.took.Milliseconds()), true
 	case "header", "headers":

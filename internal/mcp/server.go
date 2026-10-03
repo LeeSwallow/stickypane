@@ -487,7 +487,13 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		return nil, &rpcError{codeParams, "unknown tool " + p.Name}
 	}
 	if err != nil {
-		return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}, nil
+		// What was done before it failed is kept: the logs of the requests
+		// that were sent are what the agent needs to see why.
+		msg := err.Error()
+		if strings.TrimSpace(text) != "" {
+			msg = strings.TrimRight(text, "\n") + "\n\n" + msg
+		}
+		return &toolResult{Content: []content{{Type: "text", Text: msg}}, IsError: true}, nil
 	}
 	return &toolResult{Content: []content{{Type: "text", Text: text}}}, nil
 }

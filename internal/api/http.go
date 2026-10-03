@@ -52,7 +52,11 @@ func (a *API) HTTP(ctx context.Context, name, request, env string, all bool) (ou
 	default:
 		var b strings.Builder
 		for i, r := range f.Requests {
-			fmt.Fprintf(&b, "#%d  %-6s %s\n", i+1, r.Method, r.Title())
+			where := ""
+			if r.Protocol() == "grpc" && r.GRPC != nil {
+				where = "  " + r.GRPC.Method
+			}
+			fmt.Fprintf(&b, "#%d  %-6s %s%s\n", i+1, r.Badge(), r.Title(), where)
 		}
 		return b.String(), 0, nil
 	}

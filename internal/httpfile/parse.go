@@ -11,7 +11,9 @@
 package httpfile
 
 import (
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Var is a variable the file declares: "@base = http://localhost" or
@@ -35,6 +37,9 @@ type Request struct {
 	Post     []string
 	Captures []Capture
 	Asserts  []string
+	Timeout  time.Duration // "# @timeout 5s"; zero takes the default
+	WS       *WebSocket    // "# @websocket" and "# @ws" steps
+	GRPC     *GRPC         // "# @grpc package.Service/Method" and its options
 	Line     int // the request line, counted from 0
 	Start    int // the first line of the request's block, counted from 0
 	End      int // one past its last line
@@ -47,6 +52,56 @@ func (r Request) Title() string {
 		return r.Name
 	}
 	return r.Method + " " + r.URL
+}
+
+// WebSocket is how a WebSocket request runs: options, then steps, in
+// resterm's words: "# @websocket timeout=5s idle-timeout=1s subprotocols=a,b"
+// and "# @ws send {...}".
+type WebSocket struct {
+	Timeout      time.Duration // the handshake's limit
+	Idle         time.Duration // how long to listen after the last step
+	Subprotocols []string
+	Steps        []Step
+}
+
+// Step is one "# @ws" line: send, send-json, send-base64, ping, pong,
+// wait or close, and what follows it.
+type Step struct{ Op, Arg string }
+
+// GRPC is how a gRPC request is made: "# @grpc", "# @grpc-descriptor",
+// "# @grpc-reflection", "# @grpc-plaintext", "# @grpc-authority" and
+// "# @grpc-metadata", as resterm writes them.
+type GRPC struct {
+	Method     string
+	Descriptor string // a .protoset file, relative to the .http file
+	Reflection bool   // ask the server for descriptors; on unless turned off
+	Plaintext  bool   // HTTP/2 without TLS
+	Authority  string
+	Metadata   [][2]string
+}
+
+// Protocol is what the request speaks: "grpc" for a GRPC line, "websocket"
+// for "# @websocket" or a ws:// URL, and else "http".
+func (r Request) Protocol() string {
+	u := strings.ToLower(r.URL)
+	switch {
+	case r.Method == "GRPC":
+		return "grpc"
+	case r.WS != nil || strings.HasPrefix(u, "ws://") || strings.HasPrefix(u, "wss://"):
+		return "websocket"
+	}
+	return "http"
+}
+
+// Badge is the word the board shows for the request: its method, WS or GRPC.
+func (r Request) Badge() string {
+	switch r.Protocol() {
+	case "grpc":
+		return "GRPC"
+	case "websocket":
+		return "WS"
+	}
+	return r.Method
 }
 
 // Hooks reports whether sending the request runs commands of the file.
@@ -114,6 +169,8 @@ func directive(line string) (word, rest string, ok bool) {
 var known = map[string]bool{
 	"name": true, "pre": true, "post": true, "assert": true, "capture": true, "env": true,
 	"file": true, "const": true, "global": true, "var": true, "request": true,
+	"timeout": true, "websocket": true, "ws": true, "grpc": true, "grpc-descriptor": true,
+	"grpc-reflection": true, "grpc-plaintext": true, "grpc-authority": true, "grpc-metadata": true,
 }
 
 // isComment reports whether a line of a request's head is a comment.
@@ -206,6 +263,52 @@ func apply(word, rest string, r *Request, f *File, fileWide bool) {
 		if fileWide && len(fields) > 0 {
 			f.Env = fields[0]
 		}
+	case "timeout":
+		if d, err := time.ParseDuration(rest); err == nil {
+			r.Timeout = d
+		}
+	case "websocket":
+		ws := r.websocket()
+		for _, kv := range fields {
+			k, v, _ := strings.Cut(kv, "=")
+			switch k {
+			case "timeout", "idle-timeout":
+				d, err := time.ParseDuration(v)
+				if err != nil {
+					continue
+				}
+				if k == "timeout" {
+					ws.Timeout = d
+				} else {
+					ws.Idle = d
+				}
+			case "subprotocols":
+				for _, p := range strings.Split(v, ",") {
+					if p = strings.TrimSpace(p); p != "" {
+						ws.Subprotocols = append(ws.Subprotocols, p)
+					}
+				}
+			}
+		}
+	case "ws":
+		if len(fields) > 0 {
+			op, arg, _ := strings.Cut(rest, " ")
+			r.websocket().Steps = append(r.websocket().Steps, Step{Op: strings.ToLower(op), Arg: strings.TrimSpace(arg)})
+		}
+	case "grpc":
+		r.grpc().Method = rest
+	case "grpc-descriptor":
+		r.grpc().Descriptor = rest
+	case "grpc-reflection":
+		r.grpc().Reflection = truth(rest)
+	case "grpc-plaintext":
+		r.grpc().Plaintext = truth(rest)
+	case "grpc-authority":
+		r.grpc().Authority = rest
+	case "grpc-metadata":
+		if k, v, ok := strings.Cut(rest, ":"); ok {
+			r.grpc().Metadata = append(r.grpc().Metadata, [2]string{strings.TrimSpace(k), strings.TrimSpace(v)})
+		}
 	case "file", "const", "global", "var", "request":
 		if len(fields) == 0 {
 			return
@@ -217,6 +320,29 @@ func apply(word, rest string, r *Request, f *File, fileWide bool) {
 			f.Vars = append(f.Vars, v)
 		}
 	}
+}
+
+func (r *Request) websocket() *WebSocket {
+	if r.WS == nil {
+		r.WS = &WebSocket{}
+	}
+	return r.WS
+}
+
+func (r *Request) grpc() *GRPC {
+	if r.GRPC == nil {
+		r.GRPC = &GRPC{Reflection: true}
+	}
+	return r.GRPC
+}
+
+// truth reads a directive's flag: empty or true is on.
+func truth(s string) bool {
+	if s == "" {
+		return true
+	}
+	b, err := strconv.ParseBool(s)
+	return err == nil && b
 }
 
 // scopes are the words a capture or a variable may start with.
@@ -237,6 +363,18 @@ func requestLine(t string) (method, url string) {
 	fields := strings.Fields(t)
 	if len(fields) == 0 {
 		return "", ""
+	}
+	switch strings.ToUpper(fields[0]) {
+	case "GRPC":
+		if len(fields) < 2 {
+			return "", ""
+		}
+		return "GRPC", fields[1]
+	case "WS", "WEBSOCKET":
+		if len(fields) < 2 {
+			return "", ""
+		}
+		return "GET", fields[1]
 	}
 	if methods[strings.ToUpper(fields[0])] {
 		if len(fields) < 2 {
