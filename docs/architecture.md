@@ -20,6 +20,8 @@ layer, fails the build.
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
+| 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
+| 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 
@@ -60,6 +62,7 @@ The board keeps few dependencies, and writes the parts it uses little of:
 | --- | --- | --- |
 | `internal/markdown` | glamour, goldmark, chroma, bluemonday | notes use a small part of Markdown; the renderer and its HTML, emoji and syntax-highlighting libraries were most of the binary |
 | `internal/lineedit` | bubbles' textinput | one line of text on the bottom line |
+| `internal/wsock`, `internal/proto`, `internal/rpc` | gorilla/websocket, google.golang.org/protobuf, grpc-go | the API note sends a script of messages and one call at a time; the libraries would be most of the binary again |
 | `internal/when`, `internal/env` | | how times and the environment are read is the board's own decision |
 
 Kept: bubbletea, lipgloss and x/ansi (the terminal itself), fsnotify

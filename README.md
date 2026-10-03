@@ -595,6 +595,74 @@ the event in `STICKY_EVENT` (JSON) and in `STICKY_NOTE`, `STICKY_KIND`,
 Nothing reacts unless you start a watch: the board itself never runs
 anything without asking. Over MCP the same events come from `wait_event`.
 
+## API requests (experimental)
+
+A `.http` note is an API client on the board, in the format resterm and the
+VS Code REST Client read, so the same file works there too: REST requests,
+WebSocket sessions and gRPC calls side by side. `enter` sends the picked
+one after a yes; under the list, the board shows what that request got
+last time.
+
+![An API tab: a POST, a WebSocket session and a gRPC call, with the picked session's transcript under them](demo/screenshots/6-api.png)
+
+```http
+# @env dev
+
+### Create user
+POST {{rest}}/users
+Content-Type: application/json
+
+{"name": "{{user}}"}
+# @assert response.statusCode == 201
+# @capture file id {{response.json.id}}
+
+### Live updates
+# @websocket timeout=5s idle-timeout=1s subprotocols=json
+# @ws send {"type":"subscribe","channel":"builds"}
+# @ws wait 500ms
+# @ws close 1000 done
+# @assert response.received >= 1
+GET {{socket}}/events
+
+### Get user
+# @grpc users.v1.Users/Get
+# @grpc-plaintext true
+# @grpc-metadata x-trace-id: demo-1
+# @assert response.grpc.status == "OK"
+GRPC {{grpc}}
+
+{"id": "{{id}}"}
+```
+
+| | REST | WebSocket | gRPC |
+| --- | --- | --- | --- |
+| written as | a method and a URL | a `ws://` URL, or `# @websocket`, and `# @ws` steps: `send`, `send-json`, `send-base64`, `ping`, `pong`, `wait`, `close` | `GRPC host:port`, `# @grpc package.Service/Method`, a JSON body |
+| the log shows | the body | the transcript, `→` sent and `←` received, to the millisecond | the messages; a stream as a list |
+| checks read | `response.statusCode`, `response.json("a.b")`, `response.header("X")` | `response.received`, `response.json("[0].type")` | `response.grpc.status`, `response.json("name")` |
+
+**gRPC without generated code.** Messages are written as JSON. The
+descriptors come from `# @grpc-descriptor api.protoset` (what `protoc
+--descriptor_set_out` or `buf build -o` writes), else from the server's
+reflection service, else fields go by number (`{"1": 7}`), as
+`protoc --decode_raw` shows them. `# @grpc-plaintext true` speaks HTTP/2
+without TLS. Unary calls and server streams are sent; a status other than
+OK ends the request like an HTTP error (`404 NOT_FOUND · user 7 not found`).
+
+**Environments.** `{{name}}` works in the URL, headers, body, `@ws` steps,
+gRPC metadata and target. Values come from `@name = value` lines, captures
+of earlier responses, `rest-client.env.json` or `resterm.env.json` (the
+`$shared` block, then the environment chosen with `# @env`, which `e` on the
+board changes), `env:NAME`, and the project's `.env`. Credentials in
+headers and metadata are hidden in the log.
+
+**For agents.** `stickypane api api` lists the requests (`#2  WS  Live
+updates`), `stickypane api api "live" --env dev` sends one and `--all`
+every one, printing each log; the MCP tool `api` does the same and returns
+the logs of a failed run too. Each request's last result stays in `api.log`
+under its title, a line such as `[101 Switching Protocols · 1.1s · Live
+updates · 2↑ 2↓ · 1/1 ✔]` at its end, so `stickypane watch --note api.log`
+hears when one is sent.
+
 ## Languages
 
 The screen speaks English and Korean: `stickypane language ko`, or leave it

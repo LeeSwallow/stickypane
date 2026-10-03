@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
@@ -121,7 +122,9 @@ func (a *API) Draw(width int, active bool) (string, widget.Span) {
 		}
 		line = widget.Truncate(line+rest, width)
 		if active && i == a.cursor {
-			line = widget.Selected.Render(widget.Pad(line, width))
+			// The colors inside would cut the highlight short: the picked
+			// line is one plain run of text on the highlight.
+			line = widget.Selected.Render(widget.Pad(ansi.Strip(line), width))
 		}
 		out = append(out, line)
 		if active && i == a.cursor {

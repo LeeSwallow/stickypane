@@ -206,7 +206,7 @@ var tools = []tool{
 	},
 	{
 		Name:        "api",
-		Description: "Experimental. A .http note holds REST requests (resterm and VS Code REST Client syntax). With only name, list its requests; with request (its title, a part of it, or #2) send it, or with all send every one in order; returns each response's status, headers, body, checks and captured values, as the board shows them.",
+		Description: "Experimental. A .http note holds REST requests, WebSocket sessions (# @websocket, # @ws steps) and gRPC calls (GRPC host:port, # @grpc pkg.Service/Method), in resterm's syntax; `stickypane kinds api` or the guide topic \"api\" gives the format. With only name, list its requests; with request (its title, a part of it, or #2) send it, or with all send every one in order; returns each one's log: the status, the body or the WebSocket transcript or the gRPC messages, the checks and the captured values, as the board shows them. A failed run still returns the logs.",
 		InputSchema: object([]string{"name"}, map[string]any{
 			"name":    str(`The .http note, such as "api" or "api.http".`),
 			"request": str(`The request to send: its title, a part of it, or "#2".`),
