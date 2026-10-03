@@ -315,7 +315,32 @@ func (a *API) target(name string) (string, bool, error) {
 		return name, true, nil
 	}
 	file, err := fileName(name)
-	return file, false, err
+	if err != nil {
+		return file, false, err
+	}
+	return a.existing(name, file), false, nil
+}
+
+// otherExts are the files a name without an extension may be, after .md.
+var otherExts = []string{".http", ".rest", ".log", ".txt", ".out", ".sh", ".ps1"}
+
+// existing is the file a name means: file (name with ".md") when it is
+// there or the name has an extension, and else the note of that name with
+// another extension, so "live" finds live.http and "build" build.log.
+func (a *API) existing(name, file string) string {
+	if filepath.Ext(strings.TrimSpace(name)) != "" {
+		return file
+	}
+	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err == nil {
+		return file
+	}
+	stem := strings.TrimSuffix(file, ".md")
+	for _, ext := range otherExts {
+		if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(stem+ext))); err == nil {
+			return stem + ext
+		}
+	}
+	return file
 }
 
 // Remove moves a note, a page or a whole book to the trash. Nothing is

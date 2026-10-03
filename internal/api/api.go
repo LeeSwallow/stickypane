@@ -145,7 +145,7 @@ func (a *API) Cat(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.st.Read(file)
+	return a.st.Read(a.existing(name, file))
 }
 
 // viewKeys are how the user arranged a note on the screen.

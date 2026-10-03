@@ -151,3 +151,21 @@ func TestANewNoteIsTitledWithoutItsOrderNumber(t *testing.T) {
 		t.Errorf("file = %q", got)
 	}
 }
+
+func TestANameWithoutItsExtensionFindsTheNoteThatHasIt(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{"live.http": "### Ping\nGET http://x\n", "build.log": "ok\n", "plan.md": "x\n"})
+	for name, want := range map[string]string{"live": "showing live.http", "build": "showing build.log", "plan": "showing plan.md"} {
+		if got, err := a.Show(name); err != nil || got != want {
+			t.Errorf("Show(%q) = %q, %v; want %q", name, got, err, want)
+		}
+	}
+	if got, err := a.Hide("live"); err != nil || got != "hidden live.http" {
+		t.Errorf("Hide = %q, %v", got, err)
+	}
+	if b, err := a.Cat("live"); err != nil || !strings.Contains(string(b), "### Ping") {
+		t.Errorf("Cat = %q, %v", b, err)
+	}
+	if _, err := a.Show("nothing"); err == nil || !strings.Contains(err.Error(), "nothing.md") {
+		t.Errorf("a missing note still names the .md it looked for: %v", err)
+	}
+}
