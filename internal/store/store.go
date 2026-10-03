@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -207,7 +208,7 @@ func (s *Store) scan(set Settings) ([]Tab, error) {
 			continue
 		}
 		if isDir(e, filepath.Join(s.Dir, name)) {
-			tab := Tab{Name: name, Title: name}
+			tab := Tab{Name: name, Title: Bare(name)}
 			if title := set.TabTitle(name); title != "" {
 				tab.Title = title
 			}
@@ -610,3 +611,18 @@ func (s *Store) Move(name, to string) error {
 func (s *Store) Delete(name string) error {
 	return os.Remove(filepath.Join(s.Dir, filepath.FromSlash(name)))
 }
+
+// Bare is a name without the number in front that orders it: "10-plan" is
+// "plan", and a tab "20-release" is "release". A name that is only numbers,
+// such as a date, stays as it is.
+func Bare(name string) string {
+	if m := orderRe.FindStringSubmatch(name); m != nil {
+		return m[1]
+	}
+	return name
+}
+
+// orderRe is a name with a number in front to order it: digits, a dash,
+// an underscore or a space, then something that does not start with a
+// digit.
+var orderRe = regexp.MustCompile(`^\d+[-_ ]+(\D.*)$`)

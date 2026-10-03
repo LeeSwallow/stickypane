@@ -91,3 +91,28 @@ func TestWatchSeesChangesInsideABookInsideATab(t *testing.T) {
 		t.Errorf("a tab and the book in it are both watched: %v", s.watched())
 	}
 }
+
+func TestATabIsTitledWithoutTheNumberThatOrdersIt(t *testing.T) {
+	s := newStore(t)
+	write(t, s, "20-release/build.log", "x\n")
+	write(t, s, "2026-10/notes.md", "x\n")
+	tabs, err := s.Tabs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	for _, tab := range tabs[1:] {
+		titles = append(titles, tab.Name+"="+tab.Title)
+	}
+	if got := strings.Join(titles, " "); got != "20-release=release 2026-10=2026-10" {
+		t.Errorf("tabs = %s", got)
+	}
+}
+
+func TestBareTakesOffTheOrderNumberOnly(t *testing.T) {
+	for in, want := range map[string]string{"10-plan": "plan", "05_notes": "notes", "3 docs": "docs", "plan": "plan", "2026-10-03": "2026-10-03", "42": "42"} {
+		if got := Bare(in); got != want {
+			t.Errorf("Bare(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

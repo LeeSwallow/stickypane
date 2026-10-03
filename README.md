@@ -276,9 +276,10 @@ What a file is depends on its name:
       03-faq.md
 ```
 
-A number in front of a name orders the notes and the pages and is not part
-of the title: `10-plan.md` is shown as "plan", until front matter or
-`sticky.json` gives it a title of its own.
+A number in front of a name orders the notes, the pages and the tabs and
+is not part of the title: `10-plan.md` is shown as "plan" and a folder
+`20-release` as the tab "release", until front matter or `sticky.json`
+gives it a title of its own.
 
 **Tabs.** Each folder of `.sticky/` is a tab, listed on the first line of
 the screen with its number; the files in the folder are its notes, and the
