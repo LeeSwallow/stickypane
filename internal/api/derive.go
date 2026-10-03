@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
@@ -14,7 +15,7 @@ import (
 // A chart may say in its front matter where its values come from:
 //
 //	from: plan          one note: its own numbers
-//	from: plan, work    several: one number each
+//	from: plan, work    several: one number each, named by the note's title
 //
 // stickypane computes them, by the source's shape, and writes them into
 // the chart, so the file is true without stickypane and an agent reads it
@@ -41,6 +42,7 @@ func (a *API) Derive() (int, error) {
 		return 0, err
 	}
 	files := files(b)
+	views := b.Settings.Views()
 	names := make([]string, 0, len(files))
 	for n := range files {
 		names = append(names, n)
@@ -64,7 +66,10 @@ func (a *API) Derive() (int, error) {
 			if len(sources) == 1 {
 				values = reduce(kind, src.Doc)
 			} else {
-				values = append(values, [2]string{s, headline(kind, src.Doc)})
+				// Named as the board names it: its title, else its file
+				// name without the number that orders it.
+				label := arrange.Title(views[src.Name], src.Doc, src.Name)
+				values = append(values, [2]string{label, headline(kind, src.Doc)})
 			}
 		}
 		if !usable || values == nil {

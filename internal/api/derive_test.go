@@ -51,3 +51,17 @@ func TestAChangeRecomputesTheCharts(t *testing.T) {
 		t.Errorf("progress = %q", got)
 	}
 }
+
+func TestAChartOfSeveralNotesNamesThemByTitle(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{
+		"20-plan.md":  "---\ntype: checklist\ntitle: Token endpoint\n---\n- [x] a\n- [ ] b\n",
+		"10-work.md":  "---\ntype: board\n---\n## To do\n- x\n",
+		"progress.md": "---\ntype: chart\nfrom: 20-plan, 10-work\n---\n",
+	})
+	if _, err := a.Derive(); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, dir, "progress.md"); !strings.HasSuffix(got, "---\nToken endpoint: 50\nwork: 1\n") {
+		t.Errorf("a source is named by its title, or its file name without the order number: %q", got)
+	}
+}
