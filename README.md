@@ -1,43 +1,56 @@
 # stickypane
 
-A note board in your terminal, for you and your coding agent.
+**A board in your terminal that your coding agent writes to and you read.**
 
 ```
- ● ▦ Auth work  ● ☑ Login API  ● ≣ Work log  ○ ✎ Auth design  ○ ✎ memo
-──────────────────────────────────────────────────────────────────────────────
-╔ ▦ Auth work ══════════════════════════════════════════════════════ 4 cards ╗
-║ To do (1)               Doing (1)               Done (2)                   ║
-║ ──────────────────────  ──────────────────────  ──────────────────────     ║
-║ ▎ payments              › login API             ▎ schema                   ║
-║                             refresh tokens                                 ║
-║                             come later          ▎ CI setup                 ║
-╚════════════════════════════════════════════════════════════════════════════╝
-╭ ☑ Login API ─────────────────── 2/3 ╮╭ ≣ Work log ──────────────── 2 lines ╮
-│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3            ││ 14:02 tests passed                  │
-│                                     ││ 14:10 started on review feedback    │
-│   ☑ Add endpoint                    │╰─────────────────────────────────────╯
-│   ☑ Validate input                  │
-│   ☐ Write tests                     │
-╰─────────────────────────────────────╯
-h l j k move  H L shift card  J K reorder  n new card  enter zoom  o close
+ ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
+╔ ▦ Auth work ═══════════════════════════════════════════════════════════ 4 cards ╗
+║ To do (1)               Doing (1)               Done (2)                       ║
+║ ─────────────────────   ─────────────────────   ─────────────────────          ║
+║ ▎ payments              › login API             ▎ schema                       ║
+║                             refresh tokens      ▎ CI setup                     ║
+╚═════════════════════════════════════════════════════════════════════════════════╝
+╭ ☑ Login API ─────────────── 2/3 ╮╭ ≣ build ──────────────────────── 212 lines ╮
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3        ││ ok   internal/store      0.41s             █
+│   ☑ Add endpoint                ││ ok   internal/widget     0.38s             █
+│   ☑ Validate input              ││ [exit 0 · 7.15s]                           █
+│   ☐ Write tests                 │╰────────────────────────────────────────────╯
+╰─────────────────────────────────╯╭ ◉ Deploy now? ─────────────────────── 1/2 ╮
+                                   │   ○ staging      ◉ production              │
+                                   │ ┏━━━━━━━━┓ ╭────────╮                      │
+                                   │ ┃ Deploy ┃ │ Cancel │                      │
+h l j k move  H L shift card  n new card  enter zoom  o close  tab next  ? help
 ```
 
-Your agent jots things down as plain files in a folder. stickypane shows that
-folder in a pane next to it: plain notes, kanban boards, checklists, charts,
-Mermaid diagrams, forms you answer with a key press, logs that are followed
-as they grow, and shell scripts with a Run button. The line
-at the top lists every note (`●` open, `○` folded away). The ones you open
-tile the screen below it, each in a pane of its own: a note longer than its
-pane scrolls inside it, and when more notes are open than fit, the rest are
-on the next screen. Move a card or tick a box and the change lands in the
-same file, so the agent sees it too.
+An agent working in the pane next to you produces a lot of text, and the
+things that matter scroll away with it: where the plan stands, what is done,
+what it wants you to decide. Chat is the wrong place for that. A board is
+the right one.
 
-- **Nothing to configure.** No server, no hooks. The one settings file,
-  `sticky.json`, is written by the board as you arrange it.
-- **Any agent.** If it can edit files, it can stick notes: Claude Code, Codex
-  and others.
-- **Any terminal.** A plain window, tmux, WezTerm, Zellij. stickypane is a
-  visualization layer, not a terminal plugin.
+stickypane is that board. It is a folder of plain files (`.sticky/`), shown
+as panes in a terminal window: your agent writes a file, it appears; it
+ticks an item, the box ticks; it asks a question, a form with buttons shows
+up, you press one, and the agent reads your answer back. You work the board
+with keys or the mouse and every change lands in the same files, so the
+agent sees what you did without being told.
+
+**What it shows.** Notes in Markdown, kanban boards, checklists, charts,
+Mermaid diagrams, forms you answer, logs followed as they grow, shell
+scripts with a Run button, and folders as books of pages. Any file of your
+project — the README, a log under `logs/` — can be put on the board with one
+command.
+
+**What it asks of the agent.** Nothing it does not already know how to do.
+Writing a Markdown file is enough; for the rest there are one-line commands
+that need no reading first (`stickypane todo plan check tests`,
+`stickypane chart tokens add input 1200`, `stickypane show README.md`) and the
+same as MCP tools. A 50-line guide, added to `AGENTS.md` or installed as a
+skill, tells it all of this.
+
+**What it asks of you.** Nothing to configure: no server, no hooks, no
+terminal plugin. It runs in a plain window, in tmux, WezTerm or Zellij, next
+to Claude Code, Codex or any agent that can edit files. The files are yours,
+in your repository, readable without stickypane.
 
 ## Install
 
