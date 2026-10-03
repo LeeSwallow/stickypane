@@ -47,6 +47,9 @@
     "Done (%d)": "완료 (%d)",
     "log": "로그",
     "output": "결과",
+    "empty": "비어 있음",
+    "Yes": "예",
+    "No": "아니요",
     "… %d earlier lines": "… 앞의 %d줄",
     "1 line": "1줄",
     "%d lines": "%d줄",
@@ -99,6 +102,8 @@
   "confirmRun": "{{.Dir}}에서 {{.Name}}을(를) 실행할까요? (y/n)",
   "cannotWriteLog": "{{.Log}}에 쓸 수 없습니다: {{.Err}}",
   "couldNotRun": "{{.Name}}을(를) 실행할 수 없습니다: {{.Err}}",
+  "confirmSend": "{{.Request}} 요청을 보낼까요?{{if .Hooks}} {{.Hooks}}도 실행합니다.{{end}} (y/n)",
+  "sending": "{{.Name}} 보내는 중…",
   "runEnded": "{{.Name}} 종료: exit {{.Code}}, {{.Took}} 걸림. 출력은 {{.Log}}에 있습니다.",
   "watchUnavailable": "파일 감시를 쓸 수 없습니다. r로 새로 고치세요.",
   "help": "노트\n  tab              다음 노트\n  shift+tab        이전 노트\n  enter            열기, 그다음 크게\n  z                크게 보기\n  o                열기 / 닫기\n  + -              키우기 / 줄이기\n  { }              앞으로 / 뒤로 옮기기\n  , .              폴더의 페이지 넘기기\n  m                폴더로 옮기기\n  N                한 줄 메모\n  a                모양 골라 추가\n  e                여기서 편집 (vi 방식)\n  E                $EDITOR로 편집\n  p                고정\n  c                색 바꾸기\n  R                이름 바꾸기\n  x                archive로 보관\n  D                삭제 (.trash로)\n  u                x나 D 되돌리기\n  r                다시 읽기\n  T                다음 테마\n  j k g G          노트 안 스크롤\n  pgdn pgup        한 페이지 아래 / 위\n  [ ]              이전 / 다음 화면\n  1-9 ( )          탭 바꾸기\n  ?                이 도움말\n  q                종료\n\n크게 본 노트\n  esc              뒤로\n  j k g G          스크롤\n\n열린 칸반\n  h l              칸 바꾸기\n  j k              카드 바꾸기\n  H L              카드를 옆 칸으로\n  J K              카드 순서 바꾸기\n  n                새 카드\n\n열린 체크리스트\n  j k              항목 바꾸기\n  space            체크\n  n                새 항목\n\n열린 폼\n  j k              항목 바꾸기\n  enter space      고르기, 입력, 누르기\n\n노트 편집\n  i a o            글자 입력\n  esc              명령으로 돌아가기\n  h j k l w b      이동\n  x dd D u         지우기, 되돌리기\n  /글자  n         검색\n  ctrl+f ctrl+b    다음 / 이전 페이지\n  :w  :q  :wq      저장, 종료, 둘 다\n\n마우스\n  제목 클릭        열기, 포커스, 닫기\n  노트 클릭        포커스; 체크, 고르기\n  더블 클릭        크게 보기\n  휠               그 노트 스크롤"

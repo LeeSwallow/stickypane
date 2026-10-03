@@ -365,7 +365,7 @@ func TestSizeKeysDoNothingWhereTheyCannotShow(t *testing.T) {
 		t.Errorf("resizing a closed note shows nothing, so it should write nothing: %q", got)
 	}
 	press(m, "tab", "+")
-	if got := readFile(t, dir, "b.md"); got != boardFile {
+	if got := plain(readFile(t, dir, "b.md")); got != boardFile {
 		t.Errorf("a board is already a page: + should write nothing, got %q", got)
 	}
 }
@@ -434,7 +434,7 @@ func TestKeysReachTheFocusedOpenNote(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "L")
 	want := "---\ntype: board\ntitle: Auth\nopen: true\n---\n## To do\n## Doing\n- login API\n- payments\n## Done\n- schema\n"
-	if got := readFile(t, dir, "b.md"); got != want {
+	if got := plain(readFile(t, dir, "b.md")); got != want {
 		t.Errorf("file = %q\nwant  %q", got, want)
 	}
 	if s := screen(m); !strings.Contains(s, "› payments") || m.mode != modeBoard {
@@ -457,7 +457,7 @@ func TestClosedNotesDoNotTakeWidgetKeys(t *testing.T) {
 	closed := strings.Replace(boardFile, "open: true\n", "", 1)
 	m, dir := newModel(t, map[string]string{"b.md": closed})
 	press(m, "L", "J", "space")
-	if got := readFile(t, dir, "b.md"); got != closed {
+	if got := plain(readFile(t, dir, "b.md")); got != closed {
 		t.Errorf("a closed note must not be edited by widget keys, file = %q", got)
 	}
 }

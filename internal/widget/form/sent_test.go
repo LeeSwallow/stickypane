@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/widget"
+
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -14,7 +16,7 @@ import (
 // A form sent on another day says the day, not only a time of day.
 func TestASentFormSaysWhen(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	for at, want := range map[string]string{
 		time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local).Format(time.RFC3339): "sent 14:02",
 		time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local).Format(time.RFC3339):  "sent Sep 30",
@@ -31,7 +33,7 @@ func TestASentFormSaysWhen(t *testing.T) {
 // prints them, under a rule with the button and when.
 func TestASentFormShowsItsAnswers(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	src := "---\ntype: form\nsubmitted: Deploy\nsubmitted_at: " + time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local).Format(time.RFC3339) +
 		"\n---\n## Target\n- ( ) staging\n- (x) production\n\n## Also\n- [x] run migrations\n- [ ] clear the cache\n\n## Note\n> after lunch\n\n[ Deploy ] [ Cancel ]\n"
 	out, _ := parse(doc.Parse([]byte(src)), note.Plain).Draw(50, false)

@@ -175,7 +175,7 @@ func TestSmallEditsFromTheCommandLine(t *testing.T) {
 			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
 		}
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "work.md")); !strings.HasSuffix(plain(string(b)), "## Doing\n\n## Done\n- schema\n- login API\n") {
 		t.Errorf("work.md = %q", b)
 	}
 	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests ✅ ") {

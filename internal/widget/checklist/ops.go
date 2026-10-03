@@ -134,7 +134,7 @@ func (o StampDone) Apply(d doc.Document) (doc.Document, error) {
 
 // tend is the checklist's Kind.Tend: a ticked item without a time gets the
 // time the file changed.
-func tend(d doc.Document, changed time.Time) doc.Op {
+func tend(_, d doc.Document, changed time.Time) doc.Op {
 	for _, line := range doc.Lines(d.Body) {
 		if m := itemRe.FindStringSubmatch(strings.TrimSuffix(line, "\r")); m != nil && m[2] != " " && !hasStamp(m[4]) {
 			return StampDone{At: Stamp(changed)}

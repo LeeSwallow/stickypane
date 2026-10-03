@@ -104,3 +104,30 @@ func TestAddingAScriptMakesAShellFile(t *testing.T) {
 		t.Errorf("the new script should be open:\n%s", s)
 	}
 }
+
+// A script runs again with the mouse alone: a double click on its pane
+// asks, and a click on the question's Yes runs it. Nothing runs without
+// that yes; No, or a click elsewhere, leaves it.
+func TestAScriptRunsAgainWithTheMouseAlone(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"deploy.sh": "echo hello\n"})
+	writeView(t, dir, `{"notes":{"deploy.sh":{"open":true}}}`)
+	m.Update(changedMsg{})
+	x, y := find(t, m, "echo hello")
+	click(m, x, y)
+	click(m, x, y)
+	if s := screen(m); m.mode != modeConfirm || !strings.Contains(s, "Run deploy.sh") || !strings.Contains(s, "[ Yes ]") {
+		t.Fatalf("a double click on a script asks to run it:\n%s", s)
+	}
+	nx, ny := find(t, m, "[ No ]")
+	click(m, nx+2, ny)
+	if m.mode == modeConfirm || fileExists(dir, "deploy.log") {
+		t.Fatal("No runs nothing")
+	}
+	click(m, x, y)
+	click(m, x, y)
+	yx, yy := find(t, m, "[ Yes ]")
+	click(m, yx+2, yy)
+	if m.pending == nil && !m.running["deploy.sh"] {
+		t.Errorf("Yes runs the script")
+	}
+}

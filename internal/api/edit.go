@@ -39,11 +39,11 @@ func (s shaped) Apply(d doc.Document) (doc.Document, error) {
 	if have := s.api.reg.For(s.file, d).Name; !slices.Contains(s.kinds, have) {
 		return d, fmt.Errorf("%s is a %s, not a %s", s.file, have, s.kinds[0])
 	}
-	d, err := s.op.Apply(d)
+	after, err := s.op.Apply(d)
 	if err != nil {
 		return d, err
 	}
-	return s.api.tend(s.file, d), nil
+	return s.api.tend(s.file, d, after), nil
 }
 
 // change applies op to the note. A note that does not exist yet is made as
@@ -67,7 +67,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		if d, err = op.Apply(d); err != nil {
 			return file, d, err
 		}
-		d = a.tend(file, d)
+		d = a.tend(file, doc.Document{}, d)
 		return file, d, a.st.Write(file, d.Bytes())
 	}
 	if err := a.st.Apply(file, shaped{a, file, kinds, op}); err != nil {

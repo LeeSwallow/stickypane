@@ -84,6 +84,8 @@ type Strings struct {
 	CannotWriteLog      string `json:"cannotWriteLog"`
 	CouldNotRun         string `json:"couldNotRun"`
 	RunEnded            string `json:"runEnded"`
+	ConfirmSend         string `json:"confirmSend"`
+	Sending             string `json:"sending"`
 	WatchUnavailable    string `json:"watchUnavailable"`
 
 	// The help screen, one key per line, under 40 cells wide.
@@ -135,6 +137,8 @@ func English() Strings {
 		CannotWriteLog:      "Cannot write {{.Log}}: {{.Err}}",
 		CouldNotRun:         "{{.Name}} could not be run: {{.Err}}",
 		RunEnded:            "{{.Name}} ended: exit {{.Code}} after {{.Took}}. Its output is in {{.Log}}.",
+		ConfirmSend:         "Send {{.Request}}?{{if .Hooks}} It runs {{.Hooks}}.{{end}} (y/n)",
+		Sending:             "Sending {{.Name}}…",
 		WatchUnavailable:    "File watching is unavailable. Press r to refresh.",
 
 		Help: `Notes

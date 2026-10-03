@@ -108,12 +108,21 @@ board, and works outside a git repository too; it is safe to run again.
 `--no-agent-docs` makes the folder only.
 
 **As a plugin.** The repository is also a Claude Code and Codex plugin, so
-the agent learns the board without a guide in your files:
+the agent learns the board without a guide in your files. One command
+installs it for every agent it finds, through the agents' own commands:
 
 ```sh
-claude plugin marketplace add LeeSwallow/stickypane
-claude plugin install board@stickypane
+stickypane setup                       # asks, then installs for Claude Code and Codex
+stickypane setup --scope project --mcp --yes
+stickypane setup --undo                # takes it out again
 ```
+
+`--scope` is where Claude Code installs it: `user` (every project, the
+default), `project` (this repository, shared with the team) or `local`
+(this repository, just you). `--mcp` also registers `stickypane mcp` as an
+MCP server, `--agents claude,codex` limits it to some agents, and
+`--dry-run` prints the commands without running them. In a terminal it
+asks for what the flags did not say.
 
 It brings three skills (`using-the-board`, `asking-the-user`,
 `tracking-progress`), the commands `/board:show`, `/board:status`,
@@ -420,6 +429,32 @@ at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
+## Notes that react
+
+Everything that happens on the board is an event: a note made or removed,
+an item ticked, a card moved, a form sent, a line logged, a chart value
+changed. `stickypane watch` prints them as they happen, one a line, and
+runs a command for each with `--exec`, so one note can answer another and
+anything outside can listen:
+
+```sh
+stickypane watch                                   # 14:02:05  plan.md  item.ticked  write tests
+stickypane watch --json | jq .                     # for programs
+stickypane watch --note plan --type item.ticked \
+  --exec 'stickypane chart progress add done 1'    # a chart that counts the ticks
+stickypane watch --type card.moved \
+  --exec '[ "$STICKY_TO" = Done ] && printf "\a"'  # a bell when a card is done
+stickypane watch --once --note deploy --type form.submitted   # wait for the user
+```
+
+`--note` and `--type` filter (`--type card` takes every card event), and
+`--once` ends at the first event, which is how an agent waits for the user
+to do something. The command given to `--exec` runs in your own shell with
+the event in `STICKY_EVENT` (JSON) and in `STICKY_NOTE`, `STICKY_KIND`,
+`STICKY_TYPE`, `STICKY_ITEM`, `STICKY_FROM`, `STICKY_TO` and `STICKY_TIME`.
+Nothing reacts unless you start a watch: the board itself never runs
+anything without asking. Over MCP the same events come from `wait_event`.
+
 ## Languages
 
 The screen speaks English and Korean: `stickypane language ko`, or leave it
@@ -513,7 +548,8 @@ there.
 | click a title in the bar   | a closed note opens, an open one takes the focus, the focused one closes |
 | click a note               | it takes the focus                              |
 | click an item, option, button or card | it is ticked, chosen, pressed or selected |
-| double-click a note        | zoom                                            |
+| double-click a note        | zoom; on a script, run it after a yes           |
+| click Yes or No on a question | answer it; a click anywhere else is no       |
 | wheel                      | scroll the note under the pointer               |
 
 In tmux the mouse reaches stickypane only with `set -g mouse on`.

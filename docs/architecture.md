@@ -18,7 +18,7 @@ layer, fails the build.
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
-| 5 | `internal/i18n` | the screen's words, in the language the locale asks for |
+| 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 
 The packages stay side by side under `internal/` rather than in folders by
@@ -65,6 +65,15 @@ write this way, so an agent and the user editing the same note do not
 overwrite each other. Settings are written the same way, through one read,
 change and replace step.
 
+**Events.** Each kind may say what happened in a note between two
+versions (`Kind.Events`: item.ticked, card.moved, form.submitted...).
+`api.Changes` compares two readings of the board and adds note.created,
+note.removed and note.changed; `api.Watch` follows the folder and hands
+the events to `stickypane watch` and the MCP tool `wait_event`. Kinds may
+also fill in what is missing by themselves (`Kind.Tend`: the time an item
+was ticked or a card moved), and say when they next change as time passes
+(`widget.Timed`), so the screen wakes then instead of ticking.
+
 **Arranging.** Whether a note is open, its size, height, pin, color and
 title come from three places, in order: the user's choice in `sticky.json`,
 the note's front matter, the note's kind. `internal/arrange` is the only
@@ -82,6 +91,7 @@ reader and a writer is laid out the same way:
 | `model.go` | the reader: what the file says, with no screen state in it |
 | `ops.go` | the writer: the `doc.Op` intents the screen and the command line apply |
 | `view.go` | the screen: drawing, keys, clicks, the cursor |
+| `events.go` | what happened between two versions of the file, for `stickypane watch` |
 
 Small shapes (`note`, `logview`, `script`) stay in one file.
 

@@ -14,6 +14,7 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -194,6 +195,15 @@ var tools = []tool{
 		}),
 	},
 	{
+		Name:        "wait_event",
+		Description: "Wait for something to happen on the board and return it as JSON: a note made or removed, an item ticked, a card moved, a form sent, a line logged, a chart value changed. Use it to react to what the user does without being told.",
+		InputSchema: object(nil, map[string]any{
+			"notes":        str(`Only these notes or folders, comma-separated, such as "plan,deploy". Omit for all.`),
+			"types":        str(`Only these events or their kinds, comma-separated, such as "item.ticked" or "card". Omit for all.`),
+			"wait_seconds": map[string]any{"type": "number", "description": "How long to wait, at most 600. Default 60."},
+		}),
+	},
+	{
 		Name:        "guide",
 		Description: "How to write notes for the board: the note shapes and their file formats.",
 		InputSchema: object(nil, map[string]any{}),
@@ -306,7 +316,7 @@ func mayWait(req request) bool {
 		Name string `json:"name"`
 	}
 	_ = json.Unmarshal(req.Params, &p)
-	return p.Name == "read_answers"
+	return p.Name == "read_answers" || p.Name == "wait_event"
 }
 
 // handle answers one message. Notifications, which carry no id, get no answer.
@@ -371,6 +381,8 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			Value   any            `json:"value"`
 			Line    string         `json:"line"`
 			Keys    map[string]any `json:"keys"`
+			Notes   string         `json:"notes"`
+			Types   string         `json:"types"`
 		} `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -433,6 +445,28 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			aerr = nil // the answers so far are the result
 		}
 		text, err = got.String(), aerr
+	case "wait_event":
+		wait := a.Wait
+		if wait <= 0 {
+			wait = 60
+		}
+		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(wait, maxWait)*float64(time.Second)))
+		f := api.Filter{Notes: split(a.Notes), Types: split(a.Types)}
+		var got *api.Event
+		werr := s.API.Watch(wctx, f, func(e api.Event) error {
+			got = &e
+			return errFound
+		}, nil)
+		cancel()
+		switch {
+		case got != nil:
+			b, _ := json.Marshal(got)
+			text = string(b)
+		case errors.Is(werr, context.DeadlineExceeded) || errors.Is(werr, context.Canceled):
+			text = "nothing happened"
+		default:
+			err = werr
+		}
 	case "guide":
 		text = s.Guide
 	default:
@@ -442,4 +476,18 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}, nil
 	}
 	return &toolResult{Content: []content{{Type: "text", Text: text}}}, nil
+}
+
+// errFound ends a wait_event that has its event.
+var errFound = errors.New("found")
+
+// split reads a comma-separated argument.
+func split(s string) []string {
+	var out []string
+	for _, v := range strings.Split(s, ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }

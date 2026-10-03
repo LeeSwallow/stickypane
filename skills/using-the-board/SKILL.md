@@ -35,7 +35,11 @@ nothing else has, or its position (`#2`). When a name fits nothing or more
 than one thing, the error lists what there is: pick from it instead of
 reading the file.
 
-## 3. A shape of its own: write a file
+## 3. The user did something: wait for it
+
+`stickypane watch --once --note plan --type item.ticked` waits for the tick (MCP: `wait_event`).
+
+## 4. A shape of its own: write a file
 
 Write the Markdown file into `.sticky/` with `open: true` in its front
 matter, or write it and run `stickypane show <name>`.
@@ -53,7 +57,7 @@ matter, or write it and run `stickypane show <name>`.
 What each shape is for and how it behaves: `references/kinds.md`. A full
 example of one: `stickypane kinds <shape>`.
 
-## 4. Reading the board
+## 5. Reading the board
 
 `stickypane list` says what exists and what is open; that is the answer to
 "what is on the board". `stickypane cat <name>` prints one note;

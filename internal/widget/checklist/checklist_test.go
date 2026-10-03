@@ -173,7 +173,7 @@ func TestAddItem(t *testing.T) {
 
 func TestSpaceTogglesItemUnderCursor(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	w := parseBody(body)
 	w, res := w.Update("space") // the open item is first on the screen
 	if want := (Toggle{Text: "Write tests", Checked: true, At: "2026-10-03 14:02"}); res.Op != want {
@@ -186,7 +186,7 @@ func TestSpaceTogglesItemUnderCursor(t *testing.T) {
 
 func TestSpaceCarriesTheDuplicateIndex(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	w := parseBody(sameItems)
 	w, _ = w.Update("j")
 	_, res := w.Update("space")

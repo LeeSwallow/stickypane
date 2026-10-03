@@ -20,7 +20,7 @@ var sizes = []string{widget.SizeCard, widget.SizeHalf, widget.SizePage}
 
 func init() {
 	handlers[modeConfirm] = confirmUpdate
-	footers[modeConfirm] = func(m *Model) string { return widget.Warn.Bold(true).Render(m.confirmMsg) }
+	footers[modeConfirm] = confirmFooter
 
 	grow := onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })
 	boardKeys["+"] = grow
@@ -163,4 +163,17 @@ func confirmUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func editorCommand(path string) *exec.Cmd {
 	parts := env.Detect().Editor()
 	return exec.Command(parts[0], append(parts[1:], path)...)
+}
+
+// confirmFooter is the question with its answers as buttons, so that a
+// question can be answered with the mouse as well as with y and n. It
+// keeps where the buttons are for click.
+func confirmFooter(m *Model) string {
+	q := widget.Warn.Bold(true).Render(m.confirmMsg) + "  "
+	yes, no := "[ "+widget.T("Yes")+" ]", "[ "+widget.T("No")+" ]"
+	x := widget.Width(q)
+	m.confirmYes = [2]int{x, x + widget.Width(yes)}
+	x += widget.Width(yes) + 1
+	m.confirmNo = [2]int{x, x + widget.Width(no)}
+	return q + widget.Accent.Bold(true).Render(yes) + " " + widget.Faint.Render(no)
 }

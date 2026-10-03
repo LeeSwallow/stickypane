@@ -4,7 +4,13 @@ package board
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strings"
+	"time"
+
+	"charm.land/lipgloss/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/when"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -145,54 +151,149 @@ func (b *Board) Click(line, col int) (widget.Widget, widget.Result, bool) {
 	return b, widget.Result{}, false
 }
 
-// column draws one column at width: its heading, then every card with a
-// blank line between cards. It returns the lines of the selected card and
-// its details. When the selected column is empty that is its heading, so
-// the screen still shows where a new card would go. A column that does not
-// hold the selection, or a board that is not active, returns NoSpan. cards
-// holds the lines of every card, details included.
+// boxWidth is the narrowest column whose cards are drawn as boxes; a
+// narrower one draws them as lines with a bar.
+const boxWidth = 12
+
+// mark is the sign before a column's title: how far along its cards are,
+// read from where the column stands, first to last.
+func mark(i, n int) string {
+	switch {
+	case n > 1 && i == n-1:
+		return widget.Good.Render("●")
+	case i == 0:
+		return widget.Faint.Render("○")
+	}
+	return widget.Info.Render("◐")
+}
+
+// column draws one column at width: its heading, then every card. Cards
+// are boxes when there is room, lines with a bar when not; the selected
+// card stands out and shows its details. The last column, where work ends,
+// steps back. It returns the lines of the selected card and its details.
+// When the selected column is empty that is its heading, so the screen
+// still shows where a new card would go. A column that does not hold the
+// selection, or a board that is not active, returns NoSpan. cards holds
+// the lines of every card, details included.
 func (b *Board) column(i, width int, active bool) (lines []string, at widget.Span, cards []widget.Span) {
 	c := b.cols[i]
 	at = widget.NoSpan
 	if active && i == b.col && len(c.cards) == 0 {
 		at = widget.Span{Start: 0, End: 2}
 	}
-	head := widget.Truncate(fmt.Sprintf("%s (%d)", widget.Clean(c.title), len(c.cards)), width)
-	if active && i == b.col {
-		lines = append(lines, widget.Bold.Underline(true).Render(head))
+	here := active && i == b.col
+	count := widget.Faint.Render(fmt.Sprintf("(%d)", len(c.cards)))
+	title := widget.Truncate(widget.Clean(c.title), max(width-3-widget.Width(count), 1))
+	if here {
+		title = widget.Bold.Underline(true).Render(title)
 	} else {
-		lines = append(lines, widget.Bold.Render(head))
+		title = widget.Bold.Render(title)
 	}
-	lines = append(lines, widget.Faint.Render(strings.Repeat("─", max(width, 1))))
+	lines = append(lines, mark(i, len(b.cols))+" "+title+" "+count)
+	rule := widget.Faint
+	if here {
+		rule = widget.Accent
+	}
+	lines = append(lines, rule.Render(strings.Repeat("─", max(width, 1))))
+	if len(c.cards) == 0 {
+		lines = append(lines, widget.Faint.Render(widget.Truncate(widget.T("empty"), width)))
+	}
+	last := len(b.cols) > 1 && i == len(b.cols)-1
 	for r, cd := range c.cards {
-		if r > 0 {
-			lines = append(lines, "")
-		}
-		selected := active && i == b.col && r == b.row
+		selected := here && r == b.row
 		from := len(lines)
-		for j, l := range wrapped(cd.text, width-2, nil) {
-			switch {
-			case selected && j == 0:
-				at.Start = len(lines)
-				lines = append(lines, widget.Selected.Render("› "+l))
-			case selected:
-				lines = append(lines, widget.Selected.Render("  "+l))
-			default:
-				// The bar down the left edge is what makes it read as a card.
-				lines = append(lines, widget.Faint.Render("▎")+" "+l)
+		if width >= boxWidth {
+			lines = append(lines, b.box(cd, width, selected, last)...)
+		} else {
+			if r > 0 {
+				lines = append(lines, "")
+				from++
 			}
+			lines = append(lines, b.bar(cd, width, selected, last)...)
 		}
 		if selected {
-			for _, d := range cd.detail {
-				for _, l := range wrapped(d, width-4, widget.Faint.Render) {
-					lines = append(lines, "    "+l)
-				}
-			}
-			at.End = len(lines)
+			at = widget.Span{Start: from, End: len(lines)}
 		}
 		cards = append(cards, widget.Span{Start: from, End: len(lines)})
 	}
 	return lines, at, cards
+}
+
+// box draws a card as a rounded box: its text, and its details when it is
+// selected. The selected card's border takes the accent; a card in the
+// last column is drawn faint.
+func (b *Board) box(cd card, width int, selected, last bool) []string {
+	inner := width - 4
+	edge, text := widget.Faint, func(s string) string { return s }
+	if last {
+		text = func(s string) string { return widget.Faint.Render(s) }
+	}
+	if selected {
+		edge, text = widget.Accent, func(s string) string { return widget.Bold.Render(s) }
+	}
+	row := func(s string) string {
+		return edge.Render("│") + " " + s + strings.Repeat(" ", max(inner-widget.Width(s), 0)) + " " + edge.Render("│")
+	}
+	out := []string{edge.Render("╭" + strings.Repeat("─", inner+2) + "╮")}
+	if !selected {
+		meta := b.meta(cd, last, inner)
+		for _, l := range wrapped(cd.text, inner, nil) {
+			out = append(out, row(text(l)))
+		}
+		if meta != "" {
+			out = append(out, row(meta))
+		}
+		return append(out, edge.Render("╰"+strings.Repeat("─", inner+2)+"╯"))
+	}
+	// The selected card says so in its text too, not by color alone, and
+	// shows its details under its text.
+	for j, l := range wrapped(cd.text, inner-2, nil) {
+		lead := "  "
+		if j == 0 {
+			lead = "› "
+		}
+		out = append(out, row(lead+text(l)))
+	}
+	if meta := b.meta(cd, last, inner-2); meta != "" {
+		out = append(out, row("  "+meta))
+	}
+	for _, d := range cd.detail {
+		for _, l := range wrapped(d, inner-2, widget.Faint.Render) {
+			out = append(out, row("  "+l))
+		}
+	}
+	return append(out, edge.Render("╰"+strings.Repeat("─", inner+2)+"╯"))
+}
+
+// bar draws a card in a narrow column: a line with a bar down its left
+// edge, or the cursor and its details when it is selected.
+func (b *Board) bar(cd card, width int, selected bool, last bool) []string {
+	var out []string
+	for j, l := range wrapped(cd.text, width-2, nil) {
+		switch {
+		case selected && j == 0:
+			out = append(out, widget.Selected.Render("› "+l))
+		case selected:
+			out = append(out, widget.Selected.Render("  "+l))
+		default:
+			out = append(out, widget.Faint.Render("▎")+" "+l)
+		}
+	}
+	if meta := b.meta(cd, last, max(width-2, 1)); meta != "" {
+		lead := widget.Faint.Render("▎") + " "
+		if selected {
+			lead = "  "
+		}
+		out = append(out, lead+meta)
+	}
+	if selected {
+		for _, d := range cd.detail {
+			for _, l := range wrapped(d, width-4, widget.Faint.Render) {
+				out = append(out, "    "+l)
+			}
+		}
+	}
+	return out
 }
 
 // joinColumns lays cells out side by side, each column cw cells wide.
@@ -267,4 +368,76 @@ func (b *Board) Sync(d doc.Document) widget.Widget {
 	nb.col, nb.row = b.col, b.row
 	nb.clamp()
 	return nb
+}
+
+// now is the clock that says how long a card has not moved, replaced in
+// tests.
+var now = func() time.Time { return widget.Now() }
+
+// staleAfter is how long a card may stay where it is, outside the last
+// column, before the board flags it.
+const staleAfter = 30 * time.Minute
+
+// stalled reports whether a card has not moved for staleAfter.
+func stalled(cd card, last bool, t time.Time) bool {
+	return !last && !cd.moved.IsZero() && t.Sub(cd.moved) >= staleAfter
+}
+
+// meta is the line under a card: who has it, each name in a color of its
+// own, when it moved, and ⚠ when it stalled. Empty when the card says
+// neither.
+//
+// The line fits width: when it is too long the names are cut, never the
+// time or the flag, which say whether to look.
+func (b *Board) meta(cd card, last bool, width int) string {
+	t := now()
+	tail := ""
+	if s := when.Short(cd.moved, t); s != "" {
+		tail = widget.Faint.Render(s)
+	}
+	if stalled(cd, last, t) {
+		tail += " " + widget.Warn.Render("⚠")
+	}
+	var names []string
+	for _, w := range cd.who {
+		names = append(names, whoStyle(w).Render("@"+widget.Clean(w)))
+	}
+	head := strings.Join(names, " ")
+	switch {
+	case head == "":
+		return widget.Truncate(tail, width)
+	case tail == "":
+		return widget.Truncate(head, width)
+	}
+	sep := widget.Faint.Render(" · ")
+	room := width - widget.Width(tail) - widget.Width(sep)
+	if room < 4 {
+		return widget.Truncate(tail, width)
+	}
+	return widget.Truncate(head, room) + sep + tail
+}
+
+// whoStyle gives a name its color, the same each time it appears.
+func whoStyle(name string) lipgloss.Style {
+	styles := []lipgloss.Style{widget.Info, widget.Good, widget.Accent, widget.Warn}
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return styles[h.Sum32()%uint32(len(styles))]
+}
+
+// NextChange implements widget.Timed: when the next card stalls.
+func (b *Board) NextChange(t time.Time) time.Time {
+	var next time.Time
+	for i, c := range b.cols {
+		last := len(b.cols) > 1 && i == len(b.cols)-1
+		for _, cd := range c.cards {
+			if last || cd.moved.IsZero() {
+				continue
+			}
+			if at := cd.moved.Add(staleAfter); at.After(t) && (next.IsZero() || at.Before(next)) {
+				next = at
+			}
+		}
+	}
+	return next
 }

@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -10,6 +11,8 @@ import (
 
 type card struct {
 	text   string
+	who    []string  // who has it: the @names on its line
+	moved  time.Time // when it last moved, as its line says
 	detail []string
 }
 
@@ -44,7 +47,8 @@ func read(d doc.Document) content {
 	for _, s := range spans {
 		c := column{title: s.title}
 		for _, cs := range s.cards {
-			cd := card{text: cs.text}
+			text, who, moved := splitCard(lineText(lines[cs.start]))
+			cd := card{text: text, who: who, moved: moved}
 			for _, l := range lines[cs.start+1 : cs.end] {
 				if !isBlank(l) {
 					// A detail is often a nested list item; its marker is noise here.

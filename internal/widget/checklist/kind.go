@@ -19,5 +19,6 @@ var Kind = widget.Kind{
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
+	Events:   events,
 	Tend:     tend,
 }

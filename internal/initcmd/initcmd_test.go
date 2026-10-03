@@ -158,21 +158,6 @@ func TestSkillInstallsASkillInsteadOfTheGuide(t *testing.T) {
 	}
 }
 
-func TestRunKeepsAnOlderNotesFolder(t *testing.T) {
-	root := t.TempDir()
-	old := filepath.Join(root, ".stickypane")
-	if err := os.MkdirAll(old, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	out := run(t, root, Options{NoAgentDocs: true})
-	if _, err := os.Stat(filepath.Join(root, ".sticky")); !errors.Is(err, os.ErrNotExist) {
-		t.Error("a project that has .stickypane/ must not get a second, empty notes folder")
-	}
-	if !strings.Contains(out, ".stickypane/ already exists") {
-		t.Errorf("the output should name the folder that is used: %q", out)
-	}
-}
-
 func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
 	root := t.TempDir()
 	run(t, root, Options{NoAgentDocs: true})

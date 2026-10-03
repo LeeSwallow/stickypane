@@ -16,18 +16,31 @@ const body = "## To do\n- payments\n## Doing\n- login API\n  - refresh token lat
 
 func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s))) }
 
-// draw returns the board without colors, plus the cursor line.
+// draw returns the board without colors, plus the cursor line: the line
+// of the selection that shows the "›", or the start of the selection.
 func draw(w widget.Widget, width int, active bool) ([]string, int) {
 	out, at := w.Draw(width, active)
-	return strings.Split(ansi.Strip(out), "\n"), at.Start
+	lines := strings.Split(ansi.Strip(out), "\n")
+	return lines, cursorLine(lines, at)
+}
+
+func cursorLine(lines []string, at widget.Span) int {
+	for i := max(at.Start, 0); at.Ok() && i < at.End && i < len(lines); i++ {
+		if strings.Contains(lines[i], "›") {
+			return i
+		}
+	}
+	return at.Start
 }
 
 func TestDrawShowsColumnsSideBySide(t *testing.T) {
 	lines, _ := draw(parseSrc(src), 60, false)
 	want := []string{
-		"To do (1)           Doing (1)           Done (1)",
+		"○ To do (1)         ◐ Doing (1)         ● Done (1)",
 		"──────────────────  ──────────────────  ──────────────────",
-		"▎ payments          ▎ login API         ▎ schema",
+		"╭────────────────╮  ╭────────────────╮  ╭────────────────╮",
+		"│ payments       │  │ login API      │  │ schema         │",
+		"╰────────────────╯  ╰────────────────╯  ╰────────────────╯",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
 		t.Errorf("Draw:\n%s\nwant:\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -43,7 +56,7 @@ func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
 		t.Errorf("an open board must not fold or cut cards:\n%s", text)
 	}
 	for _, card := range []string{"1", "6", "x"} {
-		if !strings.Contains(text, "▎ "+card) {
+		if !strings.Contains(text, "│ "+card+" ") {
 			t.Errorf("card %q is missing:\n%s", card, text)
 		}
 	}
@@ -60,9 +73,10 @@ func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
 	}
 }
 
-func TestDrawPutsABlankLineBetweenCards(t *testing.T) {
+func TestCardsAreBoxes(t *testing.T) {
 	lines, _ := draw(parseSrc("## A\n- one\n- two\n"), 40, false)
-	if want := []string{"A (2)", strings.Repeat("─", 38), "▎ one", "", "▎ two"}; strings.Join(lines, "|") != strings.Join(want, "|") {
+	top, bottom := "╭"+strings.Repeat("─", 36)+"╮", "╰"+strings.Repeat("─", 36)+"╯"
+	if want := []string{"○ A (2)", strings.Repeat("─", 38), top, "│ one" + strings.Repeat(" ", 31) + " │", bottom, top, "│ two" + strings.Repeat(" ", 31) + " │", bottom}; strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("Draw = %q, want %q", lines, want)
 	}
 }
@@ -70,7 +84,16 @@ func TestDrawPutsABlankLineBetweenCards(t *testing.T) {
 func TestDrawStacksColumnsWhenNarrow(t *testing.T) {
 	lines, _ := draw(parseSrc(src), 30, false)
 	rule := strings.Repeat("─", 29)
-	want := []string{"To do (1)", rule, "▎ payments", "", "Doing (1)", rule, "▎ login API", "", "Done (1)", rule, "▎ schema"}
+	box := func(s string) []string {
+		return []string{"╭" + strings.Repeat("─", 27) + "╮", "│ " + s + strings.Repeat(" ", 25-len(s)) + " │", "╰" + strings.Repeat("─", 27) + "╯"}
+	}
+	var want []string
+	for i, c := range [][2]string{{"○ To do (1)", "payments"}, {"◐ Doing (1)", "login API"}, {"● Done (1)", "schema"}} {
+		if i > 0 {
+			want = append(want, "")
+		}
+		want = append(append(want, c[0], rule), box(c[1])...)
+	}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
 		t.Errorf("Draw = %q\nwant  %q", lines, want)
 	}
@@ -109,7 +132,7 @@ func TestDetailShowsUnderTheSelectedCard(t *testing.T) {
 	}
 	w, _ = w.Update("l")
 	lines, cursor := draw(w, 60, true)
-	if !strings.Contains(lines[cursor], "› login API") || !strings.HasPrefix(strings.TrimLeft(lines[cursor+1][20:], " "), "refresh token") {
+	if !strings.Contains(lines[cursor], "› login API") || !strings.Contains(lines[cursor+1], "│   refresh") {
 		t.Errorf("the detail should sit right under the selected card:\n%s", strings.Join(lines, "\n"))
 	}
 }
@@ -119,7 +142,7 @@ func TestSpanCoversTheSelectedCardAndItsDetails(t *testing.T) {
 	for _, width := range []int{30, 12} { // side by side, then stacked
 		out, at := w.Draw(width, true)
 		lines := strings.Split(ansi.Strip(out), "\n")
-		if !at.Ok() || !strings.Contains(lines[at.Start], "› a long") {
+		if !at.Ok() || !strings.Contains(lines[cursorLine(lines, at)], "› a long") {
 			t.Fatalf("width %d: span %+v should start at the selected card: %q", width, at, lines)
 		}
 		block := strings.Join(strings.Fields(strings.Join(lines[at.Start:at.End], " ")), " ")

@@ -183,6 +183,10 @@ type Model struct {
 	language string // the language choice in sticky.json the screen speaks
 
 	drawn map[string]drawn // panes.go: what each note drew last, by name
+
+	wakeAt time.Time // wake.go: when the screen next redraws by itself
+
+	confirmYes, confirmNo [2]int // manage.go: the cells of a question's buttons
 }
 
 // changedMsg arrives when the watched folder changed.
@@ -199,6 +203,7 @@ type reloadMsg struct {
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
 	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, tabFocus: map[string]string{}, reveal: revealNote, theme: th, dark: true}
+	widget.Now = func() time.Time { return m.now() }
 	m.language = st.Language()
 	UseLanguage(m.language)
 	// Times are written the way the user's country does, whatever language
@@ -281,6 +286,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.dispatch(msg)
 	case scriptDoneMsg:
 		m.finished(msg)
+	case sentMsg:
+		m.sent(msg)
+	case wakeMsg:
+		// Time passed to a moment a note changes by itself: draw again.
+		m.drawn, m.wakeAt = nil, time.Time{}
 	case tea.MouseClickMsg:
 		m.click(msg.Mouse())
 	case tea.MouseWheelMsg:
@@ -293,7 +303,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd, m.pending = tea.Batch(cmd, m.pending), nil
 	}
 	m.relayout()
-	return m, cmd
+	return m, tea.Batch(cmd, m.wake())
 }
 
 func (m *Model) dispatch(msg tea.Msg) tea.Cmd {

@@ -32,6 +32,7 @@ var commands []command
 func init() {
 	commands = []command{
 		{[]string{"init"}, initCmd},
+		{[]string{"setup"}, setupCmd},
 		{[]string{"theme"}, themeCmd},
 		{[]string{"language"}, languageCmd},
 		{[]string{"kinds"}, kindsCmd},
@@ -56,6 +57,8 @@ func init() {
 		{[]string{"archive"}, manageCmd("archive")},
 		{[]string{"answers"}, answersCmd(false)},
 		{[]string{"wait"}, answersCmd(true)},
+		{[]string{"api"}, apiCmd},
+		{[]string{"watch"}, watchCmd},
 		{[]string{"mcp"}, mcpCmd},
 	}
 }

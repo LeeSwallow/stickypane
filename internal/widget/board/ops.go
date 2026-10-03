@@ -3,6 +3,7 @@ package board
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -70,6 +71,7 @@ func (o MoveCard) Apply(d doc.Document) (doc.Document, error) {
 	}
 	c := cols[from].cards[i]
 	block := append([]string(nil), lines[c.start:c.end]...)
+	block[0] = unmoved(block[0]) // the board writes when it moved
 	rest := append(append([]string(nil), lines[:c.start]...), lines[c.end:]...)
 	cols = scan(rest)
 	d.Body = doc.Join(splice(rest, insertAt(cols[findCol(cols, o.To)]), block...))
@@ -200,4 +202,59 @@ func (o Add) Apply(d doc.Document) (doc.Document, error) {
 		d.Body = doc.AppendLine(d.Body, "## "+strings.TrimSpace(col))
 	}
 	return AddCard{Col: strings.TrimSpace(col), Text: doc.OneLine(o.Card)}.Apply(d)
+}
+
+// StampMoved writes At onto the cards that moved, by name, and onto every
+// card without a time yet.
+type StampMoved struct {
+	At    time.Time
+	Moved map[string]bool
+}
+
+// Apply implements doc.Op.
+func (o StampMoved) Apply(d doc.Document) (doc.Document, error) {
+	lines := doc.Lines(d.Body)
+	for _, c := range scan(lines) {
+		for _, cs := range c.cards {
+			_, _, moved := splitCard(lineText(lines[cs.start]))
+			if moved.IsZero() || o.Moved[c.title+"\x00"+cs.text] {
+				lines[cs.start] = movedAt(lines[cs.start], o.At)
+			}
+		}
+	}
+	d.Body = doc.Join(lines)
+	return d, nil
+}
+
+// tend is the board's Kind.Tend: a card that appeared, moved to another
+// column since before, or has no time yet, gets the time the file changed.
+func tend(before, after doc.Document, changed time.Time) doc.Op {
+	was := map[string]string{} // card name -> its column before
+	for _, c := range scan(doc.Lines(before.Body)) {
+		for _, cs := range c.cards {
+			if _, ok := was[cs.text]; !ok {
+				was[cs.text] = c.title
+			}
+		}
+	}
+	lines := doc.Lines(after.Body)
+	moved := map[string]bool{}
+	need := false
+	for _, c := range scan(lines) {
+		for _, cs := range c.cards {
+			_, _, t := splitCard(lineText(lines[cs.start]))
+			col, had := was[cs.text]
+			switch {
+			case t.IsZero():
+				need = true
+			case len(was) > 0 && (!had || col != c.title):
+				moved[c.title+"\x00"+cs.text] = true
+				need = true
+			}
+		}
+	}
+	if !need {
+		return nil
+	}
+	return StampMoved{At: changed, Moved: moved}
 }

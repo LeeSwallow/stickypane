@@ -24,9 +24,6 @@ import (
 const (
 	// DirName is the notes folder inside a project.
 	DirName = ".sticky"
-	// LegacyDirName is what the folder was called before. A project that
-	// has it keeps working.
-	LegacyDirName = ".stickypane"
 	// ArchiveDir is where detached notes go, inside DirName.
 	ArchiveDir = "archive"
 	// TrashDir is where deleted notes go, inside DirName, until restored.
@@ -50,7 +47,7 @@ var (
 
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
-var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true}
+var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true, ".http": true, ".rest": true}
 
 // Linked reports whether the note is a symbolic link to a file elsewhere.
 // Such a file belongs to the project, not to the board: what the board
@@ -126,7 +123,7 @@ func Find(start string) (string, error) {
 		return "", err
 	}
 	for {
-		for _, name := range []string{DirName, LegacyDirName} {
+		for _, name := range []string{DirName} {
 			candidate := filepath.Join(dir, name)
 			if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
 				return candidate, nil
@@ -146,7 +143,7 @@ func Resolve(arg string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if base := filepath.Base(abs); base == DirName || base == LegacyDirName {
+	if filepath.Base(abs) == DirName {
 		if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
 			return abs, nil
 		}

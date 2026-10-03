@@ -8,7 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
+
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -23,7 +26,7 @@ var exitLine = regexp.MustCompile(`^\[exit (-?\d+) · (.+)\]$`)
 
 // scriptExts are the files that are scripts, whose log of the same name is
 // shown in their pane instead of as a note of its own.
-var scriptExts = []string{".sh", ".ps1"}
+var scriptExts = []string{".sh", ".ps1", ".http", ".rest"}
 
 // withLog is the widget of a script that has a log: the script, with its
 // Run button, and under it a panel with the log of its last run. Keys and
@@ -73,6 +76,11 @@ func (w *withLog) run() (output []string, ended string, failed bool) {
 		if m := exitLine.FindStringSubmatch(strings.TrimSpace(lines[n-1])); m != nil {
 			lines = lines[:n-1]
 			ended, failed = "exit "+m[1]+" · "+m[2], m[1] != "0"
+		} else if m := httpfile.EndLine.FindStringSubmatch(strings.TrimSpace(lines[n-1])); m != nil {
+			// How a request of a .http file ended: "[200 OK · 38ms · Log in · 2/2 ✔]".
+			lines = lines[:n-1]
+			ended = strings.Trim(m[0], "[]")
+			failed = m[1] == "error" || m[1] >= "400" || strings.Contains(m[2], "✘")
 		}
 	}
 	return lines, ended, failed
@@ -108,7 +116,16 @@ func (w *withLog) Draw(width int, active bool) (string, widget.Span) {
 		output = output[len(output)-logRows:]
 	}
 	for _, l := range output {
-		lines = append(lines, widget.Wrap(widget.Clean(l), max(width, 1))...)
+		style := lipgloss.NewStyle()
+		switch { // the checks of a request
+		case strings.HasPrefix(l, "✔ "):
+			style = widget.Good
+		case strings.HasPrefix(l, "✘ "):
+			style = widget.Bad
+		}
+		for _, part := range widget.Wrap(widget.Clean(l), max(width, 1)) {
+			lines = append(lines, style.Render(part))
+		}
 	}
 	return widget.Fit(strings.Join(lines, "\n"), width), at
 }

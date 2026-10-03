@@ -109,7 +109,7 @@ func TestConflictIsReportedAndNothingIsWritten(t *testing.T) {
 	agent := strings.Replace(boardFile, "## To do\n- payments\n", "## To do\n", 1) + "- payments shipped\n"
 	writeFile(t, dir, "b.md", agent) // the agent edits before the screen catches up
 	press(m, "L")
-	if got := readFile(t, dir, "b.md"); got != agent {
+	if got := plain(readFile(t, dir, "b.md")); got != agent {
 		t.Errorf("the agent's version must survive, got %q", got)
 	}
 	s := screen(m)
@@ -148,7 +148,7 @@ func TestPromptAddsACard(t *testing.T) {
 	}
 	typeText(m, "write 테스트")
 	press(m, "enter")
-	if got := readFile(t, dir, "b.md"); !strings.Contains(got, "## To do\n- payments\n- write 테스트\n## Doing") {
+	if got := plain(readFile(t, dir, "b.md")); !strings.Contains(got, "## To do\n- payments\n- write 테스트\n## Doing") {
 		t.Errorf("file = %q", got)
 	}
 	if m.mode != modeBoard {
@@ -164,7 +164,7 @@ func TestPromptCanBeCancelledOrLeftEmpty(t *testing.T) {
 	press(m, "n")
 	typeText(m, "   ")
 	press(m, "enter")
-	if got := readFile(t, dir, "b.md"); got != boardFile {
+	if got := plain(readFile(t, dir, "b.md")); got != boardFile {
 		t.Errorf("nothing should have been written, got %q", got)
 	}
 	if m.mode != modeZoom {

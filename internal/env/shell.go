@@ -69,3 +69,15 @@ func (e Env) Script(path string) (string, []string, error) {
 	}
 	return "", nil, fmt.Errorf("%s is not a script the board runs", filepath.Base(path))
 }
+
+// Command returns how this shell runs a command line the user wrote: sh -c
+// for POSIX shells, PowerShell's -Command, cmd's /C.
+func (s Shell) Command(line string) (string, []string) {
+	switch s.Kind {
+	case PowerShell:
+		return powerShellCommand(s.Name, line)
+	case Cmd:
+		return "cmd", []string{"/C", line}
+	}
+	return "sh", []string{"-c", line}
+}

@@ -25,8 +25,8 @@ full example of one.
 
 - A plain note: any Markdown. A ```mermaid block (flowchart, sequence or
   ER diagram) is drawn.
-- `type: board`, a kanban: each `## Heading` is a column, each top-level
-  `- item` under it a card, indented lines under a card its details.
+- `type: board`, a kanban: each `## Heading` a column, each `- item` a card,
+  indented lines its details. End a card you take with `@<your branch>`.
 - `type: checklist`: `- [ ]` and `- [x]` lines, with a progress bar.
 - `type: log`: one line per entry; the view follows the end.
 - `type: chart`: `label: number` lines as bars. `view: spark` draws a trend,
@@ -37,8 +37,8 @@ full example of one.
   until a button is pressed and prints the answers. To ask again, leave the
   `submitted` keys out.
 - `name.log` (or `.txt`, `.out`): a log, shown as it is and followed live.
-- `name.sh`: a script the user runs with a button, after saying yes. Its
-  output goes to `name.log`.
+- `name.sh`: a script the user runs after saying yes; output in `name.log`.
+  `name.http` (exp): HTTP requests, sent the same way. `stickypane kinds api`.
 - A folder: a tab, a screen of its own. A folder in a tab: a book, one note
   with a page per file.
 

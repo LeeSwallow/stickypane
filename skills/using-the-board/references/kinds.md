@@ -112,6 +112,48 @@ For a command the user should run, not you: `deploy.sh` in `.sticky/`, or
 PowerShell in the project folder; the output
 goes to `deploy.log`, which opens and follows. It never runs without a yes.
 
+## API requests (exp)
+
+Experimental: the format and the commands may still change. For HTTP requests to try and check: `api.http` in `.sticky/`, written as
+resterm and the VS Code REST Client write it. Use resterm's words for checks
+and captures, so the same file runs in resterm too.
+
+```http
+@base = {{host}}/v1
+
+### Log in
+# @pre ./scripts/make-user.sh
+POST {{base}}/login
+Content-Type: application/json
+
+{"user": "min"}
+# @capture file token {{response.json.token}}
+# @assert response.statusCode == 200
+# @assert response.json("user") == "min"
+
+### Me
+GET {{base}}/me
+Authorization: Bearer {{token}}
+# @assert "json" in response.header("Content-Type")
+```
+
+- Variables: `@name = value`, `{{name}}`; `env:NAME` or `{{$processEnv NAME}}`
+  reads the environment or the project's `.env`. Environments live in
+  `rest-client.env.json` (or `resterm.env.json`); `# @env prod` chooses one.
+- `# @assert`: `response.statusCode`, `response.json("a.b[0]")`,
+  `response.header("Name")`, `response.text()`, with
+  `== != < > <= >= in contains exists`; `time < 500` works on the board only.
+- `# @capture file name {{response.json.path}}` keeps a value for the
+  requests after it.
+- Read on the board only (resterm skips them): `# @pre cmd`, whose
+  `name=value` lines become variables, and `# @post cmd`, which reads the
+  response as JSON on standard input.
+- `stickypane api api "Log in"` sends one (`--all` every one, `--env prod`)
+  and prints the response, checks and captures; it is in `api.log` too, with
+  credentials hidden and a last line that says how it ended:
+  `[200 OK · 38ms · Log in · 2/2 ✔]`. On the board, `enter` sends after the
+  user's yes.
+
 ## Tab
 
 For a separate screen: a folder of `.sticky/`, such as `deploy/`. Its

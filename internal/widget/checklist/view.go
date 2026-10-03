@@ -19,7 +19,7 @@ const (
 )
 
 // now is the clock that stamps a ticked item, replaced in tests.
-var now = time.Now
+var now = func() time.Time { return widget.Now() }
 
 // Checklist is the widget for a checklist note: the list and where the
 // cursor is. The screen shows the open items first, in the order of the

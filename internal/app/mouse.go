@@ -54,7 +54,19 @@ func (m *Model) wheel(e tea.Mouse) {
 // click handles a press of the left button on the main screen or on a
 // zoomed note. Prompts, dialogs and the help screen do not take clicks.
 func (m *Model) click(e tea.Mouse) {
-	if e.Button != tea.MouseLeft || e.Y < 0 || e.Y >= m.height-1 {
+	if e.Button != tea.MouseLeft || e.Y < 0 {
+		return
+	}
+	// A question is answered with its buttons on the bottom line; a click
+	// anywhere else answers no.
+	if m.mode == modeConfirm {
+		m.mode = m.back
+		if e.Y == m.height-1 && e.X >= m.confirmYes[0] && e.X < m.confirmYes[1] {
+			m.onConfirm()
+		}
+		return
+	}
+	if e.Y >= m.height-1 {
 		return
 	}
 	switch m.mode {
@@ -140,6 +152,12 @@ func (m *Model) clickNote(name string, line, col int) {
 	now := m.now()
 	if m.mode == modeBoard && m.lastClick.name == name && now.Sub(m.lastClick.at) <= doubleClick {
 		m.lastClick = lastClick{}
+		// A double click on a script asks to run it, so a script runs
+		// again with the mouse alone; any other note zooms.
+		if m.items[i].kind.Name == "script" {
+			m.askRun(m.items[i].file().Name)
+			return
+		}
 		m.zoom(m.items[i])
 		return
 	}

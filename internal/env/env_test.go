@@ -2,6 +2,7 @@ package env
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -118,5 +119,23 @@ func TestTheEditorFallsBackPerSystem(t *testing.T) {
 	}
 	if got := detect(vars(), "darwin", func() string { return "" }).Editor(); got[0] != "vi" {
 		t.Errorf("unix = %q", got)
+	}
+}
+
+// A command line given by the user runs in their shell's own way.
+func TestACommandRunsInTheUsersShell(t *testing.T) {
+	for _, c := range []struct {
+		shell Shell
+		name  string
+		args  string
+	}{
+		{Shell{Name: "zsh", Kind: Posix}, "sh", "-c|echo hi"},
+		{Shell{Name: "pwsh", Kind: PowerShell}, "pwsh", "-NoProfile|-Command|echo hi"},
+		{Shell{Name: "cmd", Kind: Cmd}, "cmd", "/C|echo hi"},
+	} {
+		name, args := c.shell.Command("echo hi")
+		if name != c.name || strings.Join(args, "|") != c.args {
+			t.Errorf("%s: %s %q", c.shell.Name, name, args)
+		}
 	}
 }

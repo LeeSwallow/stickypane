@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"path"
+	"slices"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -45,7 +47,11 @@ func (m *Model) act(name string, res widget.Result) {
 		m.apply(name, res.Op)
 	}
 	if res.Run {
-		m.askRun(name)
+		if slices.Contains(httpExts, path.Ext(name)) {
+			m.askSend(name, res.Part)
+		} else {
+			m.askRun(name)
+		}
 	}
 	if p := res.Prompt; p != nil {
 		m.ask(p.Label, p.Initial, func(text string) {

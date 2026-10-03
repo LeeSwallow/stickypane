@@ -65,6 +65,7 @@ type Result struct {
 	Op     doc.Op  // apply to the file now
 	Prompt *Prompt // collect one line of text first
 	Run    bool    // run the note's file as a script, after asking the user
+	Part   int     // with Run, which part of the note: the request of a .http file
 }
 
 // Prompt asks the app for a line of text and turns it into an Op.
@@ -111,10 +112,27 @@ type Kind struct {
 	Template func(title string) []byte
 	Parse    func(d doc.Document) Widget
 	// Tend, when set, returns what stickypane writes into a note of this
-	// kind by itself after the note changed at the time changed, or nil
-	// when nothing is missing: the time an item was ticked by hand, say.
-	// The board and the command line call it, so an agent never has to.
-	Tend func(d doc.Document, changed time.Time) doc.Op
+	// kind by itself after the note changed from before to after at the
+	// time changed, or nil when nothing is missing: the time an item was
+	// ticked or a card moved by hand, say. before is empty when it is not
+	// known. The board and the command line call it, so an agent never
+	// has to.
+	Tend func(before, after doc.Document, changed time.Time) doc.Op
+	// Events, when set, says what happened in a note of this kind between
+	// before and after, in the kind's own words: an item ticked, a card
+	// moved. `stickypane watch` and the MCP server hand them to whatever
+	// reacts to the board.
+	Events func(before, after doc.Document) []Event
+}
+
+// Event is one thing that happened in a note: Type names it, such as
+// "item.ticked" or "card.moved"; Item is what it happened to; From and To
+// say what changed where that has two sides (a column, a value).
+type Event struct {
+	Type string `json:"type"`
+	Item string `json:"item,omitempty"`
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
 }
 
 // Handles reports whether an open note of this kind takes the key.
@@ -167,3 +185,15 @@ func (r Registry) For(name string, d doc.Document) Kind {
 	}
 	return r.Lookup(d.Type())
 }
+
+// Timed is implemented by widgets whose drawing changes as time passes, not
+// only when their file does: a card that stalls after half an hour. The
+// screen redraws at the time NextChange gives, and only then; the zero time
+// means nothing is waiting.
+type Timed interface {
+	NextChange(now time.Time) time.Time
+}
+
+// Now is the clock every widget reads. The screen sets it to its own, so
+// that what a widget draws and when the screen wakes agree.
+var Now = time.Now

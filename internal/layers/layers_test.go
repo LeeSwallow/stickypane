@@ -21,13 +21,14 @@ const module = "github.com/LeeSwallow/stickypane/"
 // decide where it belongs.
 var rank = map[string]int{
 	// Leaves: they know nothing of the board.
-	"internal/doc":    0,
-	"internal/theme":  0,
-	"internal/env":    0, // the system, shell, pane tool and locale
-	"internal/when":   0, // how times are written and read
-	"internal/i18n":   5, // reads the locale from env
-	"internal/layout": 0,
-	"internal/editor": 0,
+	"internal/doc":      0,
+	"internal/theme":    0,
+	"internal/env":      0, // the system, shell, pane tool and locale
+	"internal/when":     0, // how times are written and read
+	"internal/i18n":     5, // reads the locale from env
+	"internal/httpfile": 5, // .http files: read, send, check; writes times with when
+	"internal/layout":   0,
+	"internal/editor":   0,
 	// The notes folder.
 	"internal/store": 10,
 	// What a note is and how it is drawn: the contract, then the shapes.
@@ -39,6 +40,7 @@ var rank = map[string]int{
 	"internal/widget/form":      22,
 	"internal/widget/logview":   22,
 	"internal/widget/script":    22,
+	"internal/widget/api":       22,
 	// The registry of shapes, and how a note is arranged.
 	"internal/kinds":   30,
 	"internal/arrange": 30,

@@ -38,3 +38,9 @@ func (e Env) powerShellScript(path string) (string, []string, error) {
 	}
 	return "", nil, fmt.Errorf("running %s needs PowerShell (pwsh or powershell)", filepath.Base(path))
 }
+
+// powerShellCommand runs a command line in the PowerShell that is the
+// user's shell, without their profile.
+func powerShellCommand(name, line string) (string, []string) {
+	return name, []string{"-NoProfile", "-Command", line}
+}

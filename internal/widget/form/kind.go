@@ -23,6 +23,7 @@ func NewKind(render note.Renderer) widget.Kind {
 		Template: func(title string) []byte {
 			return widget.NewFile("form", title, "## Question\n- ( ) Yes\n- ( ) No\n\n[ "+defaultButton+" ]\n")
 		},
-		Parse: func(d doc.Document) widget.Widget { return parse(d, render) },
+		Parse:  func(d doc.Document) widget.Widget { return parse(d, render) },
+		Events: events,
 	}
 }

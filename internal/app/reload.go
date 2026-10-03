@@ -44,7 +44,7 @@ func (m *Model) reload() {
 	}
 	// What a note's kind fills in by itself, the board writes, so that an
 	// agent editing the file never has to; then it reads the board again.
-	if m.tend(board.Tabs) {
+	if m.tend(board.Tabs, m.shownDocs()) {
 		if board, err = m.store.Load(); err != nil {
 			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 			return
@@ -254,14 +254,14 @@ func (m *Model) showing(name string) int {
 // tend writes into the notes of every tab what their kinds fill in by
 // themselves (Kind.Tend), such as the time an item was ticked by hand, at
 // the time the file changed. It reports whether it wrote anything.
-func (m *Model) tend(tabs []store.Tab) bool {
+func (m *Model) tend(tabs []store.Tab, before map[string]doc.Document) bool {
 	wrote := false
 	visit := func(n store.Note) {
 		if n.Err != nil || n.Book() {
 			return
 		}
 		if k := m.reg.For(n.Name, n.Doc); k.Tend != nil {
-			if op := k.Tend(n.Doc, n.ModTime); op != nil && m.store.Apply(n.Name, op) == nil {
+			if op := k.Tend(before[n.Name], n.Doc, n.ModTime); op != nil && m.store.Apply(n.Name, op) == nil {
 				wrote = true
 			}
 		}
@@ -275,4 +275,17 @@ func (m *Model) tend(tabs []store.Tab) bool {
 		}
 	}
 	return wrote
+}
+
+// shownDocs is what each file of the screen said when it was last read, so
+// that a kind can tell what changed: a card moved to another column.
+func (m *Model) shownDocs() map[string]doc.Document {
+	docs := make(map[string]doc.Document, len(m.items))
+	for _, it := range m.items {
+		docs[it.note.Name] = it.note.Doc
+		for _, p := range it.pages {
+			docs[p.note.Name] = p.note.Doc
+		}
+	}
+	return docs
 }

@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/widget"
+
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -57,7 +59,7 @@ func TestTheTimeIsNotPartOfTheName(t *testing.T) {
 // first, with when.
 func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	src := "- [x] old ✅ 2026-09-30 10:00\n- [ ] first\n- [x] recent ✅ 2026-10-03 14:02\n- [ ] second\n- [x] undated\n"
 	c := parse(doc.Parse([]byte(src)))
 	out, _ := c.Draw(50, false)
@@ -86,7 +88,7 @@ func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
 // The cursor walks the screen's order, and ticking stamps the time.
 func TestTheCursorFollowsTheScreenAndTickingStampsNow(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = time.Now })
+	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	c := parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")))
 	_, res := c.Update("space") // the first on the screen is the open one
 	op, ok := res.Op.(Toggle)
@@ -105,7 +107,7 @@ func TestTheCursorFollowsTheScreenAndTickingStampsNow(t *testing.T) {
 func TestTendStampsItemsTickedWithoutATime(t *testing.T) {
 	changed := time.Date(2026, 10, 3, 9, 30, 0, 0, time.Local)
 	d := doc.Parse([]byte("- [x] a\n- [ ] b\n- [x] c ✅ 2026-10-01 08:00\r\n"))
-	op := Kind.Tend(d, changed)
+	op := Kind.Tend(doc.Document{}, d, changed)
 	if op == nil {
 		t.Fatal("an item ticked without a time needs one")
 	}
@@ -116,7 +118,7 @@ func TestTendStampsItemsTickedWithoutATime(t *testing.T) {
 	if got := string(out.Bytes()); got != "- [x] a ✅ 2026-10-03 09:30\n- [ ] b\n- [x] c ✅ 2026-10-01 08:00\r\n" {
 		t.Errorf("tended = %q", got)
 	}
-	if Kind.Tend(out, changed) != nil {
+	if Kind.Tend(doc.Document{}, out, changed) != nil {
 		t.Error("a list with every time written needs nothing")
 	}
 }

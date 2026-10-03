@@ -189,10 +189,13 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 			}
 		}
 	}
-	if err != nil && isMarkdown(file) {
+	var before doc.Document
+	if err == nil {
+		before = doc.Parse(old)
+	} else if isMarkdown(file) {
 		d = created(d)
 	}
-	d = a.tend(file, d)
+	d = a.tend(file, before, d)
 	return file, a.st.Write(file, d.Bytes())
 }
 
@@ -209,9 +212,9 @@ func created(d doc.Document) doc.Document {
 
 // tend writes what the note's kind fills in by itself, such as the time an
 // item was ticked, so that the agent does not have to.
-func (a *API) tend(file string, d doc.Document) doc.Document {
+func (a *API) tend(file string, before, d doc.Document) doc.Document {
 	if k := a.reg.For(file, d); k.Tend != nil {
-		if op := k.Tend(d, time.Now()); op != nil {
+		if op := k.Tend(before, d, time.Now()); op != nil {
 			if out, err := op.Apply(d); err == nil {
 				return out
 			}

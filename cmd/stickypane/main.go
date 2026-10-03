@@ -40,6 +40,10 @@ Usage:
                          nowhere when the board plugin is installed. Safe to run
                          again. --skill: a skill instead of the instruction
                          files; --no-agent-docs: the folder only
+  stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
+                         [--undo] [--dry-run] [--yes]
+                         install the board plugin for Claude Code and Codex
+                         through their own commands; asks in a terminal
   stickypane theme [name]  list the themes, or choose one ("auto" follows the
                          terminal's background)
   stickypane language [code]  list the languages of the screen, or choose one
@@ -82,6 +86,16 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane wait <name> [--timeout 5m] [--json]
                                  wait until the user presses a button of a form,
                                  then print the answers (exit code 3 on timeout)
+  stickypane api <name> [request] [--env E] [--all]
+                                 (experimental) list the requests of a .http
+                                 note, or send one (by its name, a part of it
+                                 or #2) or all, and print the response, its
+                                 checks and captures
+  stickypane watch [--note N] [--type T] [--json] [--exec CMD] [--once] [--timeout 10m]
+                                 print what happens on the board as it happens:
+                                 note.created, item.ticked, card.moved,
+                                 form.submitted, log.appended, chart.changed...;
+                                 --exec runs CMD for each, with STICKY_* set
   stickypane mcp                 serve the notes over MCP on standard input/output
 `
 

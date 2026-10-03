@@ -28,7 +28,7 @@ const (
 )
 
 // now is the clock, replaced in tests.
-var now = time.Now
+var now = func() time.Time { return widget.Now() }
 
 // Form is the widget for a form note: the content, how its prose is drawn
 // and where the cursor is.

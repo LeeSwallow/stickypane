@@ -7,6 +7,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
+	"github.com/LeeSwallow/stickypane/internal/widget/api"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
@@ -27,6 +28,7 @@ func Default(render note.Renderer) widget.Registry {
 		chart.Kind,
 		form.NewKind(render),
 		script.Kind,
+		api.Kind,
 	}
 }
 

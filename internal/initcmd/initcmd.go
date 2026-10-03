@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
@@ -90,15 +91,7 @@ func ProjectRoot(start string) string {
 // MakeBoard makes the notes folder of the project at root, with a welcome
 // note, unless it is there. It returns the folder and whether it was made.
 func MakeBoard(root string) (string, bool, error) {
-	// A project set up before the folder was renamed keeps its folder: a
-	// second, empty one would hide its notes.
-	name := store.DirName
-	if fi, err := os.Stat(filepath.Join(root, store.LegacyDirName)); err == nil && fi.IsDir() {
-		if _, err := os.Stat(filepath.Join(root, store.DirName)); errors.Is(err, fs.ErrNotExist) {
-			name = store.LegacyDirName
-		}
-	}
-	dir := filepath.Join(root, name)
+	dir := filepath.Join(root, store.DirName)
 	switch _, err := os.Stat(dir); {
 	case err == nil:
 		return dir, false, nil
@@ -112,8 +105,9 @@ func MakeBoard(root string) (string, bool, error) {
 		return "", false, err
 	}
 	// Deleted notes wait in the trash to be restored. They are the user's
-	// own undo history and do not belong in the repository.
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"), 0o644); err != nil {
+	// own undo history and do not belong in the repository; nor do the
+	// tokens a .http note captured from responses.
+	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"+httpfile.SavedFile+"\n"), 0o644); err != nil {
 		return "", false, err
 	}
 	return dir, true, nil
