@@ -17,6 +17,10 @@ changelog:
       labels:
         - docs
         - plugin
+    - title: Under the hood
+      labels:
+        - chore
+        - dependencies
     - title: Other
       labels:
         - "*"

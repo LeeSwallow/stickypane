@@ -1,0 +1,31 @@
+#!/bin/sh
+# commit-msg: take AI tools out of the commit's authors, and on an issue
+# branch refer the commit to its issue.
+#
+# A coding agent may end a commit message with a Co-Authored-By line naming
+# itself, or a "Generated with" line. Git and GitHub read every
+# Co-Authored-By name as an author, and an AI tool is not one: the person
+# who commits is responsible for the change, as the Linux kernel and the
+# Apache projects put it. This hook removes those lines and leaves human
+# co-authors alone. Enable it once per clone:
+#
+#   git config core.hooksPath .githooks
+#
+# CI runs scripts/check-commit-trailers.sh on every pull request as well.
+set -eu
+msg="$1"
+tmp="$msg.tmp.$$"
+# The patterns live in one place, shared with the CI check.
+patterns="$(dirname "$0")/../scripts/ai-trailers.txt"
+grep -viEf "$patterns" "$msg" > "$tmp" || true
+# Drop the blank lines a removed trailer leaves at the end.
+awk '{ lines[NR] = $0 } END { n = NR; while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--; for (i = 1; i <= n; i++) print lines[i] }' "$tmp" > "$msg"
+rm -f "$tmp"
+
+# On an issue branch (fix/12-show-readme, made by scripts/issue.sh) every
+# commit refers to the issue, unless it already names it.
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+issue="$(printf '%s' "$branch" | sed -nE 's|^[a-z]+/([0-9]+)-.*|\1|p')"
+if [ -n "$issue" ] && ! grep -qE "#$issue([^0-9]|$)" "$msg"; then
+	printf '\nRefs: #%s\n' "$issue" >> "$msg"
+fi

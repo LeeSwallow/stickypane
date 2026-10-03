@@ -1,0 +1,2 @@
+^co-authored-by:.*(claude|anthropic\.com|copilot|cursor|codex|openai\.com|chatgpt|gemini|devin|aider|windsurf|codeium|amazon q|codewhisperer|jules)
+^[^a-z]*generated (with|by) .*(claude|copilot|cursor|codex|chatgpt|gemini|aider|devin)

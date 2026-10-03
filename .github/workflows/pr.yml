@@ -1,0 +1,23 @@
+name: pull request
+
+# Checks that a pull request follows the flow in CONTRIBUTING.md: a
+# Conventional Commit title, the issue it closes, and a kind label.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check the title, the issue and the labels
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: PR_LABELS="$(printf '%s' "$PR_LABELS_JSON" | jq -r '.[]')" sh scripts/check-pr.sh

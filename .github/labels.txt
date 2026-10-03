@@ -1,0 +1,24 @@
+# The labels the flow uses, as name|color|description. scripts/sync-labels.sh
+# creates or updates them on GitHub; release.yml sorts the release notes by
+# them and the PR check asks for one kind label on every pull request.
+#
+# Kind: one per pull request; it decides the release-notes section.
+feature|0e8a16|Something the board could not do before
+enhancement|a2eeef|A change to something it already does
+bug|d73a4a|Something did not work
+breaking change|b60205|A change that needs users to do something
+docs|0075ca|The README, the guide or other documentation
+plugin|5319e7|The Claude Code or Codex plugin: skills, commands, hooks
+chore|cfd3d7|Build, CI, refactoring, tests: nothing a user sees
+dependencies|0366d6|Pull requests that update a dependency file
+# Flow
+no-issue|fbca04|A pull request small enough to need no issue
+skip-changelog|ededed|Left out of the release notes
+# Issues
+design|c5def5|How the board should behave
+feedback wanted|d4c5f9|Waiting for people to try it and say
+good first issue|7057ff|Good for newcomers
+help wanted|008672|Extra attention is needed
+question|d876e3|Further information is requested
+duplicate|cfd3d7|This issue or pull request already exists
+wontfix|ffffff|This will not be worked on
