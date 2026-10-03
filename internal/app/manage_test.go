@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -97,13 +98,22 @@ func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
 }
 
 func TestEditorCommand(t *testing.T) {
+	t.Setenv("VISUAL", "")
 	t.Setenv("EDITOR", "code --wait")
 	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "code --wait /tmp/a.md" {
 		t.Errorf("Args = %q", got)
 	}
 	t.Setenv("EDITOR", "")
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "vi /tmp/a.md" {
+	want := "vi /tmp/a.md"
+	if runtime.GOOS == "windows" {
+		want = "notepad /tmp/a.md"
+	}
+	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != want {
 		t.Errorf("Args without EDITOR = %q", got)
+	}
+	t.Setenv("VISUAL", "nvim")
+	if got := editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
+		t.Errorf("VISUAL comes first, as git reads it: %q", got)
 	}
 }
 

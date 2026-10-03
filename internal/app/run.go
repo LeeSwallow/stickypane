@@ -12,6 +12,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
@@ -77,9 +78,12 @@ func (m *Model) run(name string) tea.Cmd {
 			return done
 		}
 		defer f.Close()
-		cmd := exec.Command("sh", script)
-		cmd.Dir, cmd.Stdout, cmd.Stderr = root, f, f
-		err = cmd.Run()
+		prog, args, err := env.Detect().Script(script)
+		if err == nil {
+			cmd := exec.Command(prog, args...)
+			cmd.Dir, cmd.Stdout, cmd.Stderr = root, f, f
+			err = cmd.Run()
+		}
 		done.took = time.Since(started)
 		var exit *exec.ExitError
 		switch {

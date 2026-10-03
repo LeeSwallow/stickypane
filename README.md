@@ -146,7 +146,7 @@ What a file is depends on its name:
 | ----------------------- | ----------------------------------------------------- |
 | `*.md`                  | a note; its front matter may give it a shape (below)   |
 | `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
-| `*.sh`                  | a script: shown with a Run button                      |
+| `*.sh` `*.ps1`          | a script: shown with a Run button, run with sh or PowerShell |
 | a folder                | a tab: a screen of its own, with the files in it as notes |
 | a folder in a tab       | a book: one note whose pages are the files in it       |
 | anything else           | not shown                                              |

@@ -7,12 +7,13 @@
 package i18n
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/env"
+
 	"bytes"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"os"
 	"path"
 	"sort"
 	"strings"
@@ -247,14 +248,13 @@ func Pick(choice string) Strings {
 	return s
 }
 
-// Detect returns the language the environment asks for: STICKYPANE_LANG,
-// then LC_ALL, LC_MESSAGES and LANG, as "ko" or "en". "C", "POSIX" and an
-// empty value mean English, the way atuin reads them.
+// Detect returns the language the environment asks for, as "ko" or "en":
+// STICKYPANE_LANG, then LC_ALL, LC_MESSAGES and LANG, then what the system
+// itself is set to (macOS's and Windows' own locale, for a terminal that
+// sets no variable). Nothing usable means English.
 func Detect() string {
-	for _, v := range []string{"STICKYPANE_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {
-		if code := normalize(os.Getenv(v)); code != "" {
-			return code
-		}
+	if code := normalize(env.Detect().Locale); code != "" {
+		return code
 	}
 	return "en"
 }

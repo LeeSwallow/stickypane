@@ -46,6 +46,9 @@ Usage:
                          ("auto" follows LANG); the agent guide stays English
   stickypane kinds [shape]  list the shapes a note can take, or show one in
                          full: the command, a file to copy, how it behaves
+  stickypane env [--json]  say what the board found about where it runs: the
+                         system, the shell, how to open a pane beside the
+                         agent, the screen's language and how scripts run
   stickypane guide       print the agent guide
   stickypane version     print the version
 

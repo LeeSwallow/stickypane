@@ -15,17 +15,17 @@ import (
 
 const label = "▶ Run"
 
-// Kind registers the script. It is the kind of every ".sh" file.
+// Kind registers the script. It is the kind of every ".sh" and ".ps1" file.
 var Kind = widget.Kind{
 	Name:     "script",
-	Exts:     []string{".sh"},
+	Exts:     []string{".sh", ".ps1"},
 	New:      ".sh",
 	Label:    "Script",
 	Icon:     "▶",
 	Hint:     []string{"enter", "run"},
 	Blurb:    "A shell script with a Run button. It runs in the project folder and its output is a log next to it.",
 	Command:  "stickypane show deploy.sh",
-	Usage:    "A .sh file. enter asks the user first, then runs it with sh in the project folder; the output goes to a .log of the same name, followed live.",
+	Usage:    "A .sh file, or .ps1 for PowerShell. enter asks the user first, then runs it in the project folder with sh or PowerShell, whichever the file needs; the output goes to a .log of the same name, followed live.",
 	Example:  "#!/bin/sh\ngo test ./...\n",
 	Keys:     "enter space",
 	Size:     func(doc.Document) string { return widget.SizeHalf },

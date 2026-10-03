@@ -1,6 +1,8 @@
 package i18n
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/env"
+
 	"reflect"
 	"strings"
 	"testing"
@@ -62,8 +64,14 @@ func TestDetectReadsTheEnvironment(t *testing.T) {
 	for _, v := range []string{"STICKYPANE_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {
 		t.Setenv(v, "")
 	}
-	if got := Detect(); got != "en" {
-		t.Errorf("nothing set = %q", got)
+	// With no variable the system's own locale decides (macOS, Windows),
+	// and English when it says nothing either.
+	want := normalize(env.Detect().Locale)
+	if want == "" {
+		want = "en"
+	}
+	if got := Detect(); got != want {
+		t.Errorf("nothing set = %q, want the system's %q", got, want)
 	}
 	t.Setenv("LANG", "ko_KR.UTF-8")
 	if got := Detect(); got != "ko" {

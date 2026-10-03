@@ -23,7 +23,8 @@ var rank = map[string]int{
 	// Leaves: they know nothing of the board.
 	"internal/doc":    0,
 	"internal/theme":  0,
-	"internal/i18n":   0,
+	"internal/env":    0, // the system, shell, pane tool and locale
+	"internal/i18n":   5, // reads the locale from env
 	"internal/layout": 0,
 	"internal/editor": 0,
 	// The notes folder.

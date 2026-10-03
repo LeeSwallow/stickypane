@@ -19,7 +19,10 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(tmp, "claude"))
 	os.Setenv("CODEX_HOME", filepath.Join(tmp, "codex"))
-	os.Unsetenv("TMUX")
+	// No pane tool, so the next step a test sees is the plain one.
+	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
+		os.Unsetenv(v)
+	}
 	code := m.Run()
 	os.RemoveAll(tmp)
 	os.Exit(code)
@@ -222,5 +225,20 @@ func TestMakeBoard(t *testing.T) {
 	}
 	if _, made, err := MakeBoard(root); made || err != nil {
 		t.Errorf("a second MakeBoard should find the board: %v, %v", made, err)
+	}
+}
+
+func TestRunNamesTheSplitCommandOfEachPaneTool(t *testing.T) {
+	for v, want := range map[string]string{
+		"WEZTERM_PANE": "wezterm cli split-pane --right -- stickypane",
+		"ZELLIJ":       "zellij run --direction right -- stickypane",
+		"WT_SESSION":   "wt -w 0 split-pane -V stickypane",
+	} {
+		t.Run(v, func(t *testing.T) {
+			t.Setenv(v, "1")
+			if out := run(t, t.TempDir(), Options{NoAgentDocs: true}); !strings.Contains(out, want) {
+				t.Errorf("with %s the next step is %q: %q", v, want, out)
+			}
+		})
 	}
 }

@@ -18,7 +18,8 @@ layer, fails the build.
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
-| 0 | `internal/doc`, `internal/theme`, `internal/i18n`, `internal/layout`, `internal/editor` | leaves that know nothing of the board |
+| 5 | `internal/i18n` | the screen's words, in the language the locale asks for |
+| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/layout`, `internal/editor` | leaves that know nothing of the board |
 
 The packages stay side by side under `internal/` rather than in folders by
 role. The layers do not split by role: widgets draw with the theme, the
@@ -29,6 +30,25 @@ table above, kept true by a test, is the hierarchy.
 `internal/` is a Go rule, not a web habit: nothing outside this module can
 import these packages, so none of them is a public API and all of them can
 change while the design does.
+
+## Where it runs
+
+`internal/env` is the one place that knows the difference between macOS,
+Linux and Windows, between shells, and between the tools that can open a
+pane next to the agent. It detects, from the environment alone:
+
+| What | How | Used for |
+| --- | --- | --- |
+| pane tool | `TMUX`, `ZELLIJ`, `WEZTERM_PANE` or `TERM_PROGRAM`, `WT_SESSION`, in that order | the split command init and `stickypane env` suggest |
+| shell | `SHELL`; on Windows, whether `PSModulePath` holds the user's PowerShell modules | how to set a variable, in messages |
+| locale | `STICKYPANE_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`, then the system: macOS `AppleLocale`, Windows `GetUserDefaultLocaleName` | the screen's language |
+| interpreters | `sh` for `.sh`, `pwsh` or `powershell` for `.ps1` | running a script note |
+| editor | `VISUAL`, `EDITOR`, else `vi` or `notepad` | `E` on the board |
+
+What is PowerShell's own is in `powershell.go`, and each system's way of
+naming its locale in `locale_darwin.go`, `locale_windows.go` and
+`locale_other.go`. `stickypane env` prints what was found. A new pane tool
+is one entry in the table in `pane.go`.
 
 ## Reading and writing
 

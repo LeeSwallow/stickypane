@@ -1,7 +1,6 @@
 package app
 
 import (
-	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -158,12 +158,9 @@ func confirmUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// editorCommand opens path in $EDITOR, which may carry arguments such as
-// "code --wait". Without $EDITOR it falls back to vi.
+// editorCommand opens path in the user's editor: $VISUAL or $EDITOR, which
+// may carry arguments such as "code --wait", else the system's plain one.
 func editorCommand(path string) *exec.Cmd {
-	parts := strings.Fields(os.Getenv("EDITOR"))
-	if len(parts) == 0 {
-		parts = []string{"vi"}
-	}
+	parts := env.Detect().Editor()
 	return exec.Command(parts[0], append(parts[1:], path)...)
 }

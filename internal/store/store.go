@@ -48,7 +48,7 @@ var (
 
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
-var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true}
+var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true}
 
 // Linked reports whether the note is a symbolic link to a file elsewhere.
 // Such a file belongs to the project, not to the board: what the board

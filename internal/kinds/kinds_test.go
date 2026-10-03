@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
@@ -71,5 +72,19 @@ func TestAListItemOverTwoLinesStaysOneItem(t *testing.T) {
 	}
 	if !strings.Contains(out, "  stays") {
 		t.Errorf("a code block keeps its lines:\n%s", out)
+	}
+}
+
+// A PowerShell script is a script note like a shell script: shown with a
+// Run button, run by the interpreter the system has.
+func TestAPowerShellScriptIsAScript(t *testing.T) {
+	reg := Default(note.Plain)
+	for _, name := range []string{"deploy.sh", "deploy.ps1", "Deploy.PS1"} {
+		if k := reg.For(name, doc.Document{}); k.Name != "script" {
+			t.Errorf("%s is a %s", name, k.Name)
+		}
+	}
+	if !store.IsNote("deploy.ps1") {
+		t.Error("the board shows .ps1 files")
 	}
 }

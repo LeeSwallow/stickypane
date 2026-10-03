@@ -3,6 +3,8 @@
 package initcmd
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/env"
+
 	_ "embed"
 	"errors"
 	"fmt"
@@ -151,9 +153,11 @@ func Run(root string, opts Options, out io.Writer) error {
 }
 
 // NextStep is the one thing to do once the board is there: open it.
+// Inside tmux, Zellij, WezTerm or Windows Terminal it is that tool's
+// split command.
 func NextStep() string {
-	if os.Getenv("TMUX") != "" {
-		return "Next: `tmux split-window -h stickypane` opens the board next to your agent."
+	if split := env.Detect().Pane.Split("stickypane"); split != "" {
+		return "Next: `" + split + "` opens the board next to your agent."
 	}
 	return "Next: run `stickypane` in a pane next to your agent."
 }

@@ -35,6 +35,7 @@ func init() {
 		{[]string{"theme"}, themeCmd},
 		{[]string{"language"}, languageCmd},
 		{[]string{"kinds"}, kindsCmd},
+		{[]string{"env"}, envCmd},
 		{[]string{"guide"}, func(e env, _ []string) error { _, err := io.WriteString(e.stdout, initcmd.Guide()); return err }},
 		{[]string{"version", "--version", "-v"}, func(e env, _ []string) error { _, err := fmt.Fprintln(e.stdout, "stickypane", version); return err }},
 		{[]string{"help", "--help", "-h"}, func(e env, _ []string) error { _, err := io.WriteString(e.stdout, usage); return err }},

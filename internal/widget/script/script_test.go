@@ -15,7 +15,7 @@ const deploy = "#!/bin/sh\n# ship it\ngo test ./... && ./deploy.sh\n"
 func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
 
 func TestKind(t *testing.T) {
-	if Kind.Name != "script" || Kind.New != ".sh" || len(Kind.Exts) != 1 || Kind.Exts[0] != ".sh" {
+	if Kind.Name != "script" || Kind.New != ".sh" || strings.Join(Kind.Exts, " ") != ".sh .ps1" {
 		t.Errorf("Kind = %+v", Kind)
 	}
 	if widget.Width(Kind.Icon) != 1 || Kind.Blurb == "" || Kind.Example == "" || !Kind.Handles("enter") || !Kind.Handles("space") {

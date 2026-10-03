@@ -101,8 +101,9 @@ matter and `wait` prints the answers. See the `asking-the-user` skill.
 
 ## Script
 
-For a command the user should run, not you: `deploy.sh` in `.sticky/`.
-`enter` asks first, then runs it with `sh` in the project folder; the output
+For a command the user should run, not you: `deploy.sh` in `.sticky/`, or
+`deploy.ps1` for PowerShell. `enter` asks first, then runs it with `sh` or
+PowerShell in the project folder; the output
 goes to `deploy.log`, which opens and follows. It never runs without a yes.
 
 ## Tab
