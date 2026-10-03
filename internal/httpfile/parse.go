@@ -40,9 +40,9 @@ type Request struct {
 	Timeout  time.Duration // "# @timeout 5s"; zero takes the default
 	WS       *WebSocket    // "# @websocket" and "# @ws" steps
 	GRPC     *GRPC         // "# @grpc package.Service/Method" and its options
-	Line     int // the request line, counted from 0
-	Start    int // the first line of the request's block, counted from 0
-	End      int // one past its last line
+	Line     int           // the request line, counted from 0
+	Start    int           // the first line of the request's block, counted from 0
+	End      int           // one past its last line
 }
 
 // Title is how the request is called on the screen: its name, or else its

@@ -52,8 +52,8 @@ type Result struct {
 	Body     []byte
 	Took     time.Duration
 	Checks   []Check
-	Captured []string // the names captured
-	Hooks    []string // what the hooks printed
+	Captured []string    // the names captured
+	Hooks    []string    // what the hooks printed
 	Frames   []Frame     // a WebSocket session, in order
 	GRPC     *GRPCResult // a gRPC call's status and trailers
 	Err      error       // why it was not sent or a hook failed

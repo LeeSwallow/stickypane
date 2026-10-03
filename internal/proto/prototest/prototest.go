@@ -80,6 +80,5 @@ func UsersFile() []byte {
 	return f
 }
 
-
 // UsersSet is UsersFile as a .protoset: a FileDescriptorSet of one file.
 func UsersSet() []byte { return AppendBytes(nil, 1, UsersFile()) }
