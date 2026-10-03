@@ -195,6 +195,11 @@ var tools = []tool{
 		}),
 	},
 	{
+		Name:        "index",
+		Description: "Every note of the board in a line, by tab: its title, what it counts (2/5, 7 cards) and a gist (its summary, the next open item, the latest log line). Read this first instead of every note.",
+		InputSchema: object(nil, map[string]any{}),
+	},
+	{
 		Name:        "wait_event",
 		Description: "Wait for something to happen on the board and return it as JSON: a note made or removed, an item ticked, a card moved, a form sent, a line logged, a chart value changed. Use it to react to what the user does without being told.",
 		InputSchema: object(nil, map[string]any{
@@ -445,6 +450,11 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			aerr = nil // the answers so far are the result
 		}
 		text, err = got.String(), aerr
+	case "index":
+		var idx []api.Entry
+		if idx, err = s.API.Index(); err == nil {
+			text = api.IndexMarkdown(idx, "board")
+		}
 	case "wait_event":
 		wait := a.Wait
 		if wait <= 0 {

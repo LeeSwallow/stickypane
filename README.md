@@ -461,6 +461,47 @@ The screen speaks English and Korean: `stickypane language ko`, or leave it
 on `auto` and set `LANG`. Key names and the agent's guide stay English; see
 [docs/translating.md](docs/translating.md) to add a language.
 
+## The index
+
+A board with many notes stays easy to read: `i` or `/` opens the index,
+every note of every tab in a line, the way a wiki's index page lists its
+pages. Each line has the note's shape, title, what it counts (`2/5`,
+`7 cards`), a gist and when it changed; open notes are marked `●`. Type to
+filter, choose with the arrows, and `enter` goes to the note, switching tab
+and opening it.
+
+The gist is the note's own `summary:` from its front matter when it has
+one, so a note can say in a line what it is; otherwise it is what to look
+at first: the next open item of a checklist, the latest line of a log, the
+first line of anything else.
+
+`stickypane index` prints the same index as Markdown (`--json` for
+programs), and the MCP tool `index` gives it to agents, which read it
+instead of every note.
+
+## Settings
+
+Nothing has to be set: every setting has a default and the board works as
+it is. `S` on the board opens the settings panel: `j` `k` pick a setting,
+`h` `l` change it, and it applies at once. `stickypane config` does the
+same from the command line.
+
+| Setting | Default | Changes |
+| --- | --- | --- |
+| `theme` | `auto` | the colors; `auto` follows the terminal's background |
+| `language` | `auto` | the screen's words |
+| `time` | `auto` | how days and times are written; `auto` follows the locale's country |
+| `editor` | `auto` | what `E` opens; `auto` is `$VISUAL`, `$EDITOR`, then the first editor found |
+| `stale` | `30m` | when a kanban card that has not moved is flagged; `off` never |
+
+```sh
+stickypane config                # every setting, its value, and which are defaults
+stickypane config stale 1h
+```
+
+A setting at its default is not written; the others go to the root
+`sticky.json`.
+
 ## Themes
 
 Everything on the screen is drawn from a dozen color roles (text, muted,
@@ -521,8 +562,12 @@ None of these writes over another note or reaches outside `.sticky/`.
 ## Editing a note
 
 `e` opens the focused note's file in a small editor that works like vi, so
-you can fix a note without leaving the board. `E` hands the file to `$EDITOR`
-instead.
+you can fix a note without leaving the board. `E` hands the file to your own
+editor instead: `$VISUAL` or `$EDITOR`, any of them. Terminal editors (vim,
+nvim, helix, nano, emacs -nw, micro) take the terminal until you quit; GUI
+editors (VS Code, Cursor, Zed, Sublime, JetBrains, Kate, TextMate) are told
+to wait until you close the file, so you need not add `--wait`. With neither
+variable set, the first of nvim, vim, vi and nano found is used.
 
 | Keys                          | Do                                     |
 | ----------------------------- | -------------------------------------- |

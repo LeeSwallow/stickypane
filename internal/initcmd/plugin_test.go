@@ -95,7 +95,7 @@ func TestTheHarnessNamesOnlyFilesThatExist(t *testing.T) {
 
 func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 	real := map[string]bool{}
-	for _, c := range strings.Fields("init setup env watch guide version help theme language list cat write answers wait mcp show hide todo card chart log set rm restore archive mv link kinds api") {
+	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log set rm restore archive mv link kinds api") {
 		real[c] = true
 	}
 	cmd := regexp.MustCompile("stickypane ([a-z]+)")

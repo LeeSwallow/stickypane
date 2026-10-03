@@ -163,6 +163,8 @@ func English() Strings {
   u                undo x or D
   r                reload
   T                next theme
+  i /              index of every note
+  S                settings
   j k g G          scroll in the note
   pgdn pgup        a page down, up
   [ ]              previous, next screen

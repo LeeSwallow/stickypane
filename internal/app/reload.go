@@ -51,6 +51,7 @@ func (m *Model) reload() {
 		}
 	}
 	set := board.Settings
+	m.applyPrefs(set)
 	if l := set.Language(); l != m.language {
 		m.language = l
 		UseLanguage(l)

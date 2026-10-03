@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/lineedit"
 	"github.com/LeeSwallow/stickypane/internal/when"
@@ -22,14 +23,16 @@ import (
 type mode int
 
 const (
-	modeBoard   mode = iota // the main screen: the title bar and the open notes
-	modeZoom                // one note fills the screen
-	modeInput               // a one-line prompt over the previous screen
-	modeCatalog             // choosing a shape for a new note
-	modeConfirm             // a yes/no question over the previous screen
-	modeHelp                // the key reference
-	modeEdit                // edit.go: a note in the built-in editor
-	modeMove                // move.go: choosing where to move a note
+	modeBoard    mode = iota // the main screen: the title bar and the open notes
+	modeZoom                 // one note fills the screen
+	modeInput                // a one-line prompt over the previous screen
+	modeCatalog              // choosing a shape for a new note
+	modeConfirm              // a yes/no question over the previous screen
+	modeSettings             // the settings panel
+	modeIndex                // every note in a line, to find one
+	modeHelp                 // the key reference
+	modeEdit                 // edit.go: a note in the built-in editor
+	modeMove                 // move.go: choosing where to move a note
 )
 
 // reveal says what the next layout should scroll into view.
@@ -187,6 +190,12 @@ type Model struct {
 	wakeAt time.Time // wake.go: when the screen next redraws by itself
 
 	confirmYes, confirmNo [2]int // manage.go: the cells of a question's buttons
+
+	settingsAt  int            // settings.go: the setting the panel points at
+	indexAll    []api.Entry    // index.go: every note, as the index lists it
+	indexAt     int            // index.go: the chosen line of the filtered index
+	indexFilter *lineedit.Line // index.go: what the index is filtered by
+	themeChoice string         // settings.go: the theme setting the screen follows
 }
 
 // changedMsg arrives when the watched folder changed.

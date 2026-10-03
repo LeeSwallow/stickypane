@@ -175,6 +175,9 @@ func (set Settings) str(tab, key string) string {
 	return v
 }
 
+// Root returns a string key of the root sticky.json, or "" when unset.
+func (set Settings) Root(key string) string { return set.str("", key) }
+
 // Theme returns the name of the theme the user chose, or "" for none.
 func (set Settings) Theme() string { return set.str("", themeKey) }
 
@@ -304,6 +307,18 @@ func (s *Store) setString(tab, key, value string) error {
 	return s.update(tab, func(top map[string]json.RawMessage, _ Views) error {
 		return put(top, key, value)
 	})
+}
+
+// SetRoot writes a string key of the root sticky.json; "" takes it out, so
+// a setting back at its default leaves no trace.
+func (s *Store) SetRoot(key, value string) error {
+	if value == "" {
+		return s.update("", func(top map[string]json.RawMessage, _ Views) error {
+			delete(top, key)
+			return nil
+		})
+	}
+	return s.setString("", key, value)
 }
 
 // Theme returns the name of the theme the user chose, or "" for none.

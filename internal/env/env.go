@@ -25,6 +25,7 @@ type Env struct {
 	Locale     string // as found, such as "ko_KR.UTF-8" or "ko-KR"; "" for none
 	LocaleFrom string // the variable it came from, or "system"
 
+	editor   []string // the settings' choice, over $VISUAL and $EDITOR
 	getenv   func(string) string
 	lookPath func(string) (string, error)
 }
@@ -62,19 +63,4 @@ func detect(getenv func(string) string, goos string, system func() string) Env {
 		e.Locale, e.LocaleFrom = l, "system"
 	}
 	return e
-}
-
-// Editor is the command that edits a file outside the board: $VISUAL or
-// $EDITOR, which may carry arguments ("code --wait"), else the system's
-// plain editor.
-func (e Env) Editor() []string {
-	for _, v := range []string{"VISUAL", "EDITOR"} {
-		if parts := strings.Fields(e.getenv(v)); len(parts) > 0 {
-			return parts
-		}
-	}
-	if e.OS == "windows" {
-		return []string{"notepad"}
-	}
-	return []string{"vi"}
 }

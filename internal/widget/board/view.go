@@ -374,13 +374,13 @@ func (b *Board) Sync(d doc.Document) widget.Widget {
 // tests.
 var now = func() time.Time { return widget.Now() }
 
-// staleAfter is how long a card may stay where it is, outside the last
-// column, before the board flags it.
-const staleAfter = 30 * time.Minute
+// StaleAfter is how long a card may stay where it is, outside the last
+// column, before the board flags it; zero never flags. The settings set it.
+var StaleAfter = 30 * time.Minute
 
 // stalled reports whether a card has not moved for staleAfter.
 func stalled(cd card, last bool, t time.Time) bool {
-	return !last && !cd.moved.IsZero() && t.Sub(cd.moved) >= staleAfter
+	return StaleAfter > 0 && !last && !cd.moved.IsZero() && t.Sub(cd.moved) >= StaleAfter
 }
 
 // meta is the line under a card: who has it, each name in a color of its
@@ -431,10 +431,10 @@ func (b *Board) NextChange(t time.Time) time.Time {
 	for i, c := range b.cols {
 		last := len(b.cols) > 1 && i == len(b.cols)-1
 		for _, cd := range c.cards {
-			if last || cd.moved.IsZero() {
+			if last || cd.moved.IsZero() || StaleAfter <= 0 {
 				continue
 			}
-			if at := cd.moved.Add(staleAfter); at.After(t) && (next.IsZero() || at.Before(next)) {
+			if at := cd.moved.Add(StaleAfter); at.After(t) && (next.IsZero() || at.Before(next)) {
 				next = at
 			}
 		}

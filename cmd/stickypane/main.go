@@ -44,6 +44,9 @@ Usage:
                          [--undo] [--dry-run] [--yes]
                          install the board plugin for Claude Code and Codex
                          through their own commands; asks in a terminal
+  stickypane config [key [value]]  list the settings with their values, print
+                         one, or change one: theme, language, time, editor,
+                         stale. Each has a default; S on the board shows them
   stickypane theme [name]  list the themes, or choose one ("auto" follows the
                          terminal's background)
   stickypane language [code]  list the languages of the screen, or choose one
@@ -58,6 +61,8 @@ Usage:
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane list [--json]       list the notes
+  stickypane index [--json]      every note in a line, by tab: its title, what it
+                                 counts and a gist; read it before the notes
   stickypane show <name|path>    put a note on the screen; a path to any file or
                                  folder of the project is linked onto the board
   stickypane hide <name>         fold a note away

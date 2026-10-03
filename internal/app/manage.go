@@ -158,11 +158,11 @@ func confirmUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// editorCommand opens path in the user's editor: $VISUAL or $EDITOR, which
-// may carry arguments such as "code --wait", else the system's plain one.
+// editorCommand opens path in the user's editor, any of them: a GUI editor
+// is told to wait until the file is closed (see env.EditorCommand).
 func editorCommand(path string) *exec.Cmd {
-	parts := env.Detect().Editor()
-	return exec.Command(parts[0], append(parts[1:], path)...)
+	cmd := env.Detect().WithEditor(editorChoice).EditorCommand(path)
+	return exec.Command(cmd[0], cmd[1:]...)
 }
 
 // confirmFooter is the question with its answers as buttons, so that a

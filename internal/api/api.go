@@ -63,6 +63,10 @@ type API struct {
 // what size a note has when it does not say.
 func New(st *store.Store, reg widget.Registry) *API { return &API{st: st, reg: reg} }
 
+// Store is the notes folder the API works on, for callers that read or
+// change the board's settings.
+func (a *API) Store() *store.Store { return a.st }
+
 // fileName turns a note name into its file name, adding ".md" when it has
 // no extension. A name may have folders in front: a tab, and a book in it
 // ("deploy/docs/plan"). Anything that could leave the notes folder or hide

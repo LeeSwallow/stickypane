@@ -33,6 +33,8 @@ var rank = map[string]int{
 	"internal/markdown": 0, // Markdown drawn for the terminal
 	// The notes folder.
 	"internal/store": 10,
+	// What a user may change, each with a default.
+	"internal/prefs": 15,
 	// What a note is and how it is drawn: the contract, then the shapes.
 	"internal/widget":           20,
 	"internal/widget/note":      21, // the form draws its prose as a note does

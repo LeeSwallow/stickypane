@@ -117,7 +117,9 @@ func TestTheEditorFallsBackPerSystem(t *testing.T) {
 	if got := detect(vars(), "windows", func() string { return "" }).Editor(); got[0] != "notepad" {
 		t.Errorf("windows = %q", got)
 	}
-	if got := detect(vars(), "darwin", func() string { return "" }).Editor(); got[0] != "vi" {
+	none := detect(vars(), "darwin", func() string { return "" })
+	none.lookPath = func(string) (string, error) { return "", errors.New("not found") }
+	if got := none.Editor(); got[0] != "vi" {
 		t.Errorf("unix = %q", got)
 	}
 }
@@ -137,5 +139,57 @@ func TestACommandRunsInTheUsersShell(t *testing.T) {
 		if name != c.name || strings.Join(args, "|") != c.args {
 			t.Errorf("%s: %s %q", c.shell.Name, name, args)
 		}
+	}
+}
+
+// Any editor works for E: a GUI editor gets the flag that makes it wait
+// until the file is closed, a terminal editor runs as it is, and without
+// $VISUAL or $EDITOR the first editor found is used.
+func TestEveryEditorOpensAndWaits(t *testing.T) {
+	look := func(have ...string) func(string) (string, error) {
+		return func(name string) (string, error) {
+			for _, h := range have {
+				if h == name {
+					return "/bin/" + name, nil
+				}
+			}
+			return "", errors.New("not found")
+		}
+	}
+	for _, c := range []struct{ editor, want string }{
+		{"code", "code --wait plan.md"},
+		{"code --wait", "code --wait plan.md"},
+		{"/usr/local/bin/cursor", "/usr/local/bin/cursor --wait plan.md"},
+		{"zed", "zed --wait plan.md"},
+		{"subl", "subl --wait plan.md"},
+		{"idea", "idea --wait plan.md"},
+		{"kate", "kate --block plan.md"},
+		{"mate", "mate -w plan.md"},
+		{"open -a TextEdit", "open -a TextEdit -W plan.md"},
+		{"nvim", "nvim plan.md"},
+		{"vim -u NONE", "vim -u NONE plan.md"},
+		{"hx", "hx plan.md"},
+		{"emacs -nw", "emacs -nw plan.md"},
+		{"nano", "nano plan.md"},
+		{"micro", "micro plan.md"},
+	} {
+		e := detect(vars("EDITOR", c.editor), "darwin", func() string { return "" })
+		if got := strings.Join(e.EditorCommand("plan.md"), " "); got != c.want {
+			t.Errorf("EDITOR=%q: %q, want %q", c.editor, got, c.want)
+		}
+	}
+	e := detect(vars(), "linux", func() string { return "" })
+	e.lookPath = look("vim", "nano")
+	if got := strings.Join(e.EditorCommand("a.md"), " "); got != "vim a.md" {
+		t.Errorf("without EDITOR the first editor found: %q", got)
+	}
+	e.lookPath = look()
+	if got := strings.Join(e.EditorCommand("a.md"), " "); got != "vi a.md" {
+		t.Errorf("with nothing found, vi: %q", got)
+	}
+	w := detect(vars(), "windows", func() string { return "" })
+	w.lookPath = look("code")
+	if got := strings.Join(w.EditorCommand("a.md"), " "); got != "notepad a.md" {
+		t.Errorf("on Windows without EDITOR, notepad: %q", got)
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -104,13 +104,15 @@ func TestEditorCommand(t *testing.T) {
 		t.Errorf("Args = %q", got)
 	}
 	t.Setenv("EDITOR", "")
-	want := "vi /tmp/a.md"
-	if runtime.GOOS == "windows" {
-		want = "notepad /tmp/a.md"
-	}
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != want {
+	// Without one, the first terminal editor found (env tests the order).
+	if got := editorCommand("/tmp/a.md").Args; len(got) != 2 || got[1] != "/tmp/a.md" || !slices.Contains([]string{"nvim", "vim", "vi", "nano", "notepad"}, got[0]) {
 		t.Errorf("Args without EDITOR = %q", got)
 	}
+	t.Setenv("EDITOR", "zed")
+	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "zed --wait /tmp/a.md" {
+		t.Errorf("a GUI editor is told to wait: %q", got)
+	}
+	t.Setenv("EDITOR", "")
 	t.Setenv("VISUAL", "nvim")
 	if got := editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
 		t.Errorf("VISUAL comes first, as git reads it: %q", got)
