@@ -59,37 +59,40 @@ func TestUndoDoesNotWriteOverANewNote(t *testing.T) {
 	}
 }
 
-func TestMMovesANoteIntoAndOutOfABook(t *testing.T) {
+func TestMMovesANoteIntoATabThenABookAndBack(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n")})
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/p.md", "page p\n")
-	writeView(t, dir, openAll)
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/p.md", "page p\n")
 	press(m, "r", "m")
 	s := screen(m)
-	if m.mode != modeMove || !strings.Contains(s, "Move a") || !strings.Contains(s, "docs") || !strings.Contains(s, "New folder") {
-		t.Fatalf("m should ask where to move the note:\n%s", s)
+	if m.mode != modeMove || !strings.Contains(s, "Move a") || !strings.Contains(s, "▣ t") || !strings.Contains(s, "New folder") {
+		t.Fatalf("m should offer the other tabs:\n%s", s)
 	}
-	if strings.Contains(s, "top level") {
-		t.Errorf("a note that is not in a folder cannot be moved out of one:\n%s", s)
+	if strings.Contains(s, "top level") || strings.Contains(s, "docs") {
+		t.Errorf("from the root, neither the top level nor another tab's books are offered:\n%s", s)
 	}
 	press(m, "esc")
 	if m.mode != modeBoard || !fileExists(dir, "a.md") {
 		t.Fatalf("esc should cancel the move")
 	}
 	press(m, "m", "enter")
-	if fileExists(dir, "a.md") || readFile(t, dir, "docs/a.md") != opened("note a\n") {
-		t.Fatalf("enter should move the note into the folder")
+	if fileExists(dir, "a.md") || readFile(t, dir, "t/a.md") != opened("note a\n") {
+		t.Fatalf("enter should move the note into the tab")
 	}
-	if s := screen(m); m.focus != "docs" || !strings.Contains(s, "note a") || !strings.Contains(s, "1/2") {
-		t.Fatalf("the book is focused and shows the page that was moved (focus %q):\n%s", m.focus, s)
+	if s := screen(m); m.tabName != "t" || m.focus != "t/a.md" || !strings.Contains(s, "note a") {
+		t.Fatalf("the board follows the note into its tab (tab %q, focus %q):\n%s", m.tabName, m.focus, s)
 	}
 	press(m, "m")
-	if s := screen(m); !strings.Contains(s, "top level") {
-		t.Fatalf("a page can be moved out of its book:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "top level") || !strings.Contains(s, "▤ t/docs") {
+		t.Fatalf("in a tab, the top level and the tab's books are offered:\n%s", s)
 	}
-	press(m, "enter")
-	if !fileExists(dir, "a.md") || fileExists(dir, "docs/a.md") || m.focus != "a.md" {
-		t.Errorf("the first choice for a page is the top level (focus %q)", m.focus)
+	press(m, "j", "enter")
+	if fileExists(dir, "t/a.md") || readFile(t, dir, "t/docs/a.md") != opened("note a\n") || m.focus != "t/docs" {
+		t.Fatalf("the note becomes a page of the book (focus %q)", m.focus)
+	}
+	press(m, "m", "enter")
+	if !fileExists(dir, "a.md") || m.tabName != "" || m.focus != "a.md" {
+		t.Errorf("the first choice for a page is the top level (tab %q, focus %q)", m.tabName, m.focus)
 	}
 }
 
@@ -109,10 +112,10 @@ func TestMCanMakeANewFolder(t *testing.T) {
 
 func TestMovingOntoATakenNameIsRefused(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("mine\n")})
-	mkdir(t, dir, "docs")
-	writeFile(t, dir, "docs/a.md", "theirs\n")
+	mkdir(t, dir, "t")
+	writeFile(t, dir, "t/a.md", "theirs\n")
 	press(m, "r", "m", "enter")
-	if readFile(t, dir, "docs/a.md") != "theirs\n" || !fileExists(dir, "a.md") {
+	if readFile(t, dir, "t/a.md") != "theirs\n" || !fileExists(dir, "a.md") {
 		t.Fatal("a move must not write over another note")
 	}
 	if s := screen(m); !strings.Contains(s, "a.md") {

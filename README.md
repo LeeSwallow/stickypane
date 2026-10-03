@@ -134,30 +134,41 @@ What a file is depends on its name:
 | `*.md`                  | a note; its front matter may give it a shape (below)   |
 | `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
 | `*.sh`                  | a script: shown with a Run button                      |
-| a folder                | a book: one note whose pages are the files in it       |
+| a folder                | a tab: a screen of its own, with the files in it as notes |
+| a folder in a tab       | a book: one note whose pages are the files in it       |
 | anything else           | not shown                                              |
 
 ```
 .sticky/
-  10-plan.md          a checklist
+  sticky.json         the board: theme, language, which tab is open, the root tab's layout
+  10-plan.md          a note of the root tab, named after your project
   build.log           a log, followed live
-  deploy.sh           a script; its output goes to deploy.log
-  docs/               one note with three pages
-    01-intro.md
-    02-usage.md
-    03-faq.md
-  sticky.json         how you arranged all this
+  deploy/             a tab
+    sticky.json       this tab's title and layout
+    run.sh            a script; its output goes to run.log
+    docs/             one note with three pages
+      01-intro.md
+      02-usage.md
+      03-faq.md
 ```
 
-**Books.** A folder is shown as one pane that scrolls like one long note:
-its files follow one another, each under a rule with its name, and the
-border says which page the view is on (`docs · 02-usage  2/3`). `j` `k`, the
-wheel and the paging keys scroll through all of it; `,` and `.` jump to the
-page before or after; every other key acts on the page the view is on.
-Folders are read one level deep. `stickypane link
-docs` puts a folder of your project on the board as a book without copying
-it, and `stickypane link README.md` does the same for a file; both make a
-symbolic link, so what you change on the board is changed in the real file.
+**Tabs.** Each folder of `.sticky/` is a tab, listed on the first line of
+the screen with its number; the files in the folder are its notes, and the
+root folder is the first tab, named after the project. `1`–`9`, `(` `)` or
+a click switch tabs; the active tab is remembered. A tab's folder can hold
+its own `sticky.json` with a `title` and the layout of its notes, so one
+folder is one complete, shareable screen. `stickypane show deploy/run.sh`
+switches to that tab.
+
+**Books.** A folder inside a tab is shown as one pane that scrolls like one
+long note: its files follow one another, each under a rule with its name,
+and the border says which page the view is on (`docs · 02-usage  2/3`).
+`j` `k`, the wheel and the paging keys scroll through all of it; `,` and
+`.` jump to the page before or after; every other key acts on the page the
+view is on. `stickypane link docs` puts a folder of your project on the
+board without copying it, and `stickypane link README.md` does the same for
+a file; both make a symbolic link, so what you change on the board is
+changed in the real file.
 
 **Scripts.** `enter` on a script asks first (`Run deploy.sh in myproject?`),
 then runs it with `sh` in the project folder. The output is written to a log
@@ -176,7 +187,9 @@ file your agent may have written.
 ## sticky.json: how the board is arranged
 
 Where a note is on the screen is not written into the note. It goes to
-`.sticky/sticky.json`, which the board writes as you press keys:
+`sticky.json`: the root one for the root tab and for the board as a whole,
+and one in each tab's folder for that tab's notes, the way Bruno keeps a
+folder's settings in the folder. The board writes them as you press keys:
 
 ```json
 {
@@ -188,9 +201,14 @@ Where a note is on the screen is not written into the note. It goes to
   "order": ["docs", "10-plan.md", "build.log"],
   "ignore": ["drafts", "*.tmp.md"],
   "theme": "catppuccin-mocha",
+  "tab": "deploy",
   "version": 1
 }
 ```
+
+A tab's own file (`deploy/sticky.json`) has `title`, `notes` keyed by the
+names inside the tab, and `order`; `theme`, `language`, `ignore` and `tab`
+are only in the root file.
 
 | Key in `notes` | Values                                        | Key on the board |
 | -------------- | --------------------------------------------- | ---------------- |
@@ -370,6 +388,7 @@ file that does not fit its shape is still shown, never hidden.
 | `T`                 | next theme              |                         |                      |
 | `z`                 | zoom                    | **Open form**           |                      |
 | `[` / `]`           | previous, next screen   |                         |                      |
+| `1`–`9` / `(` `)`   | switch tab              |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
 |                     |                         | `enter` / `space`       | choose, type, press  |
 

@@ -86,9 +86,16 @@ func (m *Model) paneAt(x, y int) (pane, bool) {
 	return pane{}, false
 }
 
-// clickTab handles a click on the title bar. A closed note opens; an open
-// note takes the focus; the note that already has the focus closes.
+// clickTab handles a click on the title bar: on the tab strip it switches
+// tabs; on a note's title, a closed note opens, an open note takes the
+// focus, and the note that already has the focus closes.
 func (m *Model) clickTab(x, y int) {
+	for i, t := range m.tabHits {
+		if t.y == y && x >= t.x0 && x < t.x1 {
+			m.switchTab(i)
+			return
+		}
+	}
 	for _, t := range m.tabs {
 		i := m.index(t.name)
 		if t.y != y || x < t.x0 || x >= t.x1 || i < 0 {

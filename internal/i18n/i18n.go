@@ -161,6 +161,7 @@ func English() Strings {
   j k g G          scroll in the note
   pgdn pgup        a page down, up
   [ ]              previous, next screen
+  1-9 ( )          switch tab
   ?                this help
   q                quit
 

@@ -55,7 +55,16 @@ func init() {
 		here := path.Dir(file)
 		m.moveTargets = nil
 		if here != "." {
-			m.moveTargets = append(m.moveTargets, "")
+			m.moveTargets = append(m.moveTargets, "") // the top level: the root tab
+		}
+		// The other tabs, then the books of this tab.
+		for _, t := range m.tabList {
+			if t.Name != "" && t.Name != here && t.Name != m.tabName {
+				m.moveTargets = append(m.moveTargets, t.Name)
+			}
+		}
+		if m.tabName != "" && here != m.tabName {
+			m.moveTargets = append(m.moveTargets, m.tabName)
 		}
 		for _, other := range m.items {
 			if len(other.pages) > 0 && other.note.Name != here {
@@ -107,6 +116,11 @@ func (m *Model) moveTo(folder string) {
 		m.status = say(tr.CannotMove, map[string]any{"Err": err.Error()})
 		return
 	}
+	// The board follows the note into its tab.
+	if tab := m.store.TabOf(to); tab != m.tabName {
+		_ = m.store.SetTab(tab)
+		m.focus = ""
+	}
 	m.reload()
 	m.focusFile(to)
 }
@@ -145,6 +159,9 @@ func moveBody(m *Model, h int) []string {
 			label = tr.NewFolder
 		default:
 			label = "▤ " + t
+			if !strings.Contains(t, "/") {
+				label = "▣ " + t // a tab
+			}
 		}
 		if i == m.moveIdx {
 			body = append(body, widget.Selected.Render(widget.Pad("› "+label, moveWidth-4)))

@@ -134,6 +134,12 @@ type Model struct {
 	views   store.Views          // how the user arranged the notes, from sticky.json
 	anchors map[string]anchor    // where the view is in each book, by the book's name
 
+	tabList  []store.Tab       // the tabs of the board: the root and each folder
+	tab      int               // the active tab
+	tabName  string            // its folder name, "" for the root
+	tabFocus map[string]string // the focused note of each tab, by tab name
+	tabHits  []hit             // where each tab is on the first line of the screen
+
 	width, height int
 	bar           []string       // the title bar, one or more lines
 	tabs          []hit          // mouse.go: where each note's title is in the bar
@@ -193,7 +199,7 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, reveal: revealNote, theme: th, dark: true}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, tabFocus: map[string]string{}, reveal: revealNote, theme: th, dark: true}
 	UseLanguage(st.Language())
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
@@ -305,8 +311,24 @@ func (m *Model) index(name string) int {
 
 func (m *Model) setFocus(name string) {
 	m.focus = name
+	m.tabFocus[m.tabName] = name
 	m.reveal = revealNote
 	m.markSeen(name)
+}
+
+// switchTab shows another tab. The choice is written to the root
+// sticky.json, so it survives a restart and an agent can read it.
+func (m *Model) switchTab(i int) {
+	if i < 0 || i >= len(m.tabList) || i == m.tab {
+		return
+	}
+	if err := m.store.SetTab(m.tabList[i].Name); err != nil {
+		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		return
+	}
+	m.focus = ""
+	m.reload()
+	m.reveal = revealNote
 }
 
 func (m *Model) markSeen(name string) {
@@ -432,13 +454,25 @@ func (m *Model) widgetFor(n store.Note, old page, had bool) (widget.Kind, widget
 	return kind, old.w.Sync(n.Doc)
 }
 
-// reload rescans the folder and reads the arrangement again.
+// reload rescans the folder and reads the arrangement again. The notes
+// shown are those of the active tab; a tab chosen from outside (an agent's
+// stickypane show) is followed.
 func (m *Model) reload() {
-	notes, err := m.store.Scan()
+	tabs, err := m.store.Tabs()
 	if err != nil {
 		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
+	m.tabList = tabs
+	m.tabName = m.store.Tab()
+	m.tab = 0
+	for i, t := range tabs {
+		if t.Name == m.tabName {
+			m.tab = i
+		}
+	}
+	m.tabName = tabs[m.tab].Name
+	notes := tabs[m.tab].Notes
 	// What each file showed before, by file name: a note or a book's page.
 	old := map[string]page{}
 	wasOpen := make(map[string]bool, len(m.items))
@@ -507,7 +541,7 @@ func (m *Model) reload() {
 	// moved come first in the order they were given, and pinned ones before
 	// everything.
 	place := map[string]int{}
-	for i, name := range m.store.Order() {
+	for i, name := range m.store.Order(m.tabName) {
 		place[name] = i + 1
 	}
 	rank := func(it item) int {
@@ -531,12 +565,16 @@ func (m *Model) reload() {
 		}
 	}
 	if m.index(m.focus) < 0 {
-		m.focus = ""
-		if len(items) > 0 {
-			m.focus = items[max(min(prev, len(items)-1), 0)].note.Name
+		m.focus = m.tabFocus[m.tabName]
+		if m.index(m.focus) < 0 {
+			m.focus = ""
+			if len(items) > 0 {
+				m.focus = items[max(min(prev, len(items)-1), 0)].note.Name
+			}
 		}
 		m.reveal = revealNote
 	}
+	m.tabFocus[m.tabName] = m.focus
 	m.markSeen(m.focus)
 	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
@@ -742,8 +780,11 @@ func (m *Model) relayout() {
 	if m.width <= 0 {
 		return
 	}
-	if len(m.items) > 0 {
+	if len(m.items) > 0 || len(m.tabList) > 1 {
 		m.bar = []string{""} // one line, drawn once the screens are known
+		if len(m.tabList) > 1 {
+			m.bar = append(m.bar, "") // and one for the tabs above it
+		}
 	}
 	h := m.bodyHeight()
 

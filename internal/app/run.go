@@ -55,7 +55,9 @@ func (m *Model) run(name string) tea.Cmd {
 		m.status = say(tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
-	if !strings.Contains(log, "/") { // a page is shown by its book
+	// A note of the root or of a tab is opened; a page of a book is shown
+	// by its book.
+	if n := strings.Count(log, "/"); n == 0 || (n == 1 && m.store.TabOf(log) != "") {
 		open := true
 		_ = m.store.SetView(log, func(v *store.View) { v.Open = &open })
 	}

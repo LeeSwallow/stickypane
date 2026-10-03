@@ -24,7 +24,8 @@ What a file is:
 - `name.log` (or `.txt`, `.out`): a log, shown as it is and followed live.
 - `name.sh`: a script the user runs with a button; its output goes to
   `name.log`. It never runs without the user saying yes.
-- A folder: one note with pages, a page per file (`docs/intro.md`).
+- A folder: a tab, a screen of its own (`stickypane show deploy/run.sh` goes
+  to it). A folder in a tab: one note with pages, a page per file.
 
 To put something in front of the user, `stickypane show <name>`; a path to
 any file or folder of the project (`README.md`, `logs/app.log`, `docs/`) is

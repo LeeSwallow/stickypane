@@ -37,9 +37,17 @@ func (s *Store) watched() []string {
 			continue
 		}
 		paths = append(paths, path)
-		pages, _ := os.ReadDir(path)
-		for _, p := range pages {
-			linked(filepath.Join(path, p.Name()))
+		inside, _ := os.ReadDir(path)
+		for _, p := range inside {
+			sub := filepath.Join(path, p.Name())
+			linked(sub)
+			if fi, err := os.Stat(sub); err == nil && fi.IsDir() && !strings.HasPrefix(p.Name(), ".") {
+				paths = append(paths, sub) // a book inside a tab
+				pages, _ := os.ReadDir(sub)
+				for _, q := range pages {
+					linked(filepath.Join(sub, q.Name()))
+				}
+			}
 		}
 	}
 	return paths

@@ -74,7 +74,7 @@ func TestMove(t *testing.T) {
 	if _, err := a.Move("other", "ci.log"); err == nil || read(t, dir, "ci.log") != "x\n" {
 		t.Errorf("Move must not write over another note: %v", err)
 	}
-	for _, bad := range [][2]string{{"other", "../out"}, {"other", "a/b/c"}, {"other", ""}, {"missing", "x"}, {"other", "archive/x"}} {
+	for _, bad := range [][2]string{{"other", "../out"}, {"other", "a/b/c/d"}, {"other", ""}, {"missing", "x"}, {"other", "archive/x"}} {
 		if _, err := a.Move(bad[0], bad[1]); err == nil {
 			t.Errorf("Move(%q, %q) should fail", bad[0], bad[1])
 		}
@@ -206,5 +206,25 @@ func TestShowAndHide(t *testing.T) {
 	}
 	if _, err := a.Show(filepath.Join(root, "logo.png")); err == nil {
 		t.Error("a file that is not there cannot be shown")
+	}
+}
+
+func TestShowSwitchesTheBoardToTheNotesTab(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"plan.md": "root\n"})
+	if _, err := a.Write("deploy/notes", Options{}, []byte("deploy\n")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Show("deploy/notes"); err != nil {
+		t.Fatal(err)
+	}
+	st := store.Open(dir)
+	if st.Tab() != "deploy" {
+		t.Errorf("the root sticky.json should name the tab: %q", st.Tab())
+	}
+	if v, _ := st.Views(); v["deploy/notes.md"].Open == nil {
+		t.Errorf("the note is opened in the tab's own file: %+v", v)
+	}
+	if _, err := a.Show("plan"); err != nil || st.Tab() != "" {
+		t.Errorf("showing a root note switches back: %v, %q", err, st.Tab())
 	}
 }

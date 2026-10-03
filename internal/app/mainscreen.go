@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -24,6 +25,14 @@ func init() {
 	boardKeys["T"] = func(m *Model) tea.Cmd { m.chooseTheme(theme.Next(m.theme.Get().Name)); return nil }
 	boardKeys["]"] = func(m *Model) tea.Cmd { m.flip(1); return nil }
 	boardKeys["["] = func(m *Model) tea.Cmd { m.flip(-1); return nil }
+
+	// Tabs: a digit jumps to that tab, ( and ) go to the one before or after.
+	for i := 1; i <= 9; i++ {
+		n := i
+		boardKeys[strconv.Itoa(n)] = func(m *Model) tea.Cmd { m.switchTab(n - 1); return nil }
+	}
+	boardKeys[")"] = func(m *Model) tea.Cmd { m.switchTab(m.tab + 1); return nil }
+	boardKeys["("] = func(m *Model) tea.Cmd { m.switchTab(m.tab - 1); return nil }
 
 	// . and , turn the pages of a book; > and < are the same keys shifted.
 	turn := func(delta int) func(*Model) tea.Cmd {
@@ -127,8 +136,12 @@ func mainFooter(m *Model) string {
 // notes is shown when there is more than one.
 func (m *Model) titleBar() []string {
 	m.tabs = m.tabs[:0]
+	var lines []string
+	if strip := m.tabStrip(); strip != "" {
+		lines = append(lines, strip)
+	}
 	if len(m.items) == 0 {
-		return nil
+		return lines
 	}
 	th := m.theme.Get()
 	type tab struct {
@@ -210,7 +223,7 @@ func (m *Model) titleBar() []string {
 			line.WriteString(" ")
 			x++
 		}
-		m.tabs = append(m.tabs, hit{name: m.items[i].note.Name, y: 0, x0: x, x1: x + tabs[i].w})
+		m.tabs = append(m.tabs, hit{name: m.items[i].note.Name, y: len(lines), x0: x, x1: x + tabs[i].w})
 		line.WriteString(tabs[i].st.Render(tabs[i].text))
 		x += tabs[i].w
 	}
@@ -224,7 +237,38 @@ func (m *Model) titleBar() []string {
 	if right != "" {
 		line.WriteString(widget.Faint.Render(right))
 	}
-	return []string{line.String()}
+	return append(lines, line.String())
+}
+
+// tabStrip is the first line of the screen when the board has more than
+// one tab: every tab with its number, the active one in the accent color.
+// Its hits are recorded for the mouse.
+func (m *Model) tabStrip() string {
+	m.tabHits = m.tabHits[:0]
+	if len(m.tabList) < 2 {
+		return ""
+	}
+	th := m.theme.Get()
+	var line strings.Builder
+	x := 0
+	for i, t := range m.tabList {
+		text := " " + strconv.Itoa(i+1) + " " + widget.Truncate(widget.Clean(t.Title), max(m.width/4, 8)) + " "
+		if x+widget.Width(text) > m.width {
+			break
+		}
+		st := widget.Faint
+		if i == m.tab {
+			st = lipgloss.NewStyle().Background(lipgloss.Color(th.Accent)).Foreground(lipgloss.Color(th.Base)).Bold(true)
+		}
+		m.tabHits = append(m.tabHits, hit{name: t.Name, y: 0, x0: x, x1: x + widget.Width(text)})
+		line.WriteString(st.Render(text))
+		x += widget.Width(text)
+		if i < len(m.tabList)-1 {
+			line.WriteString(" ")
+			x++
+		}
+	}
+	return line.String()
 }
 
 // stepFocus moves to the next or previous note in title bar order, wrapping.

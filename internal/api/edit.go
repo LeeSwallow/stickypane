@@ -527,6 +527,12 @@ func (a *API) Show(target string) (string, error) {
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
 		return "", err
 	}
+	// The board switches to the note's tab.
+	if tab := a.st.TabOf(file); tab != a.st.Tab() {
+		if err := a.st.SetTab(tab); err != nil {
+			return "", err
+		}
+	}
 	return "showing " + file, nil
 }
 

@@ -23,7 +23,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 	if got, err := a.Log("build.log", "compiled"); err != nil || got != "build.log: 1 line" || read(t, dir, "build.log") != "compiled\n" {
 		t.Errorf("Log to a .log file = %q, %v, %q", got, err, read(t, dir, "build.log"))
 	}
-	for _, bad := range []string{"../x", "a/b/c", "/abs", "docs/.hidden", "docs/", "/x", "a\\b", "x.png", "docs/x.png", ".x/y"} {
+	for _, bad := range []string{"../x", "a/b/c/d", "/abs", "docs/.hidden", "docs/", "/x", "a\\b", "x.png", "docs/x.png", ".x/y"} {
 		if _, err := a.Cat(bad); err != ErrBadName {
 			t.Errorf("Show(%q) = %v, want ErrBadName", bad, err)
 		}
@@ -38,7 +38,10 @@ func TestListShowsPagesAndTheArrangement(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "docs", "intro.md"), []byte("---\ntype: checklist\n---\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, store.ViewFile), []byte(`{"notes":{"a.md":{"open":false,"size":"card","pin":true},"docs":{"open":true}}}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, store.ViewFile), []byte(`{"notes":{"a.md":{"open":false,"size":"card","pin":true}}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "docs", store.ViewFile), []byte(`{"notes":{"intro.md":{"open":true}}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	infos, err := a.List()
@@ -52,7 +55,7 @@ func TestListShowsPagesAndTheArrangement(t *testing.T) {
 		t.Errorf("a log file: %+v", n)
 	}
 	if n := infos[2]; n.Name != "docs/intro.md" || n.Type != "checklist" || !n.Open || n.Title != "intro" {
-		t.Errorf("a page is listed by its own name and is open when its book is: %+v", n)
+		t.Errorf("a note of a tab is listed by its full name, arranged by the tab's file: %+v", n)
 	}
 }
 
