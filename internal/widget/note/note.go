@@ -34,6 +34,8 @@ func NewKind(render Renderer) widget.Kind {
 		Label:    "Note",
 		Icon:     "✎",
 		Blurb:    "Anything in Markdown, from one line to a full page.",
+		Command:  "echo \"check env before deploy\" | stickypane write deploy-notes --open",
+		Usage:    "Any Markdown; a one-line file is a complete note. A ```mermaid block (graph, flowchart, sequence, erDiagram) is drawn as a diagram.",
 		Example:  "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
 		Size:     size,
 		Template: func(title string) []byte { return widget.NewFile("note", title, "") },

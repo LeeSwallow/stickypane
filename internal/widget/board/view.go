@@ -16,68 +16,12 @@ const (
 	formatHint = `no columns yet: add "## Name" headings`
 )
 
-// Kind registers the board.
-var Kind = widget.Kind{
-	Name:    "board",
-	Label:   "Board (kanban)",
-	Icon:    "▦",
-	Hint:    []string{"h l j k", "move", "H L", "shift card", "J K", "reorder", "n", "new card"},
-	Blurb:   "Cards in columns. Move a card as the work moves.",
-	Example: "## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n",
-	Keys:    "h l j k H L J K n left right up down",
-	Size:    func(doc.Document) string { return widget.SizePage },
-	Template: func(title string) []byte {
-		return widget.NewFile("board", title, "## To do\n\n## Doing\n\n## Done\n")
-	},
-	Parse: func(d doc.Document) widget.Widget { return parse(d) },
-}
-
-type card struct {
-	text   string
-	detail []string
-}
-
-type column struct {
-	title string
-	cards []card
-}
-
-// Board is the widget for a kanban note.
+// Board is the widget for a kanban note: the content and where the cursor
+// is.
 type Board struct {
-	desc     []string // the lines before the first column
-	cols     []column
+	content
 	col, row int    // cursor
 	drawn    []area // where each card was in the last Draw
-}
-
-func parse(d doc.Document) *Board {
-	lines := doc.Lines(d.Body)
-	spans := scan(lines)
-	b := &Board{}
-	before := len(lines)
-	if len(spans) > 0 {
-		before = spans[0].head
-	}
-	for _, l := range lines[:before] {
-		if !isBlank(l) {
-			b.desc = append(b.desc, strings.TrimSpace(l))
-		}
-	}
-	for _, s := range spans {
-		c := column{title: s.title}
-		for _, cs := range s.cards {
-			cd := card{text: cs.text}
-			for _, l := range lines[cs.start+1 : cs.end] {
-				if !isBlank(l) {
-					// A detail is often a nested list item; its marker is noise here.
-					cd.detail = append(cd.detail, cardText(strings.TrimSpace(l)))
-				}
-			}
-			c.cards = append(c.cards, cd)
-		}
-		b.cols = append(b.cols, c)
-	}
-	return b
 }
 
 func (b *Board) clamp() {
@@ -266,21 +210,6 @@ func joinColumns(cells [][]string, rows, cw int) []string {
 		out[r] = strings.TrimRight(sb.String(), " ")
 	}
 	return out
-}
-
-// Summary implements widget.Widget: how many cards the board holds.
-func (b *Board) Summary() string {
-	n := 0
-	for _, c := range b.cols {
-		n += len(c.cards)
-	}
-	switch {
-	case len(b.cols) == 0:
-		return ""
-	case n == 1:
-		return widget.T("1 card")
-	}
-	return fmt.Sprintf(widget.T("%d cards"), n)
 }
 
 // Update implements widget.Widget.

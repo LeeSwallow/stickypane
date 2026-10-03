@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -36,10 +37,7 @@ func init() {
 		return nil
 	})
 	boardKeys["c"] = onFocused(func(m *Model, it item) tea.Cmd {
-		current := m.views[it.note.Name].Color
-		if current == "" {
-			current, _ = it.note.Doc.Get("color")
-		}
+		current := arrange.Color(m.views[it.note.Name], it.note.Doc)
 		next := palette[(colorIndex(it.note.Name, current)+1)%len(palette)]
 		m.setView(it.note.Name, func(v *store.View) { v.Color = next })
 		return nil

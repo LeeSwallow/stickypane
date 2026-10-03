@@ -4,32 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 )
-
-// numberRe matches a value as a data line writes it.
-var numberRe = regexp.MustCompile(`^-?[0-9][0-9,_]*(\.[0-9]+)?$`)
-
-// number reads a value written with "," or "_" between its digits.
-func number(text string) (float64, error) {
-	return strconv.ParseFloat(strings.NewReplacer(",", "", "_", "").Replace(text), 64)
-}
-
-// find returns the line of the value called label, and where its number is
-// on that line. Labels are compared without regard to case.
-func find(lines []string, label string) (line, from, to int) {
-	for i, l := range lines {
-		raw := strings.TrimSuffix(l, "\r")
-		if m := dataRe.FindStringSubmatchIndex(raw); m != nil && strings.EqualFold(raw[m[2]:m[3]], label) {
-			return i, m[4], m[5]
-		}
-	}
-	return -1, 0, 0
-}
 
 // put writes value for label: over the old number when the label is there,
 // as a new line at the end when it is not.
@@ -94,13 +73,4 @@ func (o Add) Apply(d doc.Document) (doc.Document, error) {
 		value = trim(sum)
 	}
 	return put(d, o.Label, value)
-}
-
-// Value returns the value called label as the chart's file writes it.
-func Value(d doc.Document, label string) (string, bool) {
-	lines := doc.Lines(d.Body)
-	if i, from, to := find(lines, strings.TrimSpace(label)); i >= 0 {
-		return lines[i][from:to], true
-	}
-	return "", false
 }

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -83,7 +84,31 @@ type Note struct {
 func (n Note) Book() bool { return n.Pages != nil }
 
 // Store is a notes folder.
-type Store struct{ Dir string }
+type Store struct {
+	Dir string
+
+	mu    sync.Mutex
+	known map[string]readNote // notes read by the last Load, by path
+	fresh map[string]readNote // what this Load has read so far
+}
+
+// readNote is a note as read, with what its file looked like then. A file
+// whose size and time are the same is not read again.
+type readNote struct {
+	size int64
+	mod  time.Time
+	note Note
+}
+
+// isDir reports whether a folder entry is a folder, following a symbolic
+// link only when the entry is one: the entry already says what it is.
+func isDir(e os.DirEntry, path string) bool {
+	if e.Type()&fs.ModeSymlink == 0 {
+		return e.IsDir()
+	}
+	fi, err := os.Stat(path)
+	return err == nil && fi.IsDir()
+}
 
 // Open returns the store for a notes folder.
 func Open(dir string) *Store { return &Store{Dir: dir} }
@@ -132,15 +157,40 @@ type Tab struct {
 	Notes []Note
 }
 
+// Board is the board as read at one moment: its tabs and what the settings
+// files say about them.
+type Board struct {
+	Tabs     []Tab
+	Settings Settings
+}
+
+// Load reads the board in one pass: every settings file once, then the
+// notes of every tab. It is what a screen reads on each change.
+func (s *Store) Load() (Board, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	set := s.Settings()
+	s.fresh = map[string]readNote{}
+	tabs, err := s.scan(set)
+	// Only what this load saw is kept, so a removed note is forgotten.
+	s.known, s.fresh = s.fresh, nil
+	return Board{Tabs: tabs, Settings: set}, err
+}
+
 // Tabs reads the board: the root tab, then one tab per folder, in name
 // order. Folders are read two levels deep: a folder in a tab is a book.
 // The archive, hidden folders and ignored names are not read; a folder
 // with nothing to show is not a tab. A file that cannot be read still
 // appears, carrying its error.
 func (s *Store) Tabs() ([]Tab, error) {
-	ignored := s.ignored()
+	b, err := s.Load()
+	return b.Tabs, err
+}
+
+func (s *Store) scan(set Settings) ([]Tab, error) {
+	ignored := set.ignored()
 	root := Tab{Title: filepath.Base(filepath.Dir(s.Dir))}
-	if title := s.TabTitle(""); title != "" {
+	if title := set.TabTitle(""); title != "" {
 		root.Title = title
 	}
 	tabs := []Tab{root}
@@ -153,9 +203,9 @@ func (s *Store) Tabs() ([]Tab, error) {
 		if strings.HasPrefix(name, ".") || name == ArchiveDir || ignored(name) {
 			continue
 		}
-		if fi, err := os.Stat(filepath.Join(s.Dir, name)); err == nil && fi.IsDir() {
+		if isDir(e, filepath.Join(s.Dir, name)) {
 			tab := Tab{Name: name, Title: name}
-			if title := s.TabTitle(name); title != "" {
+			if title := set.TabTitle(name); title != "" {
 				tab.Title = title
 			}
 			tab.Notes = s.notesIn(name, ignored, true)
@@ -185,7 +235,7 @@ func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Not
 		if strings.HasPrefix(name, ".") || ignored(full) {
 			continue
 		}
-		if fi, err := os.Stat(filepath.Join(s.Dir, filepath.FromSlash(full))); err == nil && fi.IsDir() {
+		if isDir(e, filepath.Join(s.Dir, filepath.FromSlash(full))) {
 			if books {
 				if book, ok := s.book(full, ignored); ok {
 					notes = append(notes, book)
@@ -226,6 +276,13 @@ func (s *Store) book(name string, ignored func(string) bool) (Note, bool) {
 	return b, len(b.Pages) > 0
 }
 
+// remember keeps a note read during a Load for the next one.
+func (s *Store) remember(r readNote) {
+	if s.fresh != nil {
+		s.fresh[r.note.Path] = r
+	}
+}
+
 func (s *Store) read(name string) Note {
 	n := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
 	fi, err := os.Stat(n.Path)
@@ -234,6 +291,11 @@ func (s *Store) read(name string) Note {
 		return n
 	}
 	n.ModTime = fi.ModTime()
+	if old, ok := s.known[n.Path]; ok && old.size == fi.Size() && old.mod.Equal(n.ModTime) && old.note.Err == nil {
+		s.remember(old)
+		return old.note
+	}
+	defer func() { s.remember(readNote{fi.Size(), n.ModTime, n}) }()
 	parse := func(b []byte) doc.Document {
 		if isMarkdown(name) {
 			return doc.Parse(displayable(b))
@@ -241,7 +303,7 @@ func (s *Store) read(name string) Note {
 		return doc.Document{Body: string(displayable(b))}
 	}
 	if fi.Size() <= MaxSize {
-		b, err := os.ReadFile(n.Path)
+		b, err := readFile(n.Path)
 		if err != nil {
 			n.Err = err
 			return n

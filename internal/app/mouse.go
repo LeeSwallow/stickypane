@@ -131,6 +131,7 @@ func (m *Model) clickNote(name string, line, col int) {
 	if c, ok := m.items[i].w.(widget.Clicker); ok && line >= 0 && col >= 0 {
 		if w, res, hit := c.Click(line, col); hit {
 			m.items[i].w = w
+			m.forget(name)
 			m.lastClick = lastClick{}
 			m.act(name, res)
 			return

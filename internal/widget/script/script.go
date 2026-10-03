@@ -24,6 +24,8 @@ var Kind = widget.Kind{
 	Icon:     "▶",
 	Hint:     []string{"enter", "run"},
 	Blurb:    "A shell script with a Run button. It runs in the project folder and its output is a log next to it.",
+	Command:  "stickypane show deploy.sh",
+	Usage:    "A .sh file. enter asks the user first, then runs it with sh in the project folder; the output goes to a .log of the same name, followed live.",
 	Example:  "#!/bin/sh\ngo test ./...\n",
 	Keys:     "enter space",
 	Size:     func(doc.Document) string { return widget.SizeHalf },

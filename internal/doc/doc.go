@@ -199,3 +199,34 @@ func EOL(body string) string {
 	}
 	return ""
 }
+
+// IsDetail reports whether line is an indented, non-blank line: in a list,
+// a detail of the item above it.
+func IsDetail(line string) bool {
+	return (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) && strings.TrimSpace(line) != ""
+}
+
+// OneLine keeps text that becomes a line of a file to one line: line breaks
+// and runs of spaces become one space.
+func OneLine(s string) string {
+	return strings.Join(strings.Fields(strings.NewReplacer("\r", " ", "\n", " ").Replace(s)), " ")
+}
+
+// AppendLine returns body with line added at its end, in the body's line
+// endings. A body whose last line is unfinished gets it finished first.
+func AppendLine(body, line string) string {
+	eol := EOL(body)
+	if body != "" && !strings.HasSuffix(body, "\n") {
+		body += eol + "\n"
+	}
+	return body + line + eol + "\n"
+}
+
+// SetLine replaces line i of lines, one of Lines' elements, with text and
+// keeps the "\r" of a CRLF line.
+func SetLine(lines []string, i int, text string) {
+	if strings.HasSuffix(lines[i], "\r") {
+		text += "\r"
+	}
+	lines[i] = text
+}

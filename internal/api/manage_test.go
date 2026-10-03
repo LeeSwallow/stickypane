@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -226,5 +227,35 @@ func TestShowSwitchesTheBoardToTheNotesTab(t *testing.T) {
 	}
 	if _, err := a.Show("plan"); err != nil || st.Tab() != "" {
 		t.Errorf("showing a root note switches back: %v, %q", err, st.Tab())
+	}
+}
+
+// The README promises `stickypane show README.md`: a file of the project
+// named without a folder is linked and shown, as long as no note has that
+// name. A note of that name wins.
+func TestShowABareFileNameOfTheProject(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"plan.md": "the plan\n"})
+	root := filepath.Dir(dir)
+	for name, body := range map[string]string{"README.md": "# Readme\n", "plan": "not the note\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(root)
+	got, err := a.Show("README.md")
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			t.Skip("symlinks are not available:", err)
+		}
+		t.Fatalf("Show(README.md) = %v", err)
+	}
+	if got != "showing README.md (linked to ../README.md)" || !has(dir, "README.md") {
+		t.Errorf("Show(README.md) = %q", got)
+	}
+	if got, err := a.Show("plan"); err != nil || got != "showing plan.md" {
+		t.Errorf("a note wins over a file of the same name: %q, %v", got, err)
+	}
+	if _, err := a.Show("missing.md"); err == nil {
+		t.Error("a name that is neither a note nor a file cannot be shown")
 	}
 }

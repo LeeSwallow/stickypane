@@ -2,6 +2,11 @@
 
 **A board in your terminal that your coding agent writes to and you read.**
 
+Kanban boards, checklists, charts, forms and live logs for AI coding agents
+such as Claude Code and Codex: plain Markdown files, a CLI, an MCP server and
+a terminal UI (TUI) written in Go, next to your agent in tmux, WezTerm or any
+terminal.
+
 [![CI](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeSwallow/stickypane/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/LeeSwallow/stickypane?include_prereleases)](https://github.com/LeeSwallow/stickypane/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LeeSwallow/stickypane)](https://goreportcard.com/report/github.com/LeeSwallow/stickypane)
@@ -53,8 +58,8 @@ command.
 Writing a Markdown file is enough; for the rest there are one-line commands
 that need no reading first (`stickypane todo plan check tests`,
 `stickypane chart tokens add input 1200`, `stickypane show README.md`) and the
-same as MCP tools. A 50-line guide, added to `AGENTS.md` or installed as a
-skill, tells it all of this.
+same as MCP tools. A one-screen guide, added to `CLAUDE.md` or `AGENTS.md`,
+or the plugin, tells it all of this.
 
 **What it asks of you.** Nothing to configure: no server, no hooks, no
 terminal plugin. It runs in a plain window, in tmux, WezTerm or Zellij, next
@@ -84,20 +89,26 @@ macOS and Linux are supported.
 
 ```sh
 cd your-project
-stickypane init    # creates .sticky/ and tells your agent about it
-stickypane         # opens the board
+stickypane         # the first time, sets the project up; then opens the board
 ```
 
-`init` adds a short guide to `AGENTS.md` and `CLAUDE.md` (whichever exist; it
-creates `AGENTS.md` if neither does), so your agent knows the board is there.
-`init --skill` installs the guide as a Claude Code skill instead
-(`.claude/skills/stickypane/SKILL.md`), which is read only when a task calls
-for it.
-Then ask it for anything: "keep a checklist of this refactor on the board",
+In a git repository, the first run makes `.sticky/` at the top of the
+repository and tells your agent about the board, then opens it. Then ask
+your agent for anything: "keep a checklist of this refactor on the board",
 "explain the structure on the board as a page".
 
+Telling the agent means a short guide where it reads it: `CLAUDE.md` and
+`AGENTS.md` when they exist, a Claude Code skill
+(`.claude/skills/stickypane/SKILL.md`) when the project has a `.claude`
+folder but no `CLAUDE.md`, and a new `AGENTS.md` when there is nothing. An
+agent with the plugin below installed gets nothing in its file, since the
+plugin teaches it. `stickypane init` does the same without opening the
+board, and works outside a git repository too; it is safe to run again.
+`--skill` writes the skill instead of the instruction files and
+`--no-agent-docs` makes the folder only.
+
 **As a plugin.** The repository is also a Claude Code and Codex plugin, so
-the agent can learn the board without touching your `AGENTS.md`:
+the agent learns the board without a guide in your files:
 
 ```sh
 claude plugin marketplace add LeeSwallow/stickypane
@@ -106,8 +117,10 @@ claude plugin install board@stickypane
 
 It brings three skills (`using-the-board`, `asking-the-user`,
 `tracking-progress`), the commands `/board:show`, `/board:status`,
-`/board:ask` and `/board:setup`, and a session hook that tells the agent
-what is on the board when a session starts in a project that has one.
+`/board:ask`, `/board:kinds` and `/board:setup`, and a session hook that
+tells the agent what is on the board when a session starts in a project
+that has one. No setup step is needed: in a git repository the agent's
+first `stickypane show` or `stickypane todo` makes the board.
 
 Keep the board next to your agent:
 
@@ -166,7 +179,7 @@ and the border says which page the view is on (`docs · 02-usage  2/3`).
 `j` `k`, the wheel and the paging keys scroll through all of it; `,` and
 `.` jump to the page before or after; every other key acts on the page the
 view is on. `stickypane link docs` puts a folder of your project on the
-board without copying it, and `stickypane link README.md` does the same for
+board as a tab without copying it, and `stickypane link README.md` does the same for
 a file; both make a symbolic link, so what you change on the board is
 changed in the real file.
 
@@ -459,8 +472,8 @@ Nothing you do on the board erases a file.
 From the command line:
 
 ```sh
-stickypane mv plan docs/         # into the book docs
-stickypane mv docs/plan .        # back to the top level
+stickypane mv plan deploy/       # into the tab deploy
+stickypane mv deploy/plan .      # back to the first tab
 stickypane mv plan roadmap       # a new name; it keeps its place on the screen
 stickypane rm roadmap            # to .sticky/.trash/
 stickypane restore roadmap       # and back
@@ -516,7 +529,7 @@ The shortest path: put something in front of the user.
 stickypane show plan                 # a note, by name
 stickypane show README.md            # any file of the project: linked and shown
 stickypane show logs/app.log         # a log file: linked, shown and followed live
-stickypane show docs/                # a folder: shown as a book of its files
+stickypane show docs/                # a folder: linked as a tab of its own
 stickypane hide plan
 ```
 

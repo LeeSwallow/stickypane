@@ -55,6 +55,9 @@ const (
 	titleKey   = "title"
 )
 
+// readFile reads a settings file. Tests count the reads through it.
+var readFile = os.ReadFile
+
 // split returns the tab a note's name is in ("" for the root) and the
 // name inside that tab, when the tab exists as a folder.
 func (s *Store) split(name string) (tab, inside string) {
@@ -82,7 +85,7 @@ func (s *Store) viewPath(tab string) string {
 func (s *Store) readViews(tab string) (map[string]json.RawMessage, Views, error) {
 	top := map[string]json.RawMessage{}
 	views := Views{}
-	b, err := os.ReadFile(s.viewPath(tab))
+	b, err := readFile(s.viewPath(tab))
 	if errors.Is(err, fs.ErrNotExist) {
 		return top, views, nil
 	}
@@ -116,177 +119,103 @@ func (s *Store) writeViews(tab string, top map[string]json.RawMessage) error {
 }
 
 // tabs returns the names of the folders that are tabs.
-func (s *Store) tabs() []string {
+func (s *Store) tabs(ignored func(string) bool) []string {
 	entries, _ := os.ReadDir(s.Dir)
 	var out []string
-	ignored := s.ignored()
 	for _, e := range entries {
 		name := e.Name()
 		if strings.HasPrefix(name, ".") || name == ArchiveDir || ignored(name) {
 			continue
 		}
-		if fi, err := os.Stat(filepath.Join(s.Dir, name)); err == nil && fi.IsDir() {
+		if isDir(e, filepath.Join(s.Dir, name)) {
 			out = append(out, name)
 		}
 	}
 	return out
 }
 
-// Views returns how every note is arranged, keyed by full name. A tab's
-// file that cannot be read is reported and that tab's notes arrange
-// themselves; the other tabs are still read.
-func (s *Store) Views() (Views, error) {
-	all := Views{}
-	var failed error
-	for _, tab := range append([]string{""}, s.tabs()...) {
-		_, views, err := s.readViews(tab)
-		if err != nil && failed == nil {
-			failed = err
+// Settings is what the sticky.json files of a board say, read once: the
+// reader's side of the settings. Asking it anything reads nothing more.
+type Settings struct {
+	files map[string]tabFile // by tab; "" is the root file
+	tabs  []string           // the folders that are tabs, in name order
+	err   error              // the first file that could not be read
+}
+
+type tabFile struct {
+	top   map[string]json.RawMessage
+	views Views
+}
+
+// Settings reads the root file and the file of every tab.
+func (s *Store) Settings() Settings {
+	set := Settings{files: map[string]tabFile{}}
+	read := func(tab string) {
+		top, views, err := s.readViews(tab)
+		if err != nil && set.err == nil {
+			set.err = err
 		}
-		for k, v := range views {
+		set.files[tab] = tabFile{top, views}
+	}
+	read("")
+	set.tabs = s.tabs(set.ignored())
+	for _, tab := range set.tabs {
+		read(tab)
+	}
+	return set
+}
+
+// Err returns the first settings file that could not be read. Its tab
+// arranges itself; the other files are still read.
+func (set Settings) Err() error { return set.err }
+
+func (set Settings) str(tab, key string) string {
+	var v string
+	_ = json.Unmarshal(set.files[tab].top[key], &v)
+	return v
+}
+
+// Theme returns the name of the theme the user chose, or "" for none.
+func (set Settings) Theme() string { return set.str("", themeKey) }
+
+// Language returns the language the user chose ("ko"), or "" for none.
+func (set Settings) Language() string { return set.str("", langKey) }
+
+// Tab returns the tab the board was on, "" for the root.
+func (set Settings) Tab() string { return set.str("", tabKey) }
+
+// TabTitle returns the title a tab's file gives it, or "".
+func (set Settings) TabTitle(tab string) string { return set.str(tab, titleKey) }
+
+// Views returns how every note is arranged, keyed by full name.
+func (set Settings) Views() Views {
+	all := Views{}
+	for tab, f := range set.files {
+		for k, v := range f.views {
 			all[path.Join(tab, k)] = v
 		}
 	}
-	return all, failed
-}
-
-// SetView changes one note's view and writes its tab's file in one step.
-// Entries that say nothing, and entries of notes that no longer exist, are
-// dropped. A file that cannot be read is left alone: overwriting it would
-// lose whatever the user was in the middle of fixing.
-func (s *Store) SetView(name string, change func(*View)) error {
-	tab, inside := s.split(name)
-	top, views, err := s.readViews(tab)
-	if err != nil {
-		return err
-	}
-	v := views[inside]
-	change(&v)
-	views[inside] = v
-	for n, v := range views {
-		if _, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(path.Join(tab, n)))); v.empty() || errors.Is(err, fs.ErrNotExist) {
-			delete(views, n)
-		}
-	}
-	raw, err := json.Marshal(views)
-	if err != nil {
-		return err
-	}
-	top[viewKey] = raw
-	return s.writeViews(tab, top)
+	return all
 }
 
 // Order returns the notes of a tab that the user put in an order of their
 // own, by full name, first to last. Notes not in it follow by name.
-func (s *Store) Order(tab string) []string {
-	top, _, err := s.readViews(tab)
-	if err != nil {
-		return nil
-	}
+func (set Settings) Order(tab string) []string {
 	var order []string
-	_ = json.Unmarshal(top[orderKey], &order)
+	_ = json.Unmarshal(set.files[tab].top[orderKey], &order)
 	for i, n := range order {
 		order[i] = path.Join(tab, n)
 	}
 	return order
 }
 
-// SetOrder writes the order of a tab's notes, given by full name.
-func (s *Store) SetOrder(tab string, names []string) error {
-	top, _, err := s.readViews(tab)
-	if err != nil {
-		return err
-	}
-	inside := make([]string, 0, len(names))
-	for _, n := range names {
-		inside = append(inside, strings.TrimPrefix(strings.TrimPrefix(n, tab), "/"))
-	}
-	raw, err := json.Marshal(inside)
-	if err != nil {
-		return err
-	}
-	top[orderKey] = raw
-	return s.writeViews(tab, top)
-}
-
-// rootString reads one string key of the root file.
-func (s *Store) rootString(key string) string {
-	top, _, err := s.readViews("")
-	if err != nil {
-		return ""
-	}
-	var v string
-	_ = json.Unmarshal(top[key], &v)
-	return v
-}
-
-// setRootString writes one string key of the root file.
-func (s *Store) setRootString(key, value string) error {
-	top, _, err := s.readViews("")
-	if err != nil {
-		return err
-	}
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	top[key] = raw
-	return s.writeViews("", top)
-}
-
-// Theme returns the name of the theme the user chose, or "" for none.
-func (s *Store) Theme() string { return s.rootString(themeKey) }
-
-// SetTheme writes the name of the chosen theme.
-func (s *Store) SetTheme(name string) error { return s.setRootString(themeKey, name) }
-
-// Language returns the language the user chose ("ko"), or "" for none.
-func (s *Store) Language() string { return s.rootString(langKey) }
-
-// SetLanguage writes the chosen language.
-func (s *Store) SetLanguage(code string) error { return s.setRootString(langKey, code) }
-
-// Tab returns the tab the board was on, "" for the root.
-func (s *Store) Tab() string { return s.rootString(tabKey) }
-
-// SetTab writes which tab the board is on.
-func (s *Store) SetTab(name string) error { return s.setRootString(tabKey, name) }
-
-// TabTitle returns the title a tab's file gives it, or "".
-func (s *Store) TabTitle(tab string) string {
-	top, _, err := s.readViews(tab)
-	if err != nil {
-		return ""
-	}
-	var v string
-	_ = json.Unmarshal(top[titleKey], &v)
-	return v
-}
-
-// SetTabTitle names a tab in its own file.
-func (s *Store) SetTabTitle(tab, title string) error {
-	top, _, err := s.readViews(tab)
-	if err != nil {
-		return err
-	}
-	raw, err := json.Marshal(title)
-	if err != nil {
-		return err
-	}
-	top[titleKey] = raw
-	return s.writeViews(tab, top)
-}
-
 // ignored returns a test for the names the root file's "ignore" list
 // leaves out. An entry is a name or a pattern such as "*.tmp.md", matched
 // against the note's full name ("docs/draft.md") and against its last part
 // ("draft.md"). The list is written by hand.
-func (s *Store) ignored() func(name string) bool {
-	top, _, err := s.readViews("")
+func (set Settings) ignored() func(name string) bool {
 	var patterns []string
-	if err == nil {
-		_ = json.Unmarshal(top[ignoreKey], &patterns)
-	}
+	_ = json.Unmarshal(set.files[""].top[ignoreKey], &patterns)
 	return func(name string) bool {
 		for _, p := range patterns {
 			if ok, _ := path.Match(p, name); ok {
@@ -299,3 +228,107 @@ func (s *Store) ignored() func(name string) bool {
 		return false
 	}
 }
+
+// Views returns how every note is arranged, keyed by full name. A tab's
+// file that cannot be read is reported and that tab's notes arrange
+// themselves; the other tabs are still read.
+func (s *Store) Views() (Views, error) {
+	set := s.Settings()
+	return set.Views(), set.Err()
+}
+
+// update is the writer's side of the settings: it reads a tab's file as it
+// is now, lets change edit it, and replaces the file in one step. A file
+// that cannot be read is left alone: overwriting it would lose whatever the
+// user was in the middle of fixing.
+func (s *Store) update(tab string, change func(top map[string]json.RawMessage, views Views) error) error {
+	top, views, err := s.readViews(tab)
+	if err != nil {
+		return err
+	}
+	if err := change(top, views); err != nil {
+		return err
+	}
+	return s.writeViews(tab, top)
+}
+
+// put sets one key of a settings file to value, as JSON.
+func put(top map[string]json.RawMessage, key string, value any) error {
+	raw, err := json.Marshal(value)
+	if err == nil {
+		top[key] = raw
+	}
+	return err
+}
+
+// SetView changes one note's view and writes its tab's file in one step.
+// Entries that say nothing, and entries of notes that no longer exist, are
+// dropped.
+func (s *Store) SetView(name string, change func(*View)) error {
+	tab, inside := s.split(name)
+	return s.update(tab, func(top map[string]json.RawMessage, views Views) error {
+		v := views[inside]
+		change(&v)
+		views[inside] = v
+		for n, v := range views {
+			if _, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(path.Join(tab, n)))); v.empty() || errors.Is(err, fs.ErrNotExist) {
+				delete(views, n)
+			}
+		}
+		return put(top, viewKey, views)
+	})
+}
+
+// Order returns the notes of a tab that the user put in an order of their
+// own, by full name. It reads only that tab's file.
+func (s *Store) Order(tab string) []string { return s.one(tab).Order(tab) }
+
+// SetOrder writes the order of a tab's notes, given by full name.
+func (s *Store) SetOrder(tab string, names []string) error {
+	inside := make([]string, 0, len(names))
+	for _, n := range names {
+		inside = append(inside, strings.TrimPrefix(strings.TrimPrefix(n, tab), "/"))
+	}
+	return s.update(tab, func(top map[string]json.RawMessage, _ Views) error {
+		return put(top, orderKey, inside)
+	})
+}
+
+// one reads a single tab's file, for a caller that needs one key of it.
+func (s *Store) one(tab string) Settings {
+	top, views, err := s.readViews(tab)
+	return Settings{files: map[string]tabFile{tab: {top, views}}, err: err}
+}
+
+func (s *Store) setString(tab, key, value string) error {
+	return s.update(tab, func(top map[string]json.RawMessage, _ Views) error {
+		return put(top, key, value)
+	})
+}
+
+// Theme returns the name of the theme the user chose, or "" for none.
+func (s *Store) Theme() string { return s.one("").Theme() }
+
+// SetTheme writes the name of the chosen theme.
+func (s *Store) SetTheme(name string) error { return s.setString("", themeKey, name) }
+
+// Language returns the language the user chose ("ko"), or "" for none.
+func (s *Store) Language() string { return s.one("").Language() }
+
+// SetLanguage writes the chosen language.
+func (s *Store) SetLanguage(code string) error { return s.setString("", langKey, code) }
+
+// Tab returns the tab the board was on, "" for the root.
+func (s *Store) Tab() string { return s.one("").Tab() }
+
+// SetTab writes which tab the board is on.
+func (s *Store) SetTab(name string) error { return s.setString("", tabKey, name) }
+
+// TabTitle returns the title a tab's file gives it, or "".
+func (s *Store) TabTitle(tab string) string { return s.one(tab).TabTitle(tab) }
+
+// SetTabTitle names a tab in its own file.
+func (s *Store) SetTabTitle(tab, title string) error { return s.setString(tab, titleKey, title) }
+
+// ignored returns the test of the root file's ignore list.
+func (s *Store) ignored() func(name string) bool { return s.one("").ignored() }

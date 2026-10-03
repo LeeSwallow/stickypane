@@ -203,3 +203,21 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 		t.Errorf("back to English:\n%s", s)
 	}
 }
+
+// `stickypane language ko` while the board is open is followed at once:
+// the change to sticky.json is enough, as it is for the tab.
+func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	t.Cleanup(func() { UseLanguage("en") })
+	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
+	writeView(t, dir, `{"language":"ko"}`)
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
+		t.Errorf("the screen should turn Korean without a restart:\n%s", s)
+	}
+	writeView(t, dir, `{"language":"en"}`)
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "Nothing is open") {
+		t.Errorf("and back to English:\n%s", s)
+	}
+}

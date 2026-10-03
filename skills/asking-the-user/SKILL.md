@@ -5,13 +5,71 @@ description: Use when a decision is the user's to make (which option, which targ
 
 # Asking the user on the board
 
-## Loading instructions
+```sh
+# 1. write .sticky/deploy.md (below), then
+stickypane show deploy
+# 2. wait for a button, always with a limit
+stickypane wait deploy --timeout 10m
+```
 
-1. Read `references/rules.md`: when a form is the right way to ask, and
-   when it is not.
-2. Read `references/flow.md` to write the form, show it, wait, and read the
-   answer.
-3. Copy the shape from `references/form.md` when writing the file.
+The form:
 
-This skill blocks on the user with a time limit and reports what they
-chose. It does not act on the answer: the caller does.
+```markdown
+---
+type: form
+title: Deploy now?
+---
+The build is green. Where should it go?
+
+## Target
+- ( ) staging
+  Try it there first.
+- ( ) production
+
+## Also
+- [ ] run migrations
+
+## Note
+>
+
+[ Deploy ] [ Cancel ]
+```
+
+| Line | Is |
+| --- | --- |
+| `- ( ) text` | one choice among the options under the same heading |
+| `- [ ] text` | any number of choices |
+| indented line under an option | what choosing it means |
+| `> ` | a line the user types into |
+| `[ Label ] [ Label ]` | the buttons; a form without any gets `[ Submit ]` |
+
+`wait` prints one line per question:
+
+```
+submitted: Deploy
+at: 2026-10-02T14:03:05+09:00
+Target: production
+Also: run migrations
+Note: after lunch
+```
+
+`--json` gives `{"submitted":true,"button":"Deploy","answers":[...]}`. Exit
+code 3: the time ran out and nothing is printed. Exit code 1: the note is
+not a form or is not there. `stickypane answers deploy` prints the same now,
+without waiting (`submitted: no` until a button is pressed).
+
+Report the answer in one line; acting on it is the caller's job. Then
+`stickypane hide deploy`, or leave the form as the record of the decision.
+
+## Rules
+
+- Ask only what you cannot decide yourself, and only once.
+- One question, or a few that belong together, per form. A question is a
+  heading with its options under it.
+- Name buttons by what they do (`[ Deploy ] [ Cancel ]`), never `[ OK ]`.
+- When the time runs out, say so and take the safe path or ask in chat.
+  Never guess the answer.
+- To ask again, write the form without the `submitted` keys; a form that
+  still has them answers at once with the old choice.
+- Read the answer with `wait` or `answers`, not by reading the marks in the
+  file yourself.

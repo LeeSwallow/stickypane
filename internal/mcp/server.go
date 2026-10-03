@@ -207,7 +207,7 @@ var tools = []tool{
 // (read_answers): it runs on the side, so other requests are answered while
 // it waits. Such a call ends early, with the answers so far, when the client
 // cancels it or the input ends.
-func (s *Server) Serve(in io.Reader, out io.Writer) error {
+func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 	r := bufio.NewReader(in)
 	enc := json.NewEncoder(out)
 	enc.SetEscapeHTML(false)
@@ -221,7 +221,7 @@ func (s *Server) Serve(in io.Reader, out io.Writer) error {
 			werr = enc.Encode(resp)
 		}
 	}
-	ctx, stop := context.WithCancel(context.Background())
+	ctx, stop := context.WithCancel(ctx)
 	waits := map[string]context.CancelFunc{} // running waits by request id
 	var running sync.WaitGroup
 	finish := func() error {

@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -86,17 +87,17 @@ func fileName(name string) (string, error) {
 	return name, nil
 }
 
-func validSize(size string) bool {
-	return size == widget.SizePage || size == widget.SizeHalf || size == widget.SizeCard
-}
-
 // List describes every note, ordered by file name.
 func (a *API) List() ([]Info, error) {
-	notes, err := a.st.Scan()
+	board, err := a.st.Load()
 	if err != nil {
 		return nil, err
 	}
-	views, _ := a.st.Views() // a broken file arranges nothing
+	var notes []store.Note
+	for _, t := range board.Tabs {
+		notes = append(notes, t.Notes...)
+	}
+	views := board.Settings.Views() // a broken file arranges nothing
 	infos := make([]Info, 0, len(notes))
 	// describe lists a file. Where it is on the screen is said by
 	// sticky.json for the note it belongs to (a page belongs to its book),
@@ -104,31 +105,14 @@ func (a *API) List() ([]Info, error) {
 	describe := func(n store.Note, owner store.Note) {
 		kind := a.reg.For(n.Name, n.Doc)
 		v := views[owner.Name]
-		info := Info{Name: n.Name, Type: kind.Name, Pinned: owner.Doc.Pinned()}
-		if v.Pin != nil {
-			info.Pinned = *v.Pin
-		}
-		info.Title = views[n.Name].Title
-		if info.Title == "" {
-			info.Title, _ = n.Doc.Get("title")
-		}
-		if info.Title == "" {
-			base := filepath.Base(n.Name)
-			info.Title = strings.TrimSuffix(base, filepath.Ext(base))
-		}
-		open, _ := owner.Doc.Get("open")
-		info.Open = strings.EqualFold(open, "true")
-		if v.Open != nil {
-			info.Open = *v.Open
-		}
-		size, _ := owner.Doc.Get("size")
-		switch {
-		case validSize(strings.ToLower(v.Size)):
-			info.Size = strings.ToLower(v.Size)
-		case validSize(strings.ToLower(size)):
-			info.Size = strings.ToLower(size)
-		case kind.Size != nil:
-			info.Size = kind.Size(n.Doc)
+		open, _ := arrange.Open(v, owner.Doc)
+		info := Info{
+			Name:   n.Name,
+			Type:   kind.Name,
+			Title:  arrange.Title(views[n.Name], n.Doc, n.Name),
+			Open:   open,
+			Size:   arrange.Size(v, owner.Doc, kind, n.Doc),
+			Pinned: arrange.Pinned(v, owner.Doc),
 		}
 		infos = append(infos, info)
 	}
@@ -180,7 +164,7 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 		d = d.Set("open", "true")
 	}
 	if opts.Size != "" {
-		if !validSize(opts.Size) {
+		if !arrange.ValidSize(opts.Size) {
 			return "", fmt.Errorf("unknown size %q: use page, half or card", opts.Size)
 		}
 		d = d.Set("size", opts.Size)

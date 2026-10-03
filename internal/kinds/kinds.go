@@ -60,7 +60,7 @@ func styled(th *theme.Holder) note.Renderer {
 			}
 			renderers[k] = r
 		}
-		out, err := r.Render(markdown)
+		out, err := r.Render(joinListLines(markdown))
 		if err != nil {
 			return note.Plain(markdown, width)
 		}

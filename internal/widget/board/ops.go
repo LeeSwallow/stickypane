@@ -8,68 +8,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// cardSpan is a card's place in the body: its first line and the detail
-// lines below it, as the half-open line range [start, end).
-type cardSpan struct {
-	text       string
-	start, end int
-}
-
-// colSpan is a column: its "## " heading line and the cards below it.
-type colSpan struct {
-	title string
-	head  int
-	cards []cardSpan
-}
-
-func isHeading(line string) bool { return strings.HasPrefix(line, "## ") }
-
-func isBlank(line string) bool { return strings.TrimSpace(line) == "" }
-
-func isDetail(line string) bool {
-	return (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) && !isBlank(line)
-}
-
-// cardText is what identifies and labels a card: the line without its list
-// marker. A line that is not a list item is a card too, so nothing written
-// under a column is ever hidden.
-func cardText(line string) string {
-	if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
-		line = line[2:]
-	}
-	return strings.TrimSpace(line)
-}
-
-// scan finds the columns and cards in body lines. Every non-blank line under
-// a column starts a card and owns the indented lines below it, including
-// blank lines inside those details (such as in a code block). Lines before
-// the first heading belong to no column.
-func scan(lines []string) []colSpan {
-	var cols []colSpan
-	for i := 0; i < len(lines); i++ {
-		line := lines[i]
-		if isHeading(line) {
-			cols = append(cols, colSpan{title: strings.TrimSpace(line[3:]), head: i})
-			continue
-		}
-		if len(cols) == 0 || isBlank(line) {
-			continue
-		}
-		c := cardSpan{text: cardText(line), start: i, end: i + 1}
-		for j := c.end; j < len(lines); j++ {
-			if isDetail(lines[j]) {
-				c.end = j + 1
-			} else if !isBlank(lines[j]) {
-				break
-			}
-		}
-		last := &cols[len(cols)-1]
-		last.cards = append(last.cards, c)
-		i = c.end - 1
-	}
-	return cols
-}
-
 func findCol(cols []colSpan, title string) int {
 	for i, c := range cols {
 		if c.title == title {
@@ -259,16 +197,7 @@ func (o Add) Apply(d doc.Document) (doc.Document, error) {
 		}
 	}
 	if findCol(cols, col) < 0 {
-		eol := doc.EOL(d.Body)
-		if d.Body != "" && !strings.HasSuffix(d.Body, "\n") {
-			d.Body += eol + "\n"
-		}
-		d.Body += "## " + strings.TrimSpace(col) + eol + "\n"
+		d.Body = doc.AppendLine(d.Body, "## "+strings.TrimSpace(col))
 	}
-	return AddCard{Col: strings.TrimSpace(col), Text: oneLine(o.Card)}.Apply(d)
-}
-
-// oneLine keeps text that becomes a line of the file to one line.
-func oneLine(s string) string {
-	return strings.Join(strings.Fields(strings.NewReplacer("\r", " ", "\n", " ").Replace(s)), " ")
+	return AddCard{Col: strings.TrimSpace(col), Text: doc.OneLine(o.Card)}.Apply(d)
 }

@@ -3,14 +3,11 @@ description: What is on the stickypane board right now
 allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/scripts/board-context.sh), Bash(stickypane:*)
 ---
 
-## The board
-
 !`${CLAUDE_PLUGIN_ROOT}/scripts/board-context.sh`
 
-## To do
-
-Say in a few lines what the user has open and what the agent-facing notes
-(checklists, boards, forms) stand at. Exit code 3 means there is no board:
-offer `/board:setup`. Exit code 4 means stickypane is not installed: say
-how to install it. Do not read every file; use the list, and
-`stickypane cat <name>` only for a note the user asks about.
+Say in a few lines what is open on the board and where the checklists,
+boards and forms stand, from the list above. Read a note with
+`stickypane cat <name>` only when the user asks about it.
+`STICKYPANE_INSTALLED=no`: say how to install it (`brew install --cask
+LeeSwallow/tap/stickypane`). An empty `BOARD_DIR`: there is no board yet;
+the first `stickypane show` or `todo` makes one.

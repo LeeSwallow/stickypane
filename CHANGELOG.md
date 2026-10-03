@@ -22,8 +22,11 @@ share.
   trash with undo, a built-in vi-like editor, ten color themes.
 - A command line and an MCP server for agents: `show`, one-thing edits
   (`todo`, `card`, `chart`, `log`, `set`), `rm`/`mv`/`restore`/`archive`/
-  `link`, forms with `answers` and `wait`, `init --skill`.
-- A Claude Code and Codex plugin with three skills, four commands and a
+  `link`, forms with `answers` and `wait`.
+- Setup on first use: `stickypane` in a git repository makes the board and
+  puts the agent guide where each agent reads it, or nowhere when the
+  plugin teaches it; `stickypane init` does the same on its own.
+- A Claude Code and Codex plugin with three skills, five commands and a
   session hook.
 
 ### Known limits

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
@@ -197,51 +198,6 @@ func (o setKeys) Apply(d doc.Document) (doc.Document, error) {
 	return d, nil
 }
 
-// arrange returns the change a key about the arrangement makes to a view,
-// or false when the key is about something else. An empty value takes the
-// key back out, so the note arranges itself again.
-func arrange(key, value string) (func(*store.View), bool, error) {
-	flag := func(set func(*store.View, *bool)) (func(*store.View), bool, error) {
-		switch strings.ToLower(value) {
-		case "":
-			return func(v *store.View) { set(v, nil) }, true, nil
-		case "true", "false":
-			b := strings.EqualFold(value, "true")
-			return func(v *store.View) { set(v, &b) }, true, nil
-		}
-		return nil, true, fmt.Errorf("%s is true or false, not %q", key, value)
-	}
-	switch key {
-	case "open":
-		return flag(func(v *store.View, b *bool) { v.Open = b })
-	case "pin":
-		return flag(func(v *store.View, b *bool) { v.Pin = b })
-	case "size":
-		if value != "" && !validSize(value) {
-			return nil, true, fmt.Errorf("unknown size %q: use page, half or card", value)
-		}
-		return func(v *store.View) { v.Size = value }, true, nil
-	case "rows":
-		n := 0
-		if value != "" {
-			var err error
-			if n, err = strconv.Atoi(value); err != nil || n < 1 {
-				return nil, true, fmt.Errorf("rows is a number of lines, not %q", value)
-			}
-		}
-		return func(v *store.View) { v.Rows = n }, true, nil
-	case "color":
-		if value != "" && !slices.Contains(colors, strings.ToLower(value)) {
-			return nil, true, fmt.Errorf("unknown color %q: use %s", value, strings.Join(colors, ", "))
-		}
-		return func(v *store.View) { v.Color = strings.ToLower(value) }, true, nil
-	}
-	return nil, false, nil
-}
-
-// colors are the note colors.
-var colors = []string{"yellow", "pink", "blue", "green", "purple", "orange"}
-
 // Set changes keys of an existing note and nothing else. Each pair is
 // "key=value"; "key=" removes the key. Keys about where the note is on the
 // screen (open, size, rows, color, pin) go to sticky.json, where the user's
@@ -275,7 +231,7 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 		} else {
 			set = append(set, key)
 		}
-		change, isView, err := arrange(key, value)
+		change, isView, err := arrange.Change(key, value)
 		if key == "title" && (book || !strings.EqualFold(filepath.Ext(file), ".md") || a.st.Linked(file)) {
 			// A note without front matter is named in sticky.json.
 			change, isView = func(v *store.View) { v.Title = value }, true
@@ -500,7 +456,16 @@ func (a *API) Link(target, name string) (string, error) {
 // something in front of the user.
 func (a *API) Show(target string) (string, error) {
 	target = strings.TrimSpace(target)
-	if abs, err := filepath.Abs(target); err == nil && (strings.ContainsAny(target, `/\`) || filepath.IsAbs(target)) {
+	isPath := strings.ContainsAny(target, `/\`) || filepath.IsAbs(target)
+	// A bare name is a note first. Only when no note has that name is it
+	// taken as a file of the project, so `show README.md` works as the
+	// README says.
+	if !isPath && target != "" && !strings.HasPrefix(target, ".") && !a.hasNote(target) {
+		if _, err := os.Stat(target); err == nil {
+			isPath = true
+		}
+	}
+	if abs, err := filepath.Abs(target); err == nil && isPath {
 		if _, err := os.Stat(abs); err == nil {
 			name := filepath.Base(abs)
 			if linked, err := filepath.EvalSymlinks(filepath.Join(a.st.Dir, name)); err != nil || !sameFile(linked, abs) {
@@ -534,6 +499,16 @@ func (a *API) Show(target string) (string, error) {
 		}
 	}
 	return "showing " + file, nil
+}
+
+// hasNote reports whether name is a note on the board.
+func (a *API) hasNote(name string) bool {
+	file, _, err := a.target(name)
+	if err != nil {
+		return false
+	}
+	_, err = os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file)))
+	return err == nil
 }
 
 // Hide folds a note away.

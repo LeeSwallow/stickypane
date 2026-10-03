@@ -2,10 +2,15 @@
 
 **코딩 에이전트가 쓰고 당신이 읽는, 터미널 속 보드.**
 
+Claude Code, Codex 같은 AI 코딩 에이전트를 위한 칸반, 체크리스트, 차트, 폼,
+실시간 로그. 평범한 Markdown 파일과 CLI, MCP 서버, Go로 만든 터미널 UI(TUI)로
+이루어져 있고 tmux, WezTerm 등 어느 터미널에서든 에이전트 옆에 띄웁니다.
+
 [English](README.md) · 한국어
 
-> 이 문서는 `README.md`의 번역이며 요약본입니다(커밋 `8e8b745` 기준). 영문이
-> 원본이고 더 자세합니다. 두 문서가 다르면 영문이 맞습니다.
+> 이 문서는 `README.md`의 번역이며 요약본입니다(커밋 `8e8b745` 기준이고, '시작'
+> 절과 폴더 표는 그 뒤에 바뀐 init과 탭까지 반영했습니다). 영문이 원본이고 더
+> 자세합니다. 두 문서가 다르면 영문이 맞습니다.
 
 ```
  ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
@@ -49,13 +54,20 @@ macOS와 Linux를 지원합니다.
 
 ```sh
 cd your-project
-stickypane init          # .sticky/ 를 만들고 에이전트에게 알립니다
-stickypane               # 보드를 엽니다
+stickypane               # 처음엔 프로젝트를 준비하고, 보드를 엽니다
 stickypane language ko   # 화면을 한국어로
 ```
 
-`init`은 `AGENTS.md`나 `CLAUDE.md`에 짧은 안내문을 넣습니다. `init --skill`은
-대신 Claude Code 스킬로 설치합니다. 플러그인으로 쓰려면:
+git 저장소에서 처음 실행하면 저장소 맨 위에 `.sticky/`를 만들고 에이전트에게
+보드를 알린 뒤 엽니다. 알리는 방법은 있는 것을 보고 정합니다. `CLAUDE.md`와
+`AGENTS.md`가 있으면 거기에 짧은 안내문을 넣고, `CLAUDE.md` 없이 `.claude`
+폴더만 있으면 Claude Code 스킬로 넣고, 아무것도 없으면 `AGENTS.md`를 만듭니다.
+아래 플러그인이 설치된 에이전트의 파일은 건드리지 않습니다. `stickypane init`은
+보드를 열지 않고 같은 일을 하며, git 저장소 밖에서도 되고 여러 번 실행해도
+안전합니다.
+
+플러그인으로 쓰려면 아래 두 줄이면 됩니다. 따로 준비할 것은 없습니다. git
+저장소에서는 에이전트의 첫 `stickypane show`나 `todo`가 보드를 만듭니다.
 
 ```sh
 claude plugin marketplace add LeeSwallow/stickypane
@@ -74,7 +86,8 @@ claude plugin install board@stickypane
 | `*.md` | 노트. 머리말 `type`으로 `board`(칸반), `checklist`, `chart`, `form`, `log` |
 | `*.log` `*.txt` `*.out` | 로그. 그대로 보여 주고 자라는 대로 따라감 |
 | `*.sh` | 스크립트. 실행 버튼이 달림 (매번 y/n 확인 후 프로젝트 폴더에서 실행) |
-| 폴더 | 페이지가 있는 노트. 파일 하나가 페이지 하나, `,` `.`으로 넘김 |
+| 폴더 | 탭. 화면 하나를 따로 가지며 그 안의 파일이 노트 |
+| 탭 안의 폴더 | 페이지가 있는 노트. 파일 하나가 페이지 하나, `,` `.`으로 넘김 |
 
 마크다운 노트 안의 ```mermaid 블록은 그림으로 그려집니다(순서도, 시퀀스, ER).
 `stickypane show README.md`처럼 프로젝트의 어떤 파일이든 복사 없이 보드에

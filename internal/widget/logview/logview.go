@@ -20,6 +20,8 @@ var Kind = widget.Kind{
 	Label:    "Log",
 	Icon:     "≣",
 	Blurb:    "One entry per line. The newest entries stay in sight.",
+	Command:  "stickypane log worklog --time \"tests passed\"",
+	Usage:    "A note with \"type: log\" or any .log, .txt or .out file. It follows its end as the file grows, until the user scrolls up.",
 	Example:  "14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
 	Tail:     true,
 	Rows:     rows,
@@ -85,11 +87,6 @@ type Append struct{ Line string }
 
 // Apply implements doc.Op.
 func (o Append) Apply(d doc.Document) (doc.Document, error) {
-	line := strings.TrimSpace(strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(o.Line))
-	eol := doc.EOL(d.Body)
-	if d.Body != "" && !strings.HasSuffix(d.Body, "\n") {
-		d.Body += eol + "\n"
-	}
-	d.Body += line + eol + "\n"
+	d.Body = doc.AppendLine(d.Body, doc.OneLine(o.Line))
 	return d, nil
 }

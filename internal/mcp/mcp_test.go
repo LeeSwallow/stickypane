@@ -2,6 +2,7 @@ package mcp_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ func serve(t *testing.T, requests ...string) ([]response, string) {
 	}
 	s := &mcp.Server{API: api.New(store.Open(dir), kinds.Default(note.Plain)), Guide: "GUIDE TEXT", Version: "test"}
 	var out bytes.Buffer
-	if err := s.Serve(strings.NewReader(strings.Join(requests, "\n")+"\n"), &out); err != nil {
+	if err := s.Serve(context.Background(), strings.NewReader(strings.Join(requests, "\n")+"\n"), &out); err != nil {
 		t.Fatal(err)
 	}
 	var responses []response

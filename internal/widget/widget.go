@@ -92,6 +92,11 @@ type Kind struct {
 	// note of this shape; the catalog shows both.
 	Blurb   string
 	Example string
+	// Command is the one line that makes or changes a note of this shape
+	// from the command line, and Usage says in a sentence or two how the
+	// note behaves. `stickypane kinds` prints them; the agent reads them.
+	Command string
+	Usage   string
 	// Keys lists, separated by spaces, the keys an open note of this kind
 	// handles itself. Every other key belongs to the screen.
 	Keys string

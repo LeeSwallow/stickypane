@@ -60,3 +60,16 @@ func TestMarkdownRendersWithinWidth(t *testing.T) {
 		}
 	}
 }
+
+// A list item written over two lines is one item: its second line is not
+// drawn as a line of its own at the left edge.
+func TestAListItemOverTwoLinesStaysOneItem(t *testing.T) {
+	r := Markdown(theme.NewHolder(theme.Pick("stickypane-dark", true)))
+	out := ansi.Strip(r("- **e** edits a note, **D** deletes it and\n  **u** takes that back\n- next\n\n```\n- code\n  stays\n```\n", 60))
+	if !strings.Contains(out, "deletes it and u takes that back") {
+		t.Errorf("the second line should continue the item:\n%s", out)
+	}
+	if !strings.Contains(out, "  stays") {
+		t.Errorf("a code block keeps its lines:\n%s", out)
+	}
+}
