@@ -16,25 +16,7 @@ English · [한국어](README.ko.md)
 
 [Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Contributing](#contributing) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
 
-```
- ▦ Auth work   ☑ Login API   ≣ build   ▤ Tokens   ◉ Deploy now?   ✎ notes          1/1
-╔ ▦ Auth work ═══════════════════════════════════════════════════════════ 4 cards ╗
-║ To do (1)               Doing (1)               Done (2)                       ║
-║ ─────────────────────   ─────────────────────   ─────────────────────          ║
-║ ▎ payments              › login API             ▎ schema                       ║
-║                             refresh tokens      ▎ CI setup                     ║
-╚═════════════════════════════════════════════════════════════════════════════════╝
-╭ ☑ Login API ─────────────── 2/3 ╮╭ ≣ build ──────────────────────── 212 lines ╮
-│ ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3        ││ ok   internal/store      0.41s             █
-│   ☑ Add endpoint                ││ ok   internal/widget     0.38s             █
-│   ☑ Validate input              ││ [exit 0 · 7.15s]                           █
-│   ☐ Write tests                 │╰────────────────────────────────────────────╯
-╰─────────────────────────────────╯╭ ◉ Deploy now? ─────────────────────── 1/2 ╮
-                                   │   ○ staging      ◉ production              │
-                                   │ ┏━━━━━━━━┓ ╭────────╮                      │
-                                   │ ┃ Deploy ┃ │ Cancel │                      │
-h l j k move  H L shift card  n new card  enter zoom  o close  tab next  ? help
-```
+![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
 
 An agent working in the pane next to you produces a lot of text, and the
 things that matter scroll away with it: where the plan stands, what is done,
@@ -370,6 +352,11 @@ shown for that run, so what your agent just wrote is in front of you at once.
 
 ## Shapes of a Markdown note
 
+Front matter gives a Markdown note its shape. Below, a release tab with
+four of them: a log, a form, a Mermaid diagram and a chart.
+
+![A release tab: a build log, a form that asks where to deploy with buttons to answer, a Mermaid diagram and a sparkline](demo/screenshots/2-release.png)
+
 **Board.** Each `## Heading` is a column and each top-level list item is a
 card. Indented lines under a card are its details. Any other line under a
 column shows up as a card too, and text before the first heading is the
@@ -560,6 +547,8 @@ folder. `f` on a note lists the notes it links to and the notes that link
 to it, and `enter` goes there; the index shows how many notes link to each
 one, and `stickypane index --json` lists `links` and `backlinks`.
 
+![A commit calendar, a note that links to others and shows a checklist inside it, and a bar chart](demo/screenshots/3-notes.png)
+
 A line that is only `![[plan]]` shows that note there, in its own shape and
 read only: a checklist with its progress, a board with its columns. It
 follows the note it shows. Embeds go one level deep.
@@ -621,6 +610,8 @@ pages. Each line has the note's shape, title, what it counts (`2/5`,
 filter, choose with the arrows, and `enter` goes to the note, switching tab
 and opening it.
 
+![The index: every note of every tab in a line, with what it counts and a gist](demo/screenshots/4-index.png)
+
 The gist is the note's own `summary:` from its front matter when it has
 one, so a note can say in a line what it is; otherwise it is what to look
 at first: the next open item of a checklist, the latest line of a log, the
@@ -636,6 +627,8 @@ Nothing has to be set: every setting has a default and the board works as
 it is. `S` on the board opens the settings panel: `j` `k` pick a setting,
 `h` `l` change it, and it applies at once. `stickypane config` does the
 same from the command line.
+
+![The settings panel: theme, language, time format, editor and when a card counts as stalled, each with a default](demo/screenshots/5-settings.png)
 
 | Setting | Default | Changes |
 | --- | --- | --- |
