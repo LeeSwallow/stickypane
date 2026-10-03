@@ -444,8 +444,8 @@ func TestKeysReachTheFocusedOpenNote(t *testing.T) {
 
 func TestSpaceTogglesAChecklistItemInPlace(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
-	press(m, "j", "space")
-	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [x] build\n- [x] ship\n") {
+	press(m, "space") // the open item is first on the screen
+	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(plain(got), "- [x] build\n- [x] ship\n") || !strings.Contains(got, "ship ✅ ") {
 		t.Errorf("file = %q", got)
 	}
 	if s := screen(m); !strings.Contains(s, "2/2") {

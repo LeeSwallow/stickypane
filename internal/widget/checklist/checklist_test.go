@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 
@@ -50,9 +51,11 @@ func TestDrawShowsProgressAndEveryLine(t *testing.T) {
 		"▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3",
 		"",
 		"## Login API",
+		"  ☐ Write tests",
+		"",
+		"Done (2)",
 		"  ☑ Add endpoint",
 		"  ☑ Validate input",
-		"  ☐ Write tests",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
 		t.Errorf("Draw:\n%s\nwant:\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -91,7 +94,8 @@ func TestCursorShowsOnlyWhenActive(t *testing.T) {
 	w := parseBody(body)
 	w, _ = w.Update("j")
 	lines, cursor := draw(w, 40, true)
-	if cursor < 0 || lines[cursor] != "› ☑ Validate input" {
+	// The open item comes first on the screen, so j reaches the done ones.
+	if cursor < 0 || lines[cursor] != "› ☑ Add endpoint" {
 		t.Errorf("cursor = %d, lines = %q", cursor, lines)
 	}
 	if lines, cursor := draw(w, 40, false); cursor != -1 || strings.Contains(strings.Join(lines, "\n"), "›") {
@@ -168,23 +172,25 @@ func TestAddItem(t *testing.T) {
 }
 
 func TestSpaceTogglesItemUnderCursor(t *testing.T) {
+	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
+	t.Cleanup(func() { now = time.Now })
 	w := parseBody(body)
-	w, _ = w.Update("j")
-	w, _ = w.Update("j")
-	w, res := w.Update("space")
-	if want := (Toggle{Text: "Write tests", Checked: true}); res.Op != want {
+	w, res := w.Update("space") // the open item is first on the screen
+	if want := (Toggle{Text: "Write tests", Checked: true, At: "2026-10-03 14:02"}); res.Op != want {
 		t.Fatalf("Op = %+v, want %+v", res.Op, want)
 	}
-	if lines, cursor := draw(w, 40, true); lines[cursor] != "› ☑ Write tests" {
+	if lines, cursor := draw(w, 40, true); !strings.HasPrefix(lines[cursor], "› ☑ Write tests") || !strings.HasSuffix(lines[cursor], "14:02") {
 		t.Errorf("the item should look checked right away: %q", lines)
 	}
 }
 
 func TestSpaceCarriesTheDuplicateIndex(t *testing.T) {
+	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
+	t.Cleanup(func() { now = time.Now })
 	w := parseBody(sameItems)
 	w, _ = w.Update("j")
 	_, res := w.Update("space")
-	if want := (Toggle{Text: "tests", Checked: true, Nth: 1}); res.Op != want {
+	if want := (Toggle{Text: "tests", Checked: true, Nth: 1, At: "2026-10-03 14:02"}); res.Op != want {
 		t.Errorf("Op = %+v, want %+v", res.Op, want)
 	}
 }

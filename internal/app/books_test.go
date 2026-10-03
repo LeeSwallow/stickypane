@@ -96,7 +96,7 @@ func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 	writeFile(t, dir, "t/docs/b-todo.md", "---\ntype: checklist\n---\n- [ ] one\n- [ ] two\n")
 	writeView(t, dir, openAll)
 	press(m, "r", ".", "j", "space")
-	if got := readFile(t, dir, "t/docs/b-todo.md"); !strings.HasSuffix(got, "- [ ] one\n- [x] two\n") {
+	if got := readFile(t, dir, "t/docs/b-todo.md"); !strings.Contains(got, "- [ ] one\n- [x] two ✅ ") {
 		t.Fatalf("space should tick the item of the page the view is on: %q", got)
 	}
 	if s := screen(m); !strings.Contains(s, "2/2 · 1/2") {

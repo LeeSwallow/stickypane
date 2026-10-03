@@ -3,6 +3,7 @@ package checklist
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 )
@@ -11,6 +12,7 @@ type entry struct {
 	text    string
 	item    bool
 	checked bool
+	done    time.Time // when a finished item was done, if the line says
 }
 
 // list is what a checklist note says: the reader's side, with no screen
@@ -29,7 +31,8 @@ func read(d doc.Document) list {
 		line = strings.TrimRight(line, "\r")
 		if m := itemRe.FindStringSubmatch(line); m != nil {
 			c.items = append(c.items, len(c.entries))
-			c.entries = append(c.entries, entry{text: strings.TrimSpace(m[4]), item: true, checked: m[2] != " "})
+			text, done := splitStamp(strings.TrimSpace(m[4]))
+			c.entries = append(c.entries, entry{text: text, item: true, checked: m[2] != " ", done: done})
 			continue
 		}
 		c.entries = append(c.entries, entry{text: strings.TrimRight(line, " \t")})

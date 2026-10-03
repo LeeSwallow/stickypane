@@ -4,7 +4,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -25,7 +27,14 @@ func newAPI(t *testing.T, files map[string]string) (*API, string) {
 	return New(store.Open(dir), kinds.Default(note.Plain)), dir
 }
 
+// read returns a note's text without the times stickypane keeps in it;
+// readRaw returns it as it is.
 func read(t *testing.T, dir, name string) string {
+	t.Helper()
+	return plain(readRaw(t, dir, name))
+}
+
+func readRaw(t *testing.T, dir, name string) string {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join(dir, name))
 	if err != nil {
@@ -53,6 +62,10 @@ func TestListDescribesEveryNote(t *testing.T) {
 		t.Fatalf("got %d notes, want %d: %+v", len(got), len(want), got)
 	}
 	for i := range want {
+		if got[i].Modified.IsZero() {
+			t.Errorf("note %d has no modified time", i)
+		}
+		got[i].Modified, got[i].Created = time.Time{}, time.Time{} // checked by their own tests
 		if got[i] != want[i] {
 			t.Errorf("note %d = %+v, want %+v", i, got[i], want[i])
 		}
@@ -135,5 +148,42 @@ func TestBadNamesAreRejected(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(filepath.Dir(dir)); len(entries) != 1 {
 		t.Errorf("nothing may be written outside the notes folder: %v", entries)
+	}
+}
+
+// list says when each note last changed, for agents that want to know
+// what moved since they looked.
+func TestListSaysWhenANoteChanged(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"a.md": "a\n"})
+	at := time.Date(2026, 10, 3, 14, 2, 0, 0, time.UTC)
+	if err := os.Chtimes(filepath.Join(dir, "a.md"), at, at); err != nil {
+		t.Fatal(err)
+	}
+	infos, err := a.List()
+	if err != nil || len(infos) != 1 || !infos[0].Modified.Equal(at) {
+		t.Errorf("List = %+v, %v", infos, err)
+	}
+}
+
+// A note stickypane makes says when it was made, and list says it; an item
+// ticked in a note written whole gets its time too.
+func TestStickypaneKeepsTheTimes(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	if _, err := a.Todo("plan", "add", "tests"); err != nil {
+		t.Fatal(err)
+	}
+	if got := readRaw(t, dir, "plan.md"); !strings.Contains(got, "\ncreated: ") {
+		t.Errorf("a new note says when it was made:\n%s", got)
+	}
+	if _, err := a.Write("done", Options{Type: "checklist"}, []byte("- [x] shipped\n")); err != nil {
+		t.Fatal(err)
+	}
+	got := readRaw(t, dir, "done.md")
+	if !strings.Contains(got, "\ncreated: ") || !strings.Contains(got, "- [x] shipped ✅ ") {
+		t.Errorf("write keeps the times:\n%s", got)
+	}
+	infos, err := a.List()
+	if err != nil || len(infos) != 2 || infos[0].Created.IsZero() {
+		t.Errorf("list says when each note was made: %+v, %v", infos, err)
 	}
 }

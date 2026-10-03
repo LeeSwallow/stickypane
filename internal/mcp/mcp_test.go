@@ -154,7 +154,7 @@ func TestToolsReadAndWriteNotes(t *testing.T) {
 		t.Errorf("write_note = %+v", got)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "plan.md"))
-	if err != nil || string(b) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: half\n---\n- [ ] 한글 항목\n" {
+	if err != nil || plain(string(b)) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: half\n---\n- [ ] 한글 항목\n" {
 		t.Errorf("file = %q, %v", b, err)
 	}
 	if got := call(t, rs[3]).Content[0].Text; got != "GUIDE TEXT" {
@@ -268,7 +268,7 @@ func TestSmallEdits(t *testing.T) {
 	if got := call(t, byID(t, rs, 8)); !got.IsError || !strings.Contains(got.Content[0].Text, "write tests") {
 		t.Errorf("a failed edit should say what there is: %+v", got)
 	}
-	if b, _ := os.ReadFile(filepath.Join(dir, "plan.md")); !strings.Contains(string(b), "- [x] write tests\n") {
+	if b, _ := os.ReadFile(filepath.Join(dir, "plan.md")); !strings.Contains(string(b), "- [x] write tests ✅ ") {
 		t.Errorf("plan.md = %q", b)
 	}
 	views, err := store.Open(dir).Views()

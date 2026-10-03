@@ -3,6 +3,8 @@ package app
 import (
 	"image/color"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -106,5 +108,13 @@ func (m *Model) summary(it item) string {
 	if m.running[it.file().Name] {
 		return tr.Running
 	}
-	return it.w.Summary()
+	s := it.w.Summary()
+	// A log says when it last grew, so one that stopped is seen to.
+	if it.kind.Tail && !it.file().ModTime.IsZero() {
+		if s != "" {
+			s += " · "
+		}
+		s += when.Short(it.file().ModTime, m.now())
+	}
+	return s
 }

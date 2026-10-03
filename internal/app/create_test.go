@@ -16,7 +16,7 @@ func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
 	}
 	typeText(m, "Check env before deploy")
 	press(m, "enter")
-	if got := readFile(t, dir, "check-env-before-deploy.md"); got != "Check env before deploy\n" {
+	if got := plain(readFile(t, dir, "check-env-before-deploy.md")); got != "Check env before deploy\n" {
 		t.Errorf("file = %q, want just the text", got)
 	}
 	if got := isOpenIn(t, dir, "check-env-before-deploy.md"); got != "true" {
@@ -39,7 +39,7 @@ func TestLowercaseNJotsUnlessTheNoteTakesIt(t *testing.T) {
 	press(m, "n")
 	typeText(m, "배포 전에 확인")
 	press(m, "enter")
-	if got := readFile(t, dir, "배포-전에-확인.md"); got != "배포 전에 확인\n" {
+	if got := plain(readFile(t, dir, "배포-전에-확인.md")); got != "배포 전에 확인\n" {
 		t.Errorf("n on a plain note should jot, file = %q", got)
 	}
 
@@ -87,7 +87,7 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 	typeText(m, "Auth work")
 	press(m, "enter")
 	want := string(board.Kind.Template("Auth work"))
-	if got := readFile(t, dir, "auth-work.md"); got != want || isOpenIn(t, dir, "auth-work.md") != "true" {
+	if got := plain(readFile(t, dir, "auth-work.md")); got != want || isOpenIn(t, dir, "auth-work.md") != "true" {
 		t.Errorf("file = %q\nwant  %q", got, want)
 	}
 	if m.focus != "auth-work.md" || m.mode != modeBoard {

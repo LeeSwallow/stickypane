@@ -14,7 +14,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 	if file, err := a.Write("docs/guide", Options{Title: "Guide"}, []byte("how to\n")); err != nil || file != "docs/guide.md" {
 		t.Fatalf("Write = %q, %v", file, err)
 	}
-	if b, err := a.Cat("docs/guide"); err != nil || string(b) != "---\ntitle: Guide\n---\nhow to\n" {
+	if b, err := a.Cat("docs/guide"); err != nil || plain(string(b)) != "---\ntitle: Guide\n---\nhow to\n" {
 		t.Errorf("Show = %q, %v", b, err)
 	}
 	if got, err := a.Todo("docs/todo", "add", "first"); err != nil || got != "docs/todo.md: 0/1" {

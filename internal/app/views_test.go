@@ -6,8 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
@@ -219,5 +222,35 @@ func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
 	m.Update(changedMsg{})
 	if s := screen(m); !strings.Contains(s, "Nothing is open") {
 		t.Errorf("and back to English:\n%s", s)
+	}
+}
+
+// A log's border says when it last grew, so a build that stopped writing
+// shows it.
+func TestALogSaysWhenItLastGrew(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"build.log": "one\ntwo\n"})
+	writeView(t, dir, `{"notes":{"build.log":{"open":true}}}`)
+	at := time.Now().Add(-time.Minute).Truncate(time.Minute)
+	if err := os.Chtimes(filepath.Join(dir, "build.log"), at, at); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(changedMsg{})
+	if s := screen(m); !strings.Contains(s, "2 lines · "+when.Short(at, time.Now())) {
+		t.Errorf("the border should say when the log last grew:\n%s", s)
+	}
+}
+
+// An agent that ticks an item by editing the file does not write the time;
+// the board does, from when the file changed.
+func TestTheBoardStampsAnItemAnAgentTicked(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"plan.md": "---\ntype: checklist\nopen: true\n---\n- [ ] tests\n"})
+	writeFile(t, dir, "plan.md", "---\ntype: checklist\nopen: true\n---\n- [x] tests\n")
+	at := time.Now().Add(-2 * time.Minute).Truncate(time.Minute)
+	if err := os.Chtimes(filepath.Join(dir, "plan.md"), at, at); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(changedMsg{})
+	if got := readFile(t, dir, "plan.md"); !strings.Contains(got, "- [x] tests ✅ "+at.Format("2006-01-02 15:04")) {
+		t.Errorf("the board should stamp the time the file changed:\n%s", got)
 	}
 }

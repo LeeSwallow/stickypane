@@ -13,6 +13,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -37,6 +39,10 @@ type Info struct {
 	Open   bool   `json:"open"`
 	Size   string `json:"size"`
 	Pinned bool   `json:"pinned"`
+	// Modified is when the file last changed: for a book, its newest page.
+	Modified time.Time `json:"modified"`
+	// Created is when the note was made, when that is known.
+	Created time.Time `json:"created,omitzero"`
 }
 
 // Options are the front matter keys Write sets. Zero values set nothing.
@@ -107,12 +113,14 @@ func (a *API) List() ([]Info, error) {
 		v := views[owner.Name]
 		open, _ := arrange.Open(v, owner.Doc)
 		info := Info{
-			Name:   n.Name,
-			Type:   kind.Name,
-			Title:  arrange.Title(views[n.Name], n.Doc, n.Name),
-			Open:   open,
-			Size:   arrange.Size(v, owner.Doc, kind, n.Doc),
-			Pinned: arrange.Pinned(v, owner.Doc),
+			Name:     n.Name,
+			Type:     kind.Name,
+			Title:    arrange.Title(views[n.Name], n.Doc, n.Name),
+			Open:     open,
+			Size:     arrange.Size(v, owner.Doc, kind, n.Doc),
+			Pinned:   arrange.Pinned(v, owner.Doc),
+			Modified: n.ModTime,
+			Created:  n.Created,
 		}
 		infos = append(infos, info)
 	}
@@ -169,9 +177,10 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 		}
 		d = d.Set("size", opts.Size)
 	}
-	if old, err := a.st.Read(file); err == nil {
+	old, err := a.st.Read(file)
+	if err == nil {
 		was := doc.Parse(old)
-		for _, key := range viewKeys {
+		for _, key := range append([]string{"created"}, viewKeys...) {
 			if _, set := d.Get(key); set {
 				continue
 			}
@@ -180,7 +189,35 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 			}
 		}
 	}
+	if err != nil && isMarkdown(file) {
+		d = created(d)
+	}
+	d = a.tend(file, d)
 	return file, a.st.Write(file, d.Bytes())
+}
+
+// isMarkdown reports whether a note may carry front matter.
+func isMarkdown(file string) bool { return strings.EqualFold(filepath.Ext(file), ".md") }
+
+// created says in a new note when stickypane made it.
+func created(d doc.Document) doc.Document {
+	if _, ok := d.Get("created"); ok {
+		return d
+	}
+	return d.Set("created", time.Now().Format(when.Stamp))
+}
+
+// tend writes what the note's kind fills in by itself, such as the time an
+// item was ticked, so that the agent does not have to.
+func (a *API) tend(file string, d doc.Document) doc.Document {
+	if k := a.reg.For(file, d); k.Tend != nil {
+		if op := k.Tend(d, time.Now()); op != nil {
+			if out, err := op.Apply(d); err == nil {
+				return out
+			}
+		}
+	}
+	return d
 }
 
 // Answers reads what the user chose and wrote in a form, and which button

@@ -6,6 +6,7 @@ package widget
 import (
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 )
@@ -109,6 +110,11 @@ type Kind struct {
 	Size     func(d doc.Document) string
 	Template func(title string) []byte
 	Parse    func(d doc.Document) Widget
+	// Tend, when set, returns what stickypane writes into a note of this
+	// kind by itself after the note changed at the time changed, or nil
+	// when nothing is missing: the time an item was ticked by hand, say.
+	// The board and the command line call it, so an agent never has to.
+	Tend func(d doc.Document, changed time.Time) doc.Op
 }
 
 // Handles reports whether an open note of this kind takes the key.

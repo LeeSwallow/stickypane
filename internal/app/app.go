@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/env"
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
@@ -198,6 +201,9 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, tabFocus: map[string]string{}, reveal: revealNote, theme: th, dark: true}
 	m.language = st.Language()
 	UseLanguage(m.language)
+	// Times are written the way the user's country does, whatever language
+	// the screen speaks.
+	when.UseLocale(env.Detect().Locale)
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m

@@ -99,21 +99,28 @@ type Answers struct {
 // Read collects the answers of a form.
 func Read(d doc.Document) Answers {
 	lines, questions := scan(d.Body)
-	a := Answers{Answers: make([]Answer, len(questions))}
+	a := Answers{}
 	a.Button, _ = d.Get(keySubmitted)
 	a.Submitted = a.Button != ""
 	if a.Submitted {
 		a.At, _ = d.Get(keySubmittedAt)
 	}
+	a.Answers = collect(lines, questions)
+	return a
+}
+
+// collect gathers what was chosen or written, question by question.
+func collect(lines []line, questions []string) []Answer {
+	answers := make([]Answer, len(questions))
 	for i, q := range questions {
-		a.Answers[i] = Answer{Question: q, Values: []string{}}
+		answers[i] = Answer{Question: q, Values: []string{}}
 	}
 	for _, l := range lines {
 		if (l.kind == option && l.on) || (l.kind == field && l.text != "") {
-			a.Answers[l.question].Values = append(a.Answers[l.question].Values, l.text)
+			answers[l.question].Values = append(answers[l.question].Values, l.text)
 		}
 	}
-	return a
+	return answers
 }
 
 // String prints the answers one question per line, for a person or an agent

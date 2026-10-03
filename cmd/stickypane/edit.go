@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 // editCmd runs a command that changes one thing in a note: todo, card,
@@ -43,7 +45,7 @@ func editCmd(cmd string) func(env, []string) error {
 		case "log":
 			line := strings.Join(rest, " ")
 			if stamp {
-				line = time.Now().Format("15:04") + " " + line
+				line = time.Now().Format(when.Clock) + " " + line
 			}
 			out, err = a.Log(name, line)
 		default: // set

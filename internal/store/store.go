@@ -16,6 +16,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	"github.com/LeeSwallow/stickypane/internal/doc"
 )
 
@@ -76,6 +78,10 @@ type Note struct {
 	Path    string
 	Doc     doc.Document
 	ModTime time.Time
+	// Created is when the note was made: its front matter's "created",
+	// which stickypane writes when it makes a note, else the file's birth
+	// time where the system keeps one (macOS, Windows). Zero when unknown.
+	Created time.Time
 	Err     error  // why the note cannot be shown; Doc is empty when set
 	Pages   []Note // a book's pages, by file name; nil for a file
 }
@@ -283,7 +289,24 @@ func (s *Store) remember(r readNote) {
 	}
 }
 
+// read reads a note and says when it was made.
 func (s *Store) read(name string) Note {
+	n := s.load(name)
+	if c, ok := n.Doc.Get("created"); ok {
+		if t, ok := when.Parse(c); ok {
+			n.Created = t
+			return n
+		}
+	}
+	if fi, err := os.Stat(n.Path); err == nil {
+		n.Created = birthTime(fi)
+	}
+	return n
+}
+
+// load reads a note, or hands back what it read last time when the file
+// kept its size and time.
+func (s *Store) load(name string) Note {
 	n := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
 	fi, err := os.Stat(n.Path)
 	if err != nil {

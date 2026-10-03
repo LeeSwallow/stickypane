@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -122,11 +124,19 @@ func (f *Form) Draw(width int, active bool) (string, widget.Span) {
 		}
 	}
 	if f.submitted != "" {
-		sent := widget.T("sent")
-		if t, err := time.Parse(time.RFC3339, f.at); err == nil {
-			sent += " " + t.Local().Format("15:04")
+		out = append(out, "", f.sentRule(width))
+		// What the form produced: the answers, as stickypane answers says them.
+		for _, a := range collect(f.lines, f.questions) {
+			value := "-"
+			if len(a.Values) > 0 {
+				value = strings.Join(a.Values, "; ")
+			}
+			text := widget.Clean(value)
+			if a.Question != "" {
+				text = widget.Clean(a.Question) + ": " + text
+			}
+			out = append(out, widget.Wrap(text, max(width, 1))...)
 		}
-		out = append(out, widget.Good.Render("✓ ")+widget.Faint.Render(widget.Truncate(sent, max(width-2, 0))))
 	}
 	return widget.Fit(strings.Join(out, "\n"), width), at
 }
@@ -346,4 +356,15 @@ func (f *Form) Sync(d doc.Document) widget.Widget {
 	nf.cursor = f.cursor
 	nf.clamp()
 	return nf
+}
+
+// sentRule heads the answers of a sent form: the button that was pressed
+// and when.
+func (f *Form) sentRule(width int) string {
+	label := widget.Clean(f.submitted)
+	if t, ok := when.Parse(f.at); ok {
+		label += " · " + widget.T("sent") + " " + when.Short(t, now())
+	}
+	rule := widget.Faint.Render("─ ") + widget.Good.Render("✓ ") + widget.Faint.Render(label+" ")
+	return widget.Truncate(rule+widget.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule), 0))), width)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -47,6 +48,12 @@ func init() {
 func (m *Model) create(text, ext string, content []byte) {
 	if ext == "" {
 		ext = ".md"
+	}
+	if ext == ".md" {
+		// A note the board makes says when it was made.
+		if d := doc.Parse(content); !hasKey(d, "created") {
+			content = d.Set("created", m.now().Format(when.Stamp)).Bytes()
+		}
 	}
 	name, err := m.store.Create(text, ext, content, m.now())
 	if err != nil {
@@ -128,4 +135,9 @@ func catalogBody(m *Model, h int) []string {
 		}
 	}
 	return dialog(tr.AddANote, body, boxW, m.width, h, m.accent())
+}
+
+func hasKey(d doc.Document, key string) bool {
+	_, ok := d.Get(key)
+	return ok
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/env"
@@ -46,21 +48,25 @@ func logOf(name string) string {
 
 // run starts a script in the project folder and returns the command that
 // waits for it. The script's output goes to its log, which starts again on
-// every run and is opened on the screen, where it is followed like any log.
+// every run and is shown in the script's own pane, under the script.
 func (m *Model) run(name string) tea.Cmd {
 	script := filepath.Join(m.store.Dir, filepath.FromSlash(name))
 	log := logOf(name)
 	started := m.now()
-	head := fmt.Sprintf("$ sh %s   (%s)\n", name, started.Format("2006-01-02 15:04:05"))
+	prog := "sh"
+	if p, _, err := env.Detect().Script(script); err == nil {
+		prog = p
+	}
+	head := fmt.Sprintf("$ %s %s   (%s)\n", prog, name, started.Format("2006-01-02 15:04:05"))
 	if err := m.store.Write(log, []byte(head)); err != nil {
 		m.status = say(tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
-	// A note of the root or of a tab is opened; a page of a book is shown
-	// by its book.
-	if n := strings.Count(log, "/"); n == 0 || (n == 1 && m.store.TabOf(log) != "") {
+	// The script is opened, and its log shows in its pane. A page of a book
+	// is shown by its book.
+	if n := strings.Count(name, "/"); n == 0 || (n == 1 && m.store.TabOf(name) != "") {
 		open := true
-		_ = m.store.SetView(log, func(v *store.View) { v.Open = &open })
+		_ = m.store.SetView(name, func(v *store.View) { v.Open = &open })
 	}
 	if m.running == nil {
 		m.running = map[string]bool{}
@@ -94,7 +100,7 @@ func (m *Model) run(name string) tea.Cmd {
 			fmt.Fprintf(f, "%v\n", err)
 			return done
 		}
-		fmt.Fprintf(f, "[exit %d · %s]\n", done.code, done.took.Round(10*time.Millisecond))
+		fmt.Fprintf(f, "[exit %d · %s]\n", done.code, when.Duration(done.took))
 		return done
 	}
 }
@@ -106,7 +112,7 @@ func (m *Model) finished(msg scriptDoneMsg) {
 	case msg.err != nil:
 		m.status = say(tr.CouldNotRun, map[string]any{"Name": base, "Err": msg.err.Error()})
 	default:
-		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": msg.took.Round(10 * time.Millisecond).String(), "Log": path.Base(logOf(msg.name))})
+		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": when.Duration(msg.took), "Log": path.Base(logOf(msg.name))})
 	}
 	m.reload()
 }

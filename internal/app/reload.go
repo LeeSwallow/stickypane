@@ -1,6 +1,7 @@
 package app
 
 import (
+	"path"
 	"sort"
 	"time"
 
@@ -40,6 +41,14 @@ func (m *Model) reload() {
 	if err != nil {
 		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
+	}
+	// What a note's kind fills in by itself, the board writes, so that an
+	// agent editing the file never has to; then it reads the board again.
+	if m.tend(board.Tabs) {
+		if board, err = m.store.Load(); err != nil {
+			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+			return
+		}
 	}
 	set := board.Settings
 	if l := set.Language(); l != m.language {
@@ -88,7 +97,16 @@ func (m *Model) reload() {
 	}
 	known := make(map[string]bool, len(notes))
 	items := make([]item, 0, len(notes))
+	// A script's log is shown in the script's pane, not as a note of its own.
+	logs := logsOfScripts(notes)
+	shownBy := make(map[string]bool, len(logs))
+	for _, l := range logs {
+		shownBy[l.Name] = true
+	}
 	for _, n := range notes {
+		if shownBy[n.Name] {
+			continue
+		}
 		it := item{note: unreadable(n)}
 		if n.Book() {
 			for i, pn := range n.Pages {
@@ -103,8 +121,17 @@ func (m *Model) reload() {
 			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page}
 		} else {
 			o, had := old[n.Name]
+			var oldLog store.Note
+			if wl, ok := o.w.(*withLog); ok {
+				o.w, oldLog = wl.script, wl.log
+			}
 			var kept bool
 			it.kind, it.w, kept = m.widgetFor(it.note, o, had)
+			if l, ok := logs[n.Name]; ok {
+				l = unreadable(l)
+				kept = kept && l.Path == oldLog.Path && l.ModTime.Equal(oldLog.ModTime)
+				it.w = &withLog{owner: path.Ext(n.Name), script: it.w, log: l, now: m.now}
+			}
 			if !kept {
 				m.forget(n.Name)
 			}
@@ -222,4 +249,30 @@ func (m *Model) showing(name string) int {
 		}
 	}
 	return -1
+}
+
+// tend writes into the notes of every tab what their kinds fill in by
+// themselves (Kind.Tend), such as the time an item was ticked by hand, at
+// the time the file changed. It reports whether it wrote anything.
+func (m *Model) tend(tabs []store.Tab) bool {
+	wrote := false
+	visit := func(n store.Note) {
+		if n.Err != nil || n.Book() {
+			return
+		}
+		if k := m.reg.For(n.Name, n.Doc); k.Tend != nil {
+			if op := k.Tend(n.Doc, n.ModTime); op != nil && m.store.Apply(n.Name, op) == nil {
+				wrote = true
+			}
+		}
+	}
+	for _, t := range tabs {
+		for _, n := range t.Notes {
+			visit(n)
+			for _, p := range n.Pages {
+				visit(p)
+			}
+		}
+	}
+	return wrote
 }

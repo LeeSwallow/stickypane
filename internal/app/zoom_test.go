@@ -6,8 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
@@ -96,7 +99,7 @@ func TestZoomKeysReachTheWidgetAndFollowTheCursor(t *testing.T) {
 	}
 	press(m, "space")
 	lines := strings.Split(readFile(t, dir, "c.md"), "\n")
-	if lines[5+40] != "- [x] step" || strings.Count(strings.Join(lines, "\n"), "[x]") != 1 {
+	if !strings.HasPrefix(lines[5+40], "- [x] step ✅ ") || strings.Count(strings.Join(lines, "\n"), "[x]") != 1 {
 		t.Errorf("space should tick the 41st item only, got line %q", lines[5+40])
 	}
 }
@@ -125,7 +128,7 @@ func TestFailedWriteRevertsTheScreen(t *testing.T) {
 	}
 	t.Cleanup(func() { os.Chmod(dir, 0o755) })
 	press(m, "j", "space")
-	if got := readFile(t, dir, "c.md"); got != checklistFile {
+	if got := plain(readFile(t, dir, "c.md")); got != checklistFile {
 		t.Fatalf("the write should have failed, file = %q", got)
 	}
 	s := screen(m)
@@ -208,8 +211,8 @@ func TestZoomSurvivesKindChange(t *testing.T) {
 	if s := screen(m); !strings.Contains(s, "1/2") {
 		t.Errorf("the zoomed note should now draw as a checklist:\n%s", s)
 	}
-	press(m, "j", "space")
-	if got := readFile(t, dir, "b.md"); !strings.HasSuffix(got, "- [x] ship\n") {
+	press(m, "space") // the open item is first on the screen
+	if got := readFile(t, dir, "b.md"); !strings.Contains(got, "- [x] ship ✅ ") {
 		t.Errorf("keys should reach the new widget, file = %q", got)
 	}
 }
@@ -232,5 +235,21 @@ func TestZoomFitsAnySize(t *testing.T) {
 		if n := strings.Count(m.render(), "\n") + 1; n > size[1] {
 			t.Errorf("%v: %d lines", size, n)
 		}
+	}
+}
+
+// Zoomed in, a note says when it was made and when it last changed.
+func TestAZoomedNoteSaysWhenItWasMadeAndChanged(t *testing.T) {
+	made := time.Now().Add(-48 * time.Hour).Truncate(time.Minute)
+	m, dir := newModel(t, map[string]string{"plan.md": "---\nopen: true\ncreated: " + made.Format("2006-01-02 15:04") + "\n---\nthe plan\n"})
+	changed := time.Now().Add(-time.Minute).Truncate(time.Minute)
+	if err := os.Chtimes(filepath.Join(dir, "plan.md"), changed, changed); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(changedMsg{})
+	press(m, "z")
+	want := when.Short(made, time.Now()) + " → " + when.Short(changed, time.Now())
+	if s := screen(m); !strings.Contains(s, want) {
+		t.Errorf("want %q in the zoomed border:\n%s", want, s)
 	}
 }

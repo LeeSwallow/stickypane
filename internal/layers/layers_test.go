@@ -24,6 +24,7 @@ var rank = map[string]int{
 	"internal/doc":    0,
 	"internal/theme":  0,
 	"internal/env":    0, // the system, shell, pane tool and locale
+	"internal/when":   0, // how times are written and read
 	"internal/i18n":   5, // reads the locale from env
 	"internal/layout": 0,
 	"internal/editor": 0,

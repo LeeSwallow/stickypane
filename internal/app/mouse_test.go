@@ -84,14 +84,14 @@ func TestClickingANoteFocusesIt(t *testing.T) {
 func TestClickingAChecklistItemTicksIt(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("first\n"), "c.md": checklistFile})
 	clickOn(t, m, "ship")
-	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [x] build\n- [x] ship\n") {
+	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(plain(got), "- [x] build\n- [x] ship\n") || !strings.Contains(got, "ship ✅ ") {
 		t.Errorf("a click on an item should tick it:\n%s", got)
 	}
 	if m.focus != "c.md" {
 		t.Errorf("the clicked note should have the focus, got %q", m.focus)
 	}
 	clickOn(t, m, "build")
-	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [ ] build\n- [x] ship\n") {
+	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(plain(got), "- [ ] build\n- [x] ship\n") {
 		t.Errorf("a click on a ticked item should untick it:\n%s", got)
 	}
 }
@@ -157,9 +157,11 @@ func TestADoubleClickOnAControlDoesNotZoom(t *testing.T) {
 	click(m, x, y)
 	click(m, x, y)
 	if m.mode != modeBoard {
-		t.Errorf("two clicks on an item tick and untick it, mode = %v", m.mode)
+		t.Errorf("two clicks on an item must not zoom, mode = %v", m.mode)
 	}
-	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [ ] ship\n") {
+	// The first click ticks it and it moves to the done items, so the second
+	// lands elsewhere and does not take the tick back.
+	if got := readFile(t, dir, "c.md"); !strings.Contains(got, "- [x] ship ✅ ") {
 		t.Errorf("file = %q", got)
 	}
 }
@@ -168,7 +170,7 @@ func TestClicksWorkInAZoomedNote(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	press(m, "z")
 	clickOn(t, m, "ship")
-	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(got, "- [x] ship\n") {
+	if got := readFile(t, dir, "c.md"); !strings.Contains(got, "- [x] ship ✅ ") {
 		t.Errorf("a click in a zoomed checklist should tick the item:\n%s", got)
 	}
 }

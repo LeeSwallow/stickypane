@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -38,7 +39,11 @@ func (s shaped) Apply(d doc.Document) (doc.Document, error) {
 	if have := s.api.reg.For(s.file, d).Name; !slices.Contains(s.kinds, have) {
 		return d, fmt.Errorf("%s is a %s, not a %s", s.file, have, s.kinds[0])
 	}
-	return s.op.Apply(d)
+	d, err := s.op.Apply(d)
+	if err != nil {
+		return d, err
+	}
+	return s.api.tend(s.file, d), nil
 }
 
 // change applies op to the note. A note that does not exist yet is made as
@@ -55,13 +60,14 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		var d doc.Document
 		if strings.EqualFold(filepath.Ext(file), ".md") {
 			base := filepath.Base(file)
-			d = doc.Parse(a.reg.Lookup(kinds[0]).Template(strings.TrimSuffix(base, filepath.Ext(base)))).Set("open", "true")
+			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(strings.TrimSuffix(base, filepath.Ext(base)))).Set("open", "true"))
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
 		if d, err = op.Apply(d); err != nil {
 			return file, d, err
 		}
+		d = a.tend(file, d)
 		return file, d, a.st.Write(file, d.Bytes())
 	}
 	if err := a.st.Apply(file, shaped{a, file, kinds, op}); err != nil {
@@ -100,7 +106,7 @@ func (a *API) Todo(name, action, item string) (string, error) {
 	case "add":
 		op = checklist.AddItem{Text: item}
 	case "check", "uncheck":
-		op = checklist.Check{Item: item, Checked: action == "check"}
+		op = checklist.Check{Item: item, Checked: action == "check", At: checklist.Stamp(time.Now())}
 	default:
 		return "", fmt.Errorf("unknown action %q: use add, check or uncheck", action)
 	}

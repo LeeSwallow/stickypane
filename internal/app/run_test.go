@@ -56,8 +56,8 @@ func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
 	if !strings.Contains(s, "exit 3") || strings.Contains(s, "running") {
 		t.Errorf("the bottom line should say how the run ended:\n%s", s)
 	}
-	if !strings.Contains(s, "hello from the script") || !strings.Contains(s, "≣ deploy") {
-		t.Errorf("the output is a log, open next to the script:\n%s", s)
+	if !strings.Contains(s, "hello from the script") || strings.Contains(strings.SplitN(s, "\n", 2)[0], "≣") {
+		t.Errorf("the output shows in the script's own pane, not as a note beside it:\n%s", s)
 	}
 }
 
@@ -83,8 +83,8 @@ func TestAScriptInATabLogsIntoThatTab(t *testing.T) {
 	if got := readFile(t, dir, "ops/build.log"); !strings.Contains(got, "built") {
 		t.Errorf("ops/build.log = %q", got)
 	}
-	if s := screen(m); !strings.Contains(s, "≣ build") || !strings.Contains(s, "built") {
-		t.Errorf("the log is a note of the same tab, open:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "built") || strings.Contains(strings.SplitN(s, "\n", 2)[0], "≣") {
+		t.Errorf("the log shows in the script's pane in its tab:\n%s", s)
 	}
 }
 

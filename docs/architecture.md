@@ -19,7 +19,7 @@ layer, fails the build.
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/i18n` | the screen's words, in the language the locale asks for |
-| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/layout`, `internal/editor` | leaves that know nothing of the board |
+| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 
 The packages stay side by side under `internal/` rather than in folders by
 role. The layers do not split by role: widgets draw with the theme, the

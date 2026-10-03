@@ -50,8 +50,11 @@ type: checklist
 - [ ] write tests
 ```
 
-Shown with a progress bar. The user ticks items with `space`;
-`stickypane todo plan check tests` ticks one from your side.
+Shown with a progress bar, open items first and done ones below, newest
+first. The user ticks items with `space`; `stickypane todo plan check tests`
+ticks one from your side. Do not write times: the board writes
+`✅ 2026-10-03 14:02` after a ticked item by itself, even one you ticked by
+editing the file, and `created:` into a note it makes.
 
 ## Log
 
@@ -97,7 +100,10 @@ title: Deploy now?
 
 `- ( )` is one choice, `- [ ]` any number, `> ` a line to type into, and
 the last line the buttons. A press writes `submitted:` into the front
-matter and `wait` prints the answers. See the `asking-the-user` skill.
+matter and `wait` prints the answers, which the form then shows under its
+buttons. To show what you did with them, log it next to the form:
+`stickypane log deploy.log --time "deployed to production"` appears in the
+form's pane as its output. See the `asking-the-user` skill.
 
 ## Script
 

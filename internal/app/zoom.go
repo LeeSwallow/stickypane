@@ -5,6 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -71,6 +72,10 @@ func (m *Model) layoutZoom() {
 	if i < 0 {
 		return
 	}
+	if wl, ok := m.items[i].w.(*withLog); ok {
+		wl.full = true // zoomed in, a script shows its whole log
+		defer func() { wl.full = false }()
+	}
 	out, at := m.items[i].w.Draw(max(m.width-4, 1), true)
 	m.zoomLines = strings.Split(out, "\n")
 	rows := m.zoomRows()
@@ -101,8 +106,28 @@ func zoomBody(m *Model, h int) []string {
 		visible = append(visible, "")
 	}
 	return strings.Split(frame(box{
-		title: title, icon: it.kind.Icon, summary: m.summary(it),
+		title: title, icon: it.kind.Icon, summary: m.zoomSummary(it),
 		body: strings.Join(visible, "\n"), width: m.width, color: m.color(it), focused: true,
 		offset: m.zoomScroll, total: len(m.zoomLines),
 	}), "\n")
+}
+
+// zoomSummary is the right end of a zoomed note's border: what its widget
+// counts, then when the file was made and when it last changed
+// ("Oct 1 → 14:02"), which a pane on the board has no room for.
+func (m *Model) zoomSummary(it item) string {
+	s := m.summary(it)
+	f := it.file()
+	made, changed := when.Short(f.Created, m.now()), when.Short(f.ModTime, m.now())
+	span := changed
+	if made != "" && made != changed {
+		span = made + " → " + changed
+	}
+	if span == "" || strings.Contains(s, changed) {
+		return s
+	}
+	if s != "" {
+		s += " · "
+	}
+	return s + span
 }

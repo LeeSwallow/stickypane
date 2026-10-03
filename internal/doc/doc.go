@@ -159,10 +159,15 @@ func (d Document) Pinned() bool {
 	return strings.EqualFold(v, "true")
 }
 
+// quote writes a value so that YAML reads it back as the same string. A
+// colon needs quotes only when a space or the end follows it, as in
+// "key: value", so a time ("2026-10-03 14:02") or an address ("host:8080")
+// is written plain; a "#" only when a space comes before it.
 func quote(v string) string {
 	if v == "" || v != strings.TrimSpace(v) ||
-		strings.ContainsAny(v, ":#\"'\n") ||
-		strings.ContainsAny(v[:1], "[]{}>|*&!%@`-") {
+		strings.Contains(v, ": ") || strings.HasSuffix(v, ":") ||
+		strings.Contains(v, " #") || strings.ContainsAny(v, "\"'\n") ||
+		strings.ContainsAny(v[:1], "[]{}>|*&!%@`-#?,") {
 		return strconv.Quote(v)
 	}
 	return v

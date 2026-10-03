@@ -26,12 +26,12 @@ func TestWriteListAndShow(t *testing.T) {
 		t.Fatalf("write: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
 	want := "---\ntype: checklist\ntitle: Release\nopen: true\nsize: half\n---\n- [ ] build\n- [ ] ship\n"
-	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "release.md")); string(b) != want {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "release.md")); plain(string(b)) != want {
 		t.Errorf("file = %q", b)
 	}
 
 	code, out, _ = exec(t, "cat", "release")
-	if code != 0 || out != want {
+	if code != 0 || plain(out) != want {
 		t.Errorf("cat: code = %d, out = %q", code, out)
 	}
 	if code, out, _ := exec(t, "hide", "release"); code != 0 || out != "hidden release.md\n" {
@@ -90,7 +90,7 @@ func TestMCPServesOverStandardIO(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "hello.md") {
 		t.Fatalf("mcp: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
-	if _, show, _ := exec(t, "cat", "hello"); show != "---\nopen: true\n---\nfrom mcp\n" {
+	if _, show, _ := exec(t, "cat", "hello"); plain(show) != "---\nopen: true\n---\nfrom mcp\n" {
 		t.Errorf("note written through MCP = %q", show)
 	}
 }
@@ -178,7 +178,7 @@ func TestSmallEditsFromTheCommandLine(t *testing.T) {
 	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "work.md")); !strings.HasSuffix(string(b), "## Doing\n\n## Done\n- schema\n- login API\n") {
 		t.Errorf("work.md = %q", b)
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests\n") {
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "plan.md")); !strings.Contains(string(b), "title: The plan\n") || !strings.Contains(string(b), "- [x] write tests ✅ ") {
 		t.Errorf("plan.md = %q", b)
 	}
 	for _, bad := range [][]string{{"todo"}, {"todo", "plan"}, {"todo", "plan", "add"}, {"card", "work", "move", "login"}, {"chart", "tokens", "set", "input"}, {"log", "worklog"}, {"set", "plan"}} {
