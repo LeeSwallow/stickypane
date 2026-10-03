@@ -83,7 +83,9 @@ brew install --cask LeeSwallow/tap/stickypane
 go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest
 ```
 
-macOS and Linux are supported.
+On Windows, take the zip from the
+[releases](https://github.com/LeeSwallow/stickypane/releases) or use
+`go install`; it runs in Windows Terminal, with PowerShell or sh.
 
 ## Quick start
 

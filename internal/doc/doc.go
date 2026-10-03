@@ -193,6 +193,17 @@ func unquote(v string) string {
 // newline yields a final empty element, so Join(Lines(b)) == b.
 func Lines(body string) []string { return strings.Split(body, "\n") }
 
+// SplitLines is the lines of a text that ends in a newline: none for an
+// empty text, no empty last line, and CRLF read as LF. For output and logs,
+// where Lines would give a last empty line.
+func SplitLines(s string) []string {
+	s = strings.TrimRight(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
+}
+
 // Join is the inverse of Lines.
 func Join(lines []string) string { return strings.Join(lines, "\n") }
 

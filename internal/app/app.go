@@ -121,9 +121,31 @@ type Model struct {
 	watch <-chan struct{}
 	now   func() time.Time
 
-	theme *theme.Holder // the theme in use, shared with the Markdown renderer
-	dark  bool          // what the terminal said about its background
+	theme       *theme.Holder // the theme in use, shared with the Markdown renderer
+	dark        bool          // what the terminal said about its background
+	themeChoice string        // settings.go: the theme setting the screen follows
+	language    string        // the language choice in sticky.json the screen speaks
 
+	mode    mode
+	back    mode            // where input, confirm and help return to
+	status  string          // shown on the bottom line until the next key
+	running map[string]bool // run.go: the scripts that are running, by file name
+	pending tea.Cmd         // run.go: what the current update started
+	undo    *undo           // move.go: how to take back the last delete or archive
+
+	notes
+	tabState
+	layoutState
+	zoomState
+	inputState
+	editState
+	confirmState
+	moveState
+	panelState
+}
+
+// notes is what the screen knows of the notes folder.
+type notes struct {
 	items   []item
 	focus   string               // file name of the focused note
 	seen    map[string]time.Time // modification time last looked at, by file name
@@ -131,71 +153,78 @@ type Model struct {
 	peek    map[string]bool      // notes shown open for this run without an "open" key
 	views   store.Views          // how the user arranged the notes, from sticky.json
 	anchors map[string]anchor    // where the view is in each book, by the book's name
+}
 
+// tabState is the tabs and which one is shown.
+type tabState struct {
 	tabList  []store.Tab       // the tabs of the board: the root and each folder
 	tab      int               // the active tab
 	tabName  string            // its folder name, "" for the root
 	tabFocus map[string]string // the focused note of each tab, by tab name
 	tabHits  []hit             // where each tab is on the first line of the screen
+}
 
+// layoutState is where everything is on the screen, and what it drew.
+type layoutState struct {
 	width, height int
-	bar           []string       // the title bar, one or more lines
-	tabs          []hit          // mouse.go: where each note's title is in the bar
-	panes         []pane         // the open notes, each in its place
-	screen        int            // which screen of panes is shown
-	screens       int            // how many screens the open notes take
-	offsets       map[string]int // how far the user scrolled inside a note, by file name
-	lastClick     lastClick      // mouse.go
-	canvas        []string       // the panes of the current screen, drawn
-	reveal        reveal
+	bar           []string         // the title bar, one or more lines
+	tabs          []hit            // mouse.go: where each note's title is in the bar
+	panes         []pane           // the open notes, each in its place
+	screen        int              // which screen of panes is shown
+	screens       int              // how many screens the open notes take
+	offsets       map[string]int   // how far the user scrolled inside a note, by file name
+	lastClick     lastClick        // mouse.go
+	canvas        []string         // the panes of the current screen, drawn
+	reveal        reveal           // how a note that comes into view is shown
+	drawn         map[string]drawn // panes.go: what each note drew last, by name
+	wakeAt        time.Time        // wake.go: when the screen next redraws by itself
+}
 
-	mode   mode
-	back   mode   // where input, confirm and help return to
-	status string // shown on the bottom line until the next key
-
-	zoomName   string // zoom.go: file name of the zoomed note
+// zoomState is zoom.go's and help.go's: one note, or the help, on the whole screen.
+type zoomState struct {
+	zoomName   string // file name of the zoomed note
 	zoomLines  []string
 	zoomScroll int
+	helpScroll int
+}
 
-	helpScroll int // help.go
-
-	input      *lineedit.Line // input.go
+// inputState is input.go's: a line typed on the bottom line.
+type inputState struct {
+	input      *lineedit.Line
 	inputLabel string
 	inputEmpty bool // an empty line is submitted too
 	onSubmit   func(string)
+}
 
-	catalogIdx int // create.go
+// editState is edit.go's: a note open in the built-in editor.
+type editState struct {
+	edit     *editor.Editor
+	editName string // file name of the note being edited
+	editDisk string // the file as it was when loaded or last saved
+	editBack mode   // where the editor returns to
+}
 
-	edit     *editor.Editor // edit.go
-	editName string         // file name of the note being edited
-	editDisk string         // the file as it was when loaded or last saved
-	editBack mode           // where the editor returns to
+// confirmState is manage.go's: a question with a yes and a no.
+type confirmState struct {
+	confirmMsg            string
+	onConfirm             func()
+	confirmYes, confirmNo [2]int // the cells of the question's buttons
+}
 
-	confirmMsg string // manage.go
-	onConfirm  func()
-
-	undo *undo // move.go: how to take back the last delete or archive
-
-	running map[string]bool // run.go: the scripts that are running, by file name
-	pending tea.Cmd         // run.go: what the current update started
-
-	moveFile    string   // move.go: the file being moved
+// moveState is move.go's: a note on its way to another folder.
+type moveState struct {
+	moveFile    string   // the file being moved
 	moveTargets []string // where it can go; "" is the top level
 	moveIdx     int
+}
 
-	language string // the language choice in sticky.json the screen speaks
-
-	drawn map[string]drawn // panes.go: what each note drew last, by name
-
-	wakeAt time.Time // wake.go: when the screen next redraws by itself
-
-	confirmYes, confirmNo [2]int // manage.go: the cells of a question's buttons
-
+// panelState is the panels that list something to pick from.
+type panelState struct {
+	catalogIdx  int            // create.go: the shape chosen for a new note
 	settingsAt  int            // settings.go: the setting the panel points at
 	indexAll    []api.Entry    // index.go: every note, as the index lists it
 	indexAt     int            // index.go: the chosen line of the filtered index
 	indexFilter *lineedit.Line // index.go: what the index is filtered by
-	themeChoice string         // settings.go: the theme setting the screen follows
 }
 
 // changedMsg arrives when the watched folder changed.
@@ -211,7 +240,10 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, anchors: map[string]anchor{}, tabFocus: map[string]string{}, reveal: revealNote, theme: th, dark: true}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, theme: th, dark: true}
+	m.peek, m.anchors = map[string]bool{}, map[string]anchor{}
+	m.offsets, m.reveal = map[string]int{}, revealNote
+	m.tabFocus = map[string]string{}
 	widget.Now = func() time.Time { return m.now() }
 	m.language = st.Language()
 	UseLanguage(m.language)

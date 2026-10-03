@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/LeeSwallow/stickypane/internal/doc"
 )
 
 // maxBody is how much of a response is kept.
@@ -125,7 +127,7 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 	for _, cmd := range r.Pre {
 		cmd, _ = Fill(cmd, scope, osEnv)
 		out, err := rn.hook(ctx, cmd, nil)
-		for _, l := range lines(out) {
+		for _, l := range doc.SplitLines(out) {
 			if k, v, ok := strings.Cut(l, "="); ok && isName(k) {
 				hookVars[k] = v
 				continue
@@ -204,7 +206,7 @@ func (rn *Runner) Send(ctx context.Context, f File, i int) Result {
 		for _, cmd := range r.Post {
 			cmd, _ = Fill(cmd, scope, osEnv)
 			out, err := rn.hook(ctx, cmd, in)
-			res.Hooks = append(res.Hooks, lines(out)...)
+			res.Hooks = append(res.Hooks, doc.SplitLines(out)...)
 			if err != nil {
 				res.Err = fmt.Errorf("@post %s: %w", cmd, err)
 				break
@@ -261,14 +263,6 @@ func (rn *Runner) hook(ctx context.Context, command string, stdin []byte) (strin
 		err = fmt.Errorf("exit %d", exit.ExitCode())
 	}
 	return string(out), err
-}
-
-func lines(s string) []string {
-	s = strings.TrimRight(s, "\n")
-	if s == "" {
-		return nil
-	}
-	return strings.Split(s, "\n")
 }
 
 func isName(s string) bool {

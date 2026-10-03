@@ -2,6 +2,7 @@ package doc
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -155,5 +156,13 @@ func TestUnsetRemovesOnlyThatKey(t *testing.T) {
 	}
 	if _, ok := d.Get("submitted"); !ok {
 		t.Error("Unset must not change the document it was called on")
+	}
+}
+
+func TestSplitLines(t *testing.T) {
+	for in, want := range map[string]string{"": "[]", "\n": "[]", "a\nb\n": "[a b]", "a\r\nb": "[a b]", "a\n\nb\n\n": "[a  b]"} {
+		if got := fmt.Sprint(SplitLines(in)); got != want {
+			t.Errorf("SplitLines(%q) = %s, want %s", in, got, want)
+		}
 	}
 }
