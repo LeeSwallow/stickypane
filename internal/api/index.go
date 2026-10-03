@@ -77,6 +77,7 @@ var (
 	openItemRe = regexp.MustCompile(`^\s*[-*] \[ \]\s+(.*)$`)
 	leadRe     = regexp.MustCompile(`^\s*(#+|[-*+]|\d+[.)]|>|\[[ xX]\])\s+`)
 	marksRe    = regexp.MustCompile("\\*\\*|__|`|~~")
+	messageRe  = regexp.MustCompile(`^@(\S+) \d{1,2}:\d{2} (.*)$`) // a chat's message
 )
 
 // gist is a note's line in the index: its front matter summary when it has
@@ -94,6 +95,13 @@ func gist(k widget.Kind, d doc.Document) string {
 			}
 		}
 		return ""
+	case "chat":
+		for i := len(lines) - 1; i >= 0; i-- {
+			if m := messageRe.FindStringSubmatch(strings.TrimSpace(lines[i])); m != nil {
+				return clip("@" + m[1] + " " + m[2])
+			}
+		}
+		return ""
 	case "log":
 		for i := len(lines) - 1; i >= 0; i-- {
 			if l := strings.TrimSpace(lines[i]); l != "" {
@@ -102,9 +110,14 @@ func gist(k widget.Kind, d doc.Document) string {
 		}
 		return ""
 	}
+	fenced := false
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
-		if l == "" || l == "---" || (k.Name == "script" && strings.HasPrefix(l, "#")) || strings.HasPrefix(l, "```") {
+		if strings.HasPrefix(l, "```") {
+			fenced = !fenced // a code block, a diagram's source: not what the note says
+			continue
+		}
+		if fenced || l == "" || l == "---" || (k.Name == "script" && strings.HasPrefix(l, "#")) {
 			continue
 		}
 		for leadRe.MatchString(l) {
@@ -119,7 +132,7 @@ func gist(k widget.Kind, d doc.Document) string {
 
 // clip keeps a gist to one short line.
 func clip(s string) string {
-	s = widget.Clean(strings.Join(strings.Fields(s), " "))
+	s = widget.Clean(widget.Unlink(strings.Join(strings.Fields(s), " ")))
 	if r := []rune(s); len(r) > 80 {
 		return string(r[:79]) + "…"
 	}

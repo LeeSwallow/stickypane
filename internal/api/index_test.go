@@ -55,3 +55,30 @@ func TestIndexGivesEveryNoteInALine(t *testing.T) {
 		}
 	}
 }
+
+// A gist reads as the board shows the note: links as their names, the
+// latest message of a chat, and not the source of a diagram.
+func TestAGistIsWhatTheBoardShows(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{
+		"design.md": "See [[10-work|the board]] and [[plan]] first.\n",
+		"chat.md":   "---\ntype: chat\n---\n## 2026-10-03\n@claude 18:59 tests pass\n@sam 19:02 ship it on Friday\n",
+		"flow.md":   "---\ntitle: Flow\n---\n```mermaid\ngraph LR\n  a --> b\n```\nThe release, step by step.\n",
+	})
+	idx, err := a.Index()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, e := range idx {
+		got[e.Name] = e.Gist
+	}
+	for name, want := range map[string]string{
+		"design.md": "See the board and plan first.",
+		"chat.md":   "@sam ship it on Friday",
+		"flow.md":   "The release, step by step.",
+	} {
+		if got[name] != want {
+			t.Errorf("%s gist = %q, want %q", name, got[name], want)
+		}
+	}
+}
