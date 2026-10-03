@@ -167,3 +167,44 @@ func TestALinkedNoteIsNamedWithoutTouchingItsFile(t *testing.T) {
 		t.Errorf("the name goes to sticky.json: %+v", v)
 	}
 }
+
+func TestShowAndHide(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"plan.md": "the plan\n", "build.log": "x\n"})
+	root := filepath.Dir(dir)
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Readme\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := a.Show("plan"); err != nil || got != "showing plan.md" {
+		t.Fatalf("Show = %q, %v", got, err)
+	}
+	if got, err := a.Show("build.log"); err != nil || got != "showing build.log" {
+		t.Fatalf("Show of a log = %q, %v", got, err)
+	}
+	v, _ := store.Open(dir).Views()
+	if v["plan.md"].Open == nil || !*v["plan.md"].Open || v["build.log"].Open == nil || !*v["build.log"].Open {
+		t.Errorf("Show opens the note on the screen: %+v", v)
+	}
+	if got, err := a.Hide("plan"); err != nil || got != "hidden plan.md" {
+		t.Fatalf("Hide = %q, %v", got, err)
+	}
+	if v, _ := store.Open(dir).Views(); v["plan.md"].Open == nil || *v["plan.md"].Open {
+		t.Errorf("Hide folds the note away: %+v", v)
+	}
+	// A path to a file of the project is linked onto the board and shown.
+	got, err := a.Show(filepath.Join(root, "README.md"))
+	if err != nil {
+		t.Skip("symlinks are not available:", err)
+	}
+	if got != "showing README.md (linked to ../README.md)" || !has(dir, "README.md") {
+		t.Errorf("Show of a path = %q", got)
+	}
+	if got, err := a.Show(filepath.Join(root, "README.md")); err != nil || got != "showing README.md" {
+		t.Errorf("showing a linked file again just opens it: %q, %v", got, err)
+	}
+	if _, err := a.Show("missing"); err == nil {
+		t.Error("a note that is not there cannot be shown")
+	}
+	if _, err := a.Show(filepath.Join(root, "logo.png")); err == nil {
+		t.Error("a file that is not there cannot be shown")
+	}
+}

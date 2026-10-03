@@ -44,7 +44,10 @@ Usage:
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane list [--json]       list the notes
-  stickypane show <name>         print a note's file
+  stickypane show <name|path>    put a note on the screen; a path to any file or
+                                 folder of the project is linked onto the board
+  stickypane hide <name>         fold a note away
+  stickypane cat <name>          print a note's file
   stickypane write <name> [--type T] [--title X] [--open] [--size S]
                                  create or replace a note from standard input
   stickypane todo <name> add|check|uncheck <item>
@@ -110,8 +113,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		case "help", "--help", "-h":
 			fmt.Fprint(stdout, usage)
 			return 0
-		case "list", "show", "write", "answers", "wait", "mcp":
+		case "list", "cat", "write", "answers", "wait", "mcp":
 			return notes(args[0], args[1:], stdin, stdout, stderr)
+		case "show", "hide":
+			return manage(args[0], args[1:], stdout, stderr)
 		case "todo", "card", "chart", "log", "set":
 			return edit(args[0], args[1:], stdout, stderr)
 		case "rm", "restore", "archive", "mv", "link":
@@ -242,6 +247,10 @@ func manage(cmd string, args []string, stdout, stderr io.Writer) int {
 		out, err = a.Restore(args[0])
 	case "archive":
 		out, err = a.Archive(args[0])
+	case "show":
+		out, err = a.Show(args[0])
+	case "hide":
+		out, err = a.Hide(args[0])
 	case "link":
 		name := ""
 		if len(args) == 2 {
@@ -391,8 +400,8 @@ func notes(cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer)
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", n.Name, n.Type, n.Size, state, n.Title)
 		}
 		return report(stderr, w.Flush())
-	case "show":
-		b, err := a.Show(name)
+	case "cat":
+		b, err := a.Cat(name)
 		if err != nil {
 			return report(stderr, err)
 		}

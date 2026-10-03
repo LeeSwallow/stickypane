@@ -493,3 +493,64 @@ func (a *API) Link(target, name string) (string, error) {
 	}
 	return fmt.Sprintf("linked %s to %s", name, filepath.ToSlash(rel)), nil
 }
+
+// Show puts a note on the screen. target is a note's name, or a path to a
+// file or a folder of the project, which is first linked onto the board
+// unless it already is. This is the one call an agent needs to put
+// something in front of the user.
+func (a *API) Show(target string) (string, error) {
+	target = strings.TrimSpace(target)
+	if abs, err := filepath.Abs(target); err == nil && (strings.ContainsAny(target, `/\`) || filepath.IsAbs(target)) {
+		if _, err := os.Stat(abs); err == nil {
+			name := filepath.Base(abs)
+			if linked, err := filepath.EvalSymlinks(filepath.Join(a.st.Dir, name)); err != nil || !sameFile(linked, abs) {
+				if _, err := a.Link(abs, ""); err != nil {
+					return "", err
+				}
+				rel, err := filepath.Rel(a.st.Dir, abs)
+				if err != nil {
+					rel = abs
+				}
+				return fmt.Sprintf("showing %s (linked to %s)", name, filepath.ToSlash(rel)), nil
+			}
+			target = name
+		}
+	}
+	file, _, err := a.target(target)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
+		return "", fmt.Errorf("there is no note %s", file)
+	}
+	open := true
+	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
+		return "", err
+	}
+	return "showing " + file, nil
+}
+
+// Hide folds a note away.
+func (a *API) Hide(name string) (string, error) {
+	file, _, err := a.target(name)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
+		return "", fmt.Errorf("there is no note %s", file)
+	}
+	open := false
+	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
+		return "", err
+	}
+	return "hidden " + file, nil
+}
+
+func sameFile(a, b string) bool {
+	ra, err := filepath.EvalSymlinks(a)
+	if err != nil {
+		return false
+	}
+	rb, err := filepath.EvalSymlinks(b)
+	return err == nil && ra == rb
+}

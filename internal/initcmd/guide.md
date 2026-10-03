@@ -26,6 +26,10 @@ What a file is:
   `name.log`. It never runs without the user saying yes.
 - A folder: one note with pages, a page per file (`docs/intro.md`).
 
+To put something in front of the user, `stickypane show <name>`; a path to
+any file or folder of the project (`README.md`, `logs/app.log`, `docs/`) is
+linked onto the board and shown, a log followed live. `hide` folds it away.
+
 For a small change do not read or rewrite the note: run one of these. They
 make the note when it is missing and print where it stands (`plan.md: 2/5`).
 An item or a card is named by its text, a part of it, or its position (`#2`).
@@ -38,8 +42,8 @@ An item or a card is named by its text, a part of it, or its position (`#2`).
     stickypane mv plan docs/                     # also: rm, restore, link <path>
 
 The screen shows open notes side by side, each in a pane, and lists the others
-by title, so open what the user should read now: `open: true` in a new note's
-front matter, or `stickypane set`. Where notes are on the screen is the user's
+by title, so show what the user should read now (`stickypane show`, or
+`open: true` in a new note's front matter). Where notes are on the screen is the user's
 to arrange and is kept in `sticky.json`; do not edit that file. When progress
 changes, update the matching note instead of adding a new one. The user can
 edit notes from the board, so read a note again before you rewrite it. Notes

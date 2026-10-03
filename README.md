@@ -437,9 +437,21 @@ In tmux the mouse reaches stickypane only with `set -g mouse on`.
 Editing the files is all an agent needs. For scripts, and for agents that
 would rather call a tool, the same notes are reachable two more ways.
 
+The shortest path: put something in front of the user.
+
+```sh
+stickypane show plan                 # a note, by name
+stickypane show README.md            # any file of the project: linked and shown
+stickypane show logs/app.log         # a log file: linked, shown and followed live
+stickypane show docs/                # a folder: shown as a book of its files
+stickypane hide plan
+```
+
+Everything else:
+
 ```sh
 stickypane list --json                       # every note: name, title, type, open, size
-stickypane show plan                         # print a note's file
+stickypane cat plan                          # print a note's file
 echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
 stickypane answers deploy                    # what the user answered in a form
 stickypane wait deploy --timeout 10m         # the same, once a button is pressed
@@ -471,8 +483,9 @@ what there is.
 
 `stickypane mcp` serves the notes over the Model Context Protocol on standard
 input and output. Its tools are the commands above: `list_notes`,
-`read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `set_keys`,
-`move_note`, `remove_note`, `restore_note`, `read_answers` and `guide`.
+`read_note`, `write_note`, `show_note`, `hide_note`, `todo`, `card`, `chart`,
+`log`, `set_keys`, `move_note`, `remove_note`, `restore_note`, `read_answers`
+and `guide`.
 
 ```sh
 claude mcp add stickypane -- stickypane mcp

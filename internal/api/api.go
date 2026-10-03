@@ -143,8 +143,8 @@ func (a *API) List() ([]Info, error) {
 	return infos, nil
 }
 
-// Show returns a note's file content.
-func (a *API) Show(name string) ([]byte, error) {
+// Cat returns a note's file content.
+func (a *API) Cat(name string) ([]byte, error) {
 	file, err := fileName(name)
 	if err != nil {
 		return nil, err

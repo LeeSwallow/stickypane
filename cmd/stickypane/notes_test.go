@@ -30,8 +30,14 @@ func TestWriteListAndShow(t *testing.T) {
 		t.Errorf("file = %q", b)
 	}
 
-	code, out, _ = exec(t, "show", "release")
+	code, out, _ = exec(t, "cat", "release")
 	if code != 0 || out != want {
+		t.Errorf("cat: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "hide", "release"); code != 0 || out != "hidden release.md\n" {
+		t.Errorf("hide: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "show", "release"); code != 0 || out != "showing release.md\n" {
 		t.Errorf("show: code = %d, out = %q", code, out)
 	}
 
@@ -52,6 +58,9 @@ func TestWriteListAndShow(t *testing.T) {
 
 func TestNoteCommandsReportProblems(t *testing.T) {
 	project(t)
+	if code, _, errOut := exec(t, "cat", "missing"); code != 1 || errOut == "" {
+		t.Errorf("cat missing: code = %d, stderr = %q", code, errOut)
+	}
 	if code, _, errOut := exec(t, "show", "missing"); code != 1 || errOut == "" {
 		t.Errorf("show missing: code = %d, stderr = %q", code, errOut)
 	}
@@ -81,7 +90,7 @@ func TestMCPServesOverStandardIO(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "hello.md") {
 		t.Fatalf("mcp: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
-	if _, show, _ := exec(t, "show", "hello"); show != "---\nopen: true\n---\nfrom mcp\n" {
+	if _, show, _ := exec(t, "cat", "hello"); show != "---\nopen: true\n---\nfrom mcp\n" {
 		t.Errorf("note written through MCP = %q", show)
 	}
 }

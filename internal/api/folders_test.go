@@ -14,7 +14,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 	if file, err := a.Write("docs/guide", Options{Title: "Guide"}, []byte("how to\n")); err != nil || file != "docs/guide.md" {
 		t.Fatalf("Write = %q, %v", file, err)
 	}
-	if b, err := a.Show("docs/guide"); err != nil || string(b) != "---\ntitle: Guide\n---\nhow to\n" {
+	if b, err := a.Cat("docs/guide"); err != nil || string(b) != "---\ntitle: Guide\n---\nhow to\n" {
 		t.Errorf("Show = %q, %v", b, err)
 	}
 	if got, err := a.Todo("docs/todo", "add", "first"); err != nil || got != "docs/todo.md: 0/1" {
@@ -24,7 +24,7 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 		t.Errorf("Log to a .log file = %q, %v, %q", got, err, read(t, dir, "build.log"))
 	}
 	for _, bad := range []string{"../x", "a/b/c", "/abs", "docs/.hidden", "docs/", "/x", "a\\b", "x.png", "docs/x.png", ".x/y"} {
-		if _, err := a.Show(bad); err != ErrBadName {
+		if _, err := a.Cat(bad); err != ErrBadName {
 			t.Errorf("Show(%q) = %v, want ErrBadName", bad, err)
 		}
 	}
