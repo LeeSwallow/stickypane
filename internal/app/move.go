@@ -149,7 +149,7 @@ func moveBody(m *Model, h int) []string {
 	}
 	base := path.Base(m.moveFile)
 	title := "Move " + widget.Clean(strings.TrimSuffix(base, path.Ext(base))) + " to"
-	return dialog(title, body, moveWidth, m.width, h)
+	return dialog(title, body, moveWidth, m.width, h, m.accent())
 }
 
 // moveWidth is the move dialog at its widest.

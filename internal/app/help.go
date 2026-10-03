@@ -31,6 +31,7 @@ const helpText = `Notes
   D                delete (to .trash)
   u                undo x or D
   r                reload
+  T                next theme
   j k g G          scroll in the note
   pgdn pgup        a page down, up
   [ ]              previous, next screen
@@ -121,5 +122,5 @@ func helpBody(m *Model, h int) []string {
 	if !framed {
 		return visible
 	}
-	return dialog("Keys", visible, helpWidth, m.width, h)
+	return dialog("Keys", visible, helpWidth, m.width, h, m.accent())
 }

@@ -1,10 +1,13 @@
 package app
 
 import (
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
@@ -151,5 +154,27 @@ func TestRenamingALinkedNoteLeavesItsFileAlone(t *testing.T) {
 	}
 	if v := viewsOf(t, dir)["README.md"]; v.Title != "Read me" {
 		t.Errorf("the name goes to sticky.json: %+v", v)
+	}
+}
+
+func TestTCyclesThemesAndKeepsTheChoice(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
+	first := m.theme.Get().Name
+	before := m.render()
+	press(m, "T")
+	next := m.theme.Get().Name
+	if next == first || !strings.Contains(screen(m), "Theme: "+next) {
+		t.Fatalf("T should switch to the next theme and say so: %q -> %q\n%s", first, next, screen(m))
+	}
+	if m.render() == before {
+		t.Error("the screen should be drawn in the new colors")
+	}
+	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"theme": "`+next+`"`) {
+		t.Errorf("the choice goes to sticky.json:\n%s", got)
+	}
+	// A chosen theme stays whatever the terminal says about its background.
+	m.Update(tea.BackgroundColorMsg{Color: color.White})
+	if got := m.theme.Get().Name; got != next {
+		t.Errorf("theme after a background report = %q, want %q", got, next)
 	}
 }

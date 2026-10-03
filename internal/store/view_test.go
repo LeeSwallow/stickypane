@@ -133,3 +133,19 @@ func TestATitleAndAnIgnoreListLiveInStickyJSON(t *testing.T) {
 		t.Errorf("the ignore list must survive a write:\n%s", got)
 	}
 }
+
+func TestTheThemeIsKeptInStickyJSON(t *testing.T) {
+	s := newStore(t)
+	if got := s.Theme(); got != "" {
+		t.Errorf("Theme = %q", got)
+	}
+	if err := s.SetTheme("nord"); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Theme(); got != "nord" {
+		t.Errorf("Theme = %q", got)
+	}
+	if got := read(t, s, ViewFile); !strings.Contains(got, `"theme": "nord"`) {
+		t.Errorf("sticky.json =\n%s", got)
+	}
+}

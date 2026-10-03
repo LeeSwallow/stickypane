@@ -40,7 +40,7 @@ func init() {
 		if current == "" {
 			current, _ = it.note.Doc.Get("color")
 		}
-		next := palette[(colorIndex(it.note.Name, current)+1)%len(palette)].name
+		next := palette[(colorIndex(it.note.Name, current)+1)%len(palette)]
 		m.setView(it.note.Name, func(v *store.View) { v.Color = next })
 		return nil
 	})

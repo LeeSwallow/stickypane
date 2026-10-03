@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -32,10 +33,10 @@ func TestDefaultRegistry(t *testing.T) {
 }
 
 func TestMarkdownFollowsTheTheme(t *testing.T) {
-	theme := &Theme{Dark: true}
-	render := Markdown(theme)
+	th := theme.NewHolder(theme.Pick("auto", true))
+	render := Markdown(th)
 	dark := render("## Heading\n\ntext\n", 30)
-	theme.Dark = false
+	th.Set(theme.Pick("auto", false))
 	light := render("## Heading\n\ntext\n", 30)
 	if dark == light {
 		t.Error("flipping the theme should change the colors of later renders")
@@ -47,7 +48,7 @@ func TestMarkdownFollowsTheTheme(t *testing.T) {
 
 func TestMarkdownRendersWithinWidth(t *testing.T) {
 	for _, dark := range []bool{true, false} {
-		out := Markdown(&Theme{Dark: dark})("## 결정 사항\n\n토큰은 세션 쿠키로 보관한다. **Important** item.\n\n- a\n- b\n", 30)
+		out := Markdown(theme.NewHolder(theme.Pick("auto", dark)))("## 결정 사항\n\n토큰은 세션 쿠키로 보관한다. **Important** item.\n\n- a\n- b\n", 30)
 		plain := ansi.Strip(out)
 		if !strings.Contains(plain, "결정 사항") || !strings.Contains(plain, "Important") {
 			t.Errorf("rendered text lost content: %q", plain)

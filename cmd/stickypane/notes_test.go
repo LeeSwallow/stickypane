@@ -229,3 +229,26 @@ func TestRemoveRestoreArchiveAndMoveFromTheCommandLine(t *testing.T) {
 		t.Errorf("rm of a missing note: code = %d, stderr = %q", code, errOut)
 	}
 }
+
+func TestThemeCommand(t *testing.T) {
+	root := project(t)
+	code, out, _ := exec(t, "theme")
+	if code != 0 || !strings.Contains(out, "stickypane-dark") || !strings.Contains(out, "auto") {
+		t.Fatalf("theme should list the themes: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "theme", "Nord"); code != 0 || out != "theme: nord\n" {
+		t.Fatalf("theme nord: code = %d, out = %q", code, out)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "sticky.json")); !strings.Contains(string(b), `"theme": "nord"`) {
+		t.Errorf("sticky.json = %s", b)
+	}
+	if code, out, _ := exec(t, "theme"); code != 0 || !strings.Contains(out, "* nord") {
+		t.Errorf("the chosen theme should be marked: %q", out)
+	}
+	if code, _, errOut := exec(t, "theme", "no-such-theme"); code != 1 || !strings.Contains(errOut, "nord") {
+		t.Errorf("an unknown theme should be refused and the themes listed: code = %d, stderr = %q", code, errOut)
+	}
+	if code, out, _ := exec(t, "theme", "auto"); code != 0 || out != "theme: auto\n" {
+		t.Errorf("auto: code = %d, out = %q", code, out)
+	}
+}

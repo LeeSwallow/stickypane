@@ -19,6 +19,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/editor"
 	"github.com/LeeSwallow/stickypane/internal/layout"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -96,9 +97,8 @@ type Model struct {
 	watch <-chan struct{}
 	now   func() time.Time
 
-	// OnBackground, when set, is told whether the terminal background is
-	// dark once the terminal reports it. Every note is redrawn afterwards.
-	OnBackground func(dark bool)
+	theme *theme.Holder // the theme in use, shared with the Markdown renderer
+	dark  bool          // what the terminal said about its background
 
 	items []item
 	focus string               // file name of the focused note
@@ -164,11 +164,32 @@ type reloadMsg struct {
 }
 
 // New returns a model showing the notes in st. watch may be nil when the
-// folder cannot be watched; the screen then refreshes on "r" and after edits.
-func New(st *store.Store, reg widget.Registry, watch <-chan struct{}) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, shown: map[string]string{}, reveal: revealNote}
+// folder cannot be watched; the screen then refreshes on "r" and after
+// edits. th holds the theme in use; the Markdown renderer shares it.
+func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, peek: map[string]bool{}, offsets: map[string]int{}, shown: map[string]string{}, reveal: revealNote, theme: th, dark: true}
+	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m
+}
+
+// useTheme makes the whole screen draw with t from now on. Every widget is
+// rebuilt, so nothing drawn with the old colors is kept.
+func (m *Model) useTheme(t theme.Theme) {
+	m.theme.Set(t)
+	widget.Apply(t.Styles())
+	m.items = nil
+}
+
+// chooseTheme makes the chosen theme the one in use, remembers the choice
+// in sticky.json and says which theme that is.
+func (m *Model) chooseTheme(name string) {
+	if err := m.store.SetTheme(name); err != nil {
+		m.status = "The theme was not saved: " + err.Error()
+	}
+	m.useTheme(theme.Pick(name, m.dark))
+	m.reload()
+	m.status = "Theme: " + m.theme.Get().Name + ". T tries the next one."
 }
 
 // SetStatus shows a message on the bottom line until the next key.
@@ -208,10 +229,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.reload()
 	case tea.BackgroundColorMsg:
-		if m.OnBackground != nil {
-			m.OnBackground(msg.IsDark())
-		}
-		m.items = nil // rebuild every widget so it redraws with the new colors
+		// The terminal has said whether it is dark: an automatic theme
+		// can be picked now, and every widget is redrawn with it.
+		m.dark = msg.IsDark()
+		m.useTheme(theme.Pick(m.store.Theme(), m.dark))
 		m.reload()
 	case tea.KeyPressMsg:
 		// In the editor ctrl+c leaves insert mode, as it does in vi:
@@ -344,7 +365,7 @@ func (m *Model) color(it item) color.Color {
 	if key == "" {
 		key, _ = it.note.Doc.Get("color")
 	}
-	return palette[colorIndex(it.note.Name, key)].color
+	return m.noteColor(colorIndex(it.note.Name, key))
 }
 
 // setView changes how a note is arranged and shows the result.

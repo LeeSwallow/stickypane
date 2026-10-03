@@ -44,6 +44,7 @@ const (
 	orderKey   = "order"
 	versionKey = "version"
 	ignoreKey  = "ignore"
+	themeKey   = "theme"
 )
 
 // readViews returns the file's top-level keys and the views among them.
@@ -97,6 +98,31 @@ func (s *Store) ignored() func(name string) bool {
 		}
 		return false
 	}
+}
+
+// Theme returns the name of the theme the user chose, or "" for none.
+func (s *Store) Theme() string {
+	top, _, err := s.readViews()
+	if err != nil {
+		return ""
+	}
+	var name string
+	_ = json.Unmarshal(top[themeKey], &name)
+	return name
+}
+
+// SetTheme writes the name of the chosen theme.
+func (s *Store) SetTheme(name string) error {
+	top, _, err := s.readViews()
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(name)
+	if err != nil {
+		return err
+	}
+	top[themeKey] = raw
+	return s.writeViews(top)
 }
 
 // Order returns the notes the user put in an order of their own, first to

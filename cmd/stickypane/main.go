@@ -22,6 +22,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -36,6 +37,8 @@ Usage:
   stickypane init        create .sticky/ and add the agent guide to
                          AGENTS.md or CLAUDE.md (--no-agent-docs skips that;
                          --skill installs it as a Claude Code skill instead)
+  stickypane theme [name]  list the themes, or choose one ("auto" follows the
+                         terminal's background)
   stickypane guide       print the agent guide
   stickypane version     print the version
 
@@ -113,6 +116,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return edit(args[0], args[1:], stdout, stderr)
 		case "rm", "restore", "archive", "mv", "link":
 			return manage(args[0], args[1:], stdout, stderr)
+		case "theme":
+			return themeCmd(args[1:], stdout, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			fmt.Fprint(stderr, usage)
@@ -153,6 +158,62 @@ func open(stderr io.Writer) (*api.API, int) {
 		return nil, report(stderr, err)
 	}
 	return api.New(store.Open(dir), kinds.Default(note.Plain)), 0
+}
+
+// themeCmd lists the themes or chooses one.
+func themeCmd(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 1 {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+	dir, err := store.Resolve(".")
+	if errors.Is(err, store.ErrNotFound) {
+		fmt.Fprintln(stderr, noBoard)
+		return 1
+	}
+	if err != nil {
+		return report(stderr, err)
+	}
+	st := store.Open(dir)
+	list := func(w io.Writer) {
+		current := st.Theme()
+		if current == "" {
+			current = "auto"
+		}
+		mark := func(name string) string {
+			if strings.EqualFold(name, current) {
+				return "* "
+			}
+			return "  "
+		}
+		fmt.Fprintf(w, "%sauto  (follows the terminal: %s or %s)\n", mark("auto"), theme.DefaultDark, theme.DefaultLight)
+		for _, t := range theme.All() {
+			kind := "dark"
+			if !t.Dark {
+				kind = "light"
+			}
+			fmt.Fprintf(w, "%s%s  (%s)\n", mark(t.Name), t.Name, kind)
+		}
+	}
+	if len(args) == 0 {
+		list(stdout)
+		return 0
+	}
+	name := strings.TrimSpace(args[0])
+	if strings.EqualFold(name, "auto") {
+		name = "auto"
+	} else if t, ok := theme.Lookup(name); ok {
+		name = t.Name
+	} else {
+		fmt.Fprintf(stderr, "stickypane: there is no theme %q. The themes are:\n", args[0])
+		list(stderr)
+		return 1
+	}
+	if err := st.SetTheme(name); err != nil {
+		return report(stderr, err)
+	}
+	fmt.Fprintln(stdout, "theme:", name)
+	return 0
 }
 
 // manage runs the commands that remove, restore and move notes.
@@ -389,9 +450,8 @@ func board(dir string) error {
 	defer cancel()
 	watch, watchErr := st.Watch(ctx)
 
-	theme := &kinds.Theme{Dark: true}
-	m := app.New(st, kinds.Default(kinds.Markdown(theme)), watch)
-	m.OnBackground = func(dark bool) { theme.Dark = dark }
+	th := theme.NewHolder(theme.Pick(st.Theme(), true))
+	m := app.New(st, kinds.Default(kinds.Markdown(th)), watch, th)
 	if watchErr != nil {
 		m.SetStatus("File watching is unavailable. Press r to refresh.")
 	}

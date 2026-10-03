@@ -107,3 +107,14 @@ sampler, wtf, zellij, lazygit, yazi, taskwarrior-tui, kanban-md, redthread, tuib
 - `.csv`를 차트나 표로 그리는 것. 표 위젯과 함께 한다.
 - 스크립트 출력에 입력을 보내는 것, 실행 중 중단.
 - 편집기의 횟수 접두(`3dd`)와 비주얼 모드.
+
+## 5. 디자인 시스템: 테마 (구현됨)
+
+resterm, lazygit, zellij, yazi, k9s, crush와 Neovim 테마(catppuccin, tokyonight, gruvbox, nord, dracula)의 소스를 읽고 정했다.
+
+- 화면의 모든 색은 **역할** 열두어 개로 그린다: `text`, `muted`, `accent`, `select`, `good`, `warn`, `bad`, `info`, 노트 색 여섯. 위젯은 역할 이름의 스타일만 쓰고, 테마가 바뀌면 전부 따라온다 (`internal/theme`).
+- 관례를 따른 결정: 포커스는 테두리 **색**으로 보인다(모양만 바꾸지 않는다. lazygit `activeBorderColor`, zellij `frame_selected`, resterm `PaneBorderFocus`); 포커스 없는 창은 중립 회색 테두리에 제목만 노트 색; 선택 줄은 반전이 아니라 배경 색(catppuccin `Visual`, lazygit `selectedLineBgColor`); 키 힌트는 accent(lazygit `optionsTextColor`, k9s `menu.keyColor`); 밝은 배경에서는 `faint` 속성을 쓰지 않고 muted 색을 쓴다(resterm `theme_runtime.go`).
+- 테마는 배경을 칠하지 않는다. 터미널 배경을 그대로 두고 그에 맞는 전경색만 고른다. `auto`는 터미널이 보고한 배경에 따라 기본 dark/light를 고른다(lazygit의 `darkTheme`/`lightTheme` 방식).
+- 내장 테마 10개: stickypane dark/light, catppuccin mocha/latte, tokyonight night/day, gruvbox dark/light, nord, dracula. 값은 각 테마 소스 그대로이고 README에 출처와 라이선스를 적었다.
+- 선택은 `sticky.json`의 `theme`에 저장한다. 보드에서 `T`, 명령줄에서 `stickypane theme <이름>`.
+- 하지 않은 것: 사용자 정의 테마 파일(resterm의 TOML 테마). 역할이 열두 개뿐이라 내장 테마로 충분할 때까지 미룬다.

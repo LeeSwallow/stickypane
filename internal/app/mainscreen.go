@@ -7,6 +7,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -23,6 +24,7 @@ func init() {
 	boardKeys["shift+tab"] = func(m *Model) tea.Cmd { m.stepFocus(-1); return nil }
 	boardKeys["r"] = func(m *Model) tea.Cmd { m.reload(); return nil }
 	boardKeys["q"] = func(*Model) tea.Cmd { return tea.Quit }
+	boardKeys["T"] = func(m *Model) tea.Cmd { m.chooseTheme(theme.Next(m.theme.Get().Name)); return nil }
 	boardKeys["]"] = func(m *Model) tea.Cmd { m.flip(1); return nil }
 	boardKeys["["] = func(m *Model) tea.Cmd { m.flip(-1); return nil }
 
@@ -92,9 +94,9 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func mainBody(m *Model, h int) []string {
 	switch {
 	case len(m.items) == 0:
-		return dialog("", []string{"No notes yet.", "", "Press N to jot one down,", "or ask your agent to stick a note here."}, 46, m.width, h)
+		return dialog("", []string{"No notes yet.", "", "Press N to jot one down,", "or ask your agent to stick a note here."}, 46, m.width, h, m.accent())
 	case len(m.canvas) == 0:
-		return dialog("", []string{"Nothing is open.", "", "Pick a note with tab and press enter."}, 46, m.width, h)
+		return dialog("", []string{"Nothing is open.", "", "Pick a note with tab and press enter."}, 46, m.width, h, m.accent())
 	}
 	return widget.Window(m.canvas, 0, h)
 }
@@ -157,7 +159,7 @@ func (m *Model) titleBar() []string {
 		switch {
 		case it.note.Name == m.focus:
 			focusLine = len(lines)
-			text = st.Bold(true).Reverse(true).Render(" " + text + " ")
+			text = widget.Selected.Foreground(m.color(it)).Bold(true).Render(" " + text + " ")
 		case open:
 			text = " " + st.Render(text) + " "
 		default:

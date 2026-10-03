@@ -140,6 +140,7 @@ Where a note is on the screen is not written into the note. It goes to
   },
   "order": ["docs", "10-plan.md", "build.log"],
   "ignore": ["drafts", "*.tmp.md"],
+  "theme": "catppuccin-mocha",
   "version": 1
 }
 ```
@@ -152,6 +153,9 @@ Where a note is on the screen is not written into the note. It goes to
 | `color`        | `yellow` `pink` `blue` `green` `purple` `orange` | `c`           |
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
+
+Next to `notes`, `theme` names the theme (`T` on the board), `order` lists
+the notes you moved and `ignore` what to leave out.
 
 `order` lists the notes you moved with `{` and `}`; the others follow by
 name. `ignore` is the one part you write by hand: names or patterns the
@@ -315,6 +319,7 @@ file that does not fit its shape is still shown, never hidden.
 | `x` / `D` / `u`     | archive, delete, undo   | **Zoomed note**         |                      |
 | `e` / `E`           | edit here, in `$EDITOR` | `esc`                   | back                 |
 | `r` / `?` / `q`     | reload, help, quit      | `j` `k` `g` `G`         | scroll               |
+| `T`                 | next theme              |                         |                      |
 | `z`                 | zoom                    | **Open form**           |                      |
 | `[` / `]`           | previous, next screen   |                         |                      |
 |                     |                         | `j` `k`                 | change control       |
@@ -334,6 +339,36 @@ rest, so the screen is always full and never scrolls as a whole. A note gets
 at least ten lines; notes that would get less go to the next screen, shown
 as `2/3` under the title bar. A form uses `enter` itself,
 so `z` is the way to zoom into one.
+
+## Themes
+
+Everything on the screen is drawn from a dozen color roles (text, muted,
+accent, selection, good, warn, bad, info, and the six note colors), so a
+theme is one palette and the whole board follows it. `T` tries the next
+theme, `stickypane theme` lists them and `stickypane theme nord` chooses one;
+the choice is kept in `sticky.json` as `"theme"`. With no choice (`auto`) the
+board asks the terminal whether it is dark and picks `stickypane-dark` or
+`stickypane-light`.
+
+| Theme                                 | For a   | Palette from                               |
+| ------------------------------------- | ------- | ------------------------------------------ |
+| `stickypane-dark`, `stickypane-light` | dark, light | stickypane                             |
+| `catppuccin-mocha`, `catppuccin-latte` | dark, light | [catppuccin/nvim](https://github.com/catppuccin/nvim) (MIT) |
+| `tokyonight-night`, `tokyonight-day`  | dark, light | [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) (Apache-2.0) |
+| `gruvbox-dark`, `gruvbox-light`       | dark, light | [ellisonleao/gruvbox.nvim](https://github.com/ellisonleao/gruvbox.nvim) (MIT) |
+| `nord`                                | dark    | [gbprod/nord.nvim](https://github.com/gbprod/nord.nvim) (WTFPL) |
+| `dracula`                             | dark    | [Mofiqul/dracula.nvim](https://github.com/Mofiqul/dracula.nvim) (MIT) |
+
+The palettes are those themes' own values, used the way the themes use
+them: blue for focus, mauve for headings, the comment color for what is
+muted. A theme never paints the background; the terminal's stays, so pick a
+theme made for the background you have.
+
+How the colors are used follows what terminal tools agree on: focus is the
+border color, not a different shape alone; the title sits in the top border
+in the note's color; the selected line has a background tint; key hints are
+the accent; everything secondary is muted; and `faint` is never used, since
+it is unreadable on a light background.
 
 ## Deleting and moving
 

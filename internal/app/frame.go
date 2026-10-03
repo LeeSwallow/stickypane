@@ -7,30 +7,19 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// palette is the set of note colors, in the order "c" cycles through them.
-var palette = []struct {
-	name  string
-	color color.Color
-}{
-	{"yellow", lipgloss.Color("#F2D45C")},
-	{"pink", lipgloss.Color("#F28FB1")},
-	{"blue", lipgloss.Color("#7FB3F5")},
-	{"green", lipgloss.Color("#8FD694")},
-	{"purple", lipgloss.Color("#B79CF2")},
-	{"orange", lipgloss.Color("#F5A962")},
-}
-
-// neutral is the color of frames that belong to the screen, not to a note.
-var neutral = lipgloss.Color("#9AA5B1")
+// palette is the names of the note colors, in the order "c" cycles
+// through them. The colors themselves come from the theme.
+var palette = theme.NoteNames
 
 // colorIndex picks a note's color: the named one, or one derived from the
 // file name so that a note keeps its color between runs.
 func colorIndex(name, key string) int {
 	for i, p := range palette {
-		if strings.EqualFold(p.name, key) {
+		if strings.EqualFold(p, key) {
 			return i
 		}
 	}
@@ -38,6 +27,14 @@ func colorIndex(name, key string) int {
 	h.Write([]byte(name))
 	return int(h.Sum32() % uint32(len(palette)))
 }
+
+// noteColor returns the theme's color for a note color index.
+func (m *Model) noteColor(i int) color.Color {
+	return lipgloss.Color(m.theme.Get().Notes[i%len(palette)])
+}
+
+// accent is the color of what has the focus and of what can be pressed.
+func (m *Model) accent() color.Color { return lipgloss.Color(m.theme.Get().Accent) }
 
 // box is everything a frame shows.
 type box struct {
@@ -48,6 +45,7 @@ type box struct {
 	width   int
 	color   color.Color
 	focused bool
+	plain   bool // a dialog of the screen's own, not a note: its title is plain
 	// When the body is a window on more lines than it shows, offset is its
 	// first line and total how many there are. The right border then
 	// carries a scroll bar.
@@ -66,17 +64,23 @@ func thumb(offset, total, rows int) (from, to int) {
 	return from, from + size
 }
 
-// frame draws a box: a rounded border in its color, or a double border when
-// focused, so focus is visible without color too. The top border carries the
-// icon, the title and, when there is room, the summary. Every line is exactly
-// width cells wide.
+// frame draws a box. An unfocused note has a thin, muted border with its
+// title in the note's color; the focused one has a double border in that
+// color, so focus shows without color too and the screen is calm where the
+// focus is not. The top border carries the icon, the title and, when there
+// is room, the summary. Every line is exactly width cells wide.
 func frame(b box) string {
 	width := max(b.width, 8)
 	tl, tr, bl, br, hz, vt := "╭", "╮", "╰", "╯", "─", "│"
+	st := widget.Faint
+	titled := lipgloss.NewStyle().Foreground(b.color).Bold(true)
 	if b.focused {
 		tl, tr, bl, br, hz, vt = "╔", "╗", "╚", "╝", "═", "║"
+		st = lipgloss.NewStyle().Foreground(b.color)
 	}
-	st := lipgloss.NewStyle().Foreground(b.color)
+	if b.plain {
+		titled = widget.Bold
+	}
 
 	// The label is "icon title"; either part may be missing.
 	label := strings.TrimSpace(b.icon + " " + b.title)
@@ -96,7 +100,7 @@ func frame(b box) string {
 	used := 1
 	top.WriteString(st.Render(tl))
 	if label != "" {
-		top.WriteString(" " + st.Bold(true).Render(label) + " ")
+		top.WriteString(" " + titled.Render(label) + " ")
 		used += widget.Width(label) + 2
 	}
 	tail := tr
@@ -106,7 +110,7 @@ func frame(b box) string {
 	fill := max(width-used-widget.Width(tail), 0)
 	top.WriteString(st.Render(strings.Repeat(hz, fill)))
 	if summary != "" {
-		top.WriteString(" " + st.Faint(true).Render(summary) + " ")
+		top.WriteString(" " + widget.Faint.Render(summary) + " ")
 	}
 	top.WriteString(st.Render(tr))
 
@@ -116,7 +120,7 @@ func frame(b box) string {
 	for i, l := range body {
 		right := st.Render(vt)
 		if i >= from && i < to {
-			right = st.Render("█")
+			right = widget.Accent.Render("█")
 		}
 		lines = append(lines, st.Render(vt)+" "+widget.Pad(l, width-4)+" "+right)
 	}
@@ -127,12 +131,12 @@ func frame(b box) string {
 // dialog frames body in a box boxW wide and centers it in an area w wide and
 // h tall, a little above the middle. Without room for the frame it returns
 // the body as it is, so small panes still show the content.
-func dialog(title string, body []string, boxW, w, h int) []string {
+func dialog(title string, body []string, boxW, w, h int, accent color.Color) []string {
 	boxW = min(boxW, w)
 	if boxW < 12 || h < len(body)+2 {
 		return body
 	}
-	framed := strings.Split(frame(box{title: title, body: strings.Join(body, "\n"), width: boxW, color: neutral}), "\n")
+	framed := strings.Split(frame(box{title: title, body: strings.Join(body, "\n"), width: boxW, color: accent, focused: true, plain: true}), "\n")
 	left := strings.Repeat(" ", (w-boxW)/2)
 	out := make([]string, (h-len(framed))/3, h)
 	for _, l := range framed {
@@ -157,7 +161,7 @@ func hints(width int, pairs ...string) string {
 			break
 		}
 		used += w
-		parts = append(parts, widget.Bold.Render(pairs[i])+" "+widget.Faint.Render(pairs[i+1]))
+		parts = append(parts, widget.Accent.Bold(true).Render(pairs[i])+" "+widget.Faint.Render(pairs[i+1]))
 	}
 	return strings.Join(parts, "  ")
 }

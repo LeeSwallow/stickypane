@@ -119,7 +119,7 @@ func editBody(m *Model, h int) []string {
 	if m.edit.Dirty() {
 		title += " [+]"
 	}
-	color := neutral
+	color := m.accent()
 	if i := m.showing(m.editName); i >= 0 {
 		color = m.color(m.items[i])
 	}

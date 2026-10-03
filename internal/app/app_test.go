@@ -15,6 +15,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -45,7 +46,7 @@ func newModel(t *testing.T, files map[string]string) (*Model, string) {
 	for name, content := range files {
 		writeFile(t, dir, name, content)
 	}
-	m := New(store.Open(dir), kinds.Default(note.Plain), nil)
+	m := New(store.Open(dir), kinds.Default(note.Plain), nil, theme.NewHolder(theme.Pick("auto", true)))
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	return m, dir
 }
@@ -264,12 +265,10 @@ func TestNotesFromTheAgentOpenWithoutTouchingTheFile(t *testing.T) {
 func TestBackgroundReportDoesNotReopenNotes(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "closed body\n", "b.md": opened("open body\n")})
 	press(m, "tab")
-	var reports []bool
-	m.OnBackground = func(dark bool) { reports = append(reports, dark) }
 	before := m.items[0].w
 	m.Update(tea.BackgroundColorMsg{Color: color.White})
-	if len(reports) != 1 || reports[0] {
-		t.Errorf("OnBackground calls = %v, want one call with dark=false", reports)
+	if th := m.theme.Get(); th.Dark || th.Name != theme.DefaultLight {
+		t.Errorf("a light terminal should get the light theme, got %q", th.Name)
 	}
 	if m.items[0].w == before {
 		t.Error("widgets should be rebuilt so they redraw with the new colors")

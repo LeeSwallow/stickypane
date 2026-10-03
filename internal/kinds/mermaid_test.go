@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -87,7 +88,7 @@ func TestDiagramsFitTheWidthWhenTheyCan(t *testing.T) {
 }
 
 func TestMarkdownDrawsMermaid(t *testing.T) {
-	out := ansi.Strip(Markdown(&Theme{Dark: true})(flow, 70))
+	out := ansi.Strip(Markdown(theme.NewHolder(theme.Pick("auto", true)))(flow, 70))
 	if !strings.Contains(out, "┌") || strings.Contains(out, "graph LR") || !strings.Contains(out, "That is all.") {
 		t.Errorf("the styled renderer should draw Mermaid blocks too:\n%s", out)
 	}

@@ -6,17 +6,31 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
+
+	"github.com/LeeSwallow/stickypane/internal/theme"
 )
 
-// Shared text styles.
+// Shared text styles, by role. Apply fills them from a theme; until then
+// they hold the default dark theme.
 var (
-	Bold     = lipgloss.NewStyle().Bold(true)
-	Faint    = lipgloss.NewStyle().Faint(true)
-	Selected = lipgloss.NewStyle().Reverse(true)
-	Good     = lipgloss.NewStyle().Foreground(lipgloss.Color("#8FD694"))
-	Warn     = lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A962"))
-	Struck   = lipgloss.NewStyle().Faint(true).Strikethrough(true)
+	Bold     lipgloss.Style
+	Faint    lipgloss.Style // hints, details, what steps back
+	Selected lipgloss.Style // the selected line
+	Accent   lipgloss.Style // focus and buttons
+	Good     lipgloss.Style
+	Warn     lipgloss.Style
+	Bad      lipgloss.Style
+	Info     lipgloss.Style
+	Struck   lipgloss.Style // done items
 )
+
+func init() { Apply(theme.Pick("auto", true).Styles()) }
+
+// Apply makes every widget draw with the styles of a theme from now on.
+func Apply(s theme.Styles) {
+	Bold, Faint, Selected, Accent = s.Bold, s.Faint, s.Selected, s.Accent
+	Good, Warn, Bad, Info, Struck = s.Good, s.Warn, s.Bad, s.Info, s.Struck
+}
 
 // Clean prepares file text for the screen: escape sequences and control
 // characters are dropped and tabs become four spaces. Newlines are kept.
