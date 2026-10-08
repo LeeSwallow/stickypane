@@ -6,6 +6,8 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-08
+
 The first version. stickypane shows the files of a project's `.sticky/`
 folder as a board in a terminal pane, for a coding agent and its user to
 share.
