@@ -50,6 +50,8 @@ homebrew_casks:
       owner: LeeSwallow
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    # Without a token for the tap, the release is made and the cask is not.
+    skip_upload: '{{ if not (index .Env "HOMEBREW_TAP_TOKEN") }}true{{ end }}'
     homepage: https://github.com/LeeSwallow/stickypane
     description: A sticky-note board in your terminal, for you and your coding agent
     license: MIT
