@@ -180,6 +180,6 @@ func mcpCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: version}
+	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: fullVersion()}
 	return server.Serve(e.ctx, e.stdin, e.stdout)
 }

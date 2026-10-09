@@ -36,6 +36,22 @@ func TestGuidePrintsTheAgentGuide(t *testing.T) {
 	}
 }
 
+// A release sets the version; go install records the module's; a test
+// binary has neither.
+func TestVersionComesFromTheReleaseElseTheModule(t *testing.T) {
+	for _, c := range []struct{ set, module, want string }{
+		{"0.1.0", "v0.1.0", "0.1.0"},
+		{"0.1.0", "(devel)", "0.1.0"},
+		{"dev", "v0.1.1", "0.1.1"},
+		{"dev", "(devel)", "dev"},
+		{"dev", "", "dev"},
+	} {
+		if got := versionOf(c.set, c.module); got != c.want {
+			t.Errorf("versionOf(%q, %q) = %q, want %q", c.set, c.module, got, c.want)
+		}
+	}
+}
+
 func TestVersionAndHelp(t *testing.T) {
 	for _, arg := range []string{"version", "--version", "-v"} {
 		if code, out, _ := exec(t, arg); code != 0 || out != "stickypane dev\n" {
