@@ -41,19 +41,25 @@ func Skills() []Skill {
 // First is the skill to read before the others.
 const First = "using-the-board"
 
-// parse splits a SKILL.md into its front matter and its body.
+// parse splits a SKILL.md into its front matter and its body. Lines may
+// end in "\n" or "\r\n".
 func parse(dir, text string) Skill {
 	s := Skill{Name: dir, Body: text}
-	rest, ok := strings.CutPrefix(text, "---\n")
-	if !ok {
+	lines := strings.SplitAfter(text, "\n")
+	if !isFence(lines[0]) {
 		return s
 	}
-	head, body, ok := strings.Cut(rest, "\n---\n")
-	if !ok {
+	end := 0
+	for i := 1; i < len(lines) && end == 0; i++ {
+		if isFence(lines[i]) {
+			end = i
+		}
+	}
+	if end == 0 {
 		return s
 	}
-	s.Body = strings.TrimLeft(body, "\n")
-	for _, l := range strings.Split(head, "\n") {
+	s.Body = strings.TrimLeft(strings.Join(lines[end+1:], ""), "\r\n")
+	for _, l := range lines[1:end] {
 		k, v, _ := strings.Cut(l, ":")
 		switch strings.TrimSpace(k) {
 		case "name":
@@ -64,6 +70,8 @@ func parse(dir, text string) Skill {
 	}
 	return s
 }
+
+func isFence(line string) bool { return strings.TrimRight(line, "\r\n") == "---" }
 
 // Lookup finds a skill by its name.
 func Lookup(name string) (Skill, bool) {

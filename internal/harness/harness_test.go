@@ -41,3 +41,16 @@ func TestIndexSaysWhenToUseEach(t *testing.T) {
 		t.Errorf("Index = %q", got)
 	}
 }
+
+// A skill saved with Windows line ends reads as one with Unix line ends.
+func TestParseReadsFrontMatterWithCRLF(t *testing.T) {
+	for _, nl := range []string{"\n", "\r\n"} {
+		text := strings.ReplaceAll("---\nname: asking\ndescription: Use when asked.\n---\n\n# Asking\n", "\n", nl)
+		if s := parse("dir", text); s.Name != "asking" || s.Description != "Use when asked." || s.Body != "# Asking"+nl {
+			t.Errorf("%q: parse = %+v", nl, s)
+		}
+	}
+	if s := parse("dir", "---\r\nname: open\r\n"); s.Name != "dir" || s.Body != "---\r\nname: open\r\n" {
+		t.Errorf("front matter that is never closed is body: %+v", s)
+	}
+}
