@@ -55,9 +55,10 @@ homebrew_casks:
     homepage: https://github.com/LeeSwallow/stickypane
     description: A sticky-note board in your terminal, for you and your coding agent
     license: MIT
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/stickypane"]
-          end
+    # The binary is not notarized: macOS kills it while it is quarantined.
+    # Homebrew's postflight block is deprecated; its steps take literal
+    # arguments, and xattr is absent on Linux, hence must_succeed: false.
+    custom_block: |
+      postflight_steps do
+        run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{" }}staged_path{{ "}}" }}/stickypane"], must_succeed: false
+      end
