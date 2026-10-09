@@ -226,6 +226,7 @@ func TestProjectRoot(t *testing.T) {
 		t.Errorf("ProjectRoot = %q, want %q", got, root)
 	}
 	t.Setenv("HOME", root)
+	t.Setenv("USERPROFILE", root) // the home folder on Windows
 	if got := ProjectRoot(sub); got != "" {
 		t.Errorf("a repository at the home folder is not a project: %q", got)
 	}
