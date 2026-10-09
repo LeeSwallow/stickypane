@@ -16,7 +16,7 @@ English · [한국어](README.ko.md)
 
 [Install](#install) · [Quick start](#quick-start) · [Keys](#keys) · [Command line and MCP](#command-line-and-mcp) · [Contributing](#contributing) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/LeeSwallow/stickypane/discussions)
 
-![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
+![An agent's shell on the left runs one-line commands; the board on the right ticks the checklist, moves the card to Done, and shows the log, the chat and the chart as they are written](demo/live.gif)
 
 An agent working in the pane next to you produces a lot of text, and the
 things that matter scroll away with it: where the plan stands, what is done,
@@ -29,6 +29,8 @@ ticks an item, the box ticks; it asks a question, a form with buttons shows
 up, you press one, and the agent reads your answer back. You work the board
 with keys or the mouse and every change lands in the same files, so the
 agent sees what you did without being told.
+
+![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
 
 **What it shows.** Notes in Markdown, kanban boards, checklists, charts,
 Mermaid diagrams, forms you answer, logs followed as they grow, shell
