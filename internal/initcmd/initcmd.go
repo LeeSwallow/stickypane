@@ -274,17 +274,23 @@ func strip(root, name string, r *report) error {
 		return nil
 	}
 	r.removed = append(r.removed, name)
-	before := strings.TrimRight(content[:start], "\n")
-	after := strings.TrimLeft(content[end:], "\n")
+	// A file checked out on Windows may end its lines in "\r\n"; what is
+	// left of it keeps them.
+	nl := "\n"
+	if strings.Contains(content, "\r\n") {
+		nl = "\r\n"
+	}
+	before := strings.TrimRight(content[:start], "\r\n")
+	after := strings.TrimLeft(content[end:], "\r\n")
 	switch {
 	case before == "" && after == "":
 		return os.Remove(path)
 	case before == "":
 		return os.WriteFile(path, []byte(after), 0o644)
 	case after == "":
-		return os.WriteFile(path, []byte(before+"\n"), 0o644)
+		return os.WriteFile(path, []byte(before+nl), 0o644)
 	}
-	return os.WriteFile(path, []byte(before+"\n\n"+after), 0o644)
+	return os.WriteFile(path, []byte(before+nl+nl+after), 0o644)
 }
 
 // find returns where an earlier guide starts and ends in content.

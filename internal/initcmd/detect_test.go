@@ -126,6 +126,23 @@ func TestRunLeavesAgentsMDToTheCodexPlugin(t *testing.T) {
 	}
 }
 
+// git on Windows may check AGENTS.md out with CRLF line ends.
+func TestRunTakesTheGuideOutOfACRLFFile(t *testing.T) {
+	root := t.TempDir()
+	codexPlugin(t, "enabled = true\n")
+	agents := filepath.Join(root, "AGENTS.md")
+	write(t, agents, strings.ReplaceAll(Guide(), "\n", "\r\n"))
+	run(t, root, Options{})
+	if exists(agents) {
+		t.Errorf("an AGENTS.md that held only the guide should go: %q", read(t, agents))
+	}
+	write(t, agents, "rules\r\n\r\n"+strings.ReplaceAll(Guide(), "\n", "\r\n")+"\r\nmore\r\n")
+	run(t, root, Options{})
+	if got := read(t, agents); got != "rules\r\n\r\nmore\r\n" {
+		t.Errorf("the text around the guide stays: %q", got)
+	}
+}
+
 func TestRunTreatsADisabledCodexPluginAsMissing(t *testing.T) {
 	root := t.TempDir()
 	codexPlugin(t, "enabled = false\n")
