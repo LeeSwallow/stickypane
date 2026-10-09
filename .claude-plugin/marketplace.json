@@ -11,6 +11,12 @@
       "source": "./",
       "description": "Skills, commands and a session hook for using the stickypane board",
       "version": "0.1.0"
+    },
+    {
+      "name": "board-mod",
+      "source": "./mods/claude",
+      "description": "Experimental: the board in a pane inside Claude Code, and a toast when the user changes it",
+      "version": "0.1.0"
     }
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "name": "board-mod",
+  "version": "0.1.0",
+  "description": "The stickypane board inside Claude Code: a pane of its notes, and a toast when the user changes it.",
+  "author": {
+    "name": "LeeSwallow",
+    "url": "https://github.com/LeeSwallow"
+  },
+  "repository": "https://github.com/LeeSwallow/stickypane",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

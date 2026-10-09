@@ -9,7 +9,7 @@ fail=0
 ok() { printf '✅ %s\n' "$1"; }
 bad() { printf '❌ %s\n' "$1"; fail=1; }
 
-for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json .codex-plugin/plugin.json .agents/plugins/marketplace.json hooks/claude-hooks.json hooks/codex-hooks.json; do
+for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json .codex-plugin/plugin.json .agents/plugins/marketplace.json hooks/claude-hooks.json hooks/codex-hooks.json mods/claude/.claude-plugin/plugin.json mods/claude/hooks/hooks.json; do
   if python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$here/$f" 2>/dev/null; then ok "$f parses"; else bad "$f is not valid JSON"; fi
 done
 for f in scripts/*.sh; do
