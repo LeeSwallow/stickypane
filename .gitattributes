@@ -1,0 +1,4 @@
+# Every text file is checked out with LF line ends, on Windows too: the
+# skills and the agent guide are embedded in the program and parsed, and
+# the tests compare them byte for byte.
+* text=auto eol=lf
