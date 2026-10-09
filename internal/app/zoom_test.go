@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -119,6 +120,9 @@ func TestConflictIsReportedAndNothingIsWritten(t *testing.T) {
 }
 
 func TestFailedWriteRevertsTheScreen(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("on Windows a folder's mode bits do not stop writing to its files")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root can write everywhere")
 	}
