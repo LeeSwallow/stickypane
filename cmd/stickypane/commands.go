@@ -39,7 +39,10 @@ func init() {
 		{[]string{"kinds"}, kindsCmd},
 		{[]string{"env"}, envCmd},
 		{[]string{"guide"}, guideCmd},
-		{[]string{"version", "--version", "-v"}, func(e env, _ []string) error { _, err := fmt.Fprintln(e.stdout, "stickypane", version); return err }},
+		{[]string{"version", "--version", "-v"}, func(e env, _ []string) error {
+			_, err := fmt.Fprintln(e.stdout, "stickypane", fullVersion())
+			return err
+		}},
 		{[]string{"help", "--help", "-h"}, func(e env, _ []string) error { _, err := io.WriteString(e.stdout, usage); return err }},
 		{[]string{"list"}, listCmd},
 		{[]string{"index"}, indexCmd},

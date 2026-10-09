@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -29,6 +30,24 @@ import (
 
 // version is set by the release build.
 var version = "dev"
+
+// fullVersion is the version to print: the release build's, else the
+// module version go install recorded (v0.1.1 prints as 0.1.1, as a release
+// does; a build in a checkout records a pseudo-version), else "dev".
+func fullVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return version
+	}
+	return versionOf(version, info.Main.Version)
+}
+
+func versionOf(set, module string) string {
+	if set != "dev" || module == "" || module == "(devel)" {
+		return set
+	}
+	return strings.TrimPrefix(module, "v")
+}
 
 const usage = `stickypane - a note board for you and your coding agent
 
