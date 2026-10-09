@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -135,6 +136,9 @@ func TestScanLargeFiles(t *testing.T) {
 }
 
 func TestScanReportsUnreadableFiles(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no mode bits that make a file unreadable to its owner")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root can read everything")
 	}
@@ -162,7 +166,8 @@ func TestApplyWritesAndKeepsMode(t *testing.T) {
 	if got := read(t, s, "a.md"); got != "---\npin: true\n---\nhello\n" {
 		t.Errorf("content = %q", got)
 	}
-	if fi, _ := os.Stat(path); fi.Mode().Perm() != 0o600 {
+	// Windows keeps only a read-only flag, not the mode bits.
+	if fi, _ := os.Stat(path); runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600 {
 		t.Errorf("mode = %v, want 0600", fi.Mode().Perm())
 	}
 }

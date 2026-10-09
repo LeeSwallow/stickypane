@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +46,12 @@ func TestWatchWaitsForTheFirstEvent(t *testing.T) {
 // --exec runs a command for each event, with what happened in STICKY_*
 // variables: how one note reacts to another.
 func TestWatchRunsACommandForEachEvent(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// --exec runs the line in the user's shell, which there is PowerShell
+		// or cmd; this line is sh. That watch sees the event is
+		// TestWatchWaitsForTheFirstEvent.
+		t.Skip("the command is written for sh")
+	}
 	root := project(t)
 	if code, _, _ := execIn(t, "- [ ] tests\n", "write", "plan", "--type", "checklist"); code != 0 {
 		t.Fatal("write")
