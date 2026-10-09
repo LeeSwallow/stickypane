@@ -6,6 +6,21 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-10
+
+### Fixed
+
+- Windows: a script's output reaches its log; a skill or an instruction
+  file with CRLF line ends is read as with LF; text files keep LF line ends
+  on a Windows checkout.
+- `stickypane version` names the module version of a `go install` build,
+  not `dev`.
+- The README's first command example works in a new repository.
+
+### Added
+
+- `brew install LeeSwallow/tap/stickypane`: a Homebrew cask in a tap.
+
 ## [0.1.0] - 2026-10-08
 
 The first version. stickypane shows the files of a project's `.sticky/`
