@@ -16,6 +16,7 @@ board, see the [README](../README.md); this page is for changing the plugin.
 | `harness.go`, `internal/harness` | the same skills carried in the program, for MCP prompts and `stickypane guide` |
 | `hooks/` | hook registrations for each agent; both run the scripts below |
 | `scripts/` | shell that the hooks and commands run |
+| `mods/claude/` | `board-mod`, a second plugin in the same marketplace: a Claude Code mod (TypeScript hooks) that shows the board in a pane and the user's changes as toasts |
 
 The plugin is layered: a command names a skill, a skill points to its
 references and to the shared rules, and `using-the-board` is the way in
@@ -45,3 +46,25 @@ installed.
    starts with "Use when". Put the commands first and the rules after, in
    under 80 lines.
 2. Run `scripts/selfcheck.sh` and `go test ./internal/initcmd/`.
+
+## The mod
+
+`mods/claude/` is a Claude Code mod, installed on its own
+(`/plugin install board-mod --marketplace LeeSwallow/stickypane`). Its
+hooks module, `hooks/register.tsx`, reads the board only through the
+command line: `stickypane index --json` for the pane, `stickypane cat` for
+a note, and `stickypane watch --json` for the session's life. An event
+that arrives while one of the agent's tool calls runs, or within 1.5 s
+after one ends, is taken as the agent's and not announced. What it makes
+of those lines is in `hooks/board.ts`, which touches no engine API.
+
+```sh
+claude plugin validate mods/claude    # what the engine would refuse
+claude plugin test mods/claude        # hooks/*.test.ts(x)
+claude --plugin-dir mods/claude       # a session with the mod loaded
+```
+
+The types it is checked against are written by Claude Code into
+`mods/claude/.claude-plugin/types/` when it loads the mod; that folder is
+not committed.
+

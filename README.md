@@ -225,6 +225,23 @@ project that has one. In a git repository the agent's first
 `stickypane show` or `stickypane todo` makes the board, so no setup step
 is needed.
 
+### Inside Claude Code (experimental)
+
+A second plugin, `board-mod`, is a Claude Code mod: it shows the board
+inside Claude Code, in the terminal and in the desktop app, without a
+second pane. Install it at the Claude Code prompt:
+
+```
+/plugin install board-mod --marketplace LeeSwallow/stickypane
+```
+
+`/stickypane` opens a pane with the notes by tab; press one to read its
+file, `b` to go back. While a session runs, what you change on the board
+(an item ticked, a card moved, a form answered, a message) shows as a
+toast and on the status line; what the agent changed itself does not. It
+reads the board only through the `stickypane` command, so it needs
+stickypane on the `PATH`, and changes nothing else.
+
 ## The folder is the board
 
 One file in `.sticky/` is one note. Create a file to stick a note, edit it to

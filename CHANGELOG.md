@@ -6,6 +6,12 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Added
+
+- `board-mod`, an optional Claude Code mod (experimental): `/stickypane`
+  shows the board in a pane inside Claude Code, and what the user changes
+  on the board is a toast and the status line.
+
 ## [0.1.1] - 2026-10-10
 
 ### Fixed
