@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -78,12 +79,20 @@ func (m *Model) run(name string) tea.Cmd {
 	out := filepath.Join(m.store.Dir, filepath.FromSlash(log))
 	return func() tea.Msg {
 		done := scriptDoneMsg{name: name}
-		f, err := os.OpenFile(out, os.O_APPEND|os.O_WRONLY, 0o644)
+		// Not O_APPEND: on Windows that opens a handle that may only
+		// append, and the sh of Git for Windows cannot write to it, so the
+		// script's output would be lost. The log is the script's alone
+		// while it runs, so writing on from its end is the same.
+		f, err := os.OpenFile(out, os.O_WRONLY, 0o644)
 		if err != nil {
 			done.err = err
 			return done
 		}
 		defer f.Close()
+		if _, err := f.Seek(0, io.SeekEnd); err != nil {
+			done.err = err
+			return done
+		}
 		prog, args, err := env.Detect().Script(script)
 		if err == nil {
 			cmd := exec.Command(prog, args...)
