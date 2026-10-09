@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -49,7 +50,9 @@ func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
 	}
 	root, _ := filepath.EvalSymlinks(filepath.Dir(dir))
 	where, err := os.ReadFile(filepath.Join(filepath.Dir(dir), "where.txt"))
-	if got, _ := filepath.EvalSymlinks(strings.TrimSpace(string(where))); err != nil || got != root {
+	// The sh of Git for Windows prints its own form of the path (/tmp/...);
+	// there, where.txt landing in the project folder is the proof.
+	if got, _ := filepath.EvalSymlinks(strings.TrimSpace(string(where))); err != nil || (got != root && runtime.GOOS != "windows") {
 		t.Errorf("the script should run in the project folder %q: %q, %v", root, where, err)
 	}
 	s := screen(m)
