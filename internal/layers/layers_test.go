@@ -29,6 +29,7 @@ var rank = map[string]int{
 	".":                        0, // the plugin's files, carried in the program
 	"internal/harness":         5, // the plugin's skills, read for MCP and guide
 	"internal/httpfile":        5, // .http files: read, send, check; writes times with when
+	"internal/registry":        5, // which boards are used on this machine; writes times with when
 	"internal/layout":          0,
 	"internal/editor":          0,
 	"internal/lineedit":        0, // the one-line editor of the bottom line

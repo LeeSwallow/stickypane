@@ -18,6 +18,8 @@ const (
 	Stamp = "2006-01-02 15:04" // a moment in a note: "- [x] tests ✅ 2026-10-03 14:02"
 	Clock = "15:04"            // a time of day: "14:02 tests passed" in a log
 	Date  = "2006-01-02"
+	// Moment is a moment in a record kept for machines: "2026-10-28T14:02:11+09:00".
+	Moment = time.RFC3339
 )
 
 // How the screen writes a time of day, a day of this year and a day of

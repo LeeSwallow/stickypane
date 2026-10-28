@@ -21,6 +21,7 @@ layer, fails the build.
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
+| 5 | `internal/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it |
 | 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
