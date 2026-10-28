@@ -4,7 +4,7 @@
   import { onMount } from 'svelte'
   import { changedEvent, home, noticesEvent, project, restartedEvent, statusEvent, windowKind } from '../lib/shell'
 
-  const kind = 'project'
+  const kind: string = 'project'
   let shown: Record<string, unknown> = $state({})
 
   async function put(key: string, p: Promise<unknown>) {
