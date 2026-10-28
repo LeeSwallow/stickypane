@@ -54,31 +54,38 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 	if err != nil {
 		return "", doc.Document{}, err
 	}
-	if _, err := a.st.Read(file); errors.Is(err, fs.ErrNotExist) {
+	// The note is read, changed and written in one step, and made in that
+	// step when it is not there.
+	var after doc.Document
+	err = a.st.Rewrite(file, func(old []byte, ok bool) ([]byte, error) {
+		if ok {
+			d, err := shaped{a, file, kinds, op}.Apply(doc.Parse(old))
+			if err != nil {
+				return nil, err
+			}
+			after = doc.Parse(d.Bytes())
+			return d.Bytes(), nil
+		}
 		// Only Markdown says in front matter what it is and that it is
 		// open. Another file is what its extension makes it.
 		var d doc.Document
 		if strings.EqualFold(filepath.Ext(file), ".md") {
 			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
-			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
+			return nil, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
-		if d, err = op.Apply(d); err != nil {
-			return file, d, err
+		d, err := op.Apply(d)
+		if err != nil {
+			return nil, err
 		}
-		d = a.tend(file, doc.Document{}, d)
-		if err := a.st.Write(file, d.Bytes()); err != nil {
-			return file, d, err
-		}
-		_, _ = a.Derive()
-		return file, d, nil
-	}
-	if err := a.st.Apply(file, shaped{a, file, kinds, op}); err != nil {
+		after = a.tend(file, doc.Document{}, d)
+		return after.Bytes(), nil
+	})
+	if err != nil {
 		return file, doc.Document{}, err
 	}
 	_, _ = a.Derive() // charts computed from this note follow it
-	b, err := a.st.Read(file)
-	return file, doc.Parse(b), err
+	return file, after, nil
 }
 
 // status is the line an edit returns: the file and its summary.
@@ -495,17 +502,17 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 			return "", "", err
 		}
 	}
-	if err := a.st.Move(file, dest); errors.Is(err, fs.ErrNotExist) {
+	// What was arranged for the old name now belongs to the new one, in
+	// the same step as the move. A page has no arrangement of its own: its
+	// book has.
+	move := a.st.MoveArranged
+	if strings.Contains(dest, "/") {
+		move = a.st.Move
+	}
+	if err := move(file, dest); errors.Is(err, fs.ErrNotExist) {
 		return "", "", fmt.Errorf("there is no note %s", file)
 	} else if err != nil {
 		return "", "", err
-	}
-	// What was arranged for the old name now belongs to the new one. A
-	// page has no arrangement of its own: its book has.
-	if views, err := a.st.Views(); err == nil {
-		if v, ok := views[file]; ok && !strings.Contains(dest, "/") {
-			_ = a.st.SetView(dest, func(n *store.View) { *n = v })
-		}
 	}
 	return file, dest, nil
 }
@@ -550,11 +557,12 @@ func (a *API) Link(target, name string) (string, error) {
 	if err != nil {
 		rel = abs
 	}
-	if err := os.Symlink(rel, filepath.Join(a.st.Dir, name)); err != nil {
+	if err := a.st.Link(name, rel); err != nil {
 		return "", err
 	}
 	open := true
 	if err := a.st.SetView(name, func(v *store.View) { v.Open = &open }); err != nil {
+		_ = a.st.Delete(name) // the link alone, so that trying again works
 		return "", err
 	}
 	return fmt.Sprintf("linked %s to %s", name, filepath.ToSlash(rel)), nil

@@ -17,6 +17,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/atomicfile"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 	"github.com/LeeSwallow/stickypane/internal/when"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -36,7 +38,6 @@ const (
 	// ViewFile holds how the notes are arranged on the screen.
 	ViewFile  = "sticky.json"
 	slugRunes = 40
-	tmpPrefix = ".stickypane-tmp-"
 )
 
 var (
@@ -59,6 +60,13 @@ var extensions = map[string]bool{
 func (s *Store) Linked(name string) bool {
 	fi, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(name)))
 	return err == nil && fi.Mode()&os.ModeSymlink != 0
+}
+
+// Link makes the note called name a symbolic link to target, a path
+// relative to the note's folder or an absolute one. It never writes over
+// what is at name: that is an error that is fs.ErrExist.
+func (s *Store) Link(name, target string) error {
+	return os.Symlink(target, filepath.Join(s.Dir, filepath.FromSlash(name)))
 }
 
 // IsNote reports whether a file name is one the board shows.
@@ -387,22 +395,47 @@ func readEnds(path string, size int64) (head, tail []byte, err error) {
 // A note that is a symlink is edited where it really lives: replacing the
 // link itself would silently detach the note from its file.
 func (s *Store) Apply(name string, op doc.Op) error {
+	return s.Rewrite(name, func(b []byte, ok bool) ([]byte, error) {
+		if !ok {
+			return nil, doc.ErrConflict
+		}
+		out, err := op.Apply(doc.Parse(b))
+		if err != nil {
+			return nil, err
+		}
+		return out.Bytes(), nil
+	})
+}
+
+// Rewrite reads the note as it is now, hands it to change, and replaces it
+// with what change returns, in one step: Apply for a caller that works on
+// the whole file, and may make it. ok is false and old nil when there is no
+// note yet; its folder is then made. When change fails nothing is written.
+// A note that is a symlink is rewritten where it really lives.
+func (s *Store) Rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
+	return s.locked(func() error { return s.rewrite(name, change) })
+}
+
+func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
 	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	}
-	b, err := os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return doc.ErrConflict
+	old, err := os.ReadFile(path)
+	ok := err == nil
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
 	}
+	out, err := change(old, ok)
 	if err != nil {
 		return err
 	}
-	out, err := op.Apply(doc.Parse(b))
-	if err != nil {
-		return err
+	if !ok {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err // a new page of a new book needs its folder
+		}
 	}
-	return writeAtomic(path, out.Bytes())
+	return writeAtomic(path, out)
 }
 
 // Read returns a note's bytes exactly as they are on disk.
@@ -414,6 +447,10 @@ func (s *Store) Read(name string) ([]byte, error) {
 // Apply it does not look at what is there: it is for callers that hand over
 // a whole note, such as the command line and the MCP server.
 func (s *Store) Write(name string, content []byte) error {
+	return s.locked(func() error { return s.write(name, content) })
+}
+
+func (s *Store) write(name string, content []byte) error {
 	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
@@ -432,65 +469,12 @@ func (s *Store) WriteNew(name string, content []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	// Written whole to a temporary file, then linked to its name: the link
-	// fails if the name is taken, and the name never shows half a note.
-	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	_, werr := tmp.Write(content)
-	if cerr := tmp.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		return werr
-	}
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		return err
-	}
-	err = os.Link(tmp.Name(), path)
-	if err == nil || errors.Is(err, fs.ErrExist) {
-		return err
-	}
-	// No hard links here (some file systems): create exclusively and write.
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if err != nil {
-		return err
-	}
-	_, werr = f.Write(content)
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(path)
-	}
-	return werr
+	return atomicfile.Create(path, content, 0o644)
 }
 
-func writeAtomic(path string, data []byte) error {
-	mode := fs.FileMode(0o644)
-	if fi, err := os.Stat(path); err == nil {
-		mode = fi.Mode().Perm()
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name()) // a no-op once the rename succeeded
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Chmod(mode); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
-}
+// writeAtomic replaces the file at path in one step. A new file is 0644; a
+// file that is there keeps its mode.
+func writeAtomic(path string, data []byte) error { return atomicfile.WriteFile(path, data, 0o644) }
 
 // Create writes a new note named after text, with the extension ext, and
 // returns the file name. It never overwrites: a taken name gets "-2", "-3"
@@ -502,18 +486,14 @@ func (s *Store) Create(text, ext string, content []byte, now time.Time) (string,
 		if i > 1 {
 			name = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		f, err := os.OpenFile(filepath.Join(s.Dir, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		err := atomicfile.Create(filepath.Join(s.Dir, name), content, 0o644)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
 		if err != nil {
 			return "", err
 		}
-		_, werr := f.Write(content)
-		if cerr := f.Close(); werr == nil {
-			werr = cerr
-		}
-		return name, werr
+		return name, nil
 	}
 }
 
@@ -546,7 +526,15 @@ func Slug(text string, now time.Time) string {
 // It never writes over what is there: a taken name gets "-2", "-3" and so
 // on. It returns where the note went. A folder that is left without
 // anything in it is removed.
-func (s *Store) put(name, dst string) (string, error) {
+func (s *Store) put(name, dst string) (to string, err error) {
+	err = s.locked(func() error {
+		to, err = s.putLocked(name, dst)
+		return err
+	})
+	return to, err
+}
+
+func (s *Store) putLocked(name, dst string) (string, error) {
 	src := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if _, err := os.Lstat(src); err != nil {
 		return "", err
@@ -637,6 +625,10 @@ func (s *Store) Trashed(name string) (string, bool) {
 // Move renames a note: under a new name, into a book, or out of one. It
 // does not write over a note that is there.
 func (s *Store) Move(name, to string) error {
+	return s.locked(func() error { return s.move(name, to) })
+}
+
+func (s *Store) move(name, to string) error {
 	src := filepath.Join(s.Dir, filepath.FromSlash(name))
 	dst := filepath.Join(s.Dir, filepath.FromSlash(to))
 	if _, err := os.Lstat(src); err != nil {
@@ -653,6 +645,50 @@ func (s *Store) Move(name, to string) error {
 	}
 	s.tidy(name)
 	return nil
+}
+
+// MoveArranged moves a note as Move does, and gives the new name what
+// sticky.json arranged for the old one. It is all or nothing: when the
+// arrangement cannot be written, the note is moved back and the error
+// returned. A note with nothing arranged, or whose tab's file cannot be
+// read, is only moved.
+func (s *Store) MoveArranged(name, to string) error {
+	return s.locked(func() error { return s.moveArranged(name, to) })
+}
+
+func (s *Store) moveArranged(name, to string) error {
+	tab, inside := s.split(name)
+	_, views, err := s.readViews(tab)
+	v, had := views[inside]
+	if err := s.move(name, to); err != nil {
+		return err
+	}
+	if err != nil || !had {
+		return nil
+	}
+	if err := s.setView(to, func(n *View) { *n = v }); err != nil {
+		if back := s.move(to, name); back != nil {
+			return fmt.Errorf("%w; and %s could not be moved back from %s: %v", err, name, to, back)
+		}
+		return err
+	}
+	return nil
+}
+
+// lockWait is how long a writer waits for another to let go of the board.
+const lockWait = 10 * time.Second
+
+// locked runs f holding the board's lock (internal/filelock), so that what
+// f reads, changes and writes is not changed by another writer in between,
+// in this process or another. Only the exported methods take it; what they
+// call inside does not, as the lock is not re-entrant.
+func (s *Store) locked(f func() error) error {
+	unlock, err := filelock.Lock(s.Dir, lockWait)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return f()
 }
 
 // Delete removes a note for good.

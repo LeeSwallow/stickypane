@@ -95,12 +95,15 @@ func (o tended) Apply(d doc.Document) (doc.Document, error) {
 // cannot be read, someone else has changed it, and nothing is written:
 // ErrStale. A nil was writes whatever is there.
 func (a *API) Save(name string, was, body []byte) error {
-	if was != nil {
-		if now, err := a.st.Read(name); err != nil || !bytes.Equal(now, was) {
-			return ErrStale
+	// Compared and written in one step: nothing written in between is
+	// overwritten.
+	err := a.st.Rewrite(name, func(now []byte, ok bool) ([]byte, error) {
+		if was != nil && (!ok || !bytes.Equal(now, was)) {
+			return nil, ErrStale
 		}
-	}
-	if err := a.st.Write(name, body); err != nil {
+		return body, nil
+	})
+	if err != nil {
 		return err
 	}
 	_, _ = a.Derive()

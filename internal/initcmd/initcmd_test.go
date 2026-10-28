@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 )
 
 func read(t *testing.T, path string) string {
@@ -162,7 +163,7 @@ func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
 	root := t.TempDir()
 	run(t, root, Options{NoAgentDocs: true})
 	ignore := read(t, filepath.Join(root, ".sticky", ".gitignore"))
-	if !strings.Contains(ignore, ".trash/") {
+	if !strings.Contains(ignore, ".trash/") || !strings.Contains(ignore, filelock.Name) {
 		t.Errorf(".sticky/.gitignore = %q", ignore)
 	}
 }
