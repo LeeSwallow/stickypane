@@ -30,6 +30,7 @@
     linked,
     editable = true,
     sizable = true,
+    titled = true,
     lead,
     menu = [],
     menuOpen = $bindable(false),
@@ -55,6 +56,8 @@
     editable?: boolean
     /** false: something else sizes the note (the canvas); no width steps */
     sizable?: boolean
+    /** false: the window around it names the note (a torn-off note): no title, way back or close here */
+    titled?: boolean
     lead?: Snippet
     menu?: MenuItem[]
     menuOpen?: boolean
@@ -92,7 +95,7 @@
 
 <div class="wrap">
   <header class="head">
-    {@render lead?.()}
+    {#if titled}{@render lead?.()}{/if}
     {#if editing}
       <!-- svelte-ignore a11y_autofocus -->
       <input
@@ -110,7 +113,7 @@
         }}
         onblur={commit}
       />
-    {:else}
+    {:else if titled}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <!-- svelte-ignore a11y_no_noninteractive_tabindex: a renamable title takes the focus so F2 or Enter renames it -->
       <h3
@@ -200,7 +203,7 @@
             <Menu items={menu} bind:open={menuOpen} label={$tr('ui.noteActions')} onselect={onmenu} />
           </span>
         {/if}
-        {#if onclose}
+        {#if onclose && titled}
           <IconButton icon="close" size="sm" label={$tr('ui.close')} align="end" onclick={onclose} />
         {/if}
       </Toolbar>

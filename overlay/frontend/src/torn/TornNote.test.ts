@@ -56,15 +56,16 @@ describe('a torn-off note', () => {
     expect(document.title).toBe('Release')
   })
 
-  it('is put back from its bar and from the note\'s own close', async () => {
+  it('names its note in its title bar, once, and its close puts the note back', async () => {
     const a = api(boardOf([checklist]))
     render(TornNote, { props: { api: a, bus: fakeBus().bus, note: 'work/release.md' } })
-    await screen.findByText('Release')
-    const backs = screen.getAllByRole('button', { name: t('note.putBack') })
-    await fireEvent.click(backs[0])
+    const bar = document.querySelector<HTMLElement>('[data-titlebar]')!
+    await waitFor(() => expect(within(bar).getByRole('heading', { level: 1, name: 'Release' })).toBeTruthy())
+    // the note's own head does not write the title again, nor close it twice
+    expect(screen.getAllByText('Release')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: t('ui.close') })).toBeNull()
+    await fireEvent.click(within(bar).getByRole('button', { name: t('torn.close') }))
     expect(a.putBack).toHaveBeenCalledTimes(1)
-    await fireEvent.click(screen.getByRole('button', { name: t('ui.close') }))
-    expect(a.putBack).toHaveBeenCalledTimes(2)
   })
 
   it('keeps its window on top, or lets it go', async () => {

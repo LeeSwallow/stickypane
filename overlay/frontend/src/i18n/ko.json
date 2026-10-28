@@ -325,5 +325,6 @@
   "ui.size.share": "보드의 {size}",
   "ui.size.whole": "보드 전체",
   "ui.size.narrowerTo": "더 좁게: {size}",
-  "ui.size.widerTo": "더 넓게: {size}"
+  "ui.size.widerTo": "더 넓게: {size}",
+  "torn.close": "닫고 보드에 되돌리기"
 }

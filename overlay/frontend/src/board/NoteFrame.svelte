@@ -28,6 +28,7 @@
     small = false,
     narrow = false,
     free = false,
+    titled = true,
     width = 1200,
   }: {
     note: Note
@@ -36,6 +37,8 @@
     narrow?: boolean
     /** sized from outside (the canvas, a torn-off window): fills its box */
     free?: boolean
+    /** false: the window names the note (torn off), so its head does not */
+    titled?: boolean
     /** the board's width in px: what a fraction is a fraction of */
     width?: number
   } = $props()
@@ -183,6 +186,7 @@
         : undefined}
       {menu}
       sizable={!free}
+      {titled}
       onsize={(s) => board.arrange(note.name, { size: s })}
       onpin={(on) => board.arrange(note.name, { pin: on })}
       ontearoff={board.tear && readable && !zoomed ? () => board.tear?.(note.name) : undefined}

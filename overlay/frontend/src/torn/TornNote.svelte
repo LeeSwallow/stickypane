@@ -2,10 +2,11 @@
   // A note torn off its board (03 §3.6.1, ADR-0017): one note in a small
   // window of its own, anywhere on the screen, over the same bridge as its
   // board's window. It draws and acts as on the board (the same frame and
-  // shapes, through the same context); its bar is where the window is
-  // carried, kept on top, and put back. Its ⋯ runs a script, sends a
-  // request, moves, archives and deletes as the board's does, after the
-  // same questions. The shell closes it when the note
+  // shapes, through the same context); its bar names the note (the head
+  // inside does not again), carries the window, keeps it on top, and
+  // closes it, putting the note back on the board. Its ⋯ runs a script,
+  // sends a request, moves, archives and deletes as the board's does, after
+  // the same questions. The shell closes it when the note
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
   import { onMount, setContext, tick as drawn } from 'svelte'
@@ -14,7 +15,7 @@
   import { noteOf } from '../lib/shell'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
-  import { agentColor, applyTheme } from '../lib/theme/tokens'
+  import { agentColor, applyTheme, noteTitleColor } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
   import Button from '../lib/ui/Button.svelte'
@@ -239,7 +240,10 @@
 <div class="torn" bind:clientWidth={width} style:--tape={note ? noteHex(note.color, look.palette) : 'var(--line)'} data-torn={name}>
   <header class="bar" data-titlebar>
     <span class="tape" aria-hidden="true"></span>
-    <span class="grow"></span>
+    {#if note?.icon}<span class="icon" aria-hidden="true">{note.icon}</span>{/if}
+    <h1 class="name" class:neat={look.style === 'neat'} style:color={note && look.palette ? noteTitleColor(noteHex(note.color, look.palette), look.palette, look.dark) : undefined} title={note?.title || name}>
+      {note?.title || name}
+    </h1>
     <IconButton
       icon="pin"
       size="sm"
@@ -249,12 +253,12 @@
       align="end"
       onclick={pin}
     />
-    <IconButton icon="restore" size="sm" label={$tr('note.putBack')} align="end" onclick={putBack} />
+    <IconButton icon="close" size="sm" label={$tr('torn.close')} align="end" onclick={putBack} />
   </header>
   <main class="body" bind:this={body}>
     {#if note}
       {#key note.name}
-        <NoteFrame {note} free narrow small={width < 300} {width} />
+        <NoteFrame {note} free narrow titled={false} small={width < 300} {width} />
       {/key}
     {:else if !status || status.state !== 'ready' || !board}
       <div class="state" role="status">
@@ -320,23 +324,39 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--space-2);
     flex: none;
-    height: var(--control-md);
-    padding: 0 var(--space-2);
+    min-height: var(--control-lg);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3) var(--space-2) 0 var(--space-3);
   }
   .tape {
     position: absolute;
     left: 50%;
-    top: var(--space-1);
+    top: -2px;
     width: 64px;
-    height: var(--space-4);
+    height: var(--space-3);
     transform: translateX(-50%) rotate(-2deg);
     border-radius: 2px;
     background: color-mix(in srgb, var(--tape) 55%, transparent);
   }
-  .grow {
+  /* the window's title: the note's, as its header would write it */
+  .icon {
+    flex: none;
+    color: var(--ink-3);
+  }
+  .name {
     flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--ink);
+    font: var(--weight-hand-title) var(--text-hand-title) / var(--leading-hand-title) var(--font-hand);
+  }
+  .name.neat {
+    font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
   }
   .body {
     flex: 1;

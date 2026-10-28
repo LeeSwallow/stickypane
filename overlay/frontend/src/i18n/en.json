@@ -325,5 +325,6 @@
   "ui.size.share": "{size} of the board",
   "ui.size.whole": "the whole board",
   "ui.size.narrowerTo": "Narrower: {size}",
-  "ui.size.widerTo": "Wider: {size}"
+  "ui.size.widerTo": "Wider: {size}",
+  "torn.close": "Close and put back on the board"
 }
