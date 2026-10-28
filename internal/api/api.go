@@ -69,8 +69,12 @@ type API struct {
 func New(st *store.Store, reg widget.Registry) *API { return NewWithClock(st, reg, time.Now) }
 
 // NewWithClock is New with the clock the API reads when it writes a time:
-// when a note was made, an item ticked, a message said.
+// when a note was made, an item ticked, a message said. A nil clock is
+// time.Now.
 func NewWithClock(st *store.Store, reg widget.Registry, now func() time.Time) *API {
+	if now == nil {
+		now = time.Now
+	}
 	return &API{st: st, reg: reg, now: now}
 }
 
