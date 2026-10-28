@@ -78,7 +78,9 @@
     "1 line": "1줄",
     "%d lines": "%d줄",
     "1 value": "값 1개",
-    "%d values": "값 %d개"
+    "%d values": "값 %d개",
+    "less": "적음",
+    "more": "많음"
   },
   "addANote": "노트 추가",
   "example": "예시",

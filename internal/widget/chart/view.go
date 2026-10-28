@@ -18,10 +18,24 @@ const (
 	formatHint = `no data yet: add "label: number" lines`
 	dayLayout  = "2006-01-02"
 	gutterDays = 5 // cells for the weekday names left of a calendar
+
+	sparkRows    = 6  // height of a trend line when nothing says more
+	maxSparkRows = 40 // and the most a zoomed one grows to
+	sparkMinW    = 24 // narrower than this a trend is drawn on one line
+	sparkMinPlot = 12 // cells the plot needs, or the trend is one line
+	heatMinW     = 40 // narrower than this a calendar keeps two cells a week
 )
 
 // Draw implements widget.Widget. A chart has no cursor.
-func (c *Chart) Draw(width int, _ bool) (string, widget.Span) {
+func (c *Chart) Draw(width int, active bool) (string, widget.Span) {
+	return c.DrawIn(width, 0, active)
+}
+
+// DrawIn implements widget.Roomy: the same drawing, with a trend line as
+// tall as height allows. A pane does not know its height before it is
+// drawn, so Draw passes 0 and the trend line has its default height; the
+// zoomed screen passes the rows it has.
+func (c *Chart) DrawIn(width, height int, _ bool) (string, widget.Span) {
 	var lines []string
 	if len(c.points) == 0 {
 		lines = append(lines, widget.Faint.Render(widget.Truncate(widget.T(formatHint), width)))
@@ -35,7 +49,13 @@ func (c *Chart) Draw(width int, _ bool) (string, widget.Span) {
 		}
 		switch days := c.days(); {
 		case c.view == "spark":
-			lines = append(lines, c.spark(width)...)
+			rows := sparkRows
+			if height > 0 {
+				// The rows the room has left under the text, less the
+				// line of labels under the chart.
+				rows = max(min(height-len(lines)-1, maxSparkRows), sparkRows)
+			}
+			lines = append(lines, c.spark(width, rows)...)
 		case c.view == "heat" && len(days) > 0:
 			lines = append(lines, heat(days, width)...)
 		default:
@@ -80,9 +100,100 @@ func (c *Chart) bars(width int) []string {
 // sparks are the eight heights of a trend line.
 var sparks = []rune("▁▂▃▄▅▆▇█")
 
-// spark draws the values as one line, the latest that fit, and names the
+// ratio is where v lies between low and high, 0 to 1. A range too large
+// for a float gives a ratio that is not a number; such a value sits in the
+// middle.
+func ratio(v, low, high float64) float64 {
+	if r := (v - low) / (high - low); high > low && !math.IsNaN(r) && !math.IsInf(r, 0) {
+		return r
+	}
+	return 0.5
+}
+
+// spark draws the values as a line chart rows high that fills the width:
+// the largest and smallest on an axis at the left, the first and last
+// labels under it, and the latest value marked and written at the end.
+// With fewer than two values, or too little width, it is one line.
+func (c *Chart) spark(width, rows int) []string {
+	last := c.points[len(c.points)-1]
+	valueW := min(widget.Width(last.text), max(width/4, 1))
+	axisW := 0
+	for _, p := range c.points {
+		axisW = max(axisW, min(widget.Width(p.text), max(width/5, 1)))
+	}
+	plotW := width - axisW - 1 - valueW - 1
+	if len(c.points) < 2 || width < sparkMinW || plotW < sparkMinPlot || rows < 2 {
+		return c.oneLine(width)
+	}
+	points := c.points
+	if len(points) > plotW {
+		points = points[len(points)-plotW:]
+	}
+	low, high := points[0], points[0]
+	for _, p := range points {
+		if p.value < low.value {
+			low = p
+		}
+		if p.value > high.value {
+			high = p
+		}
+	}
+	ratios := make([]float64, len(points))
+	for i, p := range points {
+		ratios[i] = ratio(p.value, low.value, high.value)
+	}
+	// Each column is the line's height there, found between the two
+	// values on either side, so a few values stretch over the width.
+	levels := make([]int, plotW)
+	for x := range levels {
+		pos := float64(x) * float64(len(points)-1) / float64(plotW-1)
+		i := min(int(pos), len(points)-2)
+		f := pos - float64(i)
+		levels[x] = int(math.Round((ratios[i]*(1-f)+ratios[i+1]*f)*float64(rows*8-1))) + 1
+	}
+	top := (levels[plotW-1] - 1) / 8 // the row the latest value is on
+
+	lines := make([]string, 0, rows+1)
+	for row := rows - 1; row >= 0; row-- {
+		var cells strings.Builder
+		for x, level := range levels {
+			k := level - row*8
+			switch {
+			case x == plotW-1 && row == top:
+				cells.WriteString(widget.Accent.Render("●"))
+			case k >= 8:
+				cells.WriteString(widget.Good.Render("█"))
+			case k > 0:
+				cells.WriteString(widget.Good.Render(string(sparks[k-1])))
+			default:
+				cells.WriteString(" ")
+			}
+		}
+		label, mark := "", "│"
+		switch row {
+		case rows - 1:
+			label, mark = high.text, "┤"
+		case 0:
+			label, mark = low.text, "┤"
+		}
+		tail := ""
+		if row == top {
+			tail = " " + widget.Accent.Render(widget.Truncate(last.text, valueW))
+		}
+		label = strings.Repeat(" ", axisW-min(widget.Width(label), axisW)) + widget.Truncate(label, axisW)
+		lines = append(lines, widget.Faint.Render(label+mark)+cells.String()+tail)
+	}
+	first, end := widget.Clean(points[0].label), widget.Clean(last.label)
+	if widget.Width(first)+widget.Width(end)+1 > plotW {
+		first, end = widget.Truncate(first, (plotW-1)/2), widget.Truncate(end, (plotW-1)/2)
+	}
+	gap := max(plotW-widget.Width(first)-widget.Width(end), 1)
+	return append(lines, widget.Faint.Render(strings.Repeat(" ", axisW+1)+first+strings.Repeat(" ", gap)+end))
+}
+
+// oneLine draws the values as one line, the latest that fit, and names the
 // range and the peak under it.
-func (c *Chart) spark(width int) []string {
+func (c *Chart) oneLine(width int) []string {
 	points := c.points
 	if width > 0 && len(points) > width {
 		points = points[len(points)-width:]
@@ -98,12 +209,7 @@ func (c *Chart) spark(width int) []string {
 	}
 	var line strings.Builder
 	for _, p := range points {
-		i := len(sparks) / 2
-		// A range too large for a float gives a ratio that is not a
-		// number; such a value sits in the middle.
-		if ratio := (p.value - low.value) / (high.value - low.value); high.value > low.value && !math.IsNaN(ratio) && !math.IsInf(ratio, 0) {
-			i = int(math.Round(ratio * float64(len(sparks)-1)))
-		}
+		i := int(math.Round(ratio(p.value, low.value, high.value) * float64(len(sparks)-1)))
 		line.WriteRune(sparks[max(min(i, len(sparks)-1), 0)])
 	}
 	legend := fmt.Sprintf("%s → %s  low %s  peak %s (%s)",
@@ -146,7 +252,15 @@ func heat(days []day, width int) []string {
 	monday := func(t time.Time) time.Time { return t.AddDate(0, 0, -((int(t.Weekday()) + 6) % 7)) }
 	start, end := monday(first), monday(last)
 	weeks := int(end.Sub(start).Hours()/24/7) + 1
-	if fit := max((width-gutterDays)/2, 1); weeks > fit {
+	// A week is 2 to 4 cells wide: the widest that shows every week, or 2
+	// with the latest weeks that fit. Narrow, it is always 2.
+	cw := 2
+	if width >= heatMinW {
+		for cw < 4 && weeks*(cw+1) <= width-gutterDays {
+			cw++
+		}
+	}
+	if fit := max((width-gutterDays)/cw, 1); weeks > fit {
 		start = end.AddDate(0, 0, -7*(fit-1))
 		weeks = fit
 	}
@@ -154,9 +268,9 @@ func heat(days []day, width int) []string {
 	head := strings.Repeat(" ", gutterDays)
 	month := time.Month(0)
 	for w := 0; w < weeks; w++ {
-		cell := "  "
+		cell := strings.Repeat(" ", cw)
 		if m := start.AddDate(0, 0, 7*w).Month(); m != month {
-			cell = widget.Pad(strconv.Itoa(int(m)), 2)
+			cell = widget.Pad(strconv.Itoa(int(m)), cw)
 			month = m
 		}
 		head += cell
@@ -169,20 +283,36 @@ func heat(days []day, width int) []string {
 			p, ok := values[start.AddDate(0, 0, 7*w+row).Format(dayLayout)]
 			switch {
 			case !ok:
-				cells.WriteString("  ")
+				cells.WriteString(strings.Repeat(" ", cw))
 			case p.value <= 0:
-				cells.WriteString(widget.Faint.Render("·") + " ")
+				cells.WriteString(widget.Faint.Render("·") + strings.Repeat(" ", cw-1))
 			default:
 				atOrBelow := sort.SearchFloat64s(ranked, math.Nextafter(p.value, math.Inf(1)))
 				level := (atOrBelow*len(shades)+len(ranked)-1)/len(ranked) - 1
-				cells.WriteString(widget.Good.Render(shades[max(min(level, len(shades)-1), 0)]) + " ")
+				// Two cells a week leave a gap; on a wide pane weeks are
+				// blocks that touch, so the shades can be told apart.
+				block := shades[max(min(level, len(shades)-1), 0)]
+				if width >= heatMinW {
+					cells.WriteString(widget.Good.Render(strings.Repeat(block, cw)))
+				} else {
+					cells.WriteString(widget.Good.Render(block) + " ")
+				}
 			}
 		}
 		line := widget.Faint.Render(widget.Pad(names[row], gutterDays)) + cells.String()
 		lines = append(lines, strings.TrimRight(line, " "))
 	}
 	legend := fmt.Sprintf("total %s · peak %s (%s)", trim(total), peak.p.text, peak.date.Format(dayLayout))
-	return append(append(lines, ""), faintLines(legend, width)...)
+	lines = append(lines, "")
+	if width < heatMinW {
+		return append(lines, faintLines(legend, width)...)
+	}
+	// The scale sits next to the legend when both fit on a line.
+	scale := widget.T("less") + " " + strings.Join(shades, "") + " " + widget.T("more")
+	if widget.Width(legend)+2+widget.Width(scale) > width {
+		return append(append(lines, faintLines(legend, width)...), widget.Faint.Render(widget.Truncate(scale, width)))
+	}
+	return append(lines, widget.Faint.Render(legend+"  "+scale))
 }
 
 // faintLines wraps a legend to width and dims it.
