@@ -275,12 +275,41 @@ func (o SetEnv) Apply(d doc.Document) (doc.Document, error) {
 	return d, nil
 }
 
-// data is the requests file as written. Its structure is left to the
-// screen for now.
+// Requested is one request of a .http file as another screen lists it:
+// its title (what note.send takes), the badge and where it goes as the
+// terminal's line shows them, how many checks it has, and the request as
+// written under its request line, which the terminal unfolds under the
+// picked one.
+type Requested struct {
+	Title   string   `json:"title"`
+	Method  string   `json:"method"`
+	Where   string   `json:"where"`
+	Asserts int      `json:"asserts"`
+	Hooks   bool     `json:"hooks"`
+	Block   []string `json:"block"`
+}
+
+// data is the requests file as written, its environment, and its requests
+// read the way the terminal reads them, so a screen never parses the file.
 func data(d doc.Document) any {
+	a := parse(d)
+	reqs := make([]Requested, 0, len(a.file.Requests))
+	for _, r := range a.file.Requests {
+		where := r.URL
+		if r.Protocol() == "grpc" && r.GRPC != nil && r.GRPC.Method != "" {
+			where = r.GRPC.Method + " " + r.URL
+		}
+		block := a.block(r)
+		if block == nil {
+			block = []string{}
+		}
+		reqs = append(reqs, Requested{Title: r.Title(), Method: r.Badge(), Where: where, Asserts: len(r.Asserts), Hooks: r.Hooks(), Block: block})
+	}
 	return struct {
-		Source string `json:"source"`
-	}{d.Body}
+		Source   string      `json:"source"`
+		Env      string      `json:"env"`
+		Requests []Requested `json:"requests"`
+	}{d.Body, a.file.Env, reqs}
 }
 
 // compose writes a new .http file of one request, named by the title, with
