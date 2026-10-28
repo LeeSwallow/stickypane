@@ -19,6 +19,7 @@
   import { noteHex, useBoard } from './context'
   import { HeightDrag, heightOfRows, sizeShown, WidthDrag, type Fraction } from './layout'
   import type { Note } from './model'
+  import { manageItems, type Manage } from './manage'
 
   let {
     note,
@@ -55,16 +56,27 @@
 
   let colours = $state(false)
 
+  // the ⋯ items that act on the note as a whole, with the terminal's keys
+  const manageItem = $derived<Record<Manage, MenuItem>>({
+    run: { id: 'run', label: $tr('note.run'), icon: 'run' },
+    send: { id: 'send', label: $tr('note.send'), icon: 'send' },
+    move: { id: 'move', label: $tr('note.move'), icon: 'tab' },
+    archive: { id: 'archive', label: $tr('note.archive'), icon: 'archive', shortcut: 'x' },
+    trash: { id: 'trash', label: $tr('note.trash'), icon: 'trash', shortcut: 'D', danger: true },
+  })
+
   const menu = $derived<MenuItem[]>([
     ...(zoomed ? [] : [{ id: 'zoom', label: $tr('note.zoom'), icon: 'zoom' as const, shortcut: '↵' }]),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
+    ...(board.manage ? [{ kind: 'separator' as const, id: 'sep-manage' }, ...manageItems(note).map((m) => manageItem[m])] : []),
   ])
 
   function choose(id: string) {
     if (id === 'zoom') board.zoom(note.name)
     else if (id === 'color') colours = !colours
     else if (id === 'edit') board.edit?.(note.name)
+    else if (id in manageItem) board.manage?.(note, id as Manage)
   }
 
   /** drag follows a pointer on an edge until it is let go (save) or taken away (cancel). */

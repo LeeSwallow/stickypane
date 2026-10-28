@@ -16,6 +16,12 @@
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import CreateDialog from '../create/CreateDialog.svelte'
+  import Button from '../lib/ui/Button.svelte'
+  import Confirm from '../lib/ui/Confirm.svelte'
+  import Dialog from '../lib/ui/Dialog.svelte'
+  import Input from '../lib/ui/Input.svelte'
+  import * as manage from './manage'
+  import type { Manage, ManageDeps } from './manage'
   import { act, arrange } from './actions'
   import { events, type Status } from '../services/board'
   import { projectService, type ProjectApi } from '../services/project'
@@ -147,6 +153,56 @@
     })
   }
 
+  // --- the note as a whole: archive, delete, move, run, send -------------
+
+  // a question before a delete, a run or a send; the note being moved
+  let asking = $state<{ what: 'trash' | 'run' | 'send'; note: Note } | null>(null)
+  let moving = $state<Note | null>(null)
+  let moveTo = $state('')
+  // the last note deleted here: u and ⌘Z bring it back
+  let lastTrashed: Note | null = null
+
+  const deps: ManageDeps = {
+    get api() {
+      return api
+    },
+    refresh,
+    say: (s) => (notice = s),
+    fail: (m) => (failed = m),
+  }
+
+  function manageNote(note: Note, what: Manage) {
+    if (what === 'archive') void manage.archive(deps, note)
+    else if (what === 'move') {
+      moving = note
+      moveTo = ''
+    } else asking = { what, note }
+  }
+
+  async function answer() {
+    const a = asking
+    asking = null
+    if (!a) return
+    if (a.what === 'trash') {
+      if (await manage.trash(deps, a.note)) lastTrashed = a.note
+    } else if (a.what === 'run') await manage.run(deps, a.note)
+    else await manage.send(deps, a.note)
+  }
+
+  async function moveNote() {
+    const n = moving
+    moving = null
+    if (n && moveTo.trim()) await manage.move(deps, n, moveTo)
+  }
+
+  const question = $derived.by(() => {
+    if (!asking) return null
+    const values = { title: asking.note.title, name: asking.note.title, project: board?.title ?? '' }
+    if (asking.what === 'trash') return { title: t('note.confirmTrash', values), body: t('note.confirmTrashBody'), yes: t('note.trash') }
+    if (asking.what === 'run') return { title: t('run.confirm', values), body: t('run.confirmBody'), yes: t('run.button') }
+    return { title: t('send.confirm', values), body: t('send.confirmBody'), yes: t('send.button') }
+  })
+
   const update = (patch: (b: Board) => Board) => {
     if (board) board = patch(board)
   }
@@ -202,6 +258,7 @@
     filter: () => filter,
     now: () => now,
     edit: (name) => void api.open(name).catch((err) => (failed = String(err))),
+    manage: manageNote,
   }
   setContext(boardContext, ctx)
 
@@ -268,6 +325,16 @@
         break
       case 'create':
         creating = true
+        break
+      case 'archive':
+      case 'trash':
+        if (!note || (a.type === 'archive' && note.error)) return
+        manageNote(note, a.type)
+        break
+      case 'undo':
+        if (!lastTrashed) return
+        void manage.restore(deps, lastTrashed)
+        lastTrashed = null
         break
       default:
         return
@@ -383,6 +450,36 @@
       {/key}
     </div>
   {/if}
+  {#if asking && question}
+    <Confirm
+      open
+      title={question.title}
+      message={question.body}
+      confirmLabel={question.yes}
+      danger
+      onconfirm={answer}
+      oncancel={() => (asking = null)}
+    />
+  {/if}
+  {#if moving}
+    {@const targets = manage.moveTargets(board?.tabs ?? [], moving.tab)}
+    <Dialog open title={t('note.moveTitle', { title: moving.title })} width={420} onclose={() => (moving = null)}>
+      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
+        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
+        {#if targets.length}
+          <div class="targets">
+            {#each targets as to (to)}
+              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
+            {/each}
+          </div>
+        {/if}
+      </form>
+      {#snippet actions()}
+        <Button variant="ghost" onclick={() => (moving = null)}>{$tr('ui.cancel')}</Button>
+        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
+      {/snippet}
+    </Dialog>
+  {/if}
   {#if board}
     <CreateDialog
       bind:open={creating}
@@ -442,6 +539,16 @@
     display: grid;
     place-items: center;
     flex: 1;
+  }
+  .move {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .targets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
   .toasts {
     position: absolute;

@@ -210,5 +210,21 @@
   "choice.heat": "Calendar",
   "choice.one": "Pick one",
   "choice.many": "Pick many",
-  "choice.text": "Write"
+  "choice.text": "Write",
+  "note.failed": "{title}: {error}",
+  "note.archived": "Archived {title}",
+  "note.restored": "{title} is back",
+  "note.moved": "Moved to {to}",
+  "note.moveTitle": "Move {title}",
+  "note.moveTo": "To",
+  "note.moveHint": "A tab ends with /. A dot is the top level. Or a new name.",
+  "note.moveTop": "Top level",
+  "note.confirmTrashBody": "You can bring it back right after.",
+  "note.run": "Run",
+  "note.send": "Send",
+  "run.done": "Ran in {took} ms",
+  "run.failed": "Exited with {code} after {took} ms",
+  "send.done": "Sent",
+  "run.confirmBody": "It runs in the project folder, as in the terminal.",
+  "send.confirmBody": "It sends the first request, as in the terminal."
 }
