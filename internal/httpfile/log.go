@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/atomicfile"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
@@ -176,8 +177,15 @@ func LoadSaved(path string) (map[string]map[string]string, error) {
 }
 
 // SaveSaved writes back what LoadSaved read, with the values of one file
-// replaced.
+// replaced. It holds the lock of the file's folder (the notes folder, the
+// same lock the store's writers take) from the read to the write, so the
+// values another request saved meanwhile are kept.
 func SaveSaved(path, file string, vars map[string]string) error {
+	unlock, err := filelock.Lock(filepath.Dir(path), 10*time.Second)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	all, err := LoadSaved(path)
 	if err != nil {
 		return err

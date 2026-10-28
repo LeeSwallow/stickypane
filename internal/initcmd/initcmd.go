@@ -16,6 +16,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane"
 	"github.com/LeeSwallow/stickypane/internal/atomicfile"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
@@ -127,8 +128,10 @@ func MakeBoard(root string) (string, bool, error) {
 	}
 	// Deleted notes wait in the trash to be restored. They are the user's
 	// own undo history and do not belong in the repository; nor do the
-	// tokens a .http note captured from responses.
-	if err := atomicfile.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"+httpfile.SavedFile+"\n"), 0o644); err != nil {
+	// tokens a .http note captured from responses, nor the lock file
+	// writers take where the system needs one (Windows).
+	ignore := store.TrashDir + "/\n" + httpfile.SavedFile + "\n" + filelock.Name + "\n"
+	if err := atomicfile.WriteFile(filepath.Join(dir, ".gitignore"), []byte(ignore), 0o644); err != nil {
 		return "", false, err
 	}
 	return dir, true, nil

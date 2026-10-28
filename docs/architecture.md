@@ -29,6 +29,7 @@ written through a named form in `when`, and a clock is handed in as a
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
 | 0 | `internal/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
+| 0 | `internal/filelock` | the advisory lock on a notes folder that writers hold from a read to its write: flock(2) on the folder on Unix, LockFileEx on Windows |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
 | 0 | `internal/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
 
@@ -89,7 +90,14 @@ this card to that column", applied by `store.Apply` to the file as it is on
 disk now and written in one step. The screen, the command line and MCP all
 write this way, so an agent and the user editing the same note do not
 overwrite each other. Settings are written the same way, through one read,
-change and replace step.
+change and replace step. Each such step holds the board's lock
+(`internal/filelock`), so two processes do not read the same version and
+lose one of their changes, and replaces the file through
+`internal/atomicfile`, so no reader sees half of it. Nothing else writes
+a note: a whole note goes through `store.Rewrite`, a new one through
+`store.WriteNew`, a linked one through `store.Link`, and a move that
+carries its arrangement through `store.MoveArranged`, which moves the
+note back if the arrangement cannot be written.
 
 **One place for each rule.** `internal/api` is the use-case layer: the
 terminal (`internal/app`), the bridge and the command line change the

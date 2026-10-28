@@ -251,6 +251,11 @@ func (s *Store) Views() (Views, error) {
 // that cannot be read is left alone: overwriting it would lose whatever the
 // user was in the middle of fixing.
 func (s *Store) update(tab string, change func(top map[string]json.RawMessage, views Views) error) error {
+	return s.locked(func() error { return s.edit(tab, change) })
+}
+
+// edit is update without the lock, for a caller that holds it.
+func (s *Store) edit(tab string, change func(top map[string]json.RawMessage, views Views) error) error {
 	top, views, err := s.readViews(tab)
 	if err != nil {
 		return err
@@ -274,8 +279,12 @@ func put(top map[string]json.RawMessage, key string, value any) error {
 // Entries that say nothing, and entries of notes that no longer exist, are
 // dropped.
 func (s *Store) SetView(name string, change func(*View)) error {
+	return s.locked(func() error { return s.setView(name, change) })
+}
+
+func (s *Store) setView(name string, change func(*View)) error {
 	tab, inside := s.split(name)
-	return s.update(tab, func(top map[string]json.RawMessage, views Views) error {
+	return s.edit(tab, func(top map[string]json.RawMessage, views Views) error {
 		v := views[inside]
 		change(&v)
 		views[inside] = v

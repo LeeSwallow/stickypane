@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	"github.com/LeeSwallow/stickypane/internal/atomicfile"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 	"github.com/LeeSwallow/stickypane/internal/when"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -412,6 +413,10 @@ func (s *Store) Apply(name string, op doc.Op) error {
 // note yet; its folder is then made. When change fails nothing is written.
 // A note that is a symlink is rewritten where it really lives.
 func (s *Store) Rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
+	return s.locked(func() error { return s.rewrite(name, change) })
+}
+
+func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
 	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
@@ -442,6 +447,10 @@ func (s *Store) Read(name string) ([]byte, error) {
 // Apply it does not look at what is there: it is for callers that hand over
 // a whole note, such as the command line and the MCP server.
 func (s *Store) Write(name string, content []byte) error {
+	return s.locked(func() error { return s.write(name, content) })
+}
+
+func (s *Store) write(name string, content []byte) error {
 	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
@@ -517,7 +526,15 @@ func Slug(text string, now time.Time) string {
 // It never writes over what is there: a taken name gets "-2", "-3" and so
 // on. It returns where the note went. A folder that is left without
 // anything in it is removed.
-func (s *Store) put(name, dst string) (string, error) {
+func (s *Store) put(name, dst string) (to string, err error) {
+	err = s.locked(func() error {
+		to, err = s.putLocked(name, dst)
+		return err
+	})
+	return to, err
+}
+
+func (s *Store) putLocked(name, dst string) (string, error) {
 	src := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if _, err := os.Lstat(src); err != nil {
 		return "", err
@@ -608,6 +625,10 @@ func (s *Store) Trashed(name string) (string, bool) {
 // Move renames a note: under a new name, into a book, or out of one. It
 // does not write over a note that is there.
 func (s *Store) Move(name, to string) error {
+	return s.locked(func() error { return s.move(name, to) })
+}
+
+func (s *Store) move(name, to string) error {
 	src := filepath.Join(s.Dir, filepath.FromSlash(name))
 	dst := filepath.Join(s.Dir, filepath.FromSlash(to))
 	if _, err := os.Lstat(src); err != nil {
@@ -632,22 +653,42 @@ func (s *Store) Move(name, to string) error {
 // returned. A note with nothing arranged, or whose tab's file cannot be
 // read, is only moved.
 func (s *Store) MoveArranged(name, to string) error {
+	return s.locked(func() error { return s.moveArranged(name, to) })
+}
+
+func (s *Store) moveArranged(name, to string) error {
 	tab, inside := s.split(name)
 	_, views, err := s.readViews(tab)
 	v, had := views[inside]
-	if err := s.Move(name, to); err != nil {
+	if err := s.move(name, to); err != nil {
 		return err
 	}
 	if err != nil || !had {
 		return nil
 	}
-	if err := s.SetView(to, func(n *View) { *n = v }); err != nil {
-		if back := s.Move(to, name); back != nil {
+	if err := s.setView(to, func(n *View) { *n = v }); err != nil {
+		if back := s.move(to, name); back != nil {
 			return fmt.Errorf("%w; and %s could not be moved back from %s: %v", err, name, to, back)
 		}
 		return err
 	}
 	return nil
+}
+
+// lockWait is how long a writer waits for another to let go of the board.
+const lockWait = 10 * time.Second
+
+// locked runs f holding the board's lock (internal/filelock), so that what
+// f reads, changes and writes is not changed by another writer in between,
+// in this process or another. Only the exported methods take it; what they
+// call inside does not, as the lock is not re-entrant.
+func (s *Store) locked(f func() error) error {
+	unlock, err := filelock.Lock(s.Dir, lockWait)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	return f()
 }
 
 // Delete removes a note for good.
