@@ -1,6 +1,6 @@
 <script lang="ts">
   // Which window this page is decides what it draws: the home list or one
-  // project's board. The demo pages (look, system, screens, shapes)
+  // project's board. The demo pages (look, system, screens, shapes, motion)
   // are reachable in dev builds only. The launch intro plays over either
   // window when it first shows (lib/motion/Intro.svelte).
   import { windowKind } from './lib/shell'
@@ -15,6 +15,7 @@
   const SystemDemo = demo === 'system' ? import('./demo/SystemDemo.svelte') : null
   const ScreensDemo = demo === 'screens' ? import('./demo/ScreensDemo.svelte') : null
   const ShapesDemo = demo === 'shapes' ? import('./demo/ShapesDemo.svelte') : null
+  const MotionDemo = demo === 'motion' ? import('./demo/MotionDemo.svelte') : null
 </script>
 
 {#if LookDemo}
@@ -31,6 +32,10 @@
   {/await}
 {:else if ShapesDemo}
   {#await ShapesDemo then m}
+    <m.default />
+  {/await}
+{:else if MotionDemo}
+  {#await MotionDemo then m}
     <m.default />
   {/await}
 {:else}
