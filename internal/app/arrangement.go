@@ -56,7 +56,7 @@ func (m *Model) pinned(it item) bool {
 // color returns the note's color: the one chosen for it, or one derived
 // from its name so that it keeps its color between runs.
 func (m *Model) color(it item) color.Color {
-	return m.noteColor(colorIndex(it.note.Name, arrange.Color(m.views[it.note.Name], it.note.Doc)))
+	return m.noteColor(arrange.ColorIndex(it.note.Name, arrange.Color(m.views[it.note.Name], it.note.Doc)))
 }
 
 // setView changes how a note is arranged and shows the result.

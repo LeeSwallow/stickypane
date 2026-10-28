@@ -100,18 +100,3 @@ func TestHintsPairKeysWithLabels(t *testing.T) {
 		t.Errorf("hints in 17 cells = %q", got)
 	}
 }
-
-func TestColorIndex(t *testing.T) {
-	if got := colorIndex("a.md", "blue"); palette[got] != "blue" {
-		t.Errorf("a named color should win, got %q", palette[got])
-	}
-	if colorIndex("a.md", "BLUE") != colorIndex("a.md", "blue") {
-		t.Error("color names are case-insensitive")
-	}
-	if colorIndex("a.md", "") != colorIndex("a.md", "no-such-color") {
-		t.Error("an unknown color should fall back to the file name's color")
-	}
-	if len(palette) != 6 {
-		t.Errorf("palette has %d colors, want 6", len(palette))
-	}
-}

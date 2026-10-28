@@ -41,7 +41,7 @@ func init() {
 	})
 	boardKeys["c"] = onFocused(func(m *Model, it item) tea.Cmd {
 		current := arrange.Color(m.views[it.note.Name], it.note.Doc)
-		next := palette[(colorIndex(it.note.Name, current)+1)%len(palette)]
+		next := palette[(arrange.ColorIndex(it.note.Name, current)+1)%len(palette)]
 		m.setView(it.note.Name, func(v *store.View) { v.Color = next })
 		return nil
 	})

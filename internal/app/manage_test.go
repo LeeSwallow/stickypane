@@ -10,6 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -30,8 +31,8 @@ func TestPinToggles(t *testing.T) {
 
 func TestColorCycles(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
-	first := palette[(colorIndex("a.md", "")+1)%len(palette)]
-	second := palette[(colorIndex("a.md", "")+2)%len(palette)]
+	first := palette[(arrange.ColorIndex("a.md", "")+1)%len(palette)]
+	second := palette[(arrange.ColorIndex("a.md", "")+2)%len(palette)]
 	press(m, "c")
 	if got := viewsOf(t, dir)["a.md"].Color; got != first {
 		t.Fatalf("color = %q, want %s", got, first)

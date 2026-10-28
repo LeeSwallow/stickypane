@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"os"
 	"path"
 	"path/filepath"
@@ -154,7 +153,7 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 	out := Note{
 		Name: n.Name, Tab: tab, Title: arrange.Title(v, n.Doc, n.Name),
 		Kind: "book", Icon: "▤", Open: open, Size: widget.SizeFull,
-		Color: color(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
+		Color: arrange.ColorName(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
 		ModTime: n.ModTime, Data: json.RawMessage("null"), Pages: []Note{},
 	}
 	out.Linked, out.Target = s.link(n.Name)
@@ -182,7 +181,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 		Name: n.Name, Tab: tab, Kind: k.Name, Icon: k.Icon, Open: open,
 		Size:    arrange.Size(v, owner.Doc, k, n.Doc),
 		Rows:    arrange.Rows(v, owner.Doc, k),
-		Color:   color(owner.Name, arrange.Color(v, owner.Doc)),
+		Color:   arrange.ColorName(owner.Name, arrange.Color(v, owner.Doc)),
 		Pinned:  arrange.Pinned(v, owner.Doc),
 		ModTime: n.ModTime,
 		Data:    json.RawMessage("null"),
@@ -249,19 +248,6 @@ func data(name string, v any) json.RawMessage {
 		return out
 	}
 	return raw
-}
-
-// color is the name of a note's color: the one chosen, else one the name
-// picks, the way the terminal picks it, so both screens agree.
-func color(name, chosen string) string {
-	for _, c := range theme.NoteNames {
-		if strings.EqualFold(c, chosen) {
-			return c
-		}
-	}
-	h := fnv.New32a()
-	h.Write([]byte(name))
-	return theme.NoteNames[h.Sum32()%uint32(len(theme.NoteNames))]
 }
 
 // settings reads the root settings.

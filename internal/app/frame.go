@@ -1,7 +1,6 @@
 package app
 
 import (
-	"hash/fnv"
 	"image/color"
 	"strings"
 
@@ -14,19 +13,6 @@ import (
 // palette is the names of the note colors, in the order "c" cycles
 // through them. The colors themselves come from the theme.
 var palette = theme.NoteNames
-
-// colorIndex picks a note's color: the named one, or one derived from the
-// file name so that a note keeps its color between runs.
-func colorIndex(name, key string) int {
-	for i, p := range palette {
-		if strings.EqualFold(p, key) {
-			return i
-		}
-	}
-	h := fnv.New32a()
-	h.Write([]byte(name))
-	return int(h.Sum32() % uint32(len(palette)))
-}
 
 // noteColor returns the theme's color for a note color index.
 func (m *Model) noteColor(i int) color.Color {
