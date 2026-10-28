@@ -308,7 +308,7 @@ stickypane help start       the way to start
 stickypane help --all       every command with every option
 ```
 
-`stickypane help --all` prints every command with every option on one page. A name that matches nothing suggests the closest one. The agent guide (`stickypane guide`) stays English.
+`stickypane help --all` prints every command with every option on one page. A name that matches nothing suggests the closest command. The agent guide (`stickypane guide`) stays English.
 
 ## The folder is the board
 

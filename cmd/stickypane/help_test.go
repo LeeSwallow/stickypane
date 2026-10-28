@@ -38,14 +38,28 @@ func TestHelpOnACommandPrintsThatCommandOnly(t *testing.T) {
 	}
 }
 
-// An unknown name suggests the closest one and is a usage error.
+// An unknown name suggests the closest command and is a usage error. A
+// shape is never the suggestion: `help nope` does not mean the note shape.
 func TestHelpOnAnUnknownNameSuggests(t *testing.T) {
 	english(t)
 	t.Chdir(t.TempDir())
-	for word, want := range map[string]string{"carb": "card", "chekclist": "checklist", "setpu": "setup", "star": "start"} {
+	for word, want := range map[string]string{"carb": "card", "lst": "list", "setpu": "setup", "star": "start"} {
 		code, out, errOut := exec(t, "help", word)
 		if code != exitUsage || out != "" || !strings.Contains(errOut, `did you mean "`+want+`"`) {
 			t.Errorf("help %s: code = %d, out = %q, stderr = %q", word, code, out, errOut)
+		}
+	}
+	for _, word := range []string{"nope", "chekclist", "boad"} {
+		code, _, errOut := exec(t, "help", word)
+		if code != exitUsage {
+			t.Errorf("help %s: code = %d", word, code)
+		}
+		if _, near, ok := strings.Cut(errOut, `did you mean "`); ok {
+			if name, _, _ := strings.Cut(near, `"`); name != "start" {
+				if _, ok := lookup(name); !ok {
+					t.Errorf("help %s suggests %q, which is no command: %s", word, name, errOut)
+				}
+			}
 		}
 	}
 	if code, _, errOut := exec(t, "help", "zzzzzzzz"); code != exitUsage || strings.Contains(errOut, "did you mean") || !strings.Contains(errOut, "stickypane help") {

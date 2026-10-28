@@ -126,7 +126,7 @@ func helpOn(w io.Writer, s i18n.Strings, want string) error {
 	if near := closest(want); near != "" {
 		msg += fmt.Sprintf("; did you mean %q? (stickypane help %s)", near, near)
 	} else {
-		msg += "; stickypane help lists them"
+		msg += "; stickypane help lists the commands, stickypane kinds the shapes"
 	}
 	return usagef("help", "%s", msg)
 }
@@ -147,22 +147,18 @@ func findShape(want string) (*widget.Kind, *folderShape, bool) {
 	return nil, nil, false
 }
 
-// names are everything help can be asked about.
+// helpNames are what an unknown name is matched against: the commands and
+// the way to start. Shapes are left out, so a mistyped command is never
+// taken for a shape; kinds lists those.
 func helpNames() []string {
 	var out []string
 	for _, c := range commands {
 		out = append(out, c.names[0])
 	}
-	for _, k := range kinds.Default(note.Plain) {
-		out = append(out, k.Name)
-	}
-	for _, f := range folderShapes {
-		out = append(out, f.name)
-	}
 	return append(out, "start")
 }
 
-// closest returns the name nearest to want, or "" when none is near.
+// closest returns the command nearest to want, or "" when none is near.
 func closest(want string) string {
 	best, bestDist := "", 1<<30
 	for _, n := range helpNames() {

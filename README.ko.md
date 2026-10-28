@@ -172,7 +172,7 @@ stickypane help start     처음 하는 길
 stickypane help --all     모든 명령과 옵션을 한 쪽에
 ```
 
-`stickypane help --all`은 모든 명령과 옵션을 한 쪽에 보여 줍니다. 맞는 이름이 없으면 가장 가까운 것을 알려 줍니다. 에이전트 안내문(`stickypane guide`)은 영어로 남습니다.
+`stickypane help --all`은 모든 명령과 옵션을 한 쪽에 보여 줍니다. 맞는 이름이 없으면 가장 가까운 명령을 알려 줍니다. 에이전트 안내문(`stickypane guide`)은 영어로 남습니다.
 
 ## 폴더가 곧 보드
 
