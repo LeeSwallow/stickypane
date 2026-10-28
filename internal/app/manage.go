@@ -135,17 +135,21 @@ func (m *Model) stretch(it item, delta int) {
 	m.setRows(it, max(min(base+delta, m.bodyHeight()-2), 1))
 }
 
-// setRows writes the height an open note asks for, in lines; 0 takes the
-// choice back, so the note is as tall as its content (or as its front
-// matter or its kind says). It writes nothing when nothing changes.
+// setRows writes the height an open note asks for, in lines. 0 makes it as
+// tall as its content: the choice is taken back, or, when the note's front
+// matter or its kind would give it a height, store.ContentRows is written
+// over them. It writes nothing when nothing changes.
 func (m *Model) setRows(it item, rows int) {
+	if rows == 0 && arrange.Rows(store.View{}, it.note.Doc, it.kind) > 0 {
+		rows = store.ContentRows
+	}
 	if !m.isOpen(it) || rows == m.views[it.note.Name].Rows {
 		return
 	}
 	m.setView(it.note.Name, func(v *store.View) { v.Rows = rows })
 	m.reveal = revealNote
 	text := tr.L("content height")
-	if rows > 0 {
+	if rows > 0 { // else 0 or store.ContentRows
 		text = fmt.Sprintf(tr.L("%d lines"), rows)
 	}
 	m.mark = mark{name: it.note.Name, text: text}

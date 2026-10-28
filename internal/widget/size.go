@@ -95,21 +95,18 @@ func StepSize(s string, width, delta int) string {
 	return Sizes[max(min(step(s, width)+delta, len(Sizes)-1), 0)]
 }
 
-// NearestSize returns the step whose width on a screen width cells wide is
-// closest to cells: where a dragged border snaps to.
-func NearestSize(cells, width int) string {
-	best := Sizes[0]
-	for _, s := range Sizes {
-		if d, b := abs(SizeCells(s, width)-cells), abs(SizeCells(best, width)-cells); d < b {
-			best = s
-		}
+// SnapSize returns the step a dragged border lands on: the step from was
+// at, until cells passes the middle between it and the next step either
+// way, so a border moved a cell or two does not change the size. cells is
+// the width the note asks for, not the width a stretched row gives it.
+func SnapSize(from string, cells, width int) string {
+	i := step(from, width)
+	mid := func(a, b int) int { return SizeCells(Sizes[a], width) + SizeCells(Sizes[b], width) }
+	for i < len(Sizes)-1 && 2*cells > mid(i, i+1) {
+		i++
 	}
-	return best
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
+	for i > 0 && 2*cells < mid(i-1, i) {
+		i--
 	}
-	return n
+	return Sizes[i]
 }

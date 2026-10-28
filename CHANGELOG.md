@@ -32,7 +32,15 @@ on GitHub are built from pull request labels.
   fraction the next time the size changes; `stickypane set` and `write
   --size` take both and write `half` and `page` as `1/2` and `1`.
 - Tiling: a note gets at least six lines (or what it needs) before the next
-  screen, not ten, and a row's notes share the cells left by rounding.
+  screen, not ten; a row's notes share the cells left by rounding; and a
+  note with a height of its own keeps it while the others share what is
+  left.
+- `0` (or a double click on the bottom edge) on a note whose front matter
+  or kind gives it a height (a log) writes `"rows": -1` to `sticky.json`:
+  as tall as its content, over that height.
+- Older versions of stickypane do not know the fractions or `rows: -1`: a
+  `sticky.json` written by this version shows its notes there at their
+  default size and height.
 
 ## [0.1.1] - 2026-10-10
 

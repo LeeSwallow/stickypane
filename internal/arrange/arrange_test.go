@@ -57,6 +57,13 @@ func TestTheNoteProposesWhenTheUserSaidNothing(t *testing.T) {
 	}
 }
 
+func TestContentRowsWinOverTheNoteAndTheKind(t *testing.T) {
+	kind := widget.Kind{Rows: 10}
+	if got := Rows(store.View{Rows: store.ContentRows}, front("---\nrows: 5\n---\n"), kind); got != 0 {
+		t.Errorf("Rows = %d; the user asked for the content height", got)
+	}
+}
+
 func TestTheKindDecidesLast(t *testing.T) {
 	var none store.View
 	plain := front("just text\n")

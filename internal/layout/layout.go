@@ -137,8 +137,10 @@ type Slot struct{ Screen, Y, H int }
 // rest go to the next screen. A screen's height is then shared out: a row
 // that needs less than an equal share gets what it needs and the others
 // split the rest, and whatever is left when every row has what it needs is
-// split equally. Every screen is filled exactly.
-func Stack(height int, need []int, floor int) []Slot {
+// split equally among the rows that are not fixed (all of them when every
+// row is): a fixed row asked for a height of its own and keeps it. Every
+// screen is filled exactly.
+func Stack(height int, need []int, fixed []bool, floor int) []Slot {
 	slots := make([]Slot, len(need))
 	if height <= 0 {
 		return slots
@@ -162,10 +164,16 @@ func Stack(height int, need []int, floor int) []Slot {
 				}
 			}
 		}
-		// The others split the rest; with none, everyone splits the surplus.
+		// The others split the rest; with none, the rows that are not
+		// fixed split the surplus, or every row when all are.
 		split := make([]int, 0, len(rows))
 		for i := range rows {
-			if got[i] == 0 || open == 0 {
+			if got[i] == 0 || open == 0 && (from+i >= len(fixed) || !fixed[from+i]) {
+				split = append(split, i)
+			}
+		}
+		if len(split) == 0 {
+			for i := range rows {
 				split = append(split, i)
 			}
 		}

@@ -59,11 +59,22 @@ func TestPlusAndMinusStepThroughTheFractions(t *testing.T) {
 	}
 }
 
-func TestADraggedWidthSnapsToTheNearestFraction(t *testing.T) {
-	cases := []struct{ cells, want int }{{1, 0}, {21, 0}, {25, 1}, {38, 2}, {46, 2}, {50, 3}, {57, 4}, {71, 5}, {200, 5}}
+func TestADraggedWidthChangesOnlyPastTheMiddleOfTwoSteps(t *testing.T) {
+	// On 80 cells the steps are 20 26 40 53 60 80.
+	cases := []struct {
+		from  string
+		cells int
+		want  string
+	}{
+		{"1/2", 40, "1/2"}, {"1/2", 39, "1/2"}, {"1/2", 41, "1/2"},
+		{"1/2", 34, "1/2"}, {"1/2", 33, "1/2"}, {"1/2", 32, "1/3"}, // the middle of 26 and 40 is 33
+		{"1/2", 47, "2/3"}, {"1/2", 46, "1/2"},
+		{"1/2", 21, "1/4"}, {"1/2", 200, "1"}, {"1/2", 1, "1/4"},
+		{"card", 41, "1/2"}, {"page", 79, "1"}, {"1", 70, "1"}, {"1", 69, "3/4"},
+	}
 	for _, c := range cases {
-		if got := NearestSize(c.cells, 80); got != Sizes[c.want] {
-			t.Errorf("NearestSize(%d, 80) = %q, want %q", c.cells, got, Sizes[c.want])
+		if got := SnapSize(c.from, c.cells, 80); got != c.want {
+			t.Errorf("SnapSize(%q, %d, 80) = %q, want %q", c.from, c.cells, got, c.want)
 		}
 	}
 }

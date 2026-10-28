@@ -70,10 +70,14 @@ func Size(v store.View, front doc.Document, k widget.Kind, content doc.Document)
 }
 
 // Rows returns the height in lines the note asks for, or 0 when it asks for
-// as much as its content takes.
+// as much as its content takes. A user who chose the content height
+// (store.ContentRows) gets it over the front matter and the kind.
 func Rows(v store.View, front doc.Document, k widget.Kind) int {
 	if v.Rows > 0 {
 		return v.Rows
+	}
+	if v.Rows == store.ContentRows {
+		return 0
 	}
 	if s, ok := front.Get("rows"); ok {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {

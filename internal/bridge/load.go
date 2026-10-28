@@ -42,12 +42,15 @@ type Tab struct {
 // book has no file, so no version or data of its own; its pages are notes
 // of the same shape.
 type Note struct {
-	Name    string          `json:"name"`
-	Tab     string          `json:"tab"`
-	Title   string          `json:"title"`
-	Kind    string          `json:"kind"`
-	Icon    string          `json:"icon"`
-	Open    bool            `json:"open"`
+	Name  string `json:"name"`
+	Tab   string `json:"tab"`
+	Title string `json:"title"`
+	Kind  string `json:"kind"`
+	Icon  string `json:"icon"`
+	Open  bool   `json:"open"`
+	// Size is a fraction of the screen ("1/4" … "1") or "card" since #14
+	// (unreleased): no longer "half" or "page", which are read as "1/2"
+	// and "1". Rows is 0 for a note as tall as its content.
 	Size    string          `json:"size"`
 	Rows    int             `json:"rows"`
 	Color   string          `json:"color"`
