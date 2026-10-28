@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -108,7 +109,7 @@ func data(d doc.Document) any {
 			j.Who = append(j.Who, cd.who...)
 			j.Detail = append(j.Detail, cd.detail...)
 			if !cd.moved.IsZero() {
-				j.Moved = cd.moved.Format(time.RFC3339)
+				j.Moved = cd.moved.Format(when.Moment)
 			}
 			col.Cards = append(col.Cards, j)
 		}

@@ -298,7 +298,8 @@ func (o MoveCardAt) Apply(d doc.Document) (doc.Document, error) {
 
 // act is the board's Kind.Act: "move" with col, i (the card's place in it,
 // from zero), to (the column it goes to) and at (its place there, from
-// zero; the end without it), and "add" with col and text. Columns count
+// zero; the end when the argument is absent, an error when it is not
+// a number or is past the column), and "add" with col and text. Columns count
 // from zero, in the order of the Data. When a card moved is not written
 // here; tend writes it.
 func act(d doc.Document, a widget.Action) (doc.Op, error) {

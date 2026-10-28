@@ -153,3 +153,66 @@ func TestDataMarksAStalledCard(t *testing.T) {
 		t.Errorf("empty board = %s", raw)
 	}
 }
+
+func fixClock(t *testing.T, h, m int) {
+	t.Helper()
+	zone, wasNow := time.Local, widget.Now
+	time.Local = time.FixedZone("T", 9*3600)
+	widget.Now = func() time.Time { return time.Date(2026, 10, 3, h, m, 0, 0, time.Local) }
+	t.Cleanup(func() { time.Local = zone; widget.Now = wasNow })
+}
+
+func TestDataWritesMovedInTheMachineLayout(t *testing.T) {
+	fixClock(t, 15, 0)
+	b := dataOf(t, doc.Parse([]byte("## Doing\n- a @{2026-10-03} @@{14:02}\n")))
+	if got := b.Columns[0].Cards[0].Moved; got != "2026-10-03T14:02:00+09:00" {
+		t.Errorf("moved = %q", got)
+	}
+}
+
+func TestDataStaleBoundary(t *testing.T) {
+	src := "## Doing\n- a @{2026-10-03} @@{14:30}\n## Done\n"
+	for _, c := range []struct {
+		h, m int
+		want bool
+	}{{14, 59, false}, {15, 0, true}} {
+		fixClock(t, c.h, c.m)
+		if got := dataOf(t, doc.Parse([]byte(src))).Columns[0].Cards[0].Stalled; got != c.want {
+			t.Errorf("at %d:%02d stalled = %v, want %v", c.h, c.m, got, c.want)
+		}
+	}
+}
+
+func TestActMoveIntoTheMiddleAmongSameText(t *testing.T) {
+	src := "## A\n- x\n## B\n- p\n- x\n- q\n"
+	d, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "0", "to": "1", "at": "2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(dataOf(t, d), 1); got != "p,x,x,q" {
+		t.Errorf("B = %q", got)
+	}
+	d, err = doAct(t, src, "move", map[string]string{"col": "0", "i": "0", "to": "1", "at": "1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(dataOf(t, d), 1); got != "p,x,x,q" {
+		t.Errorf("B = %q", got)
+	}
+}
+
+func TestActMoveWithinAColumn(t *testing.T) {
+	src := "## A\n- a\n- b\n- c\n"
+	for at, want := range map[string]string{"0": "c,a,b", "1": "a,c,b", "2": "a,b,c"} {
+		d, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "2", "to": "0", "at": at})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := titles(dataOf(t, d), 0); got != want {
+			t.Errorf("at %s: %q, want %q", at, got, want)
+		}
+	}
+	if _, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "2", "to": "0", "at": "3"}); err == nil {
+		t.Error("at past the column: no error")
+	}
+}
