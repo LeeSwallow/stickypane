@@ -557,11 +557,12 @@ func (a *API) Link(target, name string) (string, error) {
 	if err != nil {
 		rel = abs
 	}
-	if err := os.Symlink(rel, filepath.Join(a.st.Dir, name)); err != nil {
+	if err := a.st.Link(name, rel); err != nil {
 		return "", err
 	}
 	open := true
 	if err := a.st.SetView(name, func(v *store.View) { v.Open = &open }); err != nil {
+		_ = a.st.Delete(name) // the link alone, so that trying again works
 		return "", err
 	}
 	return fmt.Sprintf("linked %s to %s", name, filepath.ToSlash(rel)), nil

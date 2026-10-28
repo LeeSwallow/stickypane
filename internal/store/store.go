@@ -61,6 +61,13 @@ func (s *Store) Linked(name string) bool {
 	return err == nil && fi.Mode()&os.ModeSymlink != 0
 }
 
+// Link makes the note called name a symbolic link to target, a path
+// relative to the note's folder or an absolute one. It never writes over
+// what is at name: that is an error that is fs.ErrExist.
+func (s *Store) Link(name, target string) error {
+	return os.Symlink(target, filepath.Join(s.Dir, filepath.FromSlash(name)))
+}
+
 // IsNote reports whether a file name is one the board shows.
 func IsNote(name string) bool {
 	base := filepath.Base(name)
