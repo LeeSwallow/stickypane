@@ -14,6 +14,7 @@ import (
 const src = "---\ntype: chat\n---\n## 2026-10-03\n@min 14:02 can you rerun the tests?\n@claude 14:03 41/41 pass\n  see test.log\n"
 
 func TestAChatReadsItsMessages(t *testing.T) {
+	t.Parallel()
 	c := read(doc.Parse([]byte(src)))
 	if len(c) != 2 || c[0].who != "min" || c[1].text != "41/41 pass\nsee test.log" || c[1].day != "2026-10-03" {
 		t.Errorf("messages = %+v", c)
@@ -32,6 +33,7 @@ func TestAChatReadsItsMessages(t *testing.T) {
 
 // Saying something adds it under today's heading, with the time.
 func TestSayAddsAMessageUnderToday(t *testing.T) {
+	t.Parallel()
 	at := time.Date(2026, 10, 4, 9, 30, 0, 0, time.Local)
 	d, err := Say{Who: "min", Text: "good morning\nagain", At: at}.Apply(doc.Parse([]byte(src)))
 	if err != nil {
@@ -47,6 +49,7 @@ func TestSayAddsAMessageUnderToday(t *testing.T) {
 }
 
 func TestEventsSayWhoSaidWhat(t *testing.T) {
+	t.Parallel()
 	before := doc.Parse([]byte(src))
 	after, _ := Say{Who: "min", Text: "thanks", At: time.Date(2026, 10, 3, 14, 5, 0, 0, time.Local)}.Apply(before)
 	evs := events(before, after)

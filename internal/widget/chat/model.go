@@ -44,9 +44,9 @@ func (c *Chat) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return widget.T("1 message")
+		return c.env.T("1 message")
 	default:
-		return fmt.Sprintf(widget.T("%d messages"), n)
+		return fmt.Sprintf(c.env.T("%d messages"), n)
 	}
 }
 

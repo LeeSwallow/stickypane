@@ -12,6 +12,7 @@ import (
 )
 
 func TestDataOfTheExample(t *testing.T) {
+	t.Parallel()
 	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
@@ -23,6 +24,7 @@ func TestDataOfTheExample(t *testing.T) {
 }
 
 func TestActSayAppendsAMessageFromTheUser(t *testing.T) {
+	t.Parallel()
 	at := time.Date(2026, 10, 3, 14, 5, 0, 0, time.Local)
 	d := doc.Parse([]byte(Kind.Example))
 	op, err := Kind.Act(d, widget.Action{Name: "say", Args: map[string]string{"text": "thanks", "who": "you"}}, widget.Env{Clock: func() time.Time { return at }})

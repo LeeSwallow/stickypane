@@ -2,15 +2,11 @@ package chat
 
 import (
 	"strings"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
-
-// now is the clock a message is said at, replaced in tests.
-var now = func() time.Time { return widget.Now() }
 
 // Chat is the widget for a chat note. It has no cursor: the pane follows
 // its end, as a log does.
@@ -23,7 +19,7 @@ type Chat struct {
 // with who said it, in their color, and when; its text hangs under it.
 func (c *Chat) Draw(width int, _ bool) (string, widget.Span) {
 	if len(c.messages) == 0 {
-		return widget.Faint.Render(widget.Truncate(widget.T("nothing said yet: n to say something"), width)), widget.NoSpan
+		return c.env.Styles.Faint.Render(widget.Truncate(c.env.T("nothing said yet: n to say something"), width)), widget.NoSpan
 	}
 	var lines []string
 	day := "\x00"
@@ -31,12 +27,12 @@ func (c *Chat) Draw(width int, _ bool) (string, widget.Span) {
 		if m.day != day {
 			day = m.day
 			if day != "" {
-				lines = append(lines, widget.Faint.Render(widget.Truncate("── "+day+" ", width)))
+				lines = append(lines, c.env.Styles.Faint.Render(widget.Truncate("── "+day+" ", width)))
 			}
 		}
 		head := ""
 		if m.who != "" {
-			head = widget.NameStyle(m.who).Render("@"+widget.Clean(m.who)) + " " + widget.Faint.Render(m.clock) + " "
+			head = c.env.NameStyle(m.who).Render("@"+widget.Clean(m.who)) + " " + c.env.Styles.Faint.Render(m.clock) + " "
 		}
 		text := widget.Unlink(widget.Clean(m.text))
 		first := true
@@ -68,7 +64,7 @@ func (c *Chat) Update(key string) (widget.Widget, widget.Result) {
 	return c, widget.Result{Prompt: &widget.Prompt{
 		Label: "Say",
 		Submit: func(text string) doc.Op {
-			return Say{Who: who, Text: text, At: now()}
+			return Say{Who: who, Text: text, At: c.env.Now()}
 		},
 	}}
 }
