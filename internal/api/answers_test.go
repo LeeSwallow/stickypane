@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/LeeSwallow/stickypane/internal/widget/form"
 )
 
 const formNote = "---\ntype: form\ntitle: Deploy\n---\n## Where?\n- (x) staging\n- ( ) production\n\n[ Go ]\n"
@@ -65,18 +67,49 @@ func TestARewriteClearsTheSubmission(t *testing.T) {
 func TestWaitRidesOutAFileThatIsBeingRewritten(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"f.md": formNote})
 	path := filepath.Join(dir, "f.md")
+	// The test is Wait's clock: a tick is taken only once the look before
+	// it is over, so what each look sees is set by the test, not by how
+	// fast the machine is.
+	tick := make(chan time.Time)
+	type result struct {
+		got form.Answers
+		err error
+	}
+	done := make(chan result, 1)
 	go func() {
-		time.Sleep(20 * time.Millisecond)
-		_ = os.WriteFile(path, nil, 0o644) // an editor truncates, then writes
-		time.Sleep(20 * time.Millisecond)
-		pressed := strings.Replace(formNote, "title: Deploy\n", "title: Deploy\nsubmitted: Go\n", 1)
-		_ = os.WriteFile(path, []byte(pressed), 0o644)
+		got, err := a.wait(context.Background(), "f", tick)
+		done <- result{got, err}
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	got, err := a.Wait(ctx, "f", 5*time.Millisecond)
-	if err != nil || got.Button != "Go" {
-		t.Errorf("Wait = %+v, %v", got, err)
+	look := func() {
+		t.Helper()
+		select {
+		case tick <- time.Time{}:
+		case r := <-done:
+			t.Fatalf("Wait gave up while the file was being rewritten: %+v, %v", r.got, r.err)
+		}
+	}
+
+	look() // the first look, at the whole form, is over
+	// an editor truncates, then writes
+	if err := os.WriteFile(path, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for range waitRetries - 1 {
+		look() // looks at the empty file, ridden out
+	}
+	pressed := strings.Replace(formNote, "title: Deploy\n", "title: Deploy\nsubmitted: Go\n", 1)
+	if err := os.WriteFile(path, []byte(pressed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for {
+		select {
+		case tick <- time.Time{}:
+		case r := <-done:
+			if r.err != nil || r.got.Button != "Go" {
+				t.Errorf("Wait = %+v, %v", r.got, r.err)
+			}
+			return
+		}
 	}
 }
 
