@@ -52,4 +52,5 @@ jobs:
       - run: go mod download
       - run: sh scripts/licenses_test.sh
       - run: sh scripts/dmg_test.sh
+      - run: sh scripts/linux_test.sh
       - run: sh scripts/licenses.sh

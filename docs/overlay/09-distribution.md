@@ -102,6 +102,7 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 |---|---|
 | DMG 레이아웃 | 만든 DMG를 `open`으로 마운트해(사용자와 같이) Finder 창만 `screencapture -l <창 id>`로 찍는다. 이 문서의 그림이 그것이다 |
 | DMG 스크립트 | `overlay/scripts/dmg_test.sh`: 없는 `.app`, 빈 `.app`, `.dmg`가 아닌 출력, 버전이 `config.yml`과 다른 `.app`에 0이 아닌 코드로 끝나고, 이미지를 쓰지 않고, 아무것도 마운트하지 않는다 |
+| Linux 압축 | `overlay/scripts/linux_test.sh`: 가짜 앱으로 `overlay-linux.sh`를 돌려 압축 안이 폴더 하나에 `stickypane-app`·`stickypane`(Linux ELF)·`stickypane.desktop`·`stickypane.png`·`install.sh`·`LICENSE`·`THIRD_PARTY_NOTICES.md`·`licenses/`뿐인지 보고, 임시 `HOME`에서 `install.sh`로 깔고 `--uninstall`로 남김없이 지운다. 잘못된 인자에는 아무것도 쓰지 않고 멈춘다 |
 | 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
