@@ -50,6 +50,18 @@ describe('the create dialog', () => {
     expect(names).toEqual(shapes.map((s) => s.name))
   })
 
+  it('asks kinds.list for the examples in the language the window draws in', async () => {
+    setLanguage('ko')
+    const api = fakeApi()
+    open(api, 'note')
+    await waitFor(() => expect(api.kinds).toHaveBeenCalledWith('ko'))
+    cleanup()
+    setLanguage('en')
+    const again = fakeApi()
+    open(again, 'note')
+    await waitFor(() => expect(again.kinds).toHaveBeenCalledWith('en'))
+  })
+
   it('draws a field for each option of the shape, of its type', async () => {
     open(fakeApi(), 'api')
     await screen.findByLabelText('URL')

@@ -250,9 +250,13 @@ func (p *ProjectService) Open(ctx context.Context, note string) (json.RawMessage
 	return p.call(ctx, "note.open", noteParams{note})
 }
 
-// Kinds is kinds.list.
-func (p *ProjectService) Kinds(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "kinds.list", nil)
+// Kinds is kinds.list, with the examples in language: the language the
+// window draws in ("ko", "en"). "" asks for the board's.
+func (p *ProjectService) Kinds(ctx context.Context, language string) (json.RawMessage, error) {
+	if language == "" {
+		return p.call(ctx, "kinds.list", nil)
+	}
+	return p.call(ctx, "kinds.list", map[string]string{"language": language})
 }
 
 // Themes is themes.list: every theme's palette.

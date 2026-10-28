@@ -5,7 +5,8 @@
   // (RA12). Nothing is checked here: a value the shape refuses comes back
   // as the bridge's words, next to its field.
   import { tick } from 'svelte'
-  import { tr } from '../i18n'
+  import { get } from 'svelte/store'
+  import { language, tr } from '../i18n'
   import Button from '../lib/ui/Button.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
   import Input from '../lib/ui/Input.svelte'
@@ -60,7 +61,7 @@
     errors = {}
     failed = ''
     loadError = ''
-    api.kinds().then(
+    api.kinds(get(language)).then(
       (list) => {
         shapes = list
         pick(list.find((s) => s.name === start)?.name ?? list[0]?.name ?? '')

@@ -11,6 +11,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -242,15 +243,28 @@ type kindInfo struct {
 	Options []widget.Option `json:"options"`
 }
 
-// kindsList is the catalog: every shape, in the registry's order.
-func (s *server) kindsList(json.RawMessage) (any, error) {
+// kindsList is the catalog: every shape, in the registry's order, with its
+// example in a language: the one asked for ({"language": "ko"}, the
+// language the screen draws in), else the board's.
+func (s *server) kindsList(params json.RawMessage) (any, error) {
+	var p kindsParams
+	if err := decode(params, &p); err != nil {
+		return nil, err
+	}
+	choice := p.Language
+	if choice == "" {
+		choice = s.api.Store().Settings().Language()
+	}
+	words := i18n.Pick(choice)
+	env := s.api.Env()
+	env.Translate = words.L
 	out := []kindInfo{}
 	for _, k := range s.reg {
-		example := k.ExampleFile()
+		example := k.ExampleFileIn(words)
 		info := kindInfo{Name: k.Name, Icon: k.Icon, Label: k.Label, Blurb: k.Blurb, Example: example, Data: json.RawMessage("null"), Options: []widget.Option{}}
 		info.Options = append(info.Options, k.Options...)
 		if k.Data != nil {
-			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example)), s.api.Env()))
+			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example)), env))
 		}
 		out = append(out, info)
 	}

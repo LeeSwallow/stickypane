@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 )
 
 // Span is a range of lines [Start, End) of a drawn note: the selection and
@@ -212,9 +213,19 @@ type Timed interface {
 }
 
 // ExampleFile is a whole file of the kind, front matter included.
-func (k Kind) ExampleFile() string {
+func (k Kind) ExampleFile() string { return k.fileOf(k.Example) }
+
+// ExampleIn is the kind's example in the language of words, or the
+// English one when that language has none.
+func (k Kind) ExampleIn(words i18n.Strings) string { return words.ExampleOf(k.Name, k.Example) }
+
+// ExampleFileIn is ExampleFile in the language of words.
+func (k Kind) ExampleFileIn(words i18n.Strings) string { return k.fileOf(k.ExampleIn(words)) }
+
+// fileOf is example as a whole file of the kind.
+func (k Kind) fileOf(example string) string {
 	if k.New != "" {
-		return k.Example
+		return example
 	}
-	return string(NewFile(k.Name, "", k.Example))
+	return string(NewFile(k.Name, "", example))
 }
