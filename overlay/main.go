@@ -1,8 +1,8 @@
-// Command stickypane-overlay is the desktop second screen for stickypane
+// Command stickypane-app is the desktop second screen for stickypane
 // boards: a home window listing the boards on this machine, one window per
 // project, a tray icon and a global hotkey (docs/overlay/08).
 //
-//	stickypane-overlay [--project=<path>]
+//	stickypane-app [--project=<path>]
 //
 // It runs once: a second launch hands its --project to the first and ends.
 package main
@@ -22,8 +22,15 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-//go:embed build/tray.png
-var trayIcon []byte
+// The tray icon: a template image for the macOS menu bar (36x36, drawn at
+// the bar's height) and a colour one for Linux; build/darwin/tray.sh makes
+// both.
+var (
+	//go:embed build/darwin/tray-template@2x.png
+	trayTemplate []byte
+	//go:embed build/tray.png
+	trayColour []byte
+)
 
 func main() {
 	var s *shell.Shell // made once the app is, used by its callbacks
@@ -46,7 +53,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "io.github.leeswallow.stickypane.overlay",
+			UniqueID: "io.github.leeswallow.stickypane",
 			OnSecondInstanceLaunch: func(d application.SecondInstanceData) {
 				<-ready
 				s.Launch(d.Args, d.WorkingDir)
@@ -69,7 +76,7 @@ func main() {
 		log.Fatal(err)
 	}
 	home.S, board.S = s, s
-	platform.StartTray(s, trayIcon)
+	platform.StartTray(s, shell.TrayIcons{Template: trayTemplate, Colour: trayColour})
 	close(ready)
 
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {

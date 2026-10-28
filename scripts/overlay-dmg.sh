@@ -1,0 +1,135 @@
+#!/bin/sh
+# overlay-dmg.sh makes the desktop app's drag-to-install disk image
+# (docs/overlay/09 §9.2): a Finder window of 660x420 points on the
+# hand-drawn background, "Stickypane.app" at (170,210), an Applications
+# alias at (490,210), icons of 112 points, and the app icon on the volume.
+#
+#	sh scripts/overlay-dmg.sh overlay/bin/stickypane-app.app stickypane-0.1.0-arm64.dmg
+#
+# The .app comes from `wails3 package` in overlay/; the background from
+# overlay/build/dmg/render.sh. The image's copy of the app carries the
+# command line program at Contents/Resources/bin/stickypane, built here
+# from this checkout for the app's architectures with the app's version,
+# so installing the app is enough (09 §9.1). Both are signed ad hoc (codesign -s -), the program first.
+# Finder arranges the window through AppleScript, so it runs on a Mac with
+# a logged-in user. It overwrites out.dmg, and whatever happens it leaves no
+# volume of its own mounted and no files of its own behind.
+set -eu
+
+vol="stickypane"
+name="Stickypane.app"
+
+die() { echo "overlay-dmg: $*" >&2; exit 1; }
+
+[ $# -eq 2 ] || die "usage: overlay-dmg.sh <app> <out.dmg>"
+app=$1
+out=$2
+case $out in *.dmg) ;; *) die "$out: the output must end in .dmg" ;; esac
+[ -d "$app" ] && [ -f "$app/Contents/Info.plist" ] || die "$app: not an .app bundle"
+[ "$(uname -s)" = Darwin ] || die "needs macOS (hdiutil, Finder)"
+exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist" 2>/dev/null) ||
+	die "$app: Info.plist has no CFBundleExecutable"
+[ -x "$app/Contents/MacOS/$exe" ] || die "$app: Info.plist names $exe, which is not in Contents/MacOS"
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+bg="$root/overlay/build/dmg/background.tiff"
+[ -f "$bg" ] || die "$bg missing: run overlay/build/dmg/render.sh"
+icns="$app/Contents/Resources/icons.icns"
+[ -f "$icns" ] || icns="$root/overlay/build/darwin/icons.icns"
+[ -d "/Volumes/$vol" ] && die "a volume named \"$vol\" is mounted: eject it first"
+mkdir -p "$(dirname "$out")"
+
+work=$(mktemp -d "${TMPDIR:-/tmp}/overlay-dmg.XXXXXX")
+dev=""
+cleanup() {
+	if [ -n "$dev" ]; then
+		hdiutil detach "$dev" -quiet 2>/dev/null ||
+			hdiutil detach "$dev" -force -quiet 2>/dev/null || true
+	fi
+	rm -rf "$work"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM HUP
+
+# The folder the image is made from: the app with its own copy of the
+# command line program, signed inside out, and the alias.
+stage="$work/stage"
+mkdir -p "$stage/.background"
+ditto "$app" "$stage/$name"
+version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+archs=$(lipo -archs "$app/Contents/MacOS/$exe")
+cli="$stage/$name/Contents/Resources/bin/stickypane"
+mkdir -p "$(dirname "$cli")"
+set --
+for a in $archs; do
+	case $a in x86_64) goarch=amd64 ;; arm64) goarch=arm64 ;; *) die "$app: unknown architecture $a" ;; esac
+	(cd "$root" && CGO_ENABLED=0 GOOS=darwin GOARCH=$goarch go build -trimpath \
+		-ldflags "-s -w -X main.version=$version" -o "$work/stickypane-$a" ./cmd/stickypane)
+	set -- "$@" "$work/stickypane-$a"
+done
+lipo -create "$@" -output "$cli"
+xattr -cr "$stage/$name"
+codesign --force --sign - "$cli"
+codesign --force --sign - "$stage/$name"
+codesign --verify --deep --strict "$stage/$name"
+ln -s /Applications "$stage/Applications"
+cp "$bg" "$stage/.background/background.tiff"
+
+size=$(du -sm "$stage" | cut -f1)
+hdiutil create -quiet -volname "$vol" -srcfolder "$stage" -fs HFS+ \
+	-format UDRW -size "$((size + 20))m" -ov "$work/rw.dmg"
+dev=$(hdiutil attach -readwrite -noverify -noautoopen "$work/rw.dmg" |
+	awk '/Apple_HFS/ { print $1; exit }')
+[ -n "$dev" ] || die "could not attach the image"
+mnt="/Volumes/$vol"
+[ -d "$mnt" ] || die "the image did not mount at $mnt"
+
+# Finder lays the window out and writes it to the volume's .DS_Store.
+# The bounds are the window's frame: 660x420 of content under a title bar.
+osascript - "$vol" "$name" <<'EOF'
+on run argv
+	set vol to item 1 of argv
+	set appName to item 2 of argv
+	tell application "Finder"
+		tell disk vol
+			open
+			set current view of container window to icon view
+			set toolbar visible of container window to false
+			set statusbar visible of container window to false
+			set the bounds of container window to {200, 120, 860, 568}
+			set opts to the icon view options of container window
+			set arrangement of opts to not arranged
+			set icon size of opts to 112
+			set text size of opts to 13
+			set label position of opts to bottom
+			set shows item info of opts to false
+			set shows icon preview of opts to true
+			set background picture of opts to file ".background:background.tiff"
+			set position of item appName of container window to {170, 210}
+			set position of item "Applications" of container window to {490, 210}
+			update without registering applications
+			delay 1
+			close
+		end tell
+	end tell
+end run
+EOF
+
+# Wait for Finder to write .DS_Store, then mark the volume icon and ask
+# Finder to open the window when the image is mounted.
+i=0
+while [ ! -f "$mnt/.DS_Store" ] && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done
+[ -f "$mnt/.DS_Store" ] || die "Finder wrote no .DS_Store"
+# hdiutil -srcfolder leaves .VolumeIcon.icns out, so it goes in here.
+cp "$icns" "$mnt/.VolumeIcon.icns"
+SetFile -a C "$mnt" 2>/dev/null || echo "overlay-dmg: SetFile missing; no volume icon" >&2
+bless --folder "$mnt" --openfolder "$mnt" 2>/dev/null || true
+chmod -Rf go-w "$mnt" 2>/dev/null || true
+rm -rf "$mnt/.fseventsd" 2>/dev/null || true
+sync
+
+hdiutil detach "$dev" -quiet || hdiutil detach "$dev" -force -quiet
+dev=""
+rm -f "$out"
+hdiutil convert -quiet "$work/rw.dmg" -format UDZO -imagekey zlib-level=9 -o "$out"
+echo "overlay-dmg: wrote $out ($(du -h "$out" | cut -f1))"

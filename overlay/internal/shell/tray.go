@@ -2,6 +2,7 @@ package shell
 
 import (
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 
@@ -62,12 +63,32 @@ type wailsTray struct {
 	last  *Tray
 }
 
+// TrayIcons are the tray's two pictures of the app icon's three notes:
+// Template, black and alpha only, which macOS draws in the menu bar's own
+// colour, and Colour, for the trays of Linux.
+type TrayIcons struct {
+	Template []byte
+	Colour   []byte
+}
+
+// trayIcon picks the picture for goos and says whether it is a template
+// image: on macOS the template, if there is one; elsewhere the colour icon.
+func trayIcon(goos string, ic TrayIcons) (icon []byte, template bool) {
+	if goos == "darwin" && len(ic.Template) > 0 {
+		return ic.Template, true
+	}
+	return ic.Colour, false
+}
+
 // StartTray makes the tray icon; it is called before app.Run, so that
 // SetTray never races with it, and Wails shows the icon once the app runs.
-// icon is the app's own, in colour (not a macOS template image).
-func (p *Wails) StartTray(s *Shell, icon []byte) {
+func (p *Wails) StartTray(s *Shell, icons TrayIcons) {
 	t := p.App.SystemTray.New()
-	t.SetIcon(icon)
+	if icon, template := trayIcon(runtime.GOOS, icons); template {
+		t.SetTemplateIcon(icon)
+	} else {
+		t.SetIcon(icon)
+	}
 	t.SetTooltip("stickypane")
 	p.tray = &wailsTray{tray: t, shell: s}
 	p.tray.set(Tray{})

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=stickypane
+Comment=A second screen for stickypane boards
+Exec=stickypane-app %u
+Icon=stickypane
+Terminal=false
+Categories=Utility;Development;
+StartupWMClass=stickypane-app

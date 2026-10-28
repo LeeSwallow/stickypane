@@ -6,11 +6,11 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "stickypane" # The name of the company
-  productName: "stickypane" # The name of the application (what people see; the bundle id and files keep "overlay")
-  productIdentifier: "io.github.leeswallow.stickypane.overlay" # The unique product identifier
+  productName: "stickypane" # The name of the application
+  productIdentifier: "io.github.leeswallow.stickypane" # The unique product identifier
   description: "A second screen for stickypane boards" # The application description
   copyright: "(c) 2026, stickypane" # Copyright text
-  comments: "A second screen for stickypane boards" # Comments
+  comments: "stickypane" # Comments
   version: "0.0.1" # The application version
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension

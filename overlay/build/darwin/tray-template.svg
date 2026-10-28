@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <!-- The tray icon: the app icon's three notes as a macOS template image,
+       black and alpha only. Each note knocks a gap out of the ones below.
+       Rebuild the PNGs with overlay/build/darwin/tray.sh. -->
+  <defs>
+    <path id="blue" d="M3.6 15.2 L17.4 12.6 L20.4 30.4 L6.4 32.8 Z"/>
+    <path id="red" d="M7.6 11.0 L22.6 7.8 L25.8 25.8 L10.8 28.8 Z"/>
+    <path id="yellow" d="M12.2 6.4 L30.4 3.6 L32.6 18.4 L27.6 23.6 L15.0 25.8 Z"/>
+    <path id="fold" d="M32.6 18.4 L27.4 19.2 L27.6 23.6"/>
+    <mask id="under-red" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
+      <rect width="36" height="36" fill="#fff"/>
+      <use href="#red" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+      <use href="#yellow" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+    </mask>
+    <mask id="under-yellow" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
+      <rect width="36" height="36" fill="#fff"/>
+      <use href="#yellow" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+    </mask>
+    <mask id="fold-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
+      <rect width="36" height="36" fill="#fff"/>
+      <use href="#fold" fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <use href="#blue" fill="#000" fill-opacity="0.45" stroke="#000" stroke-opacity="0.45" stroke-width="1.6" stroke-linejoin="round" mask="url(#under-red)"/>
+  <use href="#red" fill="#000" fill-opacity="0.7" stroke="#000" stroke-opacity="0.7" stroke-width="1.6" stroke-linejoin="round" mask="url(#under-yellow)"/>
+  <use href="#yellow" fill="#000" stroke="#000" stroke-width="1.6" stroke-linejoin="round" mask="url(#fold-gap)"/>
+</svg>

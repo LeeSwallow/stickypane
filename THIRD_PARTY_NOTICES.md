@@ -20,6 +20,25 @@ pull request.
 Markdown and the one-line editor are stickypane's own (`internal/markdown`,
 `internal/lineedit`).
 
+## The desktop app
+
+The desktop app (`overlay/`, shipped as `Stickypane.app` and
+`stickypane-app-<version>-linux-<arch>.tar.gz`) carries the stickypane
+program above and, in addition, these.
+
+| Project | License | Used for |
+| --- | --- | --- |
+| [wailsapp/wails](https://github.com/wailsapp/wails) v3 and `@wailsio/runtime` | MIT | the window, tray and webview |
+| [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | BSD-3-Clause | the index of boards |
+| [sveltejs/svelte](https://github.com/sveltejs/svelte) | MIT | the interface |
+| [rough-stuff/rough](https://github.com/rough-stuff/rough) (roughjs) | MIT | hand-drawn strokes, in the app and the DMG window |
+| [Gaegu](https://github.com/fontsource/font-files/tree/main/fonts/google/gaegu) | OFL-1.1 | the handwriting font |
+| [Pretendard](https://github.com/orioncactus/pretendard) | OFL-1.1 | the body font |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | the code font |
+
+`overlay/scripts/licenses.sh` checks every Go module and npm package of the
+app against MIT, BSD, Apache-2.0, ISC and OFL-1.1.
+
 ## Color palettes
 
 The built-in themes use the palettes of these editor themes, with the color
