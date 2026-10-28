@@ -203,6 +203,9 @@ func (b *fakeBoard) Call(ctx context.Context, method string, params, result any)
 	b.mu.Unlock()
 	if r, ok := result.(*json.RawMessage); ok {
 		*r = json.RawMessage(`{"method":"` + method + `"}`)
+		if method == "board.load" {
+			*r = json.RawMessage(`{"method":"board.load","title":"Alpha"}`)
+		}
 	}
 	return nil
 }
@@ -220,8 +223,20 @@ func (b *fakeBoard) Close() error {
 
 // fakeIndex is an index in memory.
 type fakeIndex struct {
+	mu      sync.Mutex
 	groups  index.Groups
 	restore []int64
+	titles  map[string]string
+}
+
+func (ix *fakeIndex) Retitle(path, title string) error {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	if ix.titles == nil {
+		ix.titles = map[string]string{}
+	}
+	ix.titles[path] = title
+	return nil
 }
 
 func (ix *fakeIndex) Ingest() error                            { return nil }
@@ -495,6 +510,26 @@ func TestBoardChangedReachesTheWindow(t *testing.T) {
 	waitFor(t, "bridge closed", func() bool { r.board.mu.Lock(); defer r.board.mu.Unlock(); return r.board.closed })
 	if err := r.s.Call(context.Background(), id, "board.load", nil, &res); err == nil {
 		t.Error("a call from a closed window fails")
+	}
+}
+
+func TestBoardLoadNamesTheProjectInTheIndex(t *testing.T) {
+	r := newRig(t)
+	r.s.Start()
+	a := filepath.Join(r.home, "a")
+	id := r.s.OpenProject(a)
+	waitFor(t, "ready", func() bool { return r.s.Status(id).State == StateReady })
+	if _, err := r.s.Sessions(); err != nil { // the index is open
+		t.Fatal(err)
+	}
+	var res json.RawMessage
+	if err := r.s.Call(context.Background(), id, "board.load", nil, &res); err != nil {
+		t.Fatal(err)
+	}
+	r.ix.mu.Lock()
+	defer r.ix.mu.Unlock()
+	if len(r.ix.titles) != 1 || r.ix.titles[r.s.Status(id).Path] != "Alpha" {
+		t.Fatalf("titles = %v", r.ix.titles)
 	}
 }
 

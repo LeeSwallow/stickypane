@@ -8,6 +8,7 @@ package shell
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -74,6 +75,7 @@ type Index interface {
 	Ingest() error
 	Prune(now time.Time) ([]index.Project, error)
 	Restore(id int64) error
+	Retitle(path, title string) error
 	Sessions(now time.Time) (index.Groups, error)
 	Close() error
 }
@@ -689,7 +691,33 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 	if b == nil {
 		return fmt.Errorf("no board in this window (%s)", state)
 	}
-	return b.Call(ctx, method, params, result)
+	err := b.Call(ctx, method, params, result)
+	if err == nil && method == "board.load" {
+		s.retitle(p.path, result)
+	}
+	return err
+}
+
+// retitle gives the index the title a board.load answered with: the app
+// learns a project's name from its bridge, never from its files. An index
+// not open yet is not waited for; the next load names it.
+func (s *Shell) retitle(path string, result any) {
+	raw, ok := result.(*json.RawMessage)
+	if !ok || raw == nil {
+		return
+	}
+	var b struct {
+		Title string `json:"title"`
+	}
+	if json.Unmarshal(*raw, &b) != nil || b.Title == "" {
+		return
+	}
+	s.mu.Lock()
+	ix := s.ix
+	s.mu.Unlock()
+	if ix != nil {
+		ix.Retitle(path, b.Title)
+	}
 }
 
 // SetPin pins or unpins a project window: a pinned window stays on top
