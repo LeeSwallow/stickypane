@@ -17,8 +17,8 @@ func (p *Page) Draw(width int, _ bool) (string, widget.Span) {
 	if len(out) > 0 {
 		out = append(out, "")
 	}
-	for _, l := range widget.Wrap(widget.T("open it in the overlay to see it drawn"), width) {
-		out = append(out, widget.Faint.Render(l))
+	for _, l := range widget.Wrap(p.env.T("open it in the overlay to see it drawn"), width) {
+		out = append(out, p.env.Styles.Faint.Render(l))
 	}
 	return strings.Join(out, "\n"), widget.NoSpan
 }
