@@ -17,7 +17,7 @@ written through a named form in `when`, and a clock is handed in as a
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
 | 50 | `internal/app`, `internal/mcp`, `internal/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
-| 40 | `internal/api`, `internal/initcmd` | what the command line and agents call; setting a project up |
+| 40 | `internal/api`, `internal/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 12 | `internal/runner` | running a script and keeping its log, for every front end |
@@ -88,6 +88,21 @@ disk now and written in one step. The screen, the command line and MCP all
 write this way, so an agent and the user editing the same note do not
 overwrite each other. Settings are written the same way, through one read,
 change and replace step.
+
+**One place for each rule.** `internal/api` is the use-case layer: the
+terminal (`internal/app`), the bridge and the command line change the
+board through it, never through the store. A note is made by
+`api.CreateFrom` (named and stamped on the API's clock), tended by
+`api.TendAll`, changed by a key's op through `api.Do`, saved from the
+editor by `api.Save`, archived, trashed, restored and moved by
+`api.Archive`, `api.Remove`, `api.Restore`/`api.Return` and `api.Move`,
+and a `.http` request is sent by `api.SendPart`. Settings are changed by
+`api.ChangeSettings`, over `prefs.Normal`, the one rule for what each
+setting takes. api answers with values (`api.Moved`, `api.Sent`); the
+front end says them in its own words. A note's colour is
+`arrange.ColorIndex`, and the language a choice comes to `i18n.Resolve`.
+What a front end still takes from the store only reads it, or arranges
+the screen in `sticky.json` (a view, the tab).
 
 **Events.** Each kind may say what happened in a note between two
 versions (`Kind.Events`: item.ticked, card.moved, form.submitted...).
