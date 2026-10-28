@@ -3,9 +3,9 @@
   // icon), the title (hand-written, in the note's colour, one line; a
   // double-click renames it), a changed dot, a link mark, the summary
   // (3/6, 6 cards), a book's pager, and the note's controls — its width as
-  // a fraction of the board stepped narrower and wider, pin, tear-off, more
-  // ⋯ and close. It holds controls, so it never leans; the controls stay
-  // quiet until the note is hovered.
+  // a fraction of the board stepped narrower and wider, pin, tear-off (where
+  // the window can tear it off), more ⋯ and close. It holds controls, so it
+  // never leans; the controls stay quiet until the note is hovered.
   import type { Snippet } from 'svelte'
   import { tr } from '../../i18n'
   import { look } from '../doodle/look.svelte'
@@ -168,7 +168,9 @@
             crayon={pinned}
             onclick={() => onpin?.(!pinned)}
           />
-          <span class="tearoff"><IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} disabled={!ontearoff} onclick={ontearoff} /></span>
+          {#if ontearoff}
+            <span class="tearoff"><IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} onclick={ontearoff} /></span>
+          {/if}
         {/if}
         {#if menu.length}
           <span class="anchor">
