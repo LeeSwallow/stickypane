@@ -61,11 +61,15 @@ type (
 		Version string          `json:"version"`
 		Action  json.RawMessage `json:"action"` // a widget.Action, the note kind's own
 	}
+	// CreateParams is note.create. The app sends a shape's create options
+	// (kinds.list names them) and never a body: the shape's own Go code
+	// writes the file (RA12). Body stays for a caller that has the text.
 	CreateParams struct {
-		Tab   string `json:"tab"`
-		Kind  string `json:"kind"`
-		Title string `json:"title"`
-		Body  string `json:"body"`
+		Tab     string                     `json:"tab"`
+		Kind    string                     `json:"kind"`
+		Title   string                     `json:"title"`
+		Body    string                     `json:"body,omitempty"`
+		Options map[string]json.RawMessage `json:"options,omitempty"`
 	}
 	ArrangeParams struct {
 		Note  string  `json:"note"`
