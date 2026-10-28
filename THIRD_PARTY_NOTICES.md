@@ -34,6 +34,10 @@ program above and, in addition, these.
 | [glebarez/go-sqlite](https://github.com/glebarez/go-sqlite) and [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | BSD-3-Clause | SQLite in pure Go |
 | [sveltejs/svelte](https://github.com/sveltejs/svelte) | MIT | the interface |
 | [rough-stuff/rough](https://github.com/rough-stuff/rough) (roughjs) | MIT | hand-drawn strokes, in the app and the DMG window |
+| [unified](https://github.com/unifiedjs/unified), with remark-parse, remark-gfm, remark-math, remark-rehype, rehype-sanitize, rehype-katex and rehype-stringify | MIT | Markdown in full |
+| [mermaid-js/mermaid](https://github.com/mermaid-js/mermaid) | MIT | Mermaid diagrams |
+| [KaTeX/KaTeX](https://github.com/KaTeX/KaTeX) | MIT | maths |
+| [shikijs/shiki](https://github.com/shikijs/shiki) | MIT | code highlighting |
 | [Gaegu](https://github.com/fontsource/font-files/tree/main/fonts/google/gaegu) | OFL-1.1 | the handwriting font |
 | [Pretendard](https://github.com/orioncactus/pretendard) | OFL-1.1 | the body font |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | the code font |
@@ -51,6 +55,10 @@ The copyright lines of the projects above, as their licenses state them:
 - glebarez/go-sqlite, modernc.org/sqlite: Copyright (c) 2017 The Sqlite Authors (BSD-3-Clause)
 - Svelte: Copyright (c) 2016-2025 Svelte Contributors (MIT)
 - roughjs: Copyright (c) 2019 Preet Shihn (MIT)
+- unified, remark and rehype: Copyright (c) 2014–2016 Titus Wormer (MIT)
+- Mermaid: Copyright (c) 2014 - 2022 Knut Sveidqvist (MIT)
+- KaTeX: Copyright (c) 2013-2020 Khan Academy and other contributors (MIT)
+- Shiki: Copyright (c) 2021 Pine Wu, Copyright (c) 2023 Anthony Fu (MIT)
 - Gaegu: Copyright 2018 The Gaegu Project Authors (OFL-1.1)
 - Pretendard: Copyright (c) 2021, Kil Hyung-jin, with Reserved Font Name
   Pretendard (OFL-1.1)
