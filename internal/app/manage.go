@@ -69,11 +69,11 @@ func init() {
 	// archive/ or to .trash/, and u brings it back.
 	boardKeys["x"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
-		to, err := m.store.Archive(file.Name)
+		moved, err := m.calls().Archive(file.Name)
 		if err != nil {
 			m.status = say(tr.CannotArchive, map[string]any{"Err": err.Error()})
 		} else {
-			m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
+			m.undo = &undo{moved: moved, label: nameOf(file)}
 			m.status = say(tr.Archived, map[string]any{"Name": nameOf(file)})
 		}
 		m.reload()
@@ -82,11 +82,11 @@ func init() {
 	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
 		m.confirm(say(tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
-			to, err := m.store.Trash(file.Name)
+			moved, err := m.calls().Remove(file.Name)
 			if err != nil {
 				m.status = say(tr.CannotDelete, map[string]any{"Err": err.Error()})
 			} else {
-				m.undo = &undo{from: to, to: file.Name, label: nameOf(file)}
+				m.undo = &undo{moved: moved, label: nameOf(file)}
 				m.status = say(tr.Deleted, map[string]any{"Name": nameOf(file)})
 			}
 			m.reload()

@@ -55,6 +55,34 @@ func TestApplyOnAKindWithoutAct(t *testing.T) {
 	}
 }
 
+// Do is how the terminal writes what a key asked: the op on the file as it
+// is now, and what the kind fills in by itself.
+func TestDoAppliesAnOpAndTendsTheNote(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"plan.md": "---\ntype: checklist\n---\n- [x] one\n"})
+	if err := a.Do("plan.md", doc.SetKey{Key: "title", Value: "Plan"}); err != nil {
+		t.Fatal(err)
+	}
+	got := readRaw(t, dir, "plan.md")
+	if !strings.Contains(got, "title: Plan") || !regexp.MustCompile(`- \[x\] one .*\d{2}:\d{2}`).MatchString(got) {
+		t.Errorf("Do:\n%s", got)
+	}
+}
+
+// Save writes the editor's text as it is, and only over the file the
+// editor loaded unless told to.
+func TestSaveWritesTheTextAsItIsOverWhatWasLoaded(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"n.md": "---\nopen: true\n---\nold\n"})
+	if err := a.Save("n.md", []byte("not what is there\n"), []byte("mine\n")); !errors.Is(err, ErrStale) {
+		t.Errorf("a file someone else changed: %v", err)
+	}
+	if err := a.Save("n.md", []byte("---\nopen: true\n---\nold\n"), []byte("mine\n")); err != nil || readRaw(t, dir, "n.md") != "mine\n" {
+		t.Errorf("Save = %v, file %q: the text is the user's, nothing kept or added", err, readRaw(t, dir, "n.md"))
+	}
+	if err := a.Save("n.md", nil, []byte("forced\n")); err != nil || readRaw(t, dir, "n.md") != "forced\n" {
+		t.Errorf("a forced save: %v", err)
+	}
+}
+
 func TestApplyOnAMissingNote(t *testing.T) {
 	a, _ := newAPI(t, nil)
 	if _, err := a.Apply("nope", "0123456789abcdef", widget.Action{Name: "toggle"}); !errors.Is(err, doc.ErrConflict) {
