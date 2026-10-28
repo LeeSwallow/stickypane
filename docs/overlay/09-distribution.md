@@ -54,13 +54,13 @@
 ## 9.4 첫 실행 연결
 
 1. 사용자가 DMG에서 앱을 Applications로 끌어 놓고 연다.
-2. 앱은 [08 §8.2](08-app-home-and-sessions.md#82-첫-실행--앱-안의-랜딩)의 랜딩을 보인다.
-3. 02 카드가 `stickypane`을 찾지 못하면 `brew install --cask LeeSwallow/tap/stickypane`을 보이고, 찾으면 버전과 bridge 프로토콜 버전을 확인한다.
+2. 앱은 `~/.stickypane/`을 만들고 세션 목록을 보인다. 비어 있으면 빈 상태 한 장([08 §8.2](08-app-home-and-sessions.md#82-첫-실행--설명-없이-바로-목록)).
+3. `stickypane`을 찾지 못하면 `brew install --cask LeeSwallow/tap/stickypane`을 보이고, 찾으면 버전과 bridge 프로토콜 버전을 확인한다.
 
 ## 9.5 검증
 
 | 항목 | 방법 |
 |---|---|
 | DMG 레이아웃 | 만든 DMG를 마운트해 Finder 창을 스크린샷으로 남긴다(이 Mac에서) |
-| 앱 실행 | Applications에 복사 후 실행, 랜딩이 뜨는지 |
+| 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | Linux | CI(ubuntu)에서 빌드와 Go 테스트. 실기 실행은 [미검증] |

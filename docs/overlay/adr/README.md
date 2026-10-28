@@ -16,7 +16,7 @@
 | [0010](0010-terminal-stays-primary.md) | 터미널이 기본 화면으로 남고, ROADMAP의 "no desktop"을 고친다 | Proposed |
 | [0011](0011-bundled-open-fonts.md) | 글꼴은 OFL 글꼴을 앱에 번들한다 | Proposed |
 | [0012](0012-frontend-stack.md) | 프런트엔드는 Svelte와 검증된 렌더러로 만든다 | Proposed |
-| [0013](0013-home-registry-events-and-sqlite.md) | 세션 레지스트리는 `~/.sticky/`의 날짜별 사건 파일과 앱의 SQLite 색인이다 | Proposed |
+| [0013](0013-home-registry-events-and-sqlite.md) | 세션 레지스트리는 `~/.stickypane/`의 날짜별 사건 파일과 앱의 SQLite 색인이다 | Proposed |
 | [0014](0014-macos-and-linux-only.md) | overlay 앱은 macOS와 Linux만 지원한다 | Proposed |
 | [0015](0015-wails-v3.md) | Wails는 v3를 쓴다 | Proposed |
 | [0016](0016-dmg-doodle-installer.md) | macOS 설치는 손그림 배경의 DMG로 한다 | Proposed |

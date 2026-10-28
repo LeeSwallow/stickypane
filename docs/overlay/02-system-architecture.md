@@ -13,7 +13,7 @@
 | 프런트엔드 | **Svelte 5 + Vite + TypeScript**, 렌더러는 unified · Shiki · Mermaid · KaTeX · rough.js | [ADR-0012](adr/0012-frontend-stack.md) |
 | HTML 노트 | **샌드박스 iframe**, 보기 전용 | [ADR-0006](adr/0006-html-notes-view-only.md) |
 | 설정 | 보기 방식 `view`, 스타일 `style`을 `sticky.json` 루트에. 색은 기존 `theme` | [ADR-0004](adr/0004-view-mode-in-sticky-json.md), [ADR-0008](adr/0008-two-theme-axes.md) |
-| 홈과 세션 | 본체가 `~/.sticky/events/*.jsonl`·`run/*.json`에 기록, 앱이 SQLite로 색인 | [08](08-app-home-and-sessions.md), [ADR-0013](adr/0013-home-registry-events-and-sqlite.md) |
+| 홈과 세션 | 본체가 `~/.stickypane/events/*.jsonl`·`run/*.json`에 기록, 앱이 SQLite로 색인 | [08](08-app-home-and-sessions.md), [ADR-0013](adr/0013-home-registry-events-and-sqlite.md) |
 | 플랫폼 | overlay 앱은 macOS·Linux | [ADR-0014](adr/0014-macos-and-linux-only.md) |
 
 ## 2.2 C4 Level 1 — 시스템 컨텍스트
@@ -132,7 +132,7 @@ type Action struct {
 | → | `board.load` | 탭·노트 목록, 각 노트의 kind·크기·색·버전·`Data` |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과로 새 버전 |
 | → | `note.create` `{tab, kind, title, body}` | "+ 끄적이기". `api.Write`와 같은 경로 |
-| → | `note.open` `{note}` | `$EDITOR`로 연다(O2) |
+| → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
 | → | `settings.get` / `settings.set` `{theme \| style \| view}` | `store.SetTheme` / `SetRoot` |
 | ← | `board.changed` `{notes:[...]}` | `store.Watch` 신호마다, 바뀐 노트만 다시 읽어 `Data`와 `Kind.Events`의 사건을 함께 |
 | ← | `error` | 버전 불일치, 알 수 없는 행동 등 |

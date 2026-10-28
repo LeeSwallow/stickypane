@@ -12,7 +12,7 @@
 
 ## 결정
 
-`sticky.json` 루트에 `"view": "terminal" | "overlay" | "both"`를 둔다. 없으면 `terminal`. `stickypane init`이 묻고 `store.SetRoot`로 쓴다. `stickypane`(인자 없음)은 이 값에 따라 TUI나 overlay를 연다.
+`sticky.json` 루트에 `"view": "terminal" | "overlay" | "both"`를 둔다. 없으면 `terminal`. `stickypane init --view <값> --style <값>` 플래그로 정하고, 터미널(TTY)에서 사람이 직접 `init`을 실행할 때만 묻는다. 에이전트·앱·자동 init은 묻지 않는다(멈추면 안 된다). 앱의 빈 상태에서 폴더를 고르면 `--view overlay`를 넘긴다. `stickypane`(인자 없음)은 이 값에 따라 TUI나 overlay를 연다.
 
 ## 결과
 

@@ -1,4 +1,4 @@
-# ADR-0013. 세션 레지스트리는 `~/.sticky/`의 날짜별 사건 파일과 앱의 SQLite 색인이다
+# ADR-0013. 세션 레지스트리는 `~/.stickypane/`의 날짜별 사건 파일과 앱의 SQLite 색인이다
 
 | 항목 | 값 |
 |---|---|
@@ -12,10 +12,12 @@
 
 ## 결정
 
-`~/.sticky/`(`STICKYPANE_HOME`으로 바꿀 수 있음)에 본체가 날짜별 `events/YYYY-MM-DD.jsonl`을 덧붙이고 오래 사는 프로세스마다 `run/<pid>.json`을 둔다. overlay 앱이 이를 읽어 `stickypane.db`(SQLite, WAL, `modernc.org/sqlite`)에 색인한다. 시작할 때와 홈을 열 때 사라진 프로젝트·죽은 프로세스를 정리한다([08 §8.4](../08-app-home-and-sessions.md#84-레지스트리--sticky)).
+`~/.stickypane/`(`STICKYPANE_HOME`으로 바꿀 수 있음)이 **있을 때만** 본체가 날짜별 `events/YYYY-MM-DD.jsonl`을 덧붙이고 오래 사는 프로세스마다 `run/<pid>.json`을 둔다. overlay 앱이 이를 읽어 `stickypane.db`(SQLite, WAL, `modernc.org/sqlite`)에 색인한다. 시작할 때와 홈을 열 때 사라진 프로젝트·죽은 프로세스를 정리한다([08 §8.4](../08-app-home-and-sessions.md#84-레지스트리--sticky)).
 
 ## 결과
 
+- 이름이 `~/.sticky`가 아닌 이유: `store.Find`가 위로 올라가며 찾는 board 폴더와 겹친다.
+- 폴더는 overlay 앱이 처음 실행될 때 만든다. 터미널만 쓰는 사람에게는 아무것도 기록되지 않는다.
 - 본체에 새 모듈이 들어오지 않는다. SQLite는 overlay 모듈에만 있다.
 - 진실의 원천은 파일이다. `stickypane.db`는 지워도 `events/`에서 다시 만든다.
 - 레지스트리 쓰기는 best-effort라 홈 폴더에 쓸 수 없어도 명령이 실패하지 않는다.

@@ -21,7 +21,7 @@ flowchart LR
   D --> L
   L --> P["06 로드맵과 검증"]
   O --> Q["07 요구사항·결정 기록<br/>대화 원문 추적"]
-  A --> H["08 앱 홈 · 세션<br/>랜딩 · ~/.sticky · SQLite"]
+  A --> H["08 앱 홈 · 세션<br/>~/.stickypane · SQLite"]
   H --> X["09 배포<br/>DMG · Linux"]
   A --> ADR["adr/<br/>아키텍처 결정 기록"]
   D --> ADR
@@ -36,7 +36,7 @@ flowchart LR
 | 05 | [대안 검토](05-alternatives.md) | 앱 프레임워크, 상호작용 범위, HTML 처리, 설정 위치, 렌더러·글꼴 | Google Design Doc의 *Alternatives Considered* |
 | 06 | [로드맵과 검증](06-roadmap-and-verification.md) | 단계별 범위, 완료 조건, 검증 게이트 | 기술 리포트의 *Evaluation* 절 |
 | 07 | [요구사항·결정 기록](07-requirements-log.md) | 사용자가 말한 요구를 시간순으로 정리하고 결정으로 연결 | Requirements Traceability Matrix |
-| 08 | [앱 홈 · 첫 실행 · 세션 레지스트리](08-app-home-and-sessions.md) | 홈 창, 첫 실행 랜딩, 활성 세션 목록, `~/.sticky/` 레지스트리와 SQLite 색인, 지워진 것 처리, 플랫폼 | HeyMoa 랜딩·온보딩 분석, SQLite WAL |
+| 08 | [앱 홈 · 세션 레지스트리](08-app-home-and-sessions.md) | 홈 창, 활성 세션 목록, `~/.stickypane/` 레지스트리와 SQLite 색인, 지워진 것 처리, 플랫폼 | SQLite WAL, XDG |
 | 09 | [배포와 설치 화면](09-distribution.md) | macOS 손그림 DMG, Linux tar.gz, 서명 | — |
 | — | [ADR 목록](adr/README.md) | 되돌리기 어려운 결정 하나당 문서 하나 | Michael Nygard, *Documenting Architecture Decisions* |
 

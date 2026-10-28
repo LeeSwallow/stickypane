@@ -6,8 +6,8 @@
 
 ```mermaid
 flowchart LR
-  P1["1단계<br/>계약<br/>Kind.Data · Act · html"] --> P2["2단계<br/>bridge · 레지스트리<br/>stickypane bridge · ~/.sticky"]
-  P2 --> P3["3단계<br/>앱 셸<br/>홈 · 랜딩 · 세션 · 창 · 테마"]
+  P1["1단계<br/>계약<br/>Kind.Data · Act · html"] --> P2["2단계<br/>bridge · 레지스트리<br/>stickypane bridge · ~/.stickypane"]
+  P2 --> P3["3단계<br/>앱 셸<br/>홈 · 세션 · 창 · 테마"]
   P3 --> P4["4단계<br/>렌더러 · 상호작용<br/>모든 shape · Motion"]
   P4 --> P5["5단계<br/>연결 · 배포<br/>init · 실행 · DMG · Linux · 문서"]
 ```
@@ -28,7 +28,7 @@ flowchart LR
 ### 2단계 — bridge와 레지스트리 (본체만)
 
 - 스크립트 실행을 `internal/app`에서 낮은 레이어로 내린다.
-- `internal/registry`: `~/.sticky/events/YYYY-MM-DD.jsonl` 덧붙이기, `run/<pid>.json` 만들고 지우기, `STICKYPANE_HOME`. 명령 표에서 프로젝트를 다루는 명령이 부른다([08 §8.4](08-app-home-and-sessions.md#84-레지스트리--sticky)).
+- `internal/registry`: `~/.stickypane/events/YYYY-MM-DD.jsonl` 덧붙이기, `run/<pid>.json` 만들고 지우기, `STICKYPANE_HOME`. 명령 표에서 프로젝트를 다루는 명령이 부른다([08 §8.4](08-app-home-and-sessions.md#84-레지스트리--sticky)).
 - `internal/bridge`(layer 50)와 `stickypane bridge` 명령.
 - `sticky.json` 루트 키 `view`, `style`. `stickypane init`은 아직 묻지 않는다.
 
@@ -36,7 +36,7 @@ flowchart LR
 
 ### 3단계 — 앱 셸 (`overlay/` 모듈)
 
-- Wails v3 프로젝트, **홈 창**(첫 실행 랜딩 [08 §8.2](08-app-home-and-sessions.md#82-첫-실행--앱-안의-랜딩), 세션 목록 §8.3), 트레이, SQLite 색인(사라진 것 정리, 날짜별 묶음), 프로젝트별 프레임 없는 창, 전역 단축키(기본 `⌥ Space`), 핀(always-on-top), 포커스를 잃으면 숨김(핀 꺼짐일 때), 프로젝트당 창 하나, 단일 인스턴스.
+- Wails v3 프로젝트, **홈 창**(세션 목록과 빈 상태 [08 §8.2–8.3](08-app-home-and-sessions.md#82-첫-실행--설명-없이-바로-목록)), 트레이, SQLite 색인(사라진 것 정리, 날짜별 묶음), 프로젝트별 프레임 없는 창, 전역 단축키(기본 `⌥ Space`), 핀(always-on-top), 포커스를 잃으면 숨김(핀 꺼짐일 때), 프로젝트당 창 하나, 단일 인스턴스.
 - bridge 자식 프로세스 수명 관리, 프로토콜 버전 확인.
 - 디자인 토큰, 글꼴 번들, 색 테마 10개, 스타일 테마 2개, 아이콘.
 - 렌더러: note(Markdown 전부), checklist, board — 보기만.
@@ -53,11 +53,11 @@ flowchart LR
 
 ### 5단계 — 연결과 배포
 
-- `stickypane init`이 보기 방식(terminal / overlay / both)과 스타일을 묻는다.
+- `stickypane init --view/--style`, 사람이 터미널에서 직접 실행할 때만 묻는다(ADR-0004).
 - `stickypane`(인자 없음)이 `view`에 따라 overlay를 연다([02 §2.5.3](02-system-architecture.md#253-보기-방식에-따라-띄우기)).
 - 손그림 DMG([09](09-distribution.md)), Linux tar.gz, goreleaser·Homebrew cask, `THIRD_PARTY_NOTICES.md`(글꼴·npm), README·README.ko·에이전트 가이드에 HTML 노트 한 줄, `ROADMAP.md` 목표 문장.
 
-**완료 조건**: 이 Mac에서 DMG를 마운트하면 손그림 설치 화면이 보이고, 앱을 Applications로 옮겨 열면 랜딩이 뜬다. `stickypane init`에서 overlay를 고르면 `stickypane`으로 창이 뜬다. Linux 산출물은 CI에서 빌드된다.
+**완료 조건**: 이 Mac에서 DMG를 마운트하면 손그림 설치 화면이 보이고, 앱을 Applications로 옮겨 열면 세션 목록(또는 빈 상태)이 뜬다. `stickypane init`에서 overlay를 고르면 `stickypane`으로 창이 뜬다. Linux 산출물은 CI에서 빌드된다.
 
 ## 6.3 검증 게이트 (모든 단계 공통)
 
