@@ -174,7 +174,12 @@ type layoutState struct {
 	reveal        reveal           // how a note that comes into view is shown
 	drawn         map[string]drawn // panes.go: what each note drew last, by name
 	wakeAt        time.Time        // wake.go: when the screen next redraws by itself
+	mark          mark             // manage.go: a note's new size, shown until the next key
 }
+
+// mark is what a note's border says for a moment after it was resized, in
+// place of its summary.
+type mark struct{ name, text string }
 
 // zoomState is zoom.go's and help.go's: one note, or the help, on the whole screen.
 type zoomState struct {
@@ -319,7 +324,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.String() == "ctrl+c" && m.mode != modeEdit {
 			return m, tea.Quit
 		}
-		m.status = ""
+		m.status, m.mark = "", mark{}
 		cmd = m.dispatch(msg)
 	case scriptDoneMsg:
 		m.finished(msg)

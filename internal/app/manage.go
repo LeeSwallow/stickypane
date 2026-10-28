@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os/exec"
 	"path"
 	"strings"
@@ -22,6 +23,12 @@ func init() {
 	boardKeys["+"] = grow
 	boardKeys["="] = grow // the same key without shift
 	boardKeys["-"] = onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })
+	// The height: shift+up and shift+down add or take away a line, with
+	// pgup and pgdown five, and 0 gives the note back its own height.
+	for k, delta := range map[string]int{"shift+up": 1, "shift+down": -1, "shift+pgup": 5, "shift+pgdown": -5} {
+		boardKeys[k] = onFocused(func(m *Model, it item) tea.Cmd { m.stretch(it, delta); return nil })
+	}
+	boardKeys["0"] = onFocused(func(m *Model, it item) tea.Cmd { m.setRows(it, 0); return nil })
 	boardKeys["}"] = func(m *Model) tea.Cmd { m.move(1); return nil }
 	boardKeys["{"] = func(m *Model) tea.Cmd { m.move(-1); return nil }
 
@@ -108,6 +115,40 @@ func (m *Model) resize(it item, delta int) {
 	}
 	m.setView(it.note.Name, func(v *store.View) { v.Size = next })
 	m.reveal = revealNote
+	m.mark = mark{name: it.note.Name, text: tr.L("width") + " " + next}
+}
+
+// stretch makes an open note delta lines taller or shorter, from the
+// height it shows: what it asks for, its content when it asks for nothing,
+// or less when the other notes squeeze it. It is at least one line and at
+// most what the screen holds.
+func (m *Model) stretch(it item, delta int) {
+	p, ok := m.paneOf(it.note.Name)
+	if !ok || !m.isOpen(it) {
+		return
+	}
+	base := p.total
+	if r := m.rowsOf(it); r > 0 {
+		base = r
+	}
+	base = min(base, p.rows())
+	m.setRows(it, max(min(base+delta, m.bodyHeight()-2), 1))
+}
+
+// setRows writes the height an open note asks for, in lines; 0 takes the
+// choice back, so the note is as tall as its content (or as its front
+// matter or its kind says). It writes nothing when nothing changes.
+func (m *Model) setRows(it item, rows int) {
+	if !m.isOpen(it) || rows == m.views[it.note.Name].Rows {
+		return
+	}
+	m.setView(it.note.Name, func(v *store.View) { v.Rows = rows })
+	m.reveal = revealNote
+	text := tr.L("content height")
+	if rows > 0 {
+		text = fmt.Sprintf(tr.L("%d lines"), rows)
+	}
+	m.mark = mark{name: it.note.Name, text: text}
 }
 
 // move swaps the focused note with its neighbor in the order of the notes,

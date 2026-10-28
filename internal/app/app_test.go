@@ -83,6 +83,14 @@ func key(k string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
 	case "ctrl+c":
 		return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
+	case "shift+up":
+		return tea.KeyPressMsg{Code: tea.KeyUp, Mod: tea.ModShift}
+	case "shift+down":
+		return tea.KeyPressMsg{Code: tea.KeyDown, Mod: tea.ModShift}
+	case "shift+pgup":
+		return tea.KeyPressMsg{Code: tea.KeyPgUp, Mod: tea.ModShift}
+	case "shift+pgdown":
+		return tea.KeyPressMsg{Code: tea.KeyPgDown, Mod: tea.ModShift}
 	}
 	r := []rune(k)[0]
 	return tea.KeyPressMsg{Code: unicode.ToLower(r), Text: k}
@@ -103,7 +111,7 @@ func typeText(m *Model, s string) {
 func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
-	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-"} {
+	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-", "shift+up", "shift+down", "shift+pgup", "shift+pgdown", "0"} {
 		if got := key(k).String(); got != k {
 			t.Errorf("key(%q).String() = %q", k, got)
 		}

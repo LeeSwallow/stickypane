@@ -97,6 +97,9 @@ func (m *Model) heading(it item) string {
 // widget counts and, for a book, which page it is on. A script that is
 // running says so instead.
 func (m *Model) summary(it item) string {
+	if m.mark.name == it.note.Name && m.mark.text != "" {
+		return m.mark.text
+	}
 	if m.running[it.file().Name] {
 		return tr.Running
 	}
