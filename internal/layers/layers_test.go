@@ -26,6 +26,7 @@ var rank = map[string]int{
 	"internal/env":             0, // the system, shell, pane tool and locale
 	"internal/when":            0, // how times are written and read
 	"internal/atomicfile":      0, // the one way a file is replaced
+	"internal/filelock":        0, // the lock writers take around a read, change and write
 	"internal/i18n":            5, // reads the locale from env
 	".":                        0, // the plugin's files, carried in the program
 	"internal/harness":         5, // the plugin's skills, read for MCP and guide
