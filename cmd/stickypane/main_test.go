@@ -59,9 +59,14 @@ func TestVersionAndHelp(t *testing.T) {
 		}
 	}
 	for _, arg := range []string{"help", "--help", "-h"} {
-		if code, out, _ := exec(t, arg); code != 0 || !strings.Contains(out, "stickypane init") {
+		// The overview is short (issue #17) but names every command; the
+		// whole page with every option is `help --all`.
+		if code, out, _ := exec(t, arg); code != 0 || !strings.Contains(out, "init") {
 			t.Errorf("%s: code = %d, out = %q", arg, code, out)
 		}
+	}
+	if code, out, _ := exec(t, "help", "--all"); code != 0 || out != usage {
+		t.Errorf("help --all: code = %d, out = %.60q", code, out)
 	}
 }
 

@@ -158,7 +158,8 @@ library only:
 | File | Holds |
 | --- | --- |
 | `main.go` | `main`, signal handling, opening the board |
-| `commands.go` | the table of commands and `env` (context and streams) |
+| `commands.go` | the table of commands, each with its help, and `env` (context and streams) |
+| `help.go` | `help`: the overview, one command or shape, the way to start; words from `internal/i18n` |
 | `errors.go` | `exitCode`: the one place errors become exit codes 0, 1, 2, 3, 130 |
 | `flags.go` | `parse`: flags anywhere among the words |
 | `notes.go`, `edit.go`, `settings.go`, `kinds.go` | the commands |

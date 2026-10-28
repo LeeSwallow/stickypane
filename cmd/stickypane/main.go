@@ -1,7 +1,8 @@
 // Command stickypane shows the notes in .sticky/ as a board.
 //
 // The files of this package: main.go starts the program and opens the
-// board, commands.go is the table of commands, errors.go turns errors into
+// board, commands.go is the table of commands with the help of each,
+// help.go prints it, errors.go turns errors into
 // exit codes, flags.go parses flags between words, and notes.go, edit.go,
 // settings.go and kinds.go hold the commands themselves.
 package main
@@ -50,7 +51,7 @@ func versionOf(set, module string) string {
 	return strings.TrimPrefix(module, "v")
 }
 
-const usage = `stickypane - a note board for you and your coding agent
+const usage = `stickypane - sticky notes for coding agents. They pin, you glance.
 
 Usage:
   stickypane [path]      open the board of the project at path (default: here);
@@ -78,6 +79,9 @@ Usage:
                          agent, the screen's language and how scripts run
   stickypane guide [topic]  print the agent guide: the overview, a skill or a shape
   stickypane version     print the version
+  stickypane help [command|shape|start] [--all]
+                         a short overview, or the help of one command or shape,
+                         or getting started; --all: this page
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane list [--json]       list the notes
