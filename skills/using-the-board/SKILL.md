@@ -35,7 +35,7 @@ stickypane card work move login --to Done      # work.md: 4 cards   (add "text" 
 stickypane chart tokens add input 1200         # tokens.md: input = 6200   (set)
 stickypane log worklog --time "tests passed"   # worklog.md: 12 lines
 stickypane say chat "41/41 pass" --as claude   # chat.md: 3 messages
-stickypane set plan title="The plan" open=true size=half
+stickypane set plan title="The plan" open=true size=1/2
 stickypane show plan; stickypane hide plan     # on the screen, or folded away
 stickypane mv plan deploy/                     # into the tab deploy (rm, restore)
 ```
