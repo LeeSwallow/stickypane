@@ -15,6 +15,11 @@ on GitHub are built from pull request labels.
 
 ### Added
 
+- `stickypane help <command>` and `help <shape>` print one command (arguments,
+  examples, related) or a note's format; `help start` is the way in, shown
+  too where there is no board; `help` is a short overview by task and
+  `help --all` the whole page. Help speaks the screen's language, Korean
+  included (#17).
 - An `html` note: `.html` and `.htm` files in `.sticky/` are shown as text
   in the terminal, and cannot be changed from a screen.
 - `stickypane bridge`: serves the board as JSON lines on standard input and

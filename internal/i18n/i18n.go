@@ -90,6 +90,11 @@ type Strings struct {
 
 	// The help screen, one key per line, under 40 cells wide.
 	Help string `json:"help"`
+
+	// CLI holds the command line's help, keyed like "card.what". The
+	// English text lives next to each command in cmd/stickypane; a key
+	// missing here keeps it (see T).
+	CLI map[string]string `json:"cli"`
 }
 
 // English is the base every language starts from.
@@ -314,4 +319,13 @@ func (s Strings) L(phrase string) string {
 		return t
 	}
 	return phrase
+}
+
+// T returns the translation of the command line's help text under key, or
+// english when the language has none.
+func (s Strings) T(key, english string) string {
+	if t, ok := s.CLI[key]; ok && t != "" {
+		return t
+	}
+	return english
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -51,17 +52,13 @@ func kindsCmd(e env, args []string) error {
 		return usageError{cmd: "kinds"}
 	}
 	want := strings.ToLower(strings.TrimSpace(args[0]))
-	for _, k := range reg {
-		if k.Name == want {
-			printShape(stdout, k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(k))
-			return nil
+	if k, f, ok := findShape(want); ok {
+		if k != nil {
+			printShape(stdout, i18n.English(), k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(*k))
+		} else {
+			printShape(stdout, i18n.English(), f.name, f.blurb, f.command, f.usage, f.example, "")
 		}
-	}
-	for _, f := range folderShapes {
-		if f.name == want {
-			printShape(stdout, f.name, f.blurb, f.command, f.usage, f.example, "")
-			return nil
-		}
+		return nil
 	}
 	names := make([]string, 0, len(reg)+len(folderShapes))
 	for _, k := range reg {
@@ -82,14 +79,16 @@ func keysOf(k widget.Kind) string {
 	return strings.Join(parts, " · ")
 }
 
-func printShape(w io.Writer, name, blurb, command, usage, example, keys string) {
-	fmt.Fprintf(w, "%s: %s\n\nMake one:\n  %s\n\nThe file:\n", name, blurb, command)
+// printShape prints a shape in full; the same text answers `kinds <shape>`
+// and `help <shape>`, the headings in the language of s.
+func printShape(w io.Writer, s i18n.Strings, name, blurb, command, usage, example, keys string) {
+	fmt.Fprintf(w, "%s: %s\n\n%s:\n  %s\n\n%s:\n", name, blurb, s.T("shape.make", "Make one"), command, s.T("shape.file", "The file"))
 	for _, l := range strings.Split(strings.TrimRight(example, "\n"), "\n") {
 		fmt.Fprintln(w, "  "+l)
 	}
-	fmt.Fprintf(w, "\nHow it behaves:\n  %s\n", usage)
+	fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.behaves", "How it behaves"), usage)
 	if keys != "" {
-		fmt.Fprintf(w, "\nKeys on the board:\n  %s\n", keys)
+		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.keys", "Keys on the board"), keys)
 	}
 }
 

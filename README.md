@@ -63,6 +63,7 @@ in your repository, readable without stickypane.
 
 - [Install](#install): Homebrew, a release archive, `go install`, from source
 - [Quick start](#quick-start): the board next to your agent in four steps
+- [Usage](#usage): the way to start, and help for each command
 - [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
 - [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
 - [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
@@ -225,6 +226,89 @@ hook tells the agent what is on the board when a session starts in a
 project that has one. In a git repository the agent's first
 `stickypane show` or `stickypane todo` makes the board, so no setup step
 is needed.
+
+## Usage
+
+The help is in the program, in the language of the screen (`stickypane language ko`). New to the board? This is the way in; `stickypane help start` prints it, and `stickypane help` prints it first where there is no board yet.
+
+```text
+The way to start
+
+1. In your project, make the board and tell your agents about it:
+     stickypane init
+2. Put a note on it. A script or an agent writes the file; so can you:
+     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+   (stickypane kinds lists the shapes a note can take)
+3. Open the board in a pane beside your agent:
+     stickypane
+   (stickypane env says the command for your terminal)
+4. Connect an agent, once:
+     stickypane setup
+   (or stickypane setup --mcp, or the lines init put in CLAUDE.md / AGENTS.md)
+5. The desktop app shows the same board on your screen. It starts
+   stickypane bridge by itself; there is nothing to type.
+
+Next: stickypane help, then stickypane help <command>.
+```
+
+The overview, grouped by task. `stickypane help <command>` is one command with its arguments, examples and related commands; `stickypane help <shape>` is a note's file format and an example, as `stickypane kinds <shape>` prints it.
+
+```text
+stickypane - a note board for you and your coding agent
+
+Start
+  [path]    open the board of the project at path (default: here)
+  init      make .sticky/ and tell your agents about it
+  kinds     list the shapes a note can take
+  env       say what the board found about where it runs
+  version   print the version
+  help      this help: a command, a shape, or the way to start
+
+Notes
+  list      list the notes
+  index     every note in a line: title, counts, a gist
+  show      put a note, a file or a folder on the screen
+  hide      fold a note away
+  cat       print a note's file
+  write     create or replace a note from standard input
+  todo      add, tick or untick a checklist item
+  card      add or move a card of a board
+  chart     set or add to a number of a chart
+  log       append a line to a log note
+  say       add a message to a chat note
+  set       change keys of a note or its place on the board
+
+Arrange
+  mv        rename a note or move it into a tab or book
+  link      show a file or folder of the project without copying
+  rm        move a note, a page or a folder to .trash/
+  restore   bring back what rm removed last
+  archive   move a note out of sight into archive/
+
+Settings
+  theme     list the themes or choose one
+  language  list the screen's languages or choose one
+  config    list, read or change a setting
+
+Agents
+  setup     install the board plugin for Claude Code and Codex
+  guide     print the agent guide
+  answers   print what the user answered in a form
+  wait      wait for a form's button, then print the answers
+  mcp       serve the notes over MCP
+
+Scripts
+  api       (experimental) send the requests of a .http note
+  watch     print what happens on the board as it happens
+  bridge    serve the board to the desktop app
+
+stickypane help <command>   one command, with examples
+stickypane help <shape>     a note's file format and an example
+stickypane help start       the way to start
+stickypane help --all       every command with every option
+```
+
+`stickypane help --all` prints every command with every option on one page. A name that matches nothing suggests the closest one. The agent guide (`stickypane guide`) stays English.
 
 ## The folder is the board
 
