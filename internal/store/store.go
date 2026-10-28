@@ -429,16 +429,38 @@ func (s *Store) WriteNew(name string, content []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
+	// Written whole to a temporary file, then linked to its name: the link
+	// fails if the name is taken, and the name never shows half a note.
+	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	_, werr := tmp.Write(content)
+	if cerr := tmp.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		return werr
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	err = os.Link(tmp.Name(), path)
+	if err == nil || errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	// No hard links here (some file systems): create exclusively and write.
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return err
 	}
-	_, werr := f.Write(content)
+	_, werr = f.Write(content)
 	if cerr := f.Close(); werr == nil {
 		werr = cerr
 	}
 	if werr != nil {
-		os.Remove(path) // never leave half a note
+		os.Remove(path)
 	}
 	return werr
 }

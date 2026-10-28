@@ -70,6 +70,7 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	prog, args, err := env.Detect().Script(script)
 	if err == nil {
 		r.cmd = exec.Command(prog, args...)
+		inOwnGroup(r.cmd)
 		r.cmd.Dir, r.cmd.Stdout, r.cmd.Stderr = filepath.Dir(st.Dir), f, f
 		err = r.cmd.Start()
 	}
@@ -79,12 +80,13 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	return r, nil
 }
 
-// Kill stops the script's process, for a front end that is ending while the
+// Kill stops the script's process and, on unix, everything it started (it
+// runs in its own process group; on Windows only the process itself), for a front end that is ending while the
 // script still runs. It is harmless on a script that has ended or that
 // could not be run, and on a second call.
 func (r *Run) Kill() {
 	if r.cmd != nil && r.cmd.Process != nil {
-		_ = r.cmd.Process.Kill()
+		killAll(r.cmd.Process)
 	}
 }
 

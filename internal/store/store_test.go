@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -287,5 +288,55 @@ func TestWriteNewNeverWritesOverAFile(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, "a.md")); string(b) != "one\n" {
 		t.Errorf("file = %q", b)
+	}
+}
+
+func TestWriteNewIsAtomicAndExclusiveUnderRace(t *testing.T) {
+	dir := t.TempDir()
+	s := Open(dir)
+	big := strings.Repeat("line of a note\n", 20000)
+	var wg sync.WaitGroup
+	wins := make(chan int, 8)
+	stop := make(chan struct{})
+	go func() { // a watcher: whenever the name is there, it is whole
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if b, err := os.ReadFile(filepath.Join(dir, "n.md")); err == nil && !strings.HasSuffix(string(b), "\n") {
+				t.Error("read half a note")
+				return
+			}
+		}
+	}()
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := s.WriteNew("n.md", []byte(fmt.Sprintf("%d\n%s", i, big))); err == nil {
+				wins <- i
+			} else if !errors.Is(err, fs.ErrExist) {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+	close(stop)
+	close(wins)
+	var won []int
+	for w := range wins {
+		won = append(won, w)
+	}
+	if len(won) != 1 {
+		t.Fatalf("%d creates won, want 1", len(won))
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "n.md"))
+	if string(b) != fmt.Sprintf("%d\n%s", won[0], big) {
+		t.Error("the first note is not whole")
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("temporary files left: %v", entries)
 	}
 }

@@ -3,7 +3,6 @@ package bridge
 import (
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
 	"strings"
 
@@ -243,7 +242,7 @@ func (s *server) noteRestore(params json.RawMessage) (any, error) {
 	if err := checkName(name); err != nil {
 		return nil, err
 	}
-	if path.Ext(name) == "" { // a book was trashed as a folder
+	if !store.IsNote(name) { // a book was trashed as a folder, whatever dots its name has
 		st := s.api.Store()
 		from, ok := st.Trashed(name)
 		if !ok {

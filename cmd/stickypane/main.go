@@ -124,8 +124,9 @@ For scripts and agents that would rather not edit the files themselves:
                                  --exec runs CMD for each, with STICKY_* set
   stickypane mcp                 serve the notes over MCP on standard input/output
   stickypane bridge              serve the board to the desktop app: JSON lines on
-                                 standard input/output; ends, and stops the scripts
-                                 it started, when the app closes its input
+                                 standard input/output; ends, and kills the scripts it
+                                 started with their children (unix), when the app
+                                 closes its input
 `
 
 // waitEvery is how often wait looks at the form's file.
