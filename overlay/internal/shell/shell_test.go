@@ -500,7 +500,7 @@ func TestBoardChangedReachesTheWindow(t *testing.T) {
 
 func TestSecondLaunchOpensTheProject(t *testing.T) {
 	r := newRig(t)
-	r.s.Launch([]string{"/Applications/x/stickypane-overlay", "--project=rel/b"}, "/work")
+	r.s.Launch([]string{"/Applications/Stickypane.app/Contents/MacOS/stickypane-app", "--project=rel/b"}, "/work")
 	ws := r.p.projectWindows()
 	if len(ws) != 1 {
 		t.Fatalf("%d project windows, want 1", len(ws))
