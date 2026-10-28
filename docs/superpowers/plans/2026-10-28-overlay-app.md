@@ -124,14 +124,14 @@
 
 ### Task A9: Interactions
 
-**Files:** Create `src/board/{act.ts,drag.ts,Jot.svelte,ConfirmRun.svelte}`; Modify shape 컴포넌트
+**Files:** Create `src/board/{act.ts,drag.ts,Create.svelte,ConfirmRun.svelte}`; Modify shape 컴포넌트
 
 **Interfaces:**
 - `act(note, version, action)`: 즉시 로컬 Data를 바꿔 그리고 `ProjectService.Act`; `stale`이면 최신 Data로 되돌리고 토스트 "그사이 바뀌어서 다시 그렸어요". 행동 이름·인자는 core Task 3–6 그대로.
-- 카드 드래그(포인터 이벤트, 키보드 대안 `H`/`L`), "+ 끄적이기" = `Create({kind:"note"})` 후 새 노트가 떨어져 붙고 본문에 커서 — 저장은 입력이 멈춘 지 600ms 뒤 `write`가 아닌 **에디터 대신 노트 본문 전체를 바꾸는 Act는 없으므로** 끄적이기만 예외로 `note.create`의 `body`로 한 번에 만든다(입력 창을 닫을 때). 긴 편집은 `Open`.
+- 카드 드래그(포인터 이벤트, 키보드 대안 `H`/`L`), "+ 생성"(`A`) = 손그림 카탈로그(`kinds.list`: 모양 목록 + 설명 + 실제 렌더러로 그린 예시) → 제목 입력 → `Create({tab, kind, title})`. 빠른 끄적이기는 없다(R-36). 긴 편집은 `Open`.
 - 스크립트·api 실행은 확인 창(문구는 터미널의 `tr.ConfirmRun`과 같은 뜻) 뒤 `Run`.
-- [ ] Step 1: 실패 테스트 — `tick is optimistic`, `act rolls back on stale`, `drag across columns sends move with indices`, `jot creates a note on close`, `run asks first`.
-- [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: Commit `feat(overlay): tick, move, answer, run and jot from the overlay (#10)`
+- [ ] Step 1: 실패 테스트 — `tick is optimistic`, `act rolls back on stale`, `drag across columns sends move with indices`, `create picks a shape and a title, then the note drops in`, `run asks first`.
+- [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: Commit `feat(overlay): tick, move, answer, run and create from the overlay (#10)`
 
 ### Task A10: Motion
 

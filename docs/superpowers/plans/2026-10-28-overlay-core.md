@@ -222,6 +222,19 @@
 - [ ] **Step 5:** `cmd/stickypane`에 `bridge` 명령 + `registry.Live(root, "bridge")`, CLI 테스트 `TestBridgeCommandSaysHello`.
 - [ ] **Step 6: Commit** `feat: stickypane bridge opens the board to a desktop screen (#10)`
 
+### Task 13b: the bridge arranges and manages notes as the terminal does
+
+**Spec:** `docs/overlay/10-terminal-parity.md` §10.7 (the table is the requirement).
+
+**Files:** Modify `internal/bridge/*`, `internal/bridge/bridge_test.go`; move the api-request sender used by `internal/app/send.go` below the screens if the bridge cannot import it (same pattern as Task 9's runner); `docs/overlay/02-system-architecture.md` §2.4.3 with the final message list.
+
+**Interfaces:**
+- Produces: `note.arrange {note, open?, size?, rows?, pin?, color?, title?}` (replaces `note.view`, same storage rules as `stickypane set` via `arrange.Change`), `tab.order {tab, order[]}`, `note.move {note, to}`, `note.archive {note}`, `note.trash {note}`, `note.restore {note}`, `note.send {note, request}`, `kinds.list` (each kind's name, icon, label, blurb, example and its example's `data`), `board.index` (= `api.Index` with links), `board.load` additions (`linked`, `target`, `error`, `color`, `title` per note; `tab`, `time`, `editor`, `stale` in settings), `api.Derive` after every change, chat `say` fills an empty `who` with the terminal's user-name rule.
+
+- [ ] **Step 1: Failing tests** — one per message: `TestBridgeArrangeWritesLikeSet`, `TestBridgeOrderMatchesTheTerminalSwap`, `TestBridgeMoveIntoABook`, `TestBridgeTrashThenRestore`, `TestBridgeSendRunsTheRequest` (against `rpc/rpctest`-style local test server or the existing httpfile test server), `TestBridgeKindsListsEveryShapeWithItsExampleData`, `TestBridgeIndexHasBacklinks`, `TestBridgeDerivesChartsAfterAChange`, `TestBridgeSayUsesTheTerminalName`.
+- [ ] **Step 2–4:** FAIL → implement by calling the same functions the terminal and CLI call → PASS (full gate).
+- [ ] **Step 5: Commit** `feat(bridge): arrange, move, trash, restore, send, catalog and index (#10)`
+
 ### Task 14: words
 
 **Files:** `docs/architecture.md`(새 패키지 줄 확인), `README.md`·`README.ko.md`(명령 목록에 `bridge` 한 줄, `~/.stickypane`에 무엇을 기록하는지 짧은 절), `internal/initcmd/guide.md`(`.html` 노트 한 줄, 55줄 이하), `CHANGELOG.md`(Unreleased).

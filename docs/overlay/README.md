@@ -38,6 +38,7 @@ flowchart LR
 | 07 | [요구사항·결정 기록](07-requirements-log.md) | 사용자가 말한 요구를 시간순으로 정리하고 결정으로 연결 | Requirements Traceability Matrix |
 | 08 | [앱 홈 · 세션 레지스트리](08-app-home-and-sessions.md) | 홈 창, 활성 세션 목록, `~/.stickypane/` 레지스트리와 SQLite 색인, 지워진 것 처리, 플랫폼 | SQLite WAL, XDG |
 | 09 | [배포와 설치 화면](09-distribution.md) | macOS 손그림 DMG, Linux tar.gz, 서명 | — |
+| 10 | [터미널 기능 대응표](10-terminal-parity.md) | 터미널에서 되는 모든 일을 overlay에서 어떻게 하는지, 더할 bridge 메시지 | Feature parity matrix |
 | — | [ADR 목록](adr/README.md) | 되돌리기 어려운 결정 하나당 문서 하나 | Michael Nygard, *Documenting Architecture Decisions* |
 
 목업: 디자인·Motion 방향을 브라우저에서 재생해 볼 수 있는 목업이 `.superpowers/brainstorm/*/content/overlay-direction.html`에 있다(커밋 대상 아님).

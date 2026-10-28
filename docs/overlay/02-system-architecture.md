@@ -131,7 +131,7 @@ type Action struct {
 |---|---|---|
 | → | `board.load` | 탭·노트 목록, 각 노트의 kind·크기(`size`, `rows`)·색·고정·버전·`Data`. 책은 `pages`(같은 형식의 노트 목록, 파일 이름순) |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과로 새 버전 |
-| → | `note.create` `{tab, kind, title, body}` | "+ 끄적이기". `api.Write`와 같은 경로 |
+| → | `note.create` `{tab, kind, title, body}` | "+ 생성"(카탈로그에서 모양과 제목을 고른 뒤). `api.Write`와 같은 경로 |
 | → | `note.view` `{note, size?, rows?, open?, pin?}` | 노트의 보기 설정(`sticky.json`)을 `store.SetView`로 바꾼다. 터미널 배치도 같이 바뀐다 |
 | → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
 | → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `store.SetTheme` / `SetRoot` / 기존 language 저장 |
