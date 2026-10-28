@@ -2,10 +2,10 @@
 // in the shape of the bridge's palette: the fixture the dev pages and the
 // tests draw with (frontend/src/demo/themes.json). The app itself asks the
 // bridge's themes.list. This module cannot import the main one's
-// internal/theme, so it reads the Go source: the `all` table in
+// internal/core/theme, so it reads the Go source: the `all` table in
 // palettes.go and the string constants it uses.
 //
-//	go run ./scripts/palettes ../internal/theme > frontend/src/demo/themes.json
+//	go run ./scripts/palettes ../internal/core/theme > frontend/src/demo/themes.json
 package main
 
 import (
@@ -37,7 +37,7 @@ type palette struct {
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: palettes DIR (the main module's internal/theme)")
+		fmt.Fprintln(os.Stderr, "usage: palettes DIR (the main module's internal/core/theme)")
 		os.Exit(2)
 	}
 	out, err := read(os.Args[1])

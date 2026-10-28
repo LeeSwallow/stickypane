@@ -21,14 +21,14 @@ var terminal = []string{"charm.land/lipgloss", "charm.land/bubbletea"}
 // sending are what talks to the network or runs a program. A widget reads
 // a file and answers with intents; sending a request or running a script
 // belongs to a front end, so no widget imports them. A .http file is read
-// with internal/httpfile/syntax, never with internal/httpfile.
-var sending = map[string]bool{"net": true, "net/http": true, "os/exec": true, module + "internal/httpfile": true, module + "internal/runner": true}
+// with internal/core/httpfile/syntax, never with internal/adapter/httpfile.
+var sending = map[string]bool{"net": true, "net/http": true, "os/exec": true, module + "internal/adapter/httpfile": true, module + "internal/adapter/runner": true}
 
-// The shapes under internal/widget keep their reading apart from their
+// The shapes under internal/core/widget keep their reading apart from their
 // drawing, and none of them sends anything.
 func TestWidgetsDrawOnlyInViewAndSendNothing(t *testing.T) {
 	t.Parallel()
-	root, err := filepath.Abs("../../internal/widget")
+	root, err := filepath.Abs("../../internal/core/widget")
 	if err != nil {
 		t.Fatal(err)
 	}

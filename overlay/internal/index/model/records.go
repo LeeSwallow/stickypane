@@ -8,8 +8,8 @@ import (
 )
 
 // The records stickypane keeps in ~/.stickypane. Their form belongs to the
-// main module (internal/registry, which this module cannot import) and is
-// pinned there by golden files, internal/registry/testdata/home, which the
+// main module (internal/adapter/registry, which this module cannot import) and is
+// pinned there by golden files, internal/adapter/registry/testdata/home, which the
 // tests of this module read too: a change to the form fails here.
 
 // Event is one line of events/<date>.jsonl: registry.Event.

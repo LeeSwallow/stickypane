@@ -1,6 +1,6 @@
 // The logs other notes write to, as the terminal reads them: a script's
 // output and a .http note's responses go to a .log of the same name
-// (internal/runner LogOf, internal/httpfile LogName), which the board
+// (internal/adapter/runner LogOf, internal/adapter/httpfile LogName), which the board
 // loads like any note. These only read lines; nothing here writes one.
 
 /** logOf is the log a script or a .http note writes: the same name with ".log". */

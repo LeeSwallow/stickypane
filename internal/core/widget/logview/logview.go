@@ -1,0 +1,123 @@
+// Package logview is the log note: one entry per line, newest at the end.
+package logview
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/LeeSwallow/stickypane/internal/core/doc"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+)
+
+// rows is how tall a log is on the board unless the note says otherwise.
+const rows = 10
+
+// Kind registers the log. Its fixed-height view shows the end, so the
+// newest entries stay in sight as the file grows.
+var Kind = widget.Kind{
+	Name:     "log",
+	Exts:     []string{".log", ".txt", ".out"},
+	Label:    "Log",
+	Icon:     "≣",
+	Blurb:    "One entry per line. The newest entries stay in sight.",
+	Command:  "stickypane log worklog --time \"tests passed\"",
+	Usage:    "A note with \"type: log\" or any .log, .txt or .out file. It follows its end as the file grows, until the user scrolls up.",
+	Example:  "14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
+	Tail:     true,
+	Rows:     rows,
+	Size:     func(doc.Document) string { return widget.SizeHalf },
+	Template: func(title string) []byte { return widget.NewFile("log", title, "") },
+	Options: []widget.Option{
+		{Name: "entries", Type: widget.OptLines, Label: "First entries"},
+	},
+	Compose: func(title string, opts map[string]string) ([]byte, error) {
+		body := strings.Join(widget.Lines(opts["entries"]), "\n")
+		if body != "" {
+			body += "\n"
+		}
+		return widget.NewFile("log", title, body), nil
+	},
+	Parse:  func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
+	Events: events,
+	Data:   data,
+}
+
+// Log is the widget for a log note.
+type Log struct {
+	lines []string
+	env   widget.Env
+}
+
+func parse(d doc.Document, e widget.Env) *Log {
+	l := &Log{env: e}
+	for _, line := range doc.Lines(d.Body) {
+		l.lines = append(l.lines, strings.TrimRight(widget.Clean(line), " "))
+	}
+	for n := len(l.lines); n > 0 && l.lines[n-1] == ""; n = len(l.lines) {
+		l.lines = l.lines[:n-1]
+	}
+	return l
+}
+
+// Draw implements widget.Widget. A log has no cursor.
+func (l *Log) Draw(width int, _ bool) (string, widget.Span) {
+	if len(l.lines) == 0 {
+		return l.env.Styles.Faint.Render(l.env.T("(no entries yet)")), widget.NoSpan
+	}
+	var out []string
+	// A log shows the file as it is: no styling, only wrapping so that
+	// nothing is cut.
+	for _, line := range l.lines {
+		out = append(out, widget.Wrap(line, width)...)
+	}
+	return strings.Join(out, "\n"), widget.NoSpan
+}
+
+// Summary implements widget.Widget: how many entries the log has.
+func (l *Log) Summary() string {
+	n := 0
+	for _, line := range l.lines {
+		if line != "" {
+			n++
+		}
+	}
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return l.env.T("1 line")
+	}
+	return fmt.Sprintf(l.env.T("%d lines"), n)
+}
+
+// Update implements widget.Widget. A log takes no keys.
+func (l *Log) Update(string) (widget.Widget, widget.Result) { return l, widget.Result{} }
+
+// Sync implements widget.Widget.
+func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d, l.env) }
+
+// Append adds one entry at the end of the log. An entry is one line: line
+// breaks inside Line become spaces.
+type Append struct{ Line string }
+
+// Apply implements doc.Op.
+func (o Append) Apply(d doc.Document) (doc.Document, error) {
+	d.Body = doc.AppendLine(d.Body, doc.OneLine(o.Line))
+	return d, nil
+}
+
+// maxLines is how many of a log's last lines Data carries; the rest of a
+// long log stays in its file.
+const maxLines = 1000
+
+// data is the lines of the log as the board shows them, the last maxLines.
+func data(d doc.Document, _ widget.Env) any {
+	lines := parse(d, widget.Env{}).lines
+
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return struct {
+		Lines []string `json:"lines"`
+	}{append([]string{}, lines...)}
+}

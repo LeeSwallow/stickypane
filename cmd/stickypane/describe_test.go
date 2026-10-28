@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/widget"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 )
 
 // watch writes an event as the second it happened, the note and the type.

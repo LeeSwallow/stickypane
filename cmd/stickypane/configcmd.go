@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/prefs"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
 )
 
 // configCmd lists the settings, prints one, or sets one: the settings

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 )
 
 // The lines the commands that change the board print. api answers with

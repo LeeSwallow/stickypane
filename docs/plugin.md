@@ -13,7 +13,7 @@ board, see the [README](../README.md); this page is for changing the plugin.
 | `skills/using-the-board/references/kinds.md` | one short entry per shape of note, read only when a shape is needed |
 | `rules/` | each rule an agent keeps to, once: the commands and what the board writes itself (`touching-the-board.md`), how to write and word a note (`writing-notes.md`) |
 | `commands/<name>.md` | the slash commands `/board:<name>`: a line that names the skill to follow |
-| `harness.go`, `internal/harness` | the same skills carried in the program, for MCP prompts and `stickypane guide` |
+| `harness.go`, `internal/usecase/harness` | the same skills carried in the program, for MCP prompts and `stickypane guide` |
 | `hooks/` | hook registrations for each agent; both run the scripts below |
 | `scripts/` | shell that the hooks and commands run |
 
@@ -24,11 +24,11 @@ can act after reading its first screen; then the rules that are its own.
 
 Each rule is written once, in `rules/`; skills, commands and these docs
 point to it. The guide `stickypane init` writes into `AGENTS.md` is
-`internal/initcmd/guide.md` followed by the two rule files, so an agent
+`internal/usecase/initcmd/guide.md` followed by the two rule files, so an agent
 without the plugin reads the same words; together they stay at most 55
 lines. Over MCP, a skill comes with the rules it points to, but not its
 references: a shape in full is `stickypane help <shape>` or the guide with
-the shape as its topic. `go test ./internal/initcmd/` checks that the skills
+the shape as its topic. `go test ./internal/usecase/initcmd/` checks that the skills
 stay short, name only files that exist and run only real commands.
 
 The slash commands are `/board:status` (what is on the board, or the notes
@@ -53,4 +53,4 @@ installed.
 1. Make `skills/<name>/SKILL.md` with `name` and a `description` that
    starts with "Use when". Put the commands first and the rules after, in
    under 80 lines.
-2. Run `scripts/selfcheck.sh` and `go test ./internal/initcmd/`.
+2. Run `scripts/selfcheck.sh` and `go test ./internal/usecase/initcmd/`.

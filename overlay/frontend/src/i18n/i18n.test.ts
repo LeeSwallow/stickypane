@@ -3,7 +3,7 @@ import { get } from 'svelte/store'
 import ko from './ko.json'
 import en from './en.json'
 // the terminal's words: a create option's label is translated the same in both
-import core from '../../../../internal/i18n/translations/ko.json'
+import core from '../../../../internal/core/i18n/translations/ko.json'
 import {
   t, setLanguage, language, translate, dayLabel, relativeTime, resolveAuto,
   chooseLanguage, applyChoice, boardLanguage,

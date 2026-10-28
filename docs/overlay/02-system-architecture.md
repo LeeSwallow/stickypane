@@ -68,12 +68,12 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  bridge["internal/bridge (layer 50)<br/>요청 처리 · watch 구독"]
-  api["internal/api (40)<br/>Index · Write · Apply(신규)"]
-  kinds["internal/kinds (30)<br/>Registry"]
-  w["internal/widget/&lt;shape&gt; (22)<br/>Data · Act (신규)"]
-  store["internal/store (10)<br/>Load · Apply · Watch · SetRoot"]
-  theme["internal/theme (0)<br/>팔레트"]
+  bridge["internal/surface/bridge (layer 50)<br/>요청 처리 · watch 구독"]
+  api["internal/usecase/api (40)<br/>Index · Write · Apply(신규)"]
+  kinds["internal/core/kinds (30)<br/>Registry"]
+  w["internal/core/widget/&lt;shape&gt; (22)<br/>Data · Act (신규)"]
+  store["internal/adapter/store (10)<br/>Load · Apply · Watch · SetRoot"]
+  theme["internal/core/theme (0)<br/>팔레트"]
   bridge --> api --> kinds --> w --> store
   bridge --> store
   bridge --> theme
@@ -206,18 +206,18 @@ flowchart TD
   v -- "both" --> both["overlay 창을 열고 TUI도 띄운다"]
 ```
 
-overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/env`가 안다.
+overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/adapter/env`가 안다.
 
 ## 2.6 레이어와 모듈
 
 | 변경 | 위치 | 레이어 |
 |---|---|---|
-| `Kind.Data`, `Kind.Act`, `widget.Action` | `internal/widget` | 20 (기존) |
-| 각 shape의 `Data`·`Act` | `internal/widget/<shape>/` | 22 (기존). 파일 규칙상 `model.go`(Data)와 `ops.go`(Act)에 둔다 |
-| `html` shape | `internal/widget/html/` (신규) | 22. `kind.go` … `events.go` 6파일 규칙을 따르고 `internal/kinds`에 한 줄 |
-| `api.Apply(name, version, action)` | `internal/api` | 40 |
-| `internal/bridge` | 신규 | 50, `internal/app`·`internal/mcp`와 나란히 |
-| `internal/registry` | 신규 | 5. `internal/when`만 쓰는 잎 패키지에 가깝다. 명령 표(60)와 front end(50)가 부른다 |
+| `Kind.Data`, `Kind.Act`, `widget.Action` | `internal/core/widget` | 20 (기존) |
+| 각 shape의 `Data`·`Act` | `internal/core/widget/<shape>/` | 22 (기존). 파일 규칙상 `model.go`(Data)와 `ops.go`(Act)에 둔다 |
+| `html` shape | `internal/core/widget/html/` (신규) | 22. `kind.go` … `events.go` 6파일 규칙을 따르고 `internal/core/kinds`에 한 줄 |
+| `api.Apply(name, version, action)` | `internal/usecase/api` | 40 |
+| `internal/surface/bridge` | 신규 | 50, `internal/surface/app`·`internal/surface/mcp`와 나란히 |
+| `internal/adapter/registry` | 신규 | 5. `internal/core/when`만 쓰는 잎 패키지에 가깝다. 명령 표(60)와 front end(50)가 부른다 |
 | `bridge` 명령 | `cmd/stickypane` 명령 표에 한 줄 | 60 |
 | overlay 앱 | `overlay/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다. 앱 안의 층은 §2.6.1 |
 
@@ -237,8 +237,8 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 
 주의할 점 두 가지(구현자 확인 필요):
 
-- 스크립트 실행은 `internal/runner`(12)로 내려가 있다(Task 9). 요청 보내기는 처음부터 `internal/httpfile`(5)에 있어 옮길 필요가 없었다.
-- `Kind.Tend`(완료 시각 기록)는 지금 `api`가 부른다. `api.Apply`도 같은 경로를 타야 한다. 시각은 `internal/when`으로만 쓴다(AGENTS.md).
+- 스크립트 실행은 `internal/adapter/runner`(12)로 내려가 있다(Task 9). 요청 보내기는 처음부터 `internal/adapter/httpfile`(5)에 있어 옮길 필요가 없었다.
+- `Kind.Tend`(완료 시각 기록)는 지금 `api`가 부른다. `api.Apply`도 같은 경로를 타야 한다. 시각은 `internal/core/when`으로만 쓴다(AGENTS.md).
 
 ## 2.7 HTML 노트 격리
 
@@ -271,6 +271,6 @@ flowchart LR
 |---|---|
 | 네트워크 | overlay는 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
 | 상태 | 창 위치·크기·핀은 앱 자체 설정(OS 표준 위치). 노트와 화면 배치는 `sticky.json`뿐 |
-| 언어 | 화면 문구는 `internal/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
+| 언어 | 화면 문구는 `internal/core/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
 | 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.10](03-design-system.md#310-접근성)) |
 | 라이선스 | 본체 `scripts/licenses.sh`는 그대로. overlay 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |

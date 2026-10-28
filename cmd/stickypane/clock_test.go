@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // The command line reads one clock: log --time, a new note's created and a

@@ -17,8 +17,8 @@ ships it; `scripts/licenses.sh` writes that file and fails when a module's
 license is missing or not MIT, BSD or Apache-2.0, and CI runs it on every
 pull request.
 
-Markdown and the one-line editor are stickypane's own (`internal/markdown`,
-`internal/lineedit`).
+Markdown and the one-line editor are stickypane's own (`internal/core/markdown`,
+`internal/surface/lineedit`).
 
 ## The desktop app
 

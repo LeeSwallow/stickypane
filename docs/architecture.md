@@ -6,38 +6,63 @@ are in [VISION.md](../VISION.md).
 
 ## Layers
 
-A package only imports packages of a lower layer. `internal/layers` checks
-this on every test run: an import the wrong way, or a new package without a
-layer, fails the build. It also fails on a time layout outside
-`internal/when` (a string such as `"15:04"`, or `time.RFC3339`): a time is
-written through a named form in `when`, and a clock is handed in as a
-`now func() time.Time`, never read from `time.Now` where a stamp is made.
+Every package under `internal/` sits in the folder of its layer, and
+imports only from its own folder or a lower one:
 
-| Layer | Packages | Is |
+| Folder | Holds | Imports from |
+| --- | --- | --- |
+| `internal/core` | the board's own ideas: a note's file, the shapes and how they draw, words, times, themes. Nothing here reads the environment, a file or the network | `core` |
+| `internal/adapter` | the world: the notes folder on disk, the lock and the atomic write, the system and its locale, running a script, sending a request, `~/.stickypane` | `core`, `adapter` |
+| `internal/usecase` | what every front end does, over the core and the adapters: the API, settings, arranging a note, setting a project up, the plugin's skills | `core`, `adapter`, `usecase` |
+| `internal/surface` | the front ends: the terminal UI and its editors, the bridge the desktop app talks to, the MCP server | all four |
+
+`internal/layers` (the tests that check all this) stays at the top of
+`internal/`, and `cmd/stickypane` over all of them. A use case imports an
+adapter, not the other way round: `api` writes through `store`, and
+nothing below it knows there is an API.
+
+Within and across the folders each package has a rank, and a package only
+imports packages of a lower rank. `internal/layers` checks both on every
+test run: an import the wrong way, a package outside the four folders, or
+a new package without a rank, fails the build. It also fails on a time
+layout outside `internal/core/when` (a string such as `"15:04"`, or
+`time.RFC3339`): a time is written through a named form in `when`, and a
+clock is handed in as a `now func() time.Time`, never read from `time.Now`
+where a stamp is made.
+
+| Rank | Packages | Is |
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
-| 50 | `internal/app`, `internal/mcp`, `internal/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
-| 40 | `internal/api`, `internal/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
-| 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
-| 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
-| 12 | `internal/runner` | running a script and keeping its log, for every front end |
-| 10 | `internal/store` | the notes folder: files, sticky.json, watching |
-| 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
-| 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
-| 5 | `internal/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it: written, read and pruned only here |
-| 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
-| 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
+| | **surface** | |
+| 50 | `surface/app`, `surface/mcp`, `surface/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
+| 0 | `surface/editor`, `surface/lineedit` | the terminal's text editor and the one-line editor of its bottom line |
+| | **usecase** | |
+| 40 | `usecase/api`, `usecase/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
+| 30 | `usecase/arrange` | how a note is arranged: the user's choice, the front matter, the kind |
+| 15 | `usecase/prefs` | what a user may change, each with a default |
+| 5 | `usecase/harness` | the plugin's skills, read for MCP and `stickypane guide` |
+| | **adapter** | |
+| 12 | `adapter/runner` | running a script and keeping its log, for every front end |
+| 10 | `adapter/store` | the notes folder: files, sticky.json, watching |
+| 5 | `adapter/httpfile` | sending `.http` requests and keeping their log |
+| 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it: written, read and pruned only here |
+| 3 | `adapter/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
+| 0 | `adapter/wsock`, `adapter/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
+| 0 | `adapter/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
+| 0 | `adapter/filelock` | the advisory lock on a notes folder that writers hold from a read to its write: flock(2) on the folder on Unix, LockFileEx on Windows |
+| 0 | `adapter/env` | the system, the shell, the pane tool and the locale |
+| | **core** | |
+| 30 | `core/kinds` | the registry of shapes |
+| 20-22 | `core/widget`, `core/widget/<shape>` | the widget contract, then one package per shape |
+| 0 | `core/i18n` | the screen's words, in the language a locale asks for; the caller reads the locale with `env` |
+| 0 | `core/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
+| 0 | `core/doc`, `core/theme`, `core/when`, `core/markdown`, `core/layout` | leaves that know nothing of the board; `when` is how every time is written and read |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
-| 0 | `internal/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
-| 0 | `internal/filelock` | the advisory lock on a notes folder that writers hold from a read to its write: flock(2) on the folder on Unix, LockFileEx on Windows |
-| 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
-| 0 | `internal/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
 
-The packages stay side by side under `internal/` rather than in folders by
-role. The layers do not split by role: widgets draw with the theme, the
-arrangement asks a widget's kind for its default size, and the API applies
-the widgets' writers. Folders by role would point the wrong way; the
-table above, kept true by a test, is the hierarchy.
+The paths in the table are under `internal/`. The ranks do not follow the
+folders: a widget (core, 20) ranks above the store (adapter, 10), though
+neither imports the other. The folder says what kind of code a package
+is; the rank orders it among the rest.
 
 `internal/` is a Go rule, not a web habit: nothing outside this module can
 import these packages, so none of them is a public API and all of them can
@@ -45,7 +70,7 @@ change while the design does.
 
 ## Where it runs
 
-`internal/env` is the one place that knows the difference between macOS,
+`internal/adapter/env` is the one place that knows the difference between macOS,
 Linux and Windows, between shells, and between the tools that can open a
 pane next to the agent. It detects, from the environment alone:
 
@@ -68,10 +93,10 @@ The board keeps few dependencies, and writes the parts it uses little of:
 
 | Ours | Instead of | Why |
 | --- | --- | --- |
-| `internal/markdown` | glamour, goldmark, chroma, bluemonday | notes use a small part of Markdown; the renderer and its HTML, emoji and syntax-highlighting libraries were most of the binary |
-| `internal/lineedit` | bubbles' textinput | one line of text on the bottom line |
-| `internal/wsock`, `internal/proto`, `internal/rpc` | gorilla/websocket, google.golang.org/protobuf, grpc-go | the API note sends a script of messages and one call at a time; the libraries would be most of the binary again |
-| `internal/when`, `internal/env` | | how times and the environment are read is the board's own decision |
+| `internal/core/markdown` | glamour, goldmark, chroma, bluemonday | notes use a small part of Markdown; the renderer and its HTML, emoji and syntax-highlighting libraries were most of the binary |
+| `internal/surface/lineedit` | bubbles' textinput | one line of text on the bottom line |
+| `internal/adapter/wsock`, `internal/adapter/proto`, `internal/adapter/rpc` | gorilla/websocket, google.golang.org/protobuf, grpc-go | the API note sends a script of messages and one call at a time; the libraries would be most of the binary again |
+| `internal/core/when`, `internal/adapter/env` | | how times and the environment are read is the board's own decision |
 
 Kept: bubbletea, lipgloss and x/ansi (the terminal itself), fsnotify
 (following the folder on every system) and mermaid-ascii (laying out
@@ -91,16 +116,16 @@ disk now and written in one step. The screen, the command line and MCP all
 write this way, so an agent and the user editing the same note do not
 overwrite each other. Settings are written the same way, through one read,
 change and replace step. Each such step holds the board's lock
-(`internal/filelock`), so two processes do not read the same version and
+(`internal/adapter/filelock`), so two processes do not read the same version and
 lose one of their changes, and replaces the file through
-`internal/atomicfile`, so no reader sees half of it. Nothing else writes
+`internal/adapter/atomicfile`, so no reader sees half of it. Nothing else writes
 a note: a whole note goes through `store.Rewrite`, a new one through
 `store.WriteNew`, a linked one through `store.Link`, and a move that
 carries its arrangement through `store.MoveArranged`, which moves the
 note back if the arrangement cannot be written.
 
-**One place for each rule.** `internal/api` is the use-case layer: the
-terminal (`internal/app`), the bridge and the command line change the
+**One place for each rule.** `internal/usecase/api` is the use-case layer: the
+terminal (`internal/surface/app`), the bridge and the command line change the
 board through it, never through the store. A note is made by
 `api.CreateFrom` (named and stamped on the API's clock), tended by
 `api.TendAll`, changed by a key's op through `api.Do`, saved from the
@@ -111,7 +136,7 @@ and a `.http` request is sent by `api.SendPart`. Settings are changed by
 setting takes. api answers with values, never sentences: `api.Edited`
 (a todo, card, chart, log or say), `api.Keyed` (set), `api.Shown` (show,
 hide), `api.Linked`, `api.Moved`, `api.Sent`; the front end says them in
-its own words (`said.go` in `cmd/stickypane` and in `internal/mcp`, each
+its own words (`said.go` in `cmd/stickypane` and in `internal/surface/mcp`, each
 pinned line by line by its tests). A note's colour is
 `arrange.ColorIndex`, and the language a choice comes to `i18n.Resolve`.
 What a front end still takes from the store only reads it, or arranges
@@ -128,21 +153,21 @@ was ticked or a card moved), and say when they next change as time passes
 
 **Arranging.** Whether a note is open, its size, height, pin, color and
 title come from three places, in order: the user's choice in `sticky.json`,
-the note's front matter, the note's kind. `internal/arrange` is the only
+the note's front matter, the note's kind. `internal/usecase/arrange` is the only
 code that decides; the screen and `stickypane list` and `set` ask it.
 
-**The registry.** `~/.stickypane` has one writer, `internal/registry`:
+**The registry.** `~/.stickypane` has one writer, `internal/adapter/registry`:
 `registry.Event` is a line of `events/<date>.jsonl`, `registry.Run` the
 file `run/<pid>.json`, and a `registry.Writer` writes them on its own
-clock, through `internal/when`. `registry.Read` reads them back for the
+clock, through `internal/core/when`. `registry.Read` reads them back for the
 desktop app, and `registry.Prune`, run when the board or the bridge
-opens, is the only code that deletes them. `internal/registry/testdata/home`
+opens, is the only code that deletes them. `internal/adapter/registry/testdata/home`
 is a home written with a fixed clock; a test keeps the writer to it, and
 the app's tests read it rather than copy the format.
 
 ## A shape of note
 
-Each shape is one package under `internal/widget/`. A shape with both a
+Each shape is one package under `internal/core/widget/`. A shape with both a
 reader and a writer is laid out the same way:
 
 | File | Holds |
@@ -156,8 +181,8 @@ reader and a writer is laid out the same way:
 
 Small shapes (`note`, `logview`, `script`) stay in one file. `html` is view-only, so its `ops.go` and `events.go` hold only a comment.
 Only `view.go` imports lipgloss or bubbletea, and no widget imports the
-network, `os/exec` or `internal/httpfile` (the API note reads its file with
-`internal/httpfile/syntax`); `internal/layers` checks both.
+network, `os/exec` or `internal/adapter/httpfile` (the API note reads its file with
+`internal/core/httpfile/syntax`); `internal/layers` checks both.
 
 **The Env.** A widget keeps no package variables. What it reads that is not
 in its file comes in a `widget.Env`, handed to `Kind.Parse`, `Kind.Data` and
@@ -171,7 +196,7 @@ clock and run in parallel.
 
 To add a shape:
 
-1. Make `internal/widget/<shape>/` with the files above. The widget
+1. Make `internal/core/widget/<shape>/` with the files above. The widget
    implements `widget.Widget`; `widget.Clicker` if it takes the mouse.
 2. Fill in its `Kind`, including `Command` and `Usage`: `stickypane kinds`
    prints them and the agent reads them there.
@@ -181,16 +206,16 @@ To add a shape:
    `Kind.Make` checks the answers and fills in the defaults; the bridge's
    `kinds.list` and `note.create` and `stickypane write --opt` use it, so
    no screen writes a shape's format itself. An option's label is a key
-   of the "labels" in `internal/i18n/translations`; its `Example` in
+   of the "labels" in `internal/core/i18n/translations`; its `Example` in
    another language is under that file's "examples", by the shape's name.
-4. Add one line to `internal/kinds.Default`.
+4. Add one line to `internal/core/kinds.Default`.
 5. If the command line should change one thing in it, add a function to
-   `internal/api/edit.go` that applies one of its ops and answers an
+   `internal/usecase/api/edit.go` that applies one of its ops and answers an
    `api.Edited`, and a command to the table in `cmd/stickypane/commands.go`.
 6. Describe it in `skills/using-the-board/references/kinds.md`, and in a
    line of `rules/writing-notes.md` if agents write it by hand.
 
-`TestEveryKindKeepsTheContract` in `internal/kinds` runs against every
+`TestEveryKindKeepsTheContract` in `internal/core/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
 an empty file. A new shape that passes it works on the board.
 `TestEveryKindComposesFromItsOptions` holds its options to the same:
@@ -210,10 +235,10 @@ each pointing only at the one below:
 | rules | `rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
 
 The program embeds `skills/`, `rules/` and `commands/` (`harness.go` at the
-module root), and `internal/harness` hands the skills to the MCP server, as
+module root), and `internal/usecase/harness` hands the skills to the MCP server, as
 prompts and as topics of the `guide` tool, and to `stickypane guide`;
-`internal/initcmd` builds the agent guide from `rules/`. The
-tests in `internal/initcmd` keep the layers pointing at each other: every
+`internal/usecase/initcmd` builds the agent guide from `rules/`. The
+tests in `internal/usecase/initcmd` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 
 ## The command line
@@ -225,7 +250,7 @@ library only:
 | --- | --- |
 | `main.go` | `main`, signal handling, opening the board |
 | `commands.go` | the table of commands, each with its help, and `env` (context and streams) |
-| `help.go` | `help`: the overview, one command or shape, the way to start; words from `internal/i18n` |
+| `help.go` | `help`: the overview, one command or shape, the way to start; words from `internal/core/i18n` |
 | `errors.go` | `exitCode`: the one place errors become exit codes 0, 1, 2, 3, 130 |
 | `flags.go` | `parse`: flags anywhere among the words |
 | `said.go` | the line each command that changes the board prints, from what api answered |
@@ -237,6 +262,6 @@ Tests call `run` with buffers; nothing reads globals.
 
 ## Measuring
 
-`go test ./internal/store ./internal/app -run XXX -bench .` measures a
+`go test ./internal/adapter/store ./internal/surface/app -run XXX -bench .` measures a
 reload and a redraw of a busy board. Run it before and after a change that
 touches either.

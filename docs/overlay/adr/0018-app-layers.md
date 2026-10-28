@@ -22,7 +22,7 @@
 
 `overlay/internal/layers`의 테스트가 두 가지를 확인한다. 하나는 층이 아래로만 import하는지이고, 다른 하나는 도메인·포트·유스케이스가 `os`·`io`·`net`·`database/`·GORM·드라이버·Wails를 import하지 않는지다. 새 패키지는 그 표에 층을 받아야 들어온다.
 
-레지스트리는 앱 모듈이 본체의 `internal/registry`를 import할 수 없으므로 `registryfs`와 `model`의 구조체로 읽는다. 대신 본체가 쓰고 고정하는 골든 파일(`internal/registry/testdata/home`)을 앱의 테스트가 상대 경로로 그대로 읽는다. 형식이 바뀌면 본체 테스트가 골든을 다시 쓰게 하고, 앱 테스트가 깨진다.
+레지스트리는 앱 모듈이 본체의 `internal/adapter/registry`를 import할 수 없으므로 `registryfs`와 `model`의 구조체로 읽는다. 대신 본체가 쓰고 고정하는 골든 파일(`internal/adapter/registry/testdata/home`)을 앱의 테스트가 상대 경로로 그대로 읽는다. 형식이 바뀌면 본체 테스트가 골든을 다시 쓰게 하고, 앱 테스트가 깨진다.
 
 ## 결과
 

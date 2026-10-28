@@ -57,4 +57,4 @@ flowchart LR
 | [`VISION.md`](../../VISION.md) | 그대로 유효. overlay가 각 원칙을 어떻게 지키는지는 [01 §1.3](01-product-overview.md#13-원칙과의-관계) |
 | [`ROADMAP.md`](../../ROADMAP.md) | 목표 문장의 "with no desktop"이 바뀐다. 터미널은 기본 화면으로 남는다 ([ADR-0010](adr/0010-terminal-stays-primary.md)) |
 | [`docs/architecture.md`](../architecture.md) | 레이어 표에 `Kind.Data`가 추가된다. overlay 앱은 별도 모듈이라 이 표에 들어가지 않는다 ([02 §2.6](02-system-architecture.md#26-레이어와-모듈)) |
-| `internal/initcmd/guide.md` | 에이전트 가이드는 바뀌지 않는다. HTML 노트 한 줄만 추가된다 |
+| `internal/usecase/initcmd/guide.md` | 에이전트 가이드는 바뀌지 않는다. HTML 노트 한 줄만 추가된다 |

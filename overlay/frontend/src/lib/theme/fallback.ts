@@ -1,6 +1,6 @@
 // The palettes the home window draws with. It has no bridge (a bridge is a
 // project's), so it has no palette from one; these two mirror stickypane-dark
-// and stickypane-light in internal/theme/palettes.go.
+// and stickypane-light in internal/core/theme/palettes.go.
 import type { Palette } from './palette'
 
 export const STICKYPANE_DARK: Palette = {

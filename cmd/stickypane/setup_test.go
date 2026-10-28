@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 	"path/filepath"
 
 	"errors"
-	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"os"
 	"slices"
 	"strings"

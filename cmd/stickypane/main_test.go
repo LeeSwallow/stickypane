@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 func exec(t *testing.T, args ...string) (code int, stdout, stderr string) {

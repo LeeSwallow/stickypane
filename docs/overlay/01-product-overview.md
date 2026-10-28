@@ -12,13 +12,13 @@ stickypane은 터미널 pane 하나에 board를 그린다. 이 방식은 ssh에�
 
 | 터미널에서 잃는 것 | 예 |
 |---|---|
-| Markdown의 일부만 그린다 | 표·각주·수식·이미지, 코드 하이라이트 (`internal/markdown`은 일부만 구현) |
+| Markdown의 일부만 그린다 | 표·각주·수식·이미지, 코드 하이라이트 (`internal/core/markdown`은 일부만 구현) |
 | 다이어그램이 ASCII다 | Mermaid를 `mermaid-ascii`로 그린다 |
 | 여러 에이전트의 움직임이 안 보인다 | 카드가 옮겨져도 다시 그려질 뿐, 어디서 어디로 갔는지 보이지 않는다 |
 | 좁은 pane에서 board가 답답하다 | 담당자·경과 시간·정체 표시가 한 줄에 겹친다 |
 | HTML을 보여 줄 수 없다 | 에이전트가 만든 리포트나 차트 HTML |
 
-한편 코드는 이미 화면과 분리되어 있다. 각 shape의 `model.go`, `ops.go`, `format.go`, `events.go`, `kind.go`는 lipgloss·bubbletea를 import하지 않고, 터미널에 묶인 것은 `view.go`뿐이다. 쓰기는 모두 `doc.Op` → `store.Apply`를 거치고, CLI·MCP는 `internal/api`로 화면 없이 노트를 바꾼다. 따라서 **화면을 하나 더 다는 데 필요한 것은 구조를 내보내는 계약 하나와 새 렌더러**다.
+한편 코드는 이미 화면과 분리되어 있다. 각 shape의 `model.go`, `ops.go`, `format.go`, `events.go`, `kind.go`는 lipgloss·bubbletea를 import하지 않고, 터미널에 묶인 것은 `view.go`뿐이다. 쓰기는 모두 `doc.Op` → `store.Apply`를 거치고, CLI·MCP는 `internal/usecase/api`로 화면 없이 노트를 바꾼다. 따라서 **화면을 하나 더 다는 데 필요한 것은 구조를 내보내는 계약 하나와 새 렌더러**다.
 
 ## 1.3 원칙과의 관계
 

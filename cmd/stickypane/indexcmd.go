@@ -4,7 +4,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 )
 
 // indexCmd prints every note of the board in a line, grouped by tab: what

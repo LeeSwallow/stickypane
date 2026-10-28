@@ -5,12 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
-	"github.com/LeeSwallow/stickypane/internal/widget"
-	"github.com/LeeSwallow/stickypane/internal/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 // folderShape is a shape that is a folder rather than a kind of file.

@@ -11,14 +11,14 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/bridge"
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
-	"github.com/LeeSwallow/stickypane/internal/mcp"
-	"github.com/LeeSwallow/stickypane/internal/registry"
-	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/surface/bridge"
+	"github.com/LeeSwallow/stickypane/internal/surface/mcp"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 // open returns the API for the notes folder of the project here. With

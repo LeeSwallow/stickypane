@@ -21,19 +21,21 @@ when the behaviour is meant to change, and say so.
 
 ## Rules
 
-- **Layers.** A package imports only packages of a lower layer;
-  `internal/layers` fails otherwise. A new package gets a rank there and a
-  line in docs/architecture.md.
-- **A shape of note** is one package under `internal/widget/` with
+- **Layers.** A package sits in the folder of its layer, `internal/core`,
+  `internal/adapter`, `internal/usecase` or `internal/surface`, and
+  imports only packages of a lower rank in its own folder or a lower one;
+  `internal/layers` fails otherwise. A new package gets a
+  folder, a rank there and a line in docs/architecture.md.
+- **A shape of note** is one package under `internal/core/widget/` with
   `kind.go`, `format.go`, `model.go`, `ops.go`, `view.go`, `events.go`, and
-  one line in `internal/kinds`. Every change to a note is a `doc.Op`
+  one line in `internal/core/kinds`. Every change to a note is a `doc.Op`
   applied by `store.Apply`; never write a note's file directly.
-- **Times** are written by the board through `internal/when`, never by an
+- **Times** are written by the board through `internal/core/when`, never by an
   agent or by hand in a note.
 - **Standard library first.** A new module needs a reason, and a license
   that `sh scripts/licenses.sh` accepts.
 - **Words.** The README, the skills and the agent guide
-  (`internal/initcmd/guide.md` with `rules/`, at most 55 lines) change
+  (`internal/usecase/initcmd/guide.md` with `rules/`, at most 55 lines) change
   with the behaviour. Each rule is written once, in `rules/`. The skills
   are tested: short, opening with a command, naming only real commands and
   files.

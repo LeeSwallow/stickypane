@@ -357,5 +357,5 @@ recipe (see [usage](usage.md#notes-that-react)).
 
 ## Adding a shape
 
-A shape is one package under `internal/widget/`; see
+A shape is one package under `internal/core/widget/`; see
 [architecture](architecture.md#a-shape-of-note).

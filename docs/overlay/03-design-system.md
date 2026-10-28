@@ -2,7 +2,7 @@
 
 > 상태: Draft · 2026-10-28 · 관련 요구: R-16, R-17, R-18, R-19, R-20, R-21
 >
-> 참고: Excalidraw(손그림 선, 손글씨 글꼴), rough.js(빗금 채우기), 기존 stickypane 터미널 board와 `internal/theme`, Apple HIG(창·접근성), 목업 `overlay-doodle-v3-themes.html`.
+> 참고: Excalidraw(손그림 선, 손글씨 글꼴), rough.js(빗금 채우기), 기존 stickypane 터미널 board와 `internal/core/theme`, Apple HIG(창·접근성), 목업 `overlay-doodle-v3-themes.html`.
 
 ## 3.1 디자인 원칙
 
@@ -70,7 +70,7 @@ flowchart LR
 
 ## 3.4.1 색 토큰
 
-`internal/theme`의 역할을 CSS 변수로 옮긴다. 값은 bridge가 `settings.get`으로 내려 준다. 화면은 자기 색을 갖지 않는다.
+`internal/core/theme`의 역할을 CSS 변수로 옮긴다. 값은 bridge가 `settings.get`으로 내려 준다. 화면은 자기 색을 갖지 않는다.
 
 | 토큰 | 출처 | 쓰임 |
 |---|---|---|

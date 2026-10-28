@@ -9,9 +9,9 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	environment "github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/when"
+	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/core/when"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 )
 
 // errEnough ends a watch that has what it waited for.

@@ -6,10 +6,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/prefs"
-	"github.com/LeeSwallow/stickypane/internal/theme"
+	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/theme"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
 )
 
 // choice is a setting of the root sticky.json the user picks from a list:
@@ -88,7 +89,7 @@ func languageCmd(e env, args []string) error {
 	return choice{
 		cmd: "language",
 		list: func(w io.Writer, mark func(string) string) {
-			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect())
+			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect(environment.Detect().Locale))
 			for _, code := range i18n.Languages() {
 				fmt.Fprintf(w, "%s%s\n", mark(code), code)
 			}

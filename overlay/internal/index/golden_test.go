@@ -9,10 +9,10 @@ import (
 )
 
 // golden is the home stickypane's own tests write and pin
-// (internal/registry/testdata/home in the main module): one board,
+// (internal/adapter/registry/testdata/home in the main module): one board,
 // /work/demo, set up and opened in the terminal (pid 4242, running) and
 // served by a bridge (pid 4343) that has ended.
-const golden = "../../../internal/registry/testdata/home"
+const golden = "../../../internal/adapter/registry/testdata/home"
 
 // copyHome copies the golden home into a temporary folder, for the index
 // makes its database in the home it opens.

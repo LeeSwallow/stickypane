@@ -12,11 +12,11 @@ Go의 `internal/` 패키지는 다른 모듈에서 import할 수 없다. overlay
 
 ## 결정
 
-본체에 새 front end `internal/bridge`(layer 50)와 `stickypane bridge` 명령을 둔다. overlay 앱이 이를 자식 프로세스로 띄우고 newline-delimited JSON으로 요청(`board.load`, `note.act`, `note.create`, `note.open`, `settings.*`)과 알림(`board.changed`)을 주고받는다. 프로토콜에는 버전이 있다.
+본체에 새 front end `internal/surface/bridge`(layer 50)와 `stickypane bridge` 명령을 둔다. overlay 앱이 이를 자식 프로세스로 띄우고 newline-delimited JSON으로 요청(`board.load`, `note.act`, `note.create`, `note.open`, `settings.*`)과 알림(`board.changed`)을 주고받는다. 프로토콜에는 버전이 있다.
 
 ## 결과
 
 - 네트워크 listener가 없다.
 - 본체가 진실의 원천으로 남고, 앱 셸을 바꿔도 본체는 바뀌지 않는다.
 - 앱은 `stickypane` 바이너리가 PATH에 있어야 한다. 프로토콜 버전이 맞지 않으면 업데이트를 안내한다.
-- 스크립트 실행을 `internal/app`에서 낮은 레이어로 옮기는 리팩터가 필요하다.
+- 스크립트 실행을 `internal/surface/app`에서 낮은 레이어로 옮기는 리팩터가 필요하다.
