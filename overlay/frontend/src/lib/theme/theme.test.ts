@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { THEMES } from './fixtures'
+import { THEMES } from '../../demo/fixtures'
 import { agentColor, cardColors, contrast, deriveTokens, mix, noteColors, seedOf } from './tokens'
 import { resolveDark, resolveThemeName } from './mode'
 import { normalizePalette } from './palette'
@@ -92,6 +92,19 @@ describe('agentColor matches the Go hash for 10 names', () => {
   test.each(golden)('%s -> note %i', (name, i) => {
     expect(agentColor(name, p.notes)).toBe(p.notes[i])
   })
+})
+
+test('agentColor: a chosen colour name wins before the hash', () => {
+  const p = by('stickypane-dark')
+  expect(agentColor('claude', p.notes, 'Orange')).toBe(p.notes[5])
+  expect(agentColor('claude', p.notes, 'nonsense')).toBe(p.notes[3])
+})
+
+test('--card-ink carries the darkened ink and Sheet text uses it', () => {
+  const p = by('tokyonight-day')
+  const t = deriveTokens(p, false)
+  expect(t['--card-ink']).not.toBe(p.text)
+  for (let i = 0; i < 6; i++) expect(cardColors(p, i, false).ink).toBe(t['--card-ink'])
 })
 
 test('seedOf is stable and positive', () => {

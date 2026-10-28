@@ -1,7 +1,7 @@
 <script lang="ts">
   // A crayon-filled card (a memo sheet): wash, hatching, outline, and a tilt of up to 2 degrees.
   import type { Snippet } from 'svelte'
-  import { cardColorsFor, seedOf } from '../theme/tokens'
+  import { seedOf } from '../theme/tokens'
   import Crayon from './Crayon.svelte'
   import { look } from './look.svelte'
 
@@ -9,10 +9,9 @@
   const seed = $derived(seedOf(id))
   const tilt = $derived(look.style === 'neat' ? 0 : ((seed % 9) - 4) * 0.45)
   const neat = $derived(look.style === 'neat')
-  const ink = $derived(look.palette ? cardColorsFor(color, look.palette, look.dark).ink : 'var(--card-ink)')
 </script>
 
-<div class="sheet" class:neat style:transform="rotate({tilt}deg)" style:color={ink}>
+<div class="sheet" class:neat style:transform="rotate({tilt}deg)" style:color="var(--card-ink)">
   <Crayon {color} {seed} />
   <div class="body">{@render children?.()}</div>
 </div>

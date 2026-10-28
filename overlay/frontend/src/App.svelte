@@ -1,12 +1,15 @@
 <script lang="ts">
   import { appName } from './lib/app'
-  // TEMPORARY: the look demo, at ?demo=look. Removed when the real screens exist.
-  import LookDemo from './demo/LookDemo.svelte'
-  const demo = new URLSearchParams(location.search).get('demo')
+  // TEMPORARY: the look demo, at ?demo=look, in dev builds only. The dynamic
+  // import behind import.meta.env.DEV is dropped from production builds.
+  const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
+  const LookDemo = demo === 'look' ? import('./demo/LookDemo.svelte') : null
 </script>
 
-{#if demo === 'look'}
-  <LookDemo />
+{#if LookDemo}
+  {#await LookDemo then m}
+    <m.default />
+  {/await}
 {:else}
   <main>
     <h1>{appName}</h1>

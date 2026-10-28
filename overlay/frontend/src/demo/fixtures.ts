@@ -1,6 +1,6 @@
 // Mirror of internal/theme/palettes.go, for tests and the demo page only.
 // At run time the palette comes from the bridge.
-import type { Palette } from './palette'
+import type { Palette } from '../lib/theme/palette'
 
 export const THEMES: Palette[] = [
   {

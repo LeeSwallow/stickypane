@@ -24,8 +24,15 @@ export function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-/** seedOf makes a stable positive seed for rough.js from an id. */
-export const seedOf = (s: string): number => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 9973, 7) + 1
+/** seedOf makes a stable positive seed for rough.js from an id (FNV-1a, 32 bits). */
+export function seedOf(s: string): number {
+  let h = 0x811c9dc5
+  for (const b of new TextEncoder().encode(s)) {
+    h ^= b
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return (h % 0x7fffffff) + 1
+}
 
 /** noteIndexOf is FNV-1a 32 of the name's UTF-8 bytes, mod 6: the Go note colour hash. */
 export function noteIndexOf(name: string): number {
@@ -39,10 +46,14 @@ export function noteIndexOf(name: string): number {
 
 /**
  * agentColor is the colour of an agent name: the note colour its name
- * hashes to, the same function as the terminal's and the bridge's.
+ * hashes to, the same function as the bridge's note `color(name, chosen)`.
+ * A `chosen` colour name (yellow, pink, ..., case-insensitive) wins before
+ * hashing. @owners in the overlay use this note-colour hash; the terminal's
+ * NameStyle is a different 4-style hash and is not what this ports.
  */
-export function agentColor(name: string, notes: string[]): string {
-  return notes[noteIndexOf(name) % notes.length]
+export function agentColor(name: string, notes: string[], chosen = ''): string {
+  const i = NOTE_NAMES.indexOf(chosen.toLowerCase() as (typeof NOTE_NAMES)[number])
+  return notes[i >= 0 ? i : noteIndexOf(name) % notes.length]
 }
 
 export const noteColors = (p: Palette): string[] => p.notes.slice(0, 6)
@@ -77,16 +88,30 @@ function darkenTo(ink: string, grounds: string[], ratio: number): string {
   return out
 }
 
+const washOf = (color: string, dark: boolean) => mix(color, '#ffffff', dark ? 0.35 : 0.78)
+const hatchOf = (color: string, dark: boolean) => (dark ? color : mix(color, '#ffffff', 0.25))
+
+/**
+ * cardInk is the text colour on every card of a palette (the --card-ink
+ * token): dark themes use Base darkened 40%, light themes use Text; either is
+ * darkened toward black just enough to reach 4.5:1 on the wash and on the
+ * 50% wash/hatch mix of all six note colours.
+ */
+export function cardInk(p: Palette, dark: boolean): string {
+  const grounds = p.notes.slice(0, 6).flatMap((c) => {
+    const wash = washOf(c, dark)
+    return [wash, hatched(wash, hatchOf(c, dark))]
+  })
+  return darkenTo(dark ? mix(p.base, '#000000', 0.4) : p.text, grounds, MIN_CONTRAST)
+}
+
 /** cardColorsFor derives a card's colours from a note colour (§3.4.1). */
 export function cardColorsFor(color: string, p: Palette, dark: boolean): CardColors {
-  const wash = mix(color, '#ffffff', dark ? 0.35 : 0.78)
-  const hatch = dark ? color : mix(color, '#ffffff', 0.25)
-  const ink = dark ? mix(p.base, '#000000', 0.4) : p.text
   return {
-    wash,
-    hatch,
+    wash: washOf(color, dark),
+    hatch: hatchOf(color, dark),
     outline: dark ? mix(p.base, '#000000', 0.55) : p.text,
-    ink: darkenTo(ink, [wash, hatched(wash, hatch)], MIN_CONTRAST),
+    ink: cardInk(p, dark),
   }
 }
 
@@ -113,7 +138,7 @@ export function deriveTokens(p: Palette, dark: boolean): Record<string, string> 
     '--grid-major': mix(p.base, p.text, dark ? 0.13 : 0.17),
     '--dot': mix(p.base, p.text, dark ? 0.12 : 0.16),
     '--tape': dark ? 'rgba(255,255,255,.13)' : 'rgba(0,0,0,.08)',
-    '--card-ink': dark ? mix(p.base, '#000000', 0.4) : p.text,
+    '--card-ink': cardInk(p, dark),
     '--outline': dark ? mix(p.base, '#000000', 0.55) : p.text,
   }
   NOTE_NAMES.forEach((n, i) => (t['--' + n] = p.notes[i]))

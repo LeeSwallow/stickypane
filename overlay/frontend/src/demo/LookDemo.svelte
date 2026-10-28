@@ -16,7 +16,7 @@
   import Sheet from '../lib/doodle/Sheet.svelte'
   import Tape from '../lib/doodle/Tape.svelte'
   import Underline from '../lib/doodle/Underline.svelte'
-  import { THEMES } from '../lib/theme/fixtures'
+  import { THEMES } from './fixtures'
   import { resolveThemeName, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { agentColor, applyTheme } from '../lib/theme/tokens'
 
