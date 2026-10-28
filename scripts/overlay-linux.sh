@@ -7,8 +7,9 @@
 # folder of the same name: stickypane-app (the app, from `wails3 build` on
 # Linux), stickypane (the command line program, built here from this
 # checkout with the same version, which the app finds next to itself),
-# stickypane.desktop, stickypane.png, LICENSE, THIRD_PARTY_NOTICES.md and
-# licenses/ (every bundled package's license text).
+# stickypane.desktop, stickypane.png, install.sh (which installs it all under
+# ~/.local), LICENSE, THIRD_PARTY_NOTICES.md and licenses/ (every bundled
+# package's license text).
 # The app needs WebKitGTK 4.1. It leaves no files of its own behind.
 set -eu
 
@@ -29,7 +30,7 @@ mkdir -p "$dir"
 cp "$bin" "$dir/stickypane-app"
 (cd "$root" && CGO_ENABLED=0 GOOS=linux GOARCH=$goarch go build -trimpath -buildvcs=false \
 	-ldflags "-s -w -X main.version=$version" -o "$dir/stickypane" ./cmd/stickypane)
-cp "$root/overlay/build/linux/stickypane.desktop" "$dir/"
+cp "$root/overlay/build/linux/stickypane.desktop" "$root/overlay/build/linux/install.sh" "$dir/"
 cp "$root/overlay/build/appicon.png" "$dir/stickypane.png"
 cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$dir/"
 sh "$root/overlay/scripts/licenses.sh" --write "$dir/licenses/stickypane-app.txt" >/dev/null ||
