@@ -2,7 +2,7 @@
   // The board window's title bar (03 §3.6, §3.11.6): the design system's
   // TitleBar — traffic lights on macOS, the project's name on one line with
   // its path only in a tooltip, the hotkey — with the board's actions: grid
-  // or canvas (the canvas comes with A7b), search (later), "+ 만들기" (A9),
+  // or canvas (the canvas comes with A7b), search (later), "+ 생성",
   // the window's pin, and ⋯ with "편집기로 열기" before the window's own
   // "창 닫기" and "stickypane 종료".
   import { tr } from '../i18n'
@@ -52,7 +52,7 @@
     <SegmentedControl label={$tr('ui.view')} bind:value={view} iconOnly size="sm" options={views} />
     <IconButton icon="search" label={$tr('ui.searchSoon')} disabled />
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>
-      {$tr('create.make')}
+      {$tr('create.new')}
     </Button>
     <IconButton
       icon="pin"

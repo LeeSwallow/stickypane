@@ -15,6 +15,7 @@
   import { windowActions } from '../services/window'
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
+  import CreateDialog from '../create/CreateDialog.svelte'
   import { act, arrange } from './actions'
   import { events, type Status } from '../services/board'
   import { projectService, type ProjectApi } from '../services/project'
@@ -23,6 +24,7 @@
   import { glance, stalledCount } from './glance'
   import Grid from './Grid.svelte'
   import { connect } from './session'
+  import { errorText } from '../services/errors'
   import { frameOf, keyAction } from './keys'
   import { columnsFor, shift, stepSize } from './layout'
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
@@ -35,8 +37,9 @@
     type Seen, type View,
   } from './view'
 
-  // zoom: a note to open zoomed on the first load (the dev screens page)
-  let { api = projectService, zoom: startZoom }: { api?: ProjectApi; zoom?: string } = $props()
+  // zoom: a note to open zoomed on the first load; create: the create
+  // dialog open on a shape (both for the dev screens page)
+  let { api = projectService, zoom: startZoom, create: startCreate }: { api?: ProjectApi; zoom?: string; create?: string } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -53,6 +56,10 @@
   let failed = $state('')
   // the note a focused frame holds: what ⋯ "편집기로 열기" opens when none is zoomed
   let focused = $state<string | null>(null)
+  // "+ 생성": the dialog, open from the title bar or with a
+  let creating = $state(false)
+  // a short word at the bottom (made, archived, deleted with 되돌리기)
+  let notice = $state<{ message: string; action?: { label: string; run: () => void } } | null>(null)
 
   const chrome = chromeOf(location.search)
   const win = windowActions('project')
@@ -124,6 +131,22 @@
     return loading
   }
 
+  const tabLabel = (x: Tab) => x.title || x.name.replace(/^\d+[-_. ]*/, '') || t('board.tabRoot')
+
+  /** created opens the new note, shows its tab and puts the focus on it. */
+  async function created(name: string) {
+    await api.arrange({ note: name, open: true }).catch((e) => (failed = errorText(e)))
+    await refresh()
+    const at = locate(name)
+    if (at) view = selectTab(view, at.tab)
+    notice = { message: t('create.created', { name: findNote(board?.tabs ?? [], name)?.title || name }) }
+    requestAnimationFrame(() => {
+      const f = document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(name)}"]`)
+      f?.scrollIntoView({ block: 'nearest' })
+      f?.focus()
+    })
+  }
+
   const update = (patch: (b: Board) => Board) => {
     if (board) board = patch(board)
   }
@@ -188,6 +211,8 @@
     if (!board || !tab) return
     const t = e.target as HTMLElement
     const editing = t.matches?.('input, textarea, select, [contenteditable]') ?? false
+    // a dialog's keys are its own
+    if (t.closest?.('[role="dialog"], [role="alertdialog"]')) return
     // Enter and Space on a button or a link are that control's own
     if ((e.key === 'Enter' || e.key === ' ') && t.closest?.('button, a')) return
     // the note keys act on: the zoomed one, or the frame holding the focus
@@ -195,7 +220,7 @@
     const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
     const book = !!note?.pages?.length
-    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
+    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
     if (!a) return
     switch (a.type) {
       case 'back':
@@ -241,6 +266,11 @@
         if (!note || note.pages) return
         ctx.edit?.(note.name)
         break
+      case 'create':
+        creating = true
+        break
+      default:
+        return
     }
     e.preventDefault()
   }
@@ -254,6 +284,7 @@
   }
 
   onMount(() => {
+    if (startCreate) creating = true
     const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d))]
     api
       .prefs()
@@ -300,6 +331,7 @@
     canEdit={!!editTarget}
     onpin={pin}
     onedit={() => editTarget && ctx.edit?.(editTarget)}
+    oncreate={status?.state === 'ready' && board ? () => (creating = true) : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -344,6 +376,22 @@
     <div class="toasts">
       <Toast message={failed} tone="bad" icon="warn" onclose={() => (failed = '')} />
     </div>
+  {:else if notice}
+    <div class="toasts">
+      {#key notice}
+        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+      {/key}
+    </div>
+  {/if}
+  {#if board}
+    <CreateDialog
+      bind:open={creating}
+      {api}
+      tabs={board.tabs.map((x) => ({ name: x.name, label: tabLabel(x) }))}
+      tab={tab?.name ?? ''}
+      start={startCreate}
+      oncreated={created}
+    />
   {/if}
 </div>
 

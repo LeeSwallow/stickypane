@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { get } from 'svelte/store'
 import ko from './ko.json'
 import en from './en.json'
+// the terminal's words: a create option's label is translated the same in both
+import core from '../../../../internal/i18n/translations/ko.json'
 import {
   t, setLanguage, language, translate, dayLabel, relativeTime, resolveAuto,
   chooseLanguage, applyChoice,
@@ -21,6 +23,15 @@ describe('catalogs', () => {
     expect(ko['note.trash']).toBe('삭제')
     expect(ko['home.undo']).toBe('되돌리기')
     expect(ko['note.restore']).toBe('되돌리기')
+  })
+  it('a create option label reads as the terminal reads it', () => {
+    const labels = (core as { labels: Record<string, string> }).labels
+    const keys = Object.keys(ko).filter((k) => k.startsWith('label.'))
+    expect(keys.length).toBeGreaterThan(10)
+    for (const k of keys) {
+      expect(labels[k.slice(6)], k).toBe(ko[k as keyof typeof ko])
+      expect(en[k as keyof typeof en]).toBe(k.slice(6))
+    }
   })
   it('no value is empty', () => {
     for (const v of [...Object.values(ko), ...Object.values(en)]) expect(v.length).toBeGreaterThan(0)
