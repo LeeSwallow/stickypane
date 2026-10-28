@@ -8,7 +8,7 @@
 
 **Tech Stack:** Go 1.27, 표준 라이브러리만. 새 모듈 없음.
 
-**Spec:** `docs/overlay/` (특히 02 §2.4–2.7, 08 §8.4, ADR-0002·0004·0005·0006·0008·0013). 이슈 #10.
+**Spec:** `docs/desktop/` (특히 02 §2.4–2.7, 08 §8.4, ADR-0002·0004·0005·0006·0008·0013). 이슈 #10.
 
 ## Global Constraints
 
@@ -191,7 +191,7 @@
 **Files:** Modify `internal/store/view.go`, Test `internal/store/view_test.go`
 
 **Interfaces:**
-- Produces: `func (s *Store) ViewMode() string`(`"terminal"` 기본), `SetViewMode(string) error`(허용: terminal/overlay/both, 기본값이면 키 삭제), `func (s *Store) Style() string`(`"doodle"` 기본), `SetStyle(string) error`(doodle/neat). 기존 `SetView`(노트별 보기)와 이름이 겹치지 않게 `ViewMode`.
+- Produces: `func (s *Store) ViewMode() string`(`"terminal"` 기본), `SetViewMode(string) error`(허용: terminal/desktop/both, 기본값이면 키 삭제), `func (s *Store) Style() string`(`"doodle"` 기본), `SetStyle(string) error`(doodle/neat). 기존 `SetView`(노트별 보기)와 이름이 겹치지 않게 `ViewMode`.
 
 - [ ] **Step 1:** `TestViewModeDefaultsToTerminalAndLeavesNoTrace`, `TestSetViewModeRejectsUnknownValues`, 같은 두 개를 Style에.
 - [ ] **Step 2–4:** FAIL → `SetRoot` 위에 구현 → PASS
@@ -224,9 +224,9 @@
 
 ### Task 13b: the bridge arranges and manages notes as the terminal does
 
-**Spec:** `docs/overlay/10-terminal-parity.md` §10.7 (the table is the requirement).
+**Spec:** `docs/desktop/10-terminal-parity.md` §10.7 (the table is the requirement).
 
-**Files:** Modify `internal/bridge/*`, `internal/bridge/bridge_test.go`; move the api-request sender used by `internal/app/send.go` below the screens if the bridge cannot import it (same pattern as Task 9's runner); `docs/overlay/02-system-architecture.md` §2.4.3 with the final message list.
+**Files:** Modify `internal/bridge/*`, `internal/bridge/bridge_test.go`; move the api-request sender used by `internal/app/send.go` below the screens if the bridge cannot import it (same pattern as Task 9's runner); `docs/desktop/02-system-architecture.md` §2.4.3 with the final message list.
 
 **Interfaces:**
 - Produces: `note.arrange {note, open?, size?, rows?, pin?, color?, title?}` (replaces `note.view`, same storage rules as `stickypane set` via `arrange.Change`), `tab.order {tab, order[]}`, `note.move {note, to}`, `note.archive {note}`, `note.trash {note}`, `note.restore {note}`, `note.send {note, request}`, `kinds.list` (each kind's name, icon, label, blurb, example and its example's `data`), `board.index` (= `api.Index` with links), `board.load` additions (`linked`, `target`, `error`, `color`, `title` per note; `tab`, `time`, `editor`, `stale` in settings), `api.Derive` after every change, chat `say` fills an empty `who` with the terminal's user-name rule.

@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/overlay/assets/icon.png" width="128" alt="stickypane"></p>
+<p align="center"><img src="docs/desktop/assets/icon.png" width="128" alt="stickypane"></p>
 
 <h1 align="center">stickypane</h1>
 
@@ -134,7 +134,7 @@ Next: stickypane help, then stickypane help <command>.
 
 ## The desktop app
 
-![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/overlay/assets/app-board.png)
+![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/desktop/assets/app-board.png)
 
 The same board in a window of its own, for those who want one beside the
 terminal. It draws every note in full (tables, Mermaid, maths, `.html`
@@ -152,7 +152,7 @@ connects Claude Code and Codex. `stickypane init --view app` makes a plain
 yet. The DMG and the Linux archive come with its first release
 ([#10](https://github.com/LeeSwallow/stickypane/issues/10)); until then
 there is nothing to download. Design and build notes:
-[docs/overlay](docs/overlay/README.md).
+[docs/desktop](docs/desktop/README.md).
 
 ## How it works
 

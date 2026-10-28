@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/overlay/assets/icon.png" width="128" alt="stickypane"></p>
+<p align="center"><img src="docs/desktop/assets/icon.png" width="128" alt="stickypane"></p>
 
 <h1 align="center">stickypane</h1>
 
@@ -138,7 +138,7 @@ stickypane init
 
 ## 데스크톱 앱
 
-![데스크톱 앱: 위쪽 줄에 에이전트와 맡은 카드, 체크리스트, 멈춘 카드에 동그라미가 쳐진 칸반, 모눈종이 위의 노트들](docs/overlay/assets/app-board.png)
+![데스크톱 앱: 위쪽 줄에 에이전트와 맡은 카드, 체크리스트, 멈춘 카드에 동그라미가 쳐진 칸반, 모눈종이 위의 노트들](docs/desktop/assets/app-board.png)
 
 같은 보드를 따로 창에 띄웁니다. 터미널 옆에 창 하나를 더 두고 싶은 분을 위한
 것입니다. 표, Mermaid, 수식, 샌드박스 안의 `.html` 페이지까지 노트를 빠짐없이
@@ -154,7 +154,7 @@ stickypane init
 **상태:** macOS와 Linux용으로 만들고 시험했지만 아직 내놓지 않았습니다. DMG와
 Linux 압축 파일은 첫 앱 릴리스와 함께 나옵니다([#10](https://github.com/LeeSwallow/stickypane/issues/10)).
 그 전에는 내려받을 것이 없습니다. 설계와 빌드 문서는
-[docs/overlay](docs/overlay/README.md)에 있습니다.
+[docs/desktop](docs/desktop/README.md)에 있습니다.
 
 ## 동작 방식
 

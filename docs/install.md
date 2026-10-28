@@ -33,7 +33,7 @@ tar -xzf stickypane-app-<version>-linux-amd64.tar.gz
 sh stickypane-app-<version>-linux-amd64/install.sh   # --uninstall takes it out
 ```
 
-The app's own design and build notes are in [docs/overlay](overlay/README.md).
+The app's own design and build notes are in [docs/desktop](desktop/README.md).
 
 ## A release archive
 
