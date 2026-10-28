@@ -36,6 +36,54 @@ func TestPluginManifestsParse(t *testing.T) {
 	}
 }
 
+// The plugin's manifests name the release they ship with: the newest
+// version the changelog lists.
+func TestPluginManifestsNameTheRelease(t *testing.T) {
+	log, err := os.ReadFile(filepath.Join(repoRoot, "CHANGELOG.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^## \[(\d+\.\d+\.\d+)\]`).FindSubmatch(log)
+	if m == nil {
+		t.Fatal("the changelog lists no release")
+	}
+	release := string(m[1])
+	versions := func(f string) []string {
+		b, err := os.ReadFile(filepath.Join(repoRoot, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var v struct {
+			Version string `json:"version"`
+			Plugins []struct {
+				Version string `json:"version"`
+			} `json:"plugins"`
+		}
+		if err := json.Unmarshal(b, &v); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		out := []string{}
+		if v.Version != "" {
+			out = append(out, v.Version)
+		}
+		for _, p := range v.Plugins {
+			out = append(out, p.Version)
+		}
+		return out
+	}
+	for _, f := range []string{".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json", ".agents/plugins/marketplace.json"} {
+		got := versions(f)
+		if len(got) == 0 {
+			t.Errorf("%s names no version", f)
+		}
+		for _, v := range got {
+			if v != release {
+				t.Errorf("%s says %s; the release is %s", f, v, release)
+			}
+		}
+	}
+}
+
 // skillNames are the plugin's skills.
 var skillNames = []string{"using-the-board", "asking-the-user", "tracking-progress", "talking-in-chat", "connecting-notes"}
 

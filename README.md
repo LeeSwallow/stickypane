@@ -136,7 +136,7 @@ go build -o stickypane ./cmd/stickypane
 ### Check that it works
 
 ```sh
-stickypane version     # stickypane 0.1.0
+stickypane version     # stickypane 0.1.1
 stickypane env         # the system, shell, pane tool, locale and editor it found
 ```
 
