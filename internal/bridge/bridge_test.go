@@ -573,6 +573,17 @@ func TestOpenPrefersAGUIEditorAndFallsBackToTheSystem(t *testing.T) {
 
 	t.Setenv("VISUAL", "/usr/local/bin/code --new-window")
 	s.ok("note.open", map[string]any{"note": "plan.md"}, nil)
+	mu.Lock()
+	if len(ran) != 1 || strings.Join(ran[0], " ") != "/usr/local/bin/code --new-window "+file {
+		t.Errorf("GUI editor: %q", ran)
+	}
+	mu.Unlock()
+
+	// The overlay is for macOS and Linux (docs/overlay/adr/0014): Windows
+	// has no system fallback.
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		t.Skip("no system way to open a file on " + runtime.GOOS + "; the overlay is for macOS and Linux")
+	}
 	t.Setenv("VISUAL", "nvim") // a terminal editor: the bridge has no terminal
 	s.ok("note.open", map[string]any{"note": "plan.md"}, nil)
 
@@ -581,9 +592,6 @@ func TestOpenPrefersAGUIEditorAndFallsBackToTheSystem(t *testing.T) {
 	if len(ran) != 2 {
 		t.Fatalf("ran %v", ran)
 	}
-	if strings.Join(ran[0], " ") != "/usr/local/bin/code --new-window "+file {
-		t.Errorf("GUI editor: %q", ran[0])
-	}
 	var want string
 	switch runtime.GOOS {
 	case "darwin":
@@ -591,7 +599,7 @@ func TestOpenPrefersAGUIEditorAndFallsBackToTheSystem(t *testing.T) {
 	case "linux":
 		want = "xdg-open " + file
 	}
-	if want != "" && strings.Join(ran[1], " ") != want {
+	if strings.Join(ran[1], " ") != want {
 		t.Errorf("fallback: %q, want %q", ran[1], want)
 	}
 }
