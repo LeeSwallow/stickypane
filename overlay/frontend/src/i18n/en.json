@@ -62,5 +62,11 @@
   "settings.language.failed": "Could not change the language",
   "settings.language.auto": "System",
   "settings.theme": "Theme",
-  "settings.style": "Style"
+  "settings.style": "Style",
+  "home.updateHint": "stickypane is too old to open boards. Update it with:",
+  "home.updateCommand": "brew upgrade --cask LeeSwallow/tap/stickypane",
+  "home.dismiss": "Dismiss",
+  "notice.hotkey_failed": "Could not register the hotkey · {detail}",
+  "notice.state_unreadable": "Could not read the saved window places · {detail}",
+  "notice.index": "Could not read the list of boards · {detail}"
 }

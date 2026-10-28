@@ -62,5 +62,11 @@
   "settings.language.failed": "언어를 바꾸지 못했어요",
   "settings.language.auto": "시스템",
   "settings.theme": "테마",
-  "settings.style": "스타일"
+  "settings.style": "스타일",
+  "home.updateHint": "stickypane이 오래되어 보드를 열 수 없어요. 이렇게 올려요:",
+  "home.updateCommand": "brew upgrade --cask LeeSwallow/tap/stickypane",
+  "home.dismiss": "닫기",
+  "notice.hotkey_failed": "단축키를 등록하지 못했어요 · {detail}",
+  "notice.state_unreadable": "저장된 창 위치를 읽지 못했어요 · {detail}",
+  "notice.index": "보드 목록을 읽지 못했어요 · {detail}"
 }
