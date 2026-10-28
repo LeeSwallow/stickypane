@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
@@ -186,13 +187,15 @@ func SaveSaved(path, file string, vars map[string]string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o600)
+	// Tokens may be among the values: the file is the user's alone.
+	return atomicfile.WriteFile(path, append(data, '\n'), 0o600)
 }
 
-// Notes is the part of the notes folder SendNote needs.
+// Notes is the part of the notes folder SendNote needs: reading a note,
+// and rewriting one in one step from what it is now (store.Store.Rewrite).
 type Notes interface {
 	Read(name string) ([]byte, error)
-	Write(name string, content []byte) error
+	Rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error
 }
 
 // SavedFile is where the values captured from responses are kept, inside
@@ -238,8 +241,11 @@ func SendNote(ctx context.Context, notes Notes, dir, name string, part int, env 
 	for i, r := range f.Requests {
 		order[i] = r.Title()
 	}
-	old, _ := notes.Read(LogName(name))
-	return res, notes.Write(LogName(name), []byte(PutSection(string(old), res.Request.Title(), Log(res), order)))
+	// The log keeps a part per request: this one's is replaced in the
+	// log as it is when written, so another request's part is kept.
+	return res, notes.Rewrite(LogName(name), func(old []byte, _ bool) ([]byte, error) {
+		return []byte(PutSection(string(old), res.Request.Title(), Log(res), order)), nil
+	})
 }
 
 // sectionHead starts a request's part of a .http file's log.
