@@ -68,15 +68,15 @@ func parse(d doc.Document, e widget.Env) *Script {
 func (s *Script) Draw(width int, active bool) (string, widget.Span) {
 	if len(s.lines) == 0 {
 		s.button = widget.NoSpan
-		return widget.Fit(widget.Faint.Render(widget.T("(empty script)")), width), widget.NoSpan
+		return widget.Fit(s.env.Styles.Faint.Render(s.env.T("(empty script)")), width), widget.NoSpan
 	}
 	var out []string
 	inner := widget.Width(label)
 	if width >= inner+4 {
-		edge, text := widget.Faint, lipgloss.NewStyle()
+		edge, text := s.env.Styles.Faint, lipgloss.NewStyle()
 		tl, tr, bl, br, h, v := "╭", "╮", "╰", "╯", "─", "│"
 		if active {
-			edge, text = widget.Bold, widget.Selected
+			edge, text = s.env.Styles.Bold, s.env.Styles.Selected
 			tl, tr, bl, br, h, v = "┏", "┓", "┗", "┛", "━", "┃"
 		}
 		rule := strings.Repeat(h, inner+2)
@@ -86,7 +86,7 @@ func (s *Script) Draw(width int, active bool) (string, widget.Span) {
 			edge.Render(bl+rule+br),
 		)
 	} else {
-		out = append(out, widget.Bold.Render(widget.Truncate(label, width)))
+		out = append(out, s.env.Styles.Bold.Render(widget.Truncate(label, width)))
 	}
 	s.button = widget.Span{Start: 0, End: len(out)}
 	out = append(out, "")
@@ -97,7 +97,7 @@ func (s *Script) Draw(width int, active bool) (string, widget.Span) {
 			if j > 0 {
 				number = strings.Repeat(" ", digits+1)
 			}
-			out = append(out, widget.Faint.Render(number)+part)
+			out = append(out, s.env.Styles.Faint.Render(number)+part)
 		}
 	}
 	return widget.Fit(strings.Join(out, "\n"), width), s.button
@@ -109,9 +109,9 @@ func (s *Script) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return widget.T("1 line")
+		return s.env.T("1 line")
 	default:
-		return fmt.Sprintf(widget.T("%d lines"), n)
+		return fmt.Sprintf(s.env.T("%d lines"), n)
 	}
 }
 
