@@ -82,7 +82,7 @@ func TestSizeFollowsLength(t *testing.T) {
 		{"a\n\nb\n\nc\n", widget.SizeCard}, // blank lines do not count
 		{numbered(4), widget.SizeHalf},
 		{numbered(12), widget.SizeHalf},
-		{numbered(13), widget.SizePage},
+		{numbered(13), widget.SizeFull},
 	}
 	for _, c := range cases {
 		if got := k.Size(doc.Document{Body: c.body}); got != c.want {

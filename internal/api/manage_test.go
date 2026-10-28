@@ -94,7 +94,7 @@ func TestMovingANoteTakesItsArrangementAlong(t *testing.T) {
 		t.Fatal(err)
 	}
 	v, _ := store.Open(dir).Views()
-	if n := v["roadmap.md"]; n.Open == nil || !*n.Open || n.Size != "half" {
+	if n := v["roadmap.md"]; n.Open == nil || !*n.Open || n.Size != "1/2" {
 		t.Errorf("a renamed note keeps where it was on the screen: %+v", v)
 	}
 	if _, old := v["plan.md"]; old {

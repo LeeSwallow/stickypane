@@ -334,7 +334,7 @@ func TestBridgeLoadsTheBoard(t *testing.T) {
 		t.Fatalf("tabs: title %q, %+v", b.Title, b.Tabs)
 	}
 	p := b.note(t, "plan.md")
-	if p.Kind != "checklist" || p.Icon == "" || p.Size != "half" || p.Rows != 7 || !p.Pinned || p.Color != "blue" ||
+	if p.Kind != "checklist" || p.Icon == "" || p.Size != "1/2" || p.Rows != 7 || !p.Pinned || p.Color != "blue" ||
 		p.Version != versionOf(t, dir, "plan.md") || p.Summary != "1/2" || p.ModTime.IsZero() {
 		t.Errorf("plan: %+v", p)
 	}

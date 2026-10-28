@@ -56,8 +56,8 @@ func TestListDescribesEveryNote(t *testing.T) {
 	}
 	want := []Info{
 		{Name: "a.md", Title: "a", Type: "note", Open: false, Size: "card", Pinned: false},
-		{Name: "b.md", Title: "Auth", Type: "board", Open: true, Size: "page", Pinned: true},
-		{Name: "c.md", Title: "c", Type: "checklist", Open: false, Size: "page", Pinned: false},
+		{Name: "b.md", Title: "Auth", Type: "board", Open: true, Size: "1", Pinned: true},
+		{Name: "c.md", Title: "c", Type: "checklist", Open: false, Size: "1", Pinned: false},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %d notes, want %d: %+v", len(got), len(want), got)
@@ -92,14 +92,14 @@ func TestWriteCreatesAndReplaces(t *testing.T) {
 	if err != nil || name != "plan.md" {
 		t.Fatalf("Write = %q, %v", name, err)
 	}
-	want := "---\ntype: checklist\ntitle: Release plan\nopen: true\nsize: half\n---\n- [ ] build\n"
+	want := "---\ntype: checklist\ntitle: Release plan\nopen: true\nsize: 1/2\n---\n- [ ] build\n"
 	if got := read(t, dir, "plan.md"); got != want {
 		t.Errorf("file = %q\nwant  %q", got, want)
 	}
 	if _, err := a.Write("plan.md", Options{}, []byte("just text\n")); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(t, dir, "plan.md"); got != "---\nopen: true\nsize: half\n---\njust text\n" {
+	if got := read(t, dir, "plan.md"); got != "---\nopen: true\nsize: 1/2\n---\njust text\n" {
 		t.Errorf("a rewrite replaces the content but keeps how the user arranged the note, got %q", got)
 	}
 }

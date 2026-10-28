@@ -44,10 +44,6 @@ const (
 	revealCursor                // the selection inside the focused note
 )
 
-// cardWidth is the narrowest a note is drawn when the pane allows it. A pane
-// at least two cards wide shows half-size notes side by side.
-const cardWidth = 36
-
 // Screens register themselves in these tables from their own files, so
 // adding a screen or a key never means editing this file.
 var (

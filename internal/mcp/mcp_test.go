@@ -154,7 +154,7 @@ func TestToolsReadAndWriteNotes(t *testing.T) {
 		t.Errorf("write_note = %+v", got)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "plan.md"))
-	if err != nil || plain(string(b)) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: half\n---\n- [ ] 한글 항목\n" {
+	if err != nil || plain(string(b)) != "---\ntype: checklist\ntitle: Plan\nopen: true\nsize: 1/2\n---\n- [ ] 한글 항목\n" {
 		t.Errorf("file = %q, %v", b, err)
 	}
 	// The guide opens with the short guide, then names the skills and the

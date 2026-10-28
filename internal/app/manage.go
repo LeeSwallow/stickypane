@@ -14,10 +14,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// sizes lists the note sizes from smallest to largest, the order "+" and
-// "-" step through.
-var sizes = []string{widget.SizeCard, widget.SizeHalf, widget.SizePage}
-
 func init() {
 	handlers[modeConfirm] = confirmUpdate
 	footers[modeConfirm] = confirmFooter
@@ -97,21 +93,16 @@ func init() {
 	})
 }
 
-// resize steps an open note's size up or down and writes it. It writes
-// nothing where nothing would show: on a closed note, and at either end of
-// the sizes.
+// resize steps an open note's width through the fractions of the screen
+// and writes it; a size under an old name is written as its fraction. It
+// writes nothing where nothing would show: on a closed note, and at either
+// end of the fractions.
 func (m *Model) resize(it item, delta int) {
 	if !m.isOpen(it) {
 		return
 	}
 	current := m.sizeOf(it)
-	i := 0
-	for j, s := range sizes {
-		if s == current {
-			i = j
-		}
-	}
-	next := sizes[max(min(i+delta, len(sizes)-1), 0)]
+	next := widget.StepSize(current, m.width, delta)
 	if next == current {
 		return
 	}

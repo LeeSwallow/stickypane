@@ -61,17 +61,9 @@ func (m *Model) setView(name string, change func(*store.View)) {
 	m.reload()
 }
 
-// widthOf turns a size into cells for the current screen.
+// widthOf turns a size, a fraction of the screen, into cells.
 func (m *Model) widthOf(size string) int {
-	switch size {
-	case widget.SizeCard:
-		return m.width / max(m.width/cardWidth, 1)
-	case widget.SizeHalf:
-		if m.width >= 2*cardWidth {
-			return m.width / 2
-		}
-	}
-	return m.width
+	return widget.SizeCells(size, m.width)
 }
 
 // nameOf names a file: its title, or its file name without the folder and

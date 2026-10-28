@@ -150,7 +150,7 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 	open, _ := arrange.Open(v, n.Doc)
 	out := Note{
 		Name: n.Name, Tab: tab, Title: arrange.Title(v, n.Doc, n.Name),
-		Kind: "book", Icon: "▤", Open: open, Size: widget.SizePage,
+		Kind: "book", Icon: "▤", Open: open, Size: widget.SizeFull,
 		Color: color(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
 		ModTime: n.ModTime, Data: json.RawMessage("null"), Pages: []Note{},
 	}

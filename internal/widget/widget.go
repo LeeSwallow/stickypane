@@ -11,13 +11,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/doc"
 )
 
-// Sizes an open note can take on the screen.
-const (
-	SizePage = "page" // the whole width
-	SizeHalf = "half" // half the width
-	SizeCard = "card" // a small sticky note
-)
-
 // Span is a range of lines [Start, End) of a drawn note: the selection and
 // everything that belongs to it, which the screen keeps in view.
 type Span struct{ Start, End int }
@@ -107,7 +100,7 @@ type Kind struct {
 	// Rows is the default fixed height in lines. Zero means as tall as the
 	// content.
 	Rows int
-	// Size returns the default size for a note: SizePage, SizeHalf or SizeCard.
+	// Size returns the default size for a note: one of Sizes, or SizeCard.
 	Size     func(d doc.Document) string
 	Template func(title string) []byte
 	Parse    func(d doc.Document) Widget

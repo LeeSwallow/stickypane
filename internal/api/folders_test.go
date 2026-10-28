@@ -74,7 +74,7 @@ func TestSetPutsTheArrangementInStickyJSON(t *testing.T) {
 		t.Errorf("only keys about the content go into the note: %q", got)
 	}
 	v, _ := store.Open(dir).Views()
-	if n := v["a.md"]; n.Open == nil || !*n.Open || n.Size != "half" || n.Rows != 8 || n.Pin == nil || !*n.Pin || n.Color != "blue" {
+	if n := v["a.md"]; n.Open == nil || !*n.Open || n.Size != "1/2" || n.Rows != 8 || n.Pin == nil || !*n.Pin || n.Color != "blue" {
 		t.Errorf("the arrangement goes to sticky.json: %+v", n)
 	}
 	if _, err := a.Set("a", []string{"open=", "size="}); err != nil {

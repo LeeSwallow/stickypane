@@ -57,7 +57,7 @@ func size(d doc.Document) string {
 	case n <= halfLines:
 		return widget.SizeHalf
 	}
-	return widget.SizePage
+	return widget.SizeFull
 }
 
 // Note is the widget for a plain note.
