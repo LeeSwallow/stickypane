@@ -70,6 +70,7 @@ func init() {
 		{[]string{"api"}, apiCmd},
 		{[]string{"watch"}, watchCmd},
 		{[]string{"mcp"}, mcpCmd},
+		{[]string{"bridge"}, bridgeCmd},
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/bridge"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
@@ -188,4 +189,19 @@ func mcpCmd(e env, args []string) error {
 	defer live("mcp")()
 	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: fullVersion()}
 	return server.Serve(e.ctx, e.stdin, e.stdout)
+}
+
+// bridgeCmd serves the board to the desktop app, which runs it as its
+// child: one JSON object a line on standard input and output.
+func bridgeCmd(e env, args []string) error {
+	if _, err := parse(newFlags("bridge"), "bridge", args, 0, 0); err != nil {
+		return err
+	}
+	a, err := open(e, false)
+	if err != nil {
+		return err
+	}
+	defer live("bridge")()
+	bridge.Version = fullVersion()
+	return bridge.Serve(e.ctx, a, kinds.Default(note.Plain), e.stdin, e.stdout)
 }

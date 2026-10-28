@@ -136,7 +136,7 @@ func TestEveryCommandIsSortedIntoChanges(t *testing.T) {
 		"config": true, "kinds": true, "env": true, "guide": true,
 		"version": true, "help": true, "list": true, "index": true,
 		"cat": true, "answers": true, "wait": true, "api": true,
-		"watch": true, "mcp": true,
+		"watch": true, "mcp": true, "bridge": true,
 	}
 	for _, c := range commands {
 		name := c.names[0]
