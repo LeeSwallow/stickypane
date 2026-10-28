@@ -11,7 +11,7 @@ info:
   description: "A second screen for stickypane boards" # The application description
   copyright: "(c) 2026, stickypane" # Copyright text
   comments: "stickypane" # Comments
-  version: "0.0.1" # The application version
+  version: "0.1.0" # The application version; Info.plist and Info.dev.plist repeat it
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension
   #                               # If not set and Assets.car exists, defaults to "appicon"

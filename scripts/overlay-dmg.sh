@@ -32,6 +32,14 @@ exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info
 [ -x "$app/Contents/MacOS/$exe" ] || die "$app: Info.plist names $exe, which is not in Contents/MacOS"
 
 root=$(cd "$(dirname "$0")/.." && pwd)
+# One version: overlay/build/config.yml's info.version, which the bundle's
+# Info.plist repeats (TestVersionsAgree checks the plists in the tree).
+want=$(sed -n 's/^[[:space:]][[:space:]]*version:[[:space:]]*"\([^"]*\)".*/\1/p' "$root/overlay/build/config.yml" | head -n 1)
+[ -n "$want" ] || die "overlay/build/config.yml has no info.version"
+version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist" 2>/dev/null) ||
+	die "$app: Info.plist has no CFBundleShortVersionString"
+[ "$version" = "$want" ] ||
+	die "$app: version $version, but overlay/build/config.yml says $want: rebuild the app or fix the versions"
 bg="$root/overlay/build/dmg/background.tiff"
 [ -f "$bg" ] || die "$bg missing: run overlay/build/dmg/render.sh"
 icns="$app/Contents/Resources/icons.icns"
@@ -56,7 +64,6 @@ trap 'exit 130' INT TERM HUP
 stage="$work/stage"
 mkdir -p "$stage/.background"
 ditto "$app" "$stage/$name"
-version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
 archs=$(lipo -archs "$app/Contents/MacOS/$exe")
 cli="$stage/$name/Contents/Helpers/stickypane"
 mkdir -p "$(dirname "$cli")"

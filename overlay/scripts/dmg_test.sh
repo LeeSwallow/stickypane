@@ -39,6 +39,17 @@ expect_fail "no arguments" "usage"
 expect_fail "missing .app" "not an .app bundle" "$tmp/Missing.app" "$tmp/out.dmg"
 mkdir -p "$tmp/Empty.app/Contents"
 expect_fail "empty .app" "not an .app bundle" "$tmp/Empty.app" "$tmp/out.dmg"
+mkdir -p "$tmp/Odd.app/Contents/MacOS"
+printf '#!/bin/sh\n' >"$tmp/Odd.app/Contents/MacOS/odd"
+chmod +x "$tmp/Odd.app/Contents/MacOS/odd"
+cat >"$tmp/Odd.app/Contents/Info.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>odd</string>
+<key>CFBundleShortVersionString</key><string>9.9.9</string>
+</dict></plist>
+EOF
+expect_fail "version not config.yml's" "version 9.9.9" "$tmp/Odd.app" "$tmp/out.dmg"
 expect_fail "not a .dmg" "must end in .dmg" "$tmp/Missing.app" "$tmp/out.img"
 
 [ "$fail" -eq 0 ] && echo "dmg_test: ok"
