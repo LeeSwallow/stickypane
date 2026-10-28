@@ -70,8 +70,8 @@
 | log | 끝 따라가기, "마지막으로 늘어난 시각" | 같음, 새 줄이 아래에서 밀려 들어옴 | `data.lines` |
 | chat | `n` 말하기, `@user HH:MM` | 아래 입력칸, 이름은 터미널과 같은 규칙(`$STICKYPANE_USER` → git → 로그인) | `say` (who는 bridge가 같은 규칙으로 채움) |
 | script | ▶ Run, 로그 | 같음 | `note.run` |
-| api (.http) | 요청 고르기·보내기·환경 | 같음(환경 바꾸기는 미구현) | `note.send`; `Act: env`는 미구현 |
-| html | 텍스트만 | 샌드박스에서 실제로 그림 | `data.html` |
+| api (.http) | 요청 고르기·보내기·환경 | 같음(환경 바꾸기는 미구현). 고른 요청의 응답은 같은 이름의 .log에서 | `data.requests`·`data.env`, `note.send`; `Act: env`는 미구현 |
+| html | 텍스트만 | 샌드박스에서 실제로 그림(HTML·CSS, 페이지의 스크립트는 돌지 않음 — 02 §2.7) | `data.html` |
 
 ## 10.5 설정
 

@@ -55,6 +55,12 @@ describe('the ⋯ menu of a note', () => {
     expect(r.refreshed()).toBe(4)
   })
 
+  it('a .http note\'s own Send sends the request it names', async () => {
+    const r = rig()
+    await manage.send(r.deps, note({ kind: 'api' }), { at: 2, title: 'Log in' })
+    expect(r.calls).toEqual(['send work/plan.md 2'])
+  })
+
   it('a script that fails says its exit code', async () => {
     const r = rig({ run: async () => ({ code: 2, took: 5 }) })
     await manage.run(r.deps, note({ kind: 'script' }))

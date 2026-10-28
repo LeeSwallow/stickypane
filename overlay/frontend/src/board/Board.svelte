@@ -222,7 +222,7 @@
   // --- the note as a whole: archive, delete, move, run, send -------------
 
   // a question before a delete, a run or a send; the note being moved
-  let asking = $state<{ what: 'trash' | 'run' | 'send'; note: Note } | null>(null)
+  let asking = $state<{ what: 'trash' | 'run' | 'send'; note: Note; request?: manage.Request } | null>(null)
   let moving = $state<Note | null>(null)
   let moveTo = $state('')
   // the last note deleted here: u and ⌘Z bring it back
@@ -237,12 +237,12 @@
     fail: (m) => (failed = m),
   }
 
-  function manageNote(note: Note, what: Manage) {
+  function manageNote(note: Note, what: Manage, request?: manage.Request) {
     if (what === 'archive') void manage.archive(deps, note)
     else if (what === 'move') {
       moving = note
       moveTo = ''
-    } else asking = { what, note }
+    } else asking = { what, note, request }
   }
 
   async function answer() {
@@ -252,7 +252,7 @@
     if (a.what === 'trash') {
       if (await manage.trash(deps, a.note)) lastTrashed = a.note
     } else if (a.what === 'run') await manage.run(deps, a.note)
-    else await manage.send(deps, a.note)
+    else await manage.send(deps, a.note, a.request)
   }
 
   async function moveNote() {
@@ -266,6 +266,7 @@
     const values = { title: asking.note.title, name: asking.note.title, project: board?.title ?? '' }
     if (asking.what === 'trash') return { title: t('note.confirmTrash', values), body: t('note.confirmTrashBody'), yes: t('note.trash') }
     if (asking.what === 'run') return { title: t('run.confirm', values), body: t('run.confirmBody'), yes: t('run.button') }
+    if (asking.request) return { title: t('send.confirm', { ...values, name: asking.request.title }), body: t('send.confirmBodyOne'), yes: t('send.button') }
     return { title: t('send.confirm', values), body: t('send.confirmBody'), yes: t('send.button') }
   })
 

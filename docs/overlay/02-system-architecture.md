@@ -252,6 +252,7 @@ flowchart LR
 - `allow-same-origin`이 없으므로 iframe은 불투명 origin이다. 부모의 바인딩·저장소·DOM에 닿지 않는다.
 - CSP를 `<meta>`로 주입해 외부 요청을 막는다. 이미지는 `data:`만.
 - 높이는 iframe 안의 작은 스크립트가 `postMessage`로 알려 줄 수 있지만, **부모는 숫자 하나만 받는다.** 그 외 메시지는 무시한다.
+- srcdoc 프레임은 창의 CSP(`index.html`)도 물려받는다. 창은 인라인 스크립트를 허용하지 않고 높이 알림 스크립트 하나만 해시로 허용하므로, **페이지 자신의 스크립트는 앱에서 돌지 않는다**(HTML과 CSS만 그린다). 창의 `frame-src 'none'`은 프레임의 모든 이동(새 srcdoc 포함)을 막으므로 페이지가 바뀌면 프레임을 새로 만든다. 확인: `src/shapes/html.test.ts`, 개발 페이지 `?demo=shapes&probe=<url>`(그 주소의 서버에 요청이 하나도 오지 않아야 한다).
 - 터미널 쪽 `html` shape의 `view.go`는 태그를 걷어낸 텍스트와 "overlay에서 열기" 줄을 그린다(VISION 6: 숨기지 않는다).
 
 ## 2.8 배포
