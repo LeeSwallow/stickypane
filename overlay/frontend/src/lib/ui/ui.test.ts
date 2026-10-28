@@ -6,7 +6,7 @@ import { setLanguage } from '../../i18n'
 import { look } from '../doodle/look.svelte'
 import Badge from './Badge.svelte'
 import Button from './Button.svelte'
-import { chromeOf, quitShortcut, runWindowMenu, windowMenu } from './chrome'
+import { barLead, chromeOf, quitShortcut, runWindowMenu, TRAFFIC_LIGHTS, windowMenu } from './chrome'
 import Chip from './Chip.svelte'
 import Confirm from './Confirm.svelte'
 import EmptyState from './EmptyState.svelte'
@@ -243,6 +243,16 @@ describe('keys', () => {
   })
 })
 
+test('on macOS the bar leaves the traffic lights their room and a gap before the logo', () => {
+  expect(TRAFFIC_LIGHTS).toBe(92)
+  expect(barLead('mac')).toBe(92 + 12) // the lights, then space-3
+  expect(barLead('own')).toBe(16)
+  expect(barLead('none')).toBe(16)
+  const mac = html(TitleBar, { name: 'demo', chrome: 'mac', window: win })
+  expect(mac).toMatch(/<header[^>]*padding-left: 104px/)
+  expect(html(TitleBar, { name: 'demo', chrome: 'own', window: win })).toMatch(/<header[^>]*padding-left: 16px/)
+})
+
 test('a hotkey is written as macOS writes it', () => {
   expect(hotkeyLabel('alt+space')).toBe('⌥Space')
   expect(hotkeyLabel('Cmd+Shift+K')).toBe('⌘⇧K')
@@ -252,12 +262,26 @@ test('a hotkey is written as macOS writes it', () => {
 describe('the note header steps the size through the fractions', () => {
   const head = (size: string) => html(NoteHeader, { title: 'Plan', color: '#8FD694', size })
   const button = (out: string, label: string) => out.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0] ?? ''
-  test('it shows the fraction the note is at, between narrower and wider', () => {
+  test('it shows the width as a glyph, between narrower and wider buttons, in words for the ear', () => {
     const out = head('1/2')
-    expect(out).toMatch(/aria-label="Width 1\/2"[^>]*>1\/2</)
+    const value = out.match(/<span[^>]*role="status"[^>]*aria-label="Width 1\/2"[^>]*>[\s\S]*?<\/span>/)?.[0] ?? ''
+    expect(value).toContain('½') // the glyph, not the digits
+    expect(value).not.toContain('>1/2<')
+    expect(value).toMatch(/<svg[^>]*aria-hidden="true"/) // the bar filled to the share
+    expect(value).toContain('H10V13.25') // half the inside (5.25 + 9.5 / 2 = 10) is filled
+    expect(out).toMatch(/title="Width 1\/2"/) // and the same words as its tooltip
     expect(button(out, 'Narrower')).not.toContain('disabled')
     expect(button(out, 'Wider')).not.toContain('disabled')
-    expect(out).not.toMatch(/size-(card|half|page)/)
+    expect(head('1/3')).toContain('⅓')
+    expect(head('1')).toMatch(/aria-label="Width 1"/)
+  })
+  test('narrower is not the window minimise glyph', () => {
+    const out = head('1/2')
+    const narrower = out.match(/<button[^>]*aria-label="Narrower"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
+    expect(narrower).not.toContain(iconPaths('minimise', look.style).d[0])
+    expect(narrower).toContain(iconPaths('narrower', look.style).d[0])
+    const wider = out.match(/<button[^>]*aria-label="Wider"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
+    expect(wider).toContain(iconPaths('wider', look.style).d[0])
   })
   test('the ends cannot be stepped past', () => {
     expect(button(head('1/4'), 'Narrower')).toContain('disabled')

@@ -32,7 +32,7 @@ func main() {
 	board := &shell.ProjectService{}
 
 	app := application.New(application.Options{
-		Name:        "Stickypane Overlay",
+		Name:        "stickypane",
 		Description: "A second screen for stickypane boards",
 		Services: []application.Service{
 			application.NewService(home),

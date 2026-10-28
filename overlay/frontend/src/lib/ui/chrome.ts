@@ -4,6 +4,7 @@
 // for them; "own" (Linux) has no native buttons, so the bar draws close and
 // minimise itself. In a browser (the dev pages) it is "none".
 import { home, project, type WindowKind } from '../shell'
+import { SPACE } from '../theme/scale'
 import type { MenuItem } from './menu'
 
 export type Chrome = 'mac' | 'own' | 'none'
@@ -14,8 +15,16 @@ export function chromeOf(search: string): Chrome {
   return c === 'mac' || c === 'own' ? c : 'none'
 }
 
-/** TRAFFIC_LIGHTS is the room the macOS buttons take at the bar's start, in px. */
-export const TRAFFIC_LIGHTS = 76
+/**
+ * TRAFFIC_LIGHTS is the room the macOS buttons take at the bar's start, in
+ * px. With the hidden-inset title bar and its (empty) unified toolbar the
+ * lights sit further right, and larger on recent macOS, than in a plain
+ * title bar: 92px holds all three.
+ */
+export const TRAFFIC_LIGHTS = 92
+
+/** barLead is the title bar's left padding: the lights and space-3 on macOS, space-4 elsewhere. */
+export const barLead = (c: Chrome): number => (c === 'mac' ? TRAFFIC_LIGHTS + SPACE[2] : SPACE[3])
 
 /** The window actions the title bar wires its buttons and its menu to. */
 export interface WindowActions {

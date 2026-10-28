@@ -9,7 +9,7 @@
   import { tr } from '../../i18n'
   import Logo from '../doodle/Logo.svelte'
   import { look } from '../doodle/look.svelte'
-  import { TRAFFIC_LIGHTS, runWindowMenu, windowMenu, type Chrome, type WindowActions } from './chrome'
+  import { barLead, runWindowMenu, windowMenu, type Chrome, type WindowActions } from './chrome'
   import IconButton from './IconButton.svelte'
   import Kbd from './Kbd.svelte'
   import Menu from './Menu.svelte'
@@ -52,7 +52,7 @@
   }
 </script>
 
-<header class="bar {chrome}" data-titlebar style:--lights="{TRAFFIC_LIGHTS}px">
+<header class="bar {chrome}" data-titlebar style:padding-left="{barLead(chrome)}px">
   <div class="id">
     <Logo size={20} />
     {#if path}
@@ -88,7 +88,7 @@
     align-items: center;
     gap: var(--space-3);
     height: var(--titlebar-h);
-    padding: 0 var(--space-2) 0 var(--space-4);
+    padding-right: var(--space-2);
     box-sizing: border-box;
     border-bottom: 1px solid var(--line);
     background: var(--chrome);
@@ -97,10 +97,10 @@
     -webkit-user-select: none;
     --wails-draggable: drag;
   }
-  /* macOS hidden-inset: the traffic lights sit in a 52px bar at the start */
+  /* macOS hidden-inset with its toolbar: the traffic lights sit centred in
+     a 52px bar at the start; barLead() leaves them their room */
   .bar.mac {
     height: max(var(--titlebar-h), 52px);
-    padding-left: var(--lights);
   }
   .id {
     display: flex;

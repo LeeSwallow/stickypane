@@ -31,6 +31,9 @@ export const ICONS = {
   'size-card': { d: [frame], fill: ['M5.25 6.75H9.25V10.25H5.25Z'] },
   'size-half': { d: [frame], fill: ['M5.25 6.75H9.25V13.25H5.25Z'] },
   'size-page': { d: [frame], fill: ['M5.25 6.75H14.75V13.25H5.25Z'] },
+  // a note's width one step narrower or wider: two arrows to or from a middle line
+  narrower: { d: ['M2.75 10H8', 'M5.75 7.5L8.25 10L5.75 12.5', 'M17.25 10H12', 'M14.25 7.5L11.75 10L14.25 12.5', 'M10 5V15'] },
+  wider: { d: ['M8.25 10H3', 'M5.5 7.5L3 10L5.5 12.5', 'M11.75 10H17', 'M14.5 7.5L17 10L14.5 12.5', 'M10 5V15'] },
   zoom: { d: ['M11.5 3.75H16.25V8.5', 'M16.25 3.75L11.25 8.75', 'M8.5 16.25H3.75V11.5', 'M3.75 16.25L8.75 11.25'] },
   grid: { d: ['M3.5 3.5H8.75V8.75H3.5Z', 'M11.25 3.5H16.5V8.75H11.25Z', 'M3.5 11.25H8.75V16.5H3.5Z', 'M11.25 11.25H16.5V16.5H11.25Z'] },
   canvas: { d: ['M3.25 3.5H9.25V9.5H3.25Z', 'M11 6.25H16.75V12H11Z', 'M5.75 11.5H11.25V17H5.75Z'] },

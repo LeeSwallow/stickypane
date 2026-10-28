@@ -8,6 +8,7 @@
 // card fits in. The grid has 12 columns, so every fraction is whole.
 
 import { FRACTIONS, isFraction, type Fraction } from '../lib/sizes'
+import { SPACE } from '../lib/theme/scale'
 
 export { FRACTIONS, type Fraction }
 
@@ -76,13 +77,23 @@ function drawnStep(size: string, width: number): number {
 /** spanOf is how many of the 12 columns a note of that size asks for on a board width px wide. */
 export const spanOf = (size: string, width: number): number => colsOf(FRACTIONS[drawnStep(size, width)])
 
+/** COL_GAP is the gap between the grid's columns in px (space-4; Grid.svelte's column gap). */
+export const COL_GAP = SPACE[3]
+
+/** spanPx is how wide span columns are drawn on a grid width px wide: the columns and the gaps between them. */
+export function spanPx(span: number, width: number, gap = COL_GAP): number {
+  const col = (width - (GRID - 1) * gap) / GRID
+  return span * col + (span - 1) * gap
+}
+
 /**
  * snapSize is the size a dragged right edge lands on: the step from was
  * at, until the width (px) passes the middle between it and the next step
- * either way, so an edge moved a little does not change the size.
+ * either way, so an edge moved a little does not change the size. A step's
+ * width counts the grid's gaps, as it is drawn.
  */
 export function snapSize(from: string, px: number, width: number): Fraction {
-  const w = (i: number) => share(FRACTIONS[drawnStep(FRACTIONS[i], width)], width)
+  const w = (i: number) => spanPx(spanOf(FRACTIONS[i], width), width)
   let i = step(from, width)
   while (i < FRACTIONS.length - 1 && 2 * px > w(i) + w(i + 1)) i++
   while (i > 0 && 2 * px < w(i - 1) + w(i)) i--
@@ -152,7 +163,7 @@ export interface Placement {
   row: number
   /** how many columns it spans */
   span: number
-  /** narrow (a quarter, a third, a card): drawn small */
+  /** drawn narrow (four columns or fewer, after its row is stretched): its shape draws small */
   small: boolean
 }
 
@@ -166,7 +177,45 @@ export interface Placement {
 export function place(notes: { name: string; size: string }[], width: number): Placement[] {
   if (columnsFor(width) === 1) return notes.map((n, i) => ({ name: n.name, column: 1, row: i + 1, span: 1, small: false }))
   const asked = notes.map((n) => spanOf(n.size, width))
-  return rows(GRID, asked).map((c, i) => ({ name: notes[i].name, column: c.x + 1, row: c.row + 1, span: c.w, small: asked[i] <= 4 }))
+  return rows(GRID, asked).map((c, i) => ({ name: notes[i].name, column: c.x + 1, row: c.row + 1, span: c.w, small: c.w <= 4 }))
+}
+
+/**
+ * WidthDrag is a drag of a note's right edge. It starts from the width the
+ * note asks for (its fraction, gaps counted), not the width its row
+ * stretched it to, so a nudge does not jump a lone note to another size.
+ * landing is the fraction a release would save; release gives it, or null
+ * when it is the note's own or the drag was cancelled.
+ */
+export class WidthDrag {
+  readonly start: number
+  private from: Fraction
+  private landed: Fraction
+  private done = false
+  constructor(
+    size: string,
+    private readonly width: number,
+    private readonly x0: number,
+  ) {
+    this.from = sizeShown(size, width)
+    this.landed = this.from
+    this.start = spanPx(spanOf(size, width), width)
+  }
+  /** move is the width to draw while the pointer is at x, and where it would land */
+  move(x: number): { px: number; landing: Fraction } {
+    const px = Math.max(0, this.start + x - this.x0)
+    this.landed = snapSize(this.from, px, this.width)
+    return { px, landing: this.landed }
+  }
+  release(): Fraction | null {
+    if (this.done) return null
+    this.done = true
+    return this.landed === this.from ? null : this.landed
+  }
+  cancel(): null {
+    this.done = true
+    return null
+  }
 }
 
 /** rowsFromHeight is the rows a dragged body height (px) comes to. */

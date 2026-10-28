@@ -10,7 +10,7 @@ version: "0.1.0"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A Stickypane_Overlay application"
+description: "A second screen for stickypane boards"
 vendor: "stickypane"
 homepage: "https://wails.io"
 license: "MIT"

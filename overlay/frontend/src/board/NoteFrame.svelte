@@ -10,13 +10,14 @@
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
+  import { fractionGlyph } from '../lib/sizes'
   import IconButton from '../lib/ui/IconButton.svelte'
   import NoteHeader from '../lib/ui/NoteHeader.svelte'
   import type { MenuItem } from '../lib/ui/menu'
   import { tr } from '../i18n'
   import Shape from '../shapes/Shape.svelte'
   import { noteHex, useBoard } from './context'
-  import { HeightDrag, heightOfRows, sizeShown, snapSize, type Fraction } from './layout'
+  import { HeightDrag, heightOfRows, sizeShown, WidthDrag, type Fraction } from './layout'
   import type { Note } from './model'
 
   let {
@@ -49,7 +50,6 @@
   // the width being dragged, in px, and the fraction it lands on
   let dragW: number | null = $state(null)
   let landing: Fraction | null = $state(null)
-  let frame: HTMLElement | undefined = $state()
   let body: HTMLElement | undefined = $state()
   const fixed = $derived(zoomed ? null : (dragH ?? heightOfRows(note.rows)))
 
@@ -99,21 +99,22 @@
     )
   }
 
+  // the drag starts from the width the note asks for, not the width its
+  // row stretched it to (layout.ts WidthDrag)
   function startWidth(e: PointerEvent) {
-    if (!frame) return
-    const start = frame.getBoundingClientRect().width
-    const x0 = e.clientX
+    const d = new WidthDrag(note.size, width, e.clientX)
     drag(
       e,
       (m) => {
-        dragW = Math.max(0, start + m.clientX - x0)
-        landing = snapSize(size, dragW, width)
+        const at = d.move(m.clientX)
+        dragW = at.px
+        landing = at.landing
       },
       (save) => {
-        const to = landing
         dragW = null
         landing = null
-        if (save && to && to !== size) board.arrange(note.name, { size: to })
+        const to = save ? d.release() : d.cancel()
+        if (to) board.arrange(note.name, { size: to })
       },
     )
   }
@@ -132,7 +133,6 @@
   class:zoomed
   class:small
   class:sizing={dragW !== null}
-  bind:this={frame}
   style:width={dragW !== null ? `${dragW}px` : null}
   data-frame={note.name}
   tabindex="0"
@@ -208,7 +208,7 @@
       {/if}
     {/if}
   </NoteFrame>
-  {#if landing}<span class="landing" role="status">{landing}</span>{/if}
+  {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing })}>{fractionGlyph(landing)}</span>{/if}
 </div>
 
 <style>

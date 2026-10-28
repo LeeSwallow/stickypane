@@ -9,7 +9,8 @@
   import type { Snippet } from 'svelte'
   import { tr } from '../../i18n'
   import { look } from '../doodle/look.svelte'
-  import { FRACTIONS, nextFraction, type Fraction } from '../sizes'
+  import { FRACTIONS, fractionGlyph, nextFraction, shareOf, type Fraction } from '../sizes'
+  import WidthGlyph from './icons/WidthGlyph.svelte'
   import { noteTitleColor } from '../theme/tokens'
   import IconButton from './IconButton.svelte'
   import Icon from './icons/Icon.svelte'
@@ -66,6 +67,7 @@
   const at = $derived(FRACTIONS.indexOf(size as Fraction))
   const step = (dir: -1 | 1) => onsize?.(nextFraction(size, dir))
 
+  const renamable = $derived(editable && !!onrename)
   let editing = $state(false)
   let draft = $state('')
   function rename() {
@@ -103,12 +105,21 @@
       />
     {:else}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex: a renamable title takes the focus so F2 or Enter renames it -->
       <h3
         class="title"
         class:neat={look.style === 'neat'}
         style:color={ink}
-        title={editable && onrename ? `${title} · ${$tr('note.rename')}` : title}
+        title={renamable ? `${title} · ${$tr('note.rename')}` : title}
+        tabindex={renamable ? 0 : undefined}
         ondblclick={rename}
+        onkeydown={(e) => {
+          if (!renamable || (e.key !== 'F2' && e.key !== 'Enter')) return
+          // the title's own key: the board must not zoom the note too
+          e.preventDefault()
+          e.stopPropagation()
+          rename()
+        }}
       >
         {title}
       </h3>
@@ -138,9 +149,11 @@
       <Toolbar label={$tr('ui.noteActions')}>
         {#if editable}
           <span class="size" role="group" aria-label={$tr('ui.size')}>
-            <span class="step"><IconButton icon="minimise" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
-            <span class="frac" aria-label={$tr('ui.size.now', { size })}>{size}</span>
-            <span class="step"><IconButton icon="plus" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
+            <span class="step"><IconButton icon="narrower" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
+            <span class="frac" role="status" aria-label={$tr('ui.size.now', { size })} title={$tr('ui.size.now', { size })}>
+              <WidthGlyph share={shareOf(size)} size={14} /><span class="fig" aria-hidden="true">{fractionGlyph(size)}</span>
+            </span>
+            <span class="step"><IconButton icon="wider" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
           </span>
           <IconButton
             icon="pin"
@@ -186,6 +199,14 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     font: var(--weight-hand-title) var(--text-hand-title) / var(--leading-hand-title) var(--font-hand);
+  }
+  .title:focus-visible {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+    border-radius: var(--radius-sm);
+  }
+  .fig {
+    font: 600 var(--text-body-md) / 1 var(--font-body);
   }
   .title.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
@@ -253,8 +274,11 @@
     display: inline-flex;
   }
   .frac {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
     min-width: 28px;
-    text-align: center;
+    justify-content: center;
     color: var(--ink-2);
     font: var(--weight-mono-sm) var(--text-mono-sm) / 1 var(--font-mono);
     font-variant-numeric: tabular-nums;

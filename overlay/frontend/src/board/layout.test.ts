@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
-  colsOf, columnsFor, FRACTIONS, heightOfRows, normalSize, place, ROW_PX, rowsFromHeight, shift, sizeShown, snapSize, spanOf, stepSize,
+  colsOf, columnsFor, FRACTIONS, heightOfRows, normalSize, place, ROW_PX, rowsFromHeight, shift, sizeShown, snapSize, spanOf, spanPx, stepSize, WidthDrag,
 } from './layout'
 import { withArrange, type Board, type Note } from './model'
 import { setSize, type BoardApi } from './actions'
@@ -48,17 +48,40 @@ describe('sizes are fractions of the board, as on the terminal (03 §3.6–3.7)'
     expect(stepSize('card', 960, -1)).toBe('1/4')
     expect(stepSize('', 1200, -1)).toBe('3/4') // unknown is the whole width
   })
+  test('a span is its columns and the gaps between them', () => {
+    // 1200px, 12 columns, 11 gaps of 16px: a column is (1200 - 176) / 12
+    expect(spanPx(12, 1200)).toBe(1200)
+    expect(spanPx(6, 1200)).toBeCloseTo(592)
+    expect(spanPx(3, 1200)).toBeCloseTo(288)
+    expect(spanPx(1, 1200)).toBeCloseTo(1024 / 12)
+  })
   test('a dragged right edge changes the size only past the middle of two steps', () => {
-    // on 1200px the steps are 300 400 600 800 900 1200
-    expect(snapSize('1/2', 600, 1200)).toBe('1/2')
-    expect(snapSize('1/2', 501, 1200)).toBe('1/2')
-    expect(snapSize('1/2', 499, 1200)).toBe('1/3')
-    expect(snapSize('1/2', 701, 1200)).toBe('2/3')
+    // on 1200px, gaps counted, the steps are 288 389 592 795 896 1200
+    expect(snapSize('1/2', 592, 1200)).toBe('1/2')
+    expect(snapSize('1/2', 492, 1200)).toBe('1/2') // the middle of 1/3 and 1/2 is 490.7
+    expect(snapSize('1/2', 489, 1200)).toBe('1/3')
+    expect(snapSize('1/2', 694, 1200)).toBe('2/3') // the middle of 1/2 and 2/3 is 693.3
+    expect(snapSize('1/2', 692, 1200)).toBe('1/2')
     expect(snapSize('1/2', 5000, 1200)).toBe('1')
     expect(snapSize('1/2', 0, 1200)).toBe('1/4')
     expect(snapSize('card', 601, 1200)).toBe('1/2')
-    expect(snapSize('1', 1051, 1200)).toBe('1')
-    expect(snapSize('1', 1049, 1200)).toBe('3/4')
+    expect(snapSize('1', 1049, 1200)).toBe('1') // the middle of 3/4 and 1 is 1048
+    expect(snapSize('1', 1047, 1200)).toBe('3/4')
+  })
+  test('a width drag starts from the width the note asks for, not the width its row stretched it to', () => {
+    // a lone 1/4 is drawn across the whole row, but asks for 288px
+    expect(place([note('a', '1/4')], 1200)[0].span).toBe(12)
+    const d = new WidthDrag('1/4', 1200, 1000)
+    expect(d.start).toBeCloseTo(288)
+    expect(d.move(1010).landing).toBe('1/4') // a nudge changes nothing
+    expect(d.release()).toBeNull()
+    const grow = new WidthDrag('1/4', 1200, 1000)
+    expect(grow.move(1060).landing).toBe('1/3') // past 338.7, the middle of 1/4 and 1/3
+    expect(grow.release()).toBe('1/3')
+    const gone = new WidthDrag('1/4', 1200, 1000)
+    gone.move(1600)
+    expect(gone.cancel()).toBeNull()
+    expect(gone.release()).toBeNull()
   })
 })
 
@@ -100,10 +123,11 @@ describe('the grid places notes on 12 columns, in order, and fills each row (03 
     const got = place([note('a', '1/4'), note('b', '1/2')], 600)
     expect(got.map((p) => [p.column, p.row, p.span])).toEqual([[1, 1, 1], [1, 2, 1]])
   })
-  test('a narrow note is marked small', () => {
-    expect(place([note('a', 'card')], 1200)[0].small).toBe(true)
-    expect(place([note('a', '1/4')], 1200)[0].small).toBe(true)
-    expect(place([note('a', '1/2')], 1200)[0].small).toBe(false)
+  test('a note drawn narrow is marked small; one its row stretched wide is not', () => {
+    const four = place([note('a', 'card'), note('b', '1/4'), note('c', '1/4'), note('d', '1/4')], 1200)
+    expect(four.map((p) => p.small)).toEqual([true, true, true, true])
+    expect(place([note('a', '1/4')], 1200)[0].small).toBe(false) // alone, it fills the row
+    expect(place([note('a', '1/2'), note('b', '1/2')], 1200)[0].small).toBe(false)
   })
 })
 
