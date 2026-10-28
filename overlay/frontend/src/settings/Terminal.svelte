@@ -152,6 +152,7 @@
     <Toggle label={$tr('agents.mcp')} bind:checked={mcp} disabled={!!busy} />
     <Button size="sm" variant="secondary" loading={busy === 'plan'} disabled={!!busy || !!plan} onclick={showPlan}>{$tr('settings.connectAgents')}</Button>
   </div>
+  {#if mcp}<p class="hint">{$tr('agents.mcpHint')}</p>{/if}
   {#if plan}
     <p class="hint">{$tr('agents.plan')}</p>
     <pre class="out" aria-label={plan.command}>{plan.output}</pre>

@@ -251,7 +251,7 @@
   <Confirm
     open={confirming !== ''}
     title={$tr('home.confirmInit')}
-    message={confirming}
+    message={confirming ? `${$tr('home.confirmInitBody')}\n${confirming}` : ''}
     confirmLabel={$tr('home.create')}
     cancelLabel={$tr('home.cancel')}
     onconfirm={create}

@@ -22,7 +22,7 @@
 </script>
 
 <div class="empty">
-  <EmptyState title={$tr('home.empty')}>
+  <EmptyState title={$tr('home.empty')} body={setup ? undefined : $tr('home.emptyHint')}>
     <div class="actions">
       {#if setup}<Install kind={setup} {copy} />{/if}
       <Button variant="primary" size="lg" disabled={busy || !canPick} onclick={pick}>

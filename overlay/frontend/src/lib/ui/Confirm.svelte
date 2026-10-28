@@ -31,7 +31,7 @@
 </script>
 
 <Dialog bind:open {title} {inline} role="alertdialog" width={380} onclose={oncancel}>
-  {#if message}{message}{/if}
+  {#if message}<p class="message">{message}</p>{/if}
   {#snippet actions()}
     <Button variant="ghost" data-autofocus={danger ? '' : undefined} onclick={() => ((open = false), oncancel?.())}>
       {cancelLabel ?? $tr('ui.cancel')}
@@ -41,3 +41,11 @@
     </Button>
   {/snippet}
 </Dialog>
+
+<style>
+  .message {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+</style>

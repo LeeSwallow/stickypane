@@ -85,9 +85,9 @@ describe('home', () => {
     expect(api.ensure).toHaveBeenCalled()
     expect(api.sessions).toHaveBeenCalled()
     expect(screen.getByText('/home/min/stickypane')).toBeTruthy()
-    expect(screen.getByText('지금 움직이는 중')).toBeTruthy()
+    expect(screen.getByText('지금 작업 중')).toBeTruthy()
     // no landing, no empty state, no explanation
-    expect(screen.queryByText('아직 붙은 보드가 없어요')).toBeNull()
+    expect(screen.queryByText('아직 보드가 없어요')).toBeNull()
   })
 
   it('clicking a row opens that project', async () => {
@@ -100,14 +100,15 @@ describe('home', () => {
   it('empty state offers one button', async () => {
     const api = fakeApi(empty, { pickFolder: vi.fn(async () => '/home/min/new') })
     mount(api)
-    expect(await screen.findByText('아직 붙은 보드가 없어요')).toBeTruthy()
+    expect(await screen.findByText('아직 보드가 없어요')).toBeTruthy()
     const buttons = screen.getAllByRole('button').filter((b) => !b.closest('.language, [data-titlebar]'))
     expect(buttons.map((b) => b.textContent?.trim())).toEqual(['폴더 고르기'])
     await fireEvent.click(buttons[0])
     // no board is made until the person says so
     const ask = await screen.findByRole('alertdialog')
     expect(within(ask).getByText('이 폴더에 보드를 만들까요?')).toBeTruthy()
-    expect(within(ask).getByText('/home/min/new')).toBeTruthy()
+    // what making it does, then where
+    expect(within(ask).getByText(/\.sticky\/ 폴더를 만들어요[\s\S]*\/home\/min\/new$/)).toBeTruthy()
     expect(api.initProject).not.toHaveBeenCalled()
     await fireEvent.click(within(ask).getByRole('button', { name: '보드 만들기' }))
     await waitFor(() => expect(api.initProject).toHaveBeenCalledWith('/home/min/new'))
@@ -189,13 +190,13 @@ describe('home', () => {
     const groups: Groups = { Active: null, Days: null, Removed: [{ ID: 7, Path: '/gone/a', Title: 'a' }] }
     localStorage.clear()
     mount(fakeApi(groups))
-    await screen.findByText('사라진 프로젝트 1개를 정리했어요')
+    await screen.findByText('없어진 프로젝트 1개를 목록에서 뺐어요')
     await fireEvent.click(screen.getByRole('button', { name: '닫기' }))
-    expect(screen.queryByText('사라진 프로젝트 1개를 정리했어요')).toBeNull()
+    expect(screen.queryByText('없어진 프로젝트 1개를 목록에서 뺐어요')).toBeNull()
     cleanup()
     mount(fakeApi(groups))
-    await screen.findByText('아직 붙은 보드가 없어요')
-    expect(screen.queryByText('사라진 프로젝트 1개를 정리했어요')).toBeNull()
+    await screen.findByText('아직 보드가 없어요')
+    expect(screen.queryByText('없어진 프로젝트 1개를 목록에서 뺐어요')).toBeNull()
     localStorage.clear()
   })
 
@@ -239,7 +240,7 @@ describe('home', () => {
     mount(api)
     await screen.findByText('alpha', { selector: '.title' })
     const heads = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-    expect(heads).toEqual(['지금 움직이는 중', '오늘', '어제', '10월 20일'])
+    expect(heads).toEqual(['지금 작업 중', '오늘', '어제', '10월 20일'])
     const titles = [...document.querySelectorAll('.title')].map((e) => e.textContent)
     expect(titles).toEqual(['alpha', 'bravo', 'charlie', 'delta'])
   })
@@ -261,12 +262,12 @@ describe('home', () => {
       }),
     })
     mount(api)
-    expect(await screen.findByText('사라진 프로젝트 2개를 정리했어요')).toBeTruthy()
+    expect(await screen.findByText('없어진 프로젝트 2개를 목록에서 뺐어요')).toBeTruthy()
     await fireEvent.click(screen.getByRole('button', { name: '되돌리기' }))
     await waitFor(() => expect(api.restore).toHaveBeenCalledTimes(2))
     expect(api.restore).toHaveBeenCalledWith(7)
     expect(api.restore).toHaveBeenCalledWith(9)
-    await waitFor(() => expect(screen.queryByText('사라진 프로젝트 2개를 정리했어요')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('없어진 프로젝트 2개를 목록에서 뺐어요')).toBeNull())
     expect((api.sessions as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(1)
   })
 
@@ -283,10 +284,10 @@ describe('home', () => {
     const api = fakeApi(empty, { notices: vi.fn(async () => [{ code: 'stayInTray', detail: '' }]) })
     mount(api)
     const note = await screen.findByRole('status')
-    expect(within(note).getByText('트레이에 남아 있어요')).toBeTruthy()
+    expect(within(note).getByText('창을 닫아도 stickypane은 계속 실행돼요')).toBeTruthy()
     expect(within(note).getByRole('button', { name: 'stickypane 종료' })).toBeTruthy()
     await fireEvent.click(within(note).getByRole('button', { name: '닫기' }))
-    expect(screen.queryByText('트레이에 남아 있어요')).toBeNull()
+    expect(screen.queryByText('창을 닫아도 stickypane은 계속 실행돼요')).toBeNull()
   })
 
   it('an index that cannot be read says so instead of an empty list', async () => {
@@ -297,19 +298,19 @@ describe('home', () => {
     })
     mount(api)
     expect(await screen.findByText(/index: locked/)).toBeTruthy()
-    expect(screen.queryByText('아직 붙은 보드가 없어요')).toBeNull()
+    expect(screen.queryByText('아직 보드가 없어요')).toBeNull()
   })
 
   it('draws in English when overlay.json says en', async () => {
     const api = fakeApi(empty, { prefs: vi.fn(async () => ({ hotkey: '', language: 'en', mode: '' })) })
     mount(api)
-    expect(await screen.findByText('No boards attached yet')).toBeTruthy()
+    expect(await screen.findByText('No boards yet')).toBeTruthy()
   })
 
   it('mode dark or light picks the stickypane palette', async () => {
     const api = fakeApi(empty, { prefs: vi.fn(async () => ({ hotkey: '', language: 'ko', mode: 'light' })) })
     mount(api)
-    await screen.findByText('아직 붙은 보드가 없어요')
+    await screen.findByText('아직 보드가 없어요')
     expect(document.documentElement.dataset.mode).toBe('light')
   })
 })

@@ -225,7 +225,7 @@ describe('window chrome and quit', () => {
   test('the tray hint has words in both languages', async () => {
     const en = (await import('../../i18n/en.json')).default as Record<string, string>
     const ko = (await import('../../i18n/ko.json')).default as Record<string, string>
-    expect(ko['notice.stayInTray']).toBe('트레이에 남아 있어요')
+    expect(ko['notice.stayInTray']).toBe('창을 닫아도 stickypane은 계속 실행돼요')
     expect(ko['app.quit']).toBe('stickypane 종료')
     expect(en['app.quit']).toBe('Quit stickypane')
   })

@@ -32,7 +32,7 @@
     />
     {#if error}<p class="err" role="alert">{error}</p>{/if}
   {:else if option.type === 'lines'}
-    <TextArea label={label} rows={4} hint={$tr('create.linesHint')} {error} value={String(value)} oninput={(e) => (value = e.currentTarget.value)} />
+    <TextArea label={label} rows={4} hint={$tr(option.name === 'text' ? 'create.textHint' : 'create.linesHint')} {error} value={String(value)} oninput={(e) => (value = e.currentTarget.value)} />
   {:else}
     <Input
       label={label}

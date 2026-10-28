@@ -67,7 +67,6 @@
 <UiTitleBar name={title} {path} hotkey={hotkeyLabel(hotkey)} {chrome} window={win} {menu} onmenu={(id) => (id === 'edit' ? onedit() : id === 'settings' ? onsettings?.() : id === 'snap' && onsnap?.(!snap))}>
   {#snippet actions()}
     <SegmentedControl label={$tr('ui.view')} value={mode} iconOnly size="sm" options={views} onchange={(v) => onmode?.(v as LayoutMode)} />
-    <IconButton icon="search" label={$tr('ui.searchSoon')} disabled />
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>
       {$tr('create.new')}
     </Button>

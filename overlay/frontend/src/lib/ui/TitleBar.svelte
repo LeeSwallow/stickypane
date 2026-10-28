@@ -63,7 +63,7 @@
     {:else}
       <span class="name" class:neat={look.style === 'neat'}>{name}</span>
     {/if}
-    {#if hotkey}<Kbd keys={hotkey} />{/if}
+    {#if hotkey}<span class="hotkey" title={$tr('window.hotkey', { key: hotkey })}><Kbd keys={hotkey} /></span>{/if}
   </div>
   <span class="grow"></span>
   <Toolbar label={$tr('ui.windowActions')}>
