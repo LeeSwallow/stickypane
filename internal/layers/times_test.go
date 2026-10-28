@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -42,6 +43,13 @@ func TestTimeLayoutsLiveInWhen(t *testing.T) {
 			name := d.Name()
 			if path != root && (strings.HasPrefix(name, ".") || name == "testdata" || name == "dist") {
 				return filepath.SkipDir
+			}
+			// A nested module (overlay/) keeps its own times: it cannot
+			// import this module's internal/when.
+			if path != root {
+				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
+					return filepath.SkipDir
+				}
 			}
 			return nil
 		}
