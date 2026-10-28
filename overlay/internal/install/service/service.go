@@ -332,8 +332,11 @@ func (s *Service) Connect(ctx context.Context, dry, mcp bool) (Result, error) {
 	return res, err
 }
 
-// Init runs stickypane init in dir, a project's folder.
-func (s *Service) Init(ctx context.Context, dir string) (Result, error) {
+// Init runs stickypane init in dir, a project's folder. lang is the app's
+// language ("ko", "en"; "" for the system's): a new board's welcome note
+// is written in it, and the board's own setting is left unset, so the
+// board goes on following the app.
+func (s *Service) Init(ctx context.Context, dir, lang string) (Result, error) {
 	if !s.safe(dir) {
 		return Result{}, fmt.Errorf("%w: %s", ErrUnsafeDir, dir)
 	}
@@ -342,7 +345,11 @@ func (s *Service) Init(ctx context.Context, dir string) (Result, error) {
 		return Result{}, err
 	}
 	res := Result{Command: model.Name + " init"}
-	res.Output, err = s.cfg.Runner.Run(ctx, ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: []string{"init"}})
+	c := ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: []string{"init"}}
+	if lang != "" {
+		c.Env = []string{"STICKYPANE_LANG=" + lang}
+	}
+	res.Output, err = s.cfg.Runner.Run(ctx, c)
 	res.Output = strings.TrimSpace(res.Output)
 	if err != nil {
 		return res, fmt.Errorf("stickypane init: %v: %s", err, res.Output)

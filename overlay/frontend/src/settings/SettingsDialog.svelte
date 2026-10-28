@@ -26,9 +26,11 @@
     settings,
     mode,
     hotkey = '',
+    appLanguage = '',
     version = '',
     onmode,
     onchanged,
+    onapplanguage,
   }: {
     open?: boolean
     api: SettingsApi
@@ -38,11 +40,15 @@
     settings: Settings
     mode: Mode
     hotkey?: string
+    /** the app's language, overlay.json's: "", "ko" or "en" */
+    appLanguage?: string
     /** the bridge's stickypane */
     version?: string
     onmode: (m: Mode) => void
     /** a board setting was saved: read the board again */
     onchanged: () => void
+    /** the app's language was saved */
+    onapplanguage?: (l: string) => void
   } = $props()
 
   let failed = $state('')
@@ -120,7 +126,17 @@
     kind: 'project',
     settingsSet: (_, v) => api.setSettings({ language: v }),
     settingsGet: () => api.settings() as ReturnType<Extract<LanguageHost, { kind: 'project' }>['settingsGet']>,
+    app: appLanguage,
   })
+
+  // the app's language is this computer's (overlay.json), as the home
+  // window's is; this window keeps drawing in the board's when it has one
+  const appChoice = $derived<Choice>(appLanguage === 'ko' || appLanguage === 'en' ? appLanguage : 'auto')
+  async function setAppLanguage(c: Choice) {
+    const value = c === 'auto' ? '' : c
+    await setAppPref(api, { language: value })
+    onapplanguage?.(value)
+  }
 </script>
 
 <Dialog bind:open title={$tr('settings.title')} width={520}>
@@ -153,13 +169,27 @@
         />
       </div>
       <div class="row">
-        <Language {host} current={(settings.language?.choice as Choice) ?? 'auto'} />
+        <Language
+          {host}
+          current={(settings.language?.choice as Choice) ?? 'auto'}
+          label={$tr('settings.boardLanguage')}
+          autoLabel={$tr('settings.boardLanguage.auto')}
+          hint={$tr('settings.boardLanguage.hint')}
+        />
       </div>
     </section>
 
     <section aria-labelledby="s-app">
       <h3 id="s-app" class:neat={look.style === 'neat'}>{$tr('settings.app')}</h3>
       <p class="scope">{$tr('settings.appScope')}</p>
+      <div class="row">
+        <Language
+          current={appChoice}
+          label={$tr('settings.appLanguage')}
+          hint={$tr('settings.appLanguage.hint')}
+          pick={setAppLanguage}
+        />
+      </div>
       <div class="row">
         <span class="label">{$tr('settings.mode')}</span>
         <SegmentedControl

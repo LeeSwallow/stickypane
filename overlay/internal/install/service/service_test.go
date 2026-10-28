@@ -315,20 +315,28 @@ func (homeTemp) RemoveAll(string) error   { panic("the home folder would be remo
 func TestInitRunsInTheProjectAndRefusesHomeAndRoot(t *testing.T) {
 	g := newRig("/usr/bin")
 	g.r.out = "Made .sticky/"
-	res, err := g.s.Init(ctx, "/work/p")
+	res, err := g.s.Init(ctx, "/work/p", "")
 	if err != nil || res.Output != "Made .sticky/" {
 		t.Fatalf("%v %+v", err, res)
 	}
-	if c := g.r.ran[0]; c.Dir != "/work/p" || c.Name != bundled || strings.Join(c.Args, " ") != "init" {
+	if c := g.r.ran[0]; c.Dir != "/work/p" || c.Name != bundled || strings.Join(c.Args, " ") != "init" || len(c.Env) != 0 {
 		t.Errorf("ran %+v", c)
 	}
 	for _, d := range []string{home, "/", filepath.Join(home, ".")} {
-		if _, err := g.s.Init(ctx, d); !errors.Is(err, ErrUnsafeDir) {
+		if _, err := g.s.Init(ctx, d, ""); !errors.Is(err, ErrUnsafeDir) {
 			t.Errorf("Init(%q) = %v", d, err)
 		}
 	}
 	if len(g.r.ran) != 1 {
 		t.Errorf("ran %+v", g.r.ran)
+	}
+	// the app's language reaches init through the environment, so the
+	// welcome note is in it and the board's own setting stays unset
+	if _, err := g.s.Init(ctx, "/work/q", "ko"); err != nil {
+		t.Fatal(err)
+	}
+	if c := g.r.ran[1]; strings.Join(c.Args, " ") != "init" || strings.Join(c.Env, " ") != "STICKYPANE_LANG=ko" {
+		t.Errorf("ran %+v", c)
 	}
 }
 

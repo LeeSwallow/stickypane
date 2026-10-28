@@ -183,7 +183,7 @@ flowchart LR
 
 - 언어 선택은 본체의 `language` 키(`sticky.json`, `stickypane language`)를 **공유**한다. 값은 `auto` | `ko` | `en`, `auto`는 본체 `i18n.Detect()`와 같은 규칙(STICKYPANE_LANG → LC_ALL → LC_MESSAGES → LANG → 시스템). bridge가 `board.load`의 `settings.language`에 **해석된 값**(`ko`/`en`)과 선택값을 함께 준다.
 - 홈 창은 프로젝트에 속하지 않으므로 `~/.stickypane/overlay.json`의 `language`(기본 `auto`)를 따른다.
-- 앱 설정(홈의 ⚙, 프로젝트 창의 메뉴)에 **한국어 / English / 시스템** 전환이 있다. 프로젝트 창에서 바꾸면 `settings.set {language}`로 그 board의 `sticky.json`에 쓰고 터미널 board도 같이 바뀐다. 바꾸면 다시 시작하지 않고 바로 다시 그린다.
+- 언어 설정은 둘이다([08 §8.2.1](08-app-home-and-sessions.md#821-앱-언어와-보드-언어)). **앱 언어**(홈 창 아래, 보드 설정 "이 컴퓨터")는 **한국어 / English / 시스템**이고 `overlay.json`에 쓴다. **보드 언어**(보드 설정 "이 보드")는 **한국어 / English / 앱 따라**이고 `settings.set {language}`로 그 board의 `sticky.json`에 써서 터미널 board도 같이 바뀐다. 보드 언어를 정하지 않은 보드의 창은 앱 언어로 그린다. 바꾸면 다시 시작하지 않고 바로 다시 그린다.
 - 앱 문구는 `overlay/frontend/src/i18n/{ko,en}.json`, 영어가 기준이고 빠진 키는 영어로 보인다. 손글씨 글꼴 Gaegu는 한글·라틴을 모두 갖고 있어 언어가 바뀌어도 글꼴은 그대로다.
 - 노트 내용은 번역하지 않는다. 열 이름·카드 텍스트는 파일 그대로다.
 - 날짜 묶음("오늘", "어제", "10월 27일" / "Today", "Yesterday", "Oct 27")과 경과 시간("2분 전" / "2m ago")은 `Intl`로 그 언어에 맞춘다.

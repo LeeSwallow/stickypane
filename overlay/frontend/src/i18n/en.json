@@ -314,5 +314,10 @@
   "home.emptyHint": "Pick a project folder and a board is made there.",
   "create.textHint": "Markdown is fine",
   "agents.mcpHint": "Agents can use the board as tools, too.",
-  "home.confirmInitBody": "A .sticky/ folder is made here. Your agent writes notes into it."
+  "home.confirmInitBody": "A .sticky/ folder is made here. Your agent writes notes into it.",
+  "settings.boardLanguage": "Board language",
+  "settings.boardLanguage.auto": "Same as app",
+  "settings.boardLanguage.hint": "When unset, the board follows this computer's app language.",
+  "settings.appLanguage": "App language",
+  "settings.appLanguage.hint": "The home window and boards with no language of their own use it."
 }

@@ -223,7 +223,7 @@
         {:else if groups && !failure}
           <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found === true} />
         {/if}
-        <footer><Language {host} current={lang} /></footer>
+        <footer><Language {host} current={lang} label={$tr('settings.appLanguage')} hint={$tr('settings.appLanguage.hint')} /></footer>
       </main>
     </Paper>
   </div>
@@ -303,6 +303,9 @@
     display: flex;
     justify-content: center;
     margin-top: var(--space-8);
+  }
+  footer > :global(.language) {
+    max-width: 440px;
   }
   .toasts {
     position: absolute;

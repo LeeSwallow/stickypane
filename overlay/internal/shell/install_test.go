@@ -18,6 +18,7 @@ import (
 type fakeInstaller struct {
 	mu        sync.Mutex
 	inits     []string
+	langs     []string
 	connects  []string
 	installed []model.Target
 	err       error
@@ -45,9 +46,10 @@ func (f *fakeInstaller) Connect(_ context.Context, dry, mcp bool) (installsvc.Re
 	f.connects = append(f.connects, what)
 	return installsvc.Result{Command: "stickypane setup", Output: what}, f.err
 }
-func (f *fakeInstaller) Init(_ context.Context, dir string) (installsvc.Result, error) {
+func (f *fakeInstaller) Init(_ context.Context, dir, lang string) (installsvc.Result, error) {
 	f.mu.Lock()
 	f.inits = append(f.inits, dir)
+	f.langs = append(f.langs, lang)
 	f.mu.Unlock()
 	if f.err != nil {
 		return installsvc.Result{}, f.err
@@ -63,6 +65,23 @@ func TestInitProjectRunsTheInstallersInit(t *testing.T) {
 	}
 	if len(r.inst.inits) != 1 || r.inst.inits[0] != dir {
 		t.Errorf("inits %q", r.inst.inits)
+	}
+	if r.inst.langs[0] != "" {
+		t.Errorf("an app with no language of its own leaves it to the system, got %q", r.inst.langs[0])
+	}
+}
+
+// A board made from the app gets its welcome note in the app's language.
+func TestInitProjectPassesTheAppsLanguage(t *testing.T) {
+	r := newRig(t)
+	if err := r.s.SetPrefs(Prefs{Hotkey: DefaultHotkey, Language: "ko"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.s.InitProject(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.inst.langs) != 1 || r.inst.langs[0] != "ko" {
+		t.Errorf("init was given %q, want the app's ko", r.inst.langs)
 	}
 }
 

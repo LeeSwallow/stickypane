@@ -95,6 +95,26 @@ describe('the settings', () => {
     expect(motion.setting).toBe('')
   })
 
+  it('the board language and the app language are two settings, each kept where it belongs', async () => {
+    const { api, board, saved } = fakeApi()
+    const onapplanguage = vi.fn()
+    show(api, { appLanguage: 'ko', onapplanguage })
+    const boardLang = within(screen.getByRole('radiogroup', { name: t('settings.boardLanguage') }))
+    // unset, a board follows the app: its auto says so
+    expect(boardLang.getByRole('radio', { name: t('settings.boardLanguage.auto') })).toBeTruthy()
+    expect(document.body.textContent).toContain(t('settings.boardLanguage.hint'))
+    await fireEvent.click(boardLang.getByRole('radio', { name: t('settings.language.ko') }))
+    await waitFor(() => expect(board).toEqual([{ language: 'ko' }]))
+    expect(saved).toEqual([])
+
+    const appLang = within(screen.getByRole('radiogroup', { name: t('settings.appLanguage') }))
+    expect(appLang.getByRole('radio', { name: t('settings.language.ko') }).getAttribute('aria-checked')).toBe('true')
+    await fireEvent.click(appLang.getByRole('radio', { name: t('settings.language.en') }))
+    await waitFor(() => expect(saved).toEqual([{ hotkey: 'Option+Space', language: 'en', mode: '' }]))
+    expect(onapplanguage).toHaveBeenCalledWith('en')
+    expect(board).toEqual([{ language: 'ko' }])
+  })
+
   it('a hotkey the system will not give is said under the field', async () => {
     const { api } = fakeApi({ setAppPrefs: async () => Promise.reject(new Error('Error: Cmd+Q is taken')) })
     show(api)

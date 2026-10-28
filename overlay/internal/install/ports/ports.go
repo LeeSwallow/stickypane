@@ -13,6 +13,7 @@ type Cmd struct {
 	Path string   // the PATH it runs with ("" keeps the app's)
 	Name string   // the program, a full path or a name looked up on Path
 	Args []string // its arguments
+	Env  []string // variables set over the app's, "NAME=value"
 }
 
 // Runner runs a program without input and returns what it printed, its

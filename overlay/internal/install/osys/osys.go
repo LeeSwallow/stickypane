@@ -20,14 +20,19 @@ import (
 // Runner runs programs.
 type Runner struct{}
 
-// Run runs c with no input, with c.Path as its PATH when given, and
-// returns its output and errors together.
+// Run runs c with no input, with c.Path as its PATH when given and c.Env
+// set over the app's variables, and returns its output and errors
+// together.
 func (Runner) Run(ctx context.Context, c ports.Cmd) (string, error) {
 	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
 	cmd.Dir = c.Dir
 	cmd.WaitDelay = time.Second
-	if c.Path != "" {
-		cmd.Env = withPath(os.Environ(), c.Path)
+	if c.Path != "" || len(c.Env) > 0 {
+		env := os.Environ()
+		if c.Path != "" {
+			env = withPath(env, c.Path)
+		}
+		cmd.Env = append(env, c.Env...)
 	}
 	out, err := cmd.CombinedOutput()
 	if ctx.Err() != nil && err != nil {

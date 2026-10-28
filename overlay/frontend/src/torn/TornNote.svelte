@@ -9,7 +9,7 @@
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
   import { onMount, setContext, tick as drawn } from 'svelte'
-  import { setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { noteOf } from '../lib/shell'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
@@ -52,6 +52,8 @@
   let moving = $state(false)
   let moveTo = $state('')
   let mode = $state<Mode>('system')
+  // the app's language: what a board with none of its own speaks
+  let appLanguage = $state('')
   let systemDark = $state(false)
   let now = $state(new Date())
   let width = $state(360)
@@ -93,7 +95,7 @@
   $effect(() => {
     if (!board) return
     look.style = board.settings.style === 'neat' ? 'neat' : 'doodle'
-    setLanguage(board.settings.language?.resolved === 'ko' ? 'ko' : 'en')
+    setLanguage(boardLanguage(board.settings.language, appLanguage))
   })
   $effect(() => {
     document.title = note?.title || name
@@ -219,6 +221,7 @@
       .then((p) => {
         mode = modeOf(p.mode)
         motion.setting = p.motion ?? ''
+        appLanguage = p.language ?? ''
       })
       .catch(() => {})
     refresh()
