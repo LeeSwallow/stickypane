@@ -1,5 +1,5 @@
 ---
-description: Install the stickypane board plugin for this machine's agents and set this project up
+description: Install the stickypane board plugin for this machine's agents
 allowed-tools: Bash(stickypane:*)
 ---
 

@@ -202,7 +202,10 @@ writes the skill instead of the instruction files and `--no-agent-docs`
 makes the folder only.
 
 `stickypane setup` installs the plugin for every agent it finds, through
-the agents' own commands:
+the agents' own commands. It makes no board and writes no instruction
+file, so it is safe to run from any folder; `stickypane init` in a project
+makes its board, and in a project that already has one takes out a guide
+the plugin now teaches.
 
 ```sh
 stickypane setup                       # asks, then installs for Claude Code and Codex

@@ -21,7 +21,7 @@ var (
 )
 
 // setupCmd installs the board plugin for the agents found on the PATH,
-// through their own commands, then sets the project up. Every choice is a
+// through their own commands. It makes no board. Every choice is a
 // flag; in a terminal, the ones not given are asked, and the plan is
 // confirmed before anything runs.
 func setupCmd(e env, args []string) error {
@@ -85,12 +85,12 @@ func setupCmd(e env, args []string) error {
 	if err := initcmd.RunSetup(steps, setupRun, setupCheck, e.stdout); err != nil {
 		return err
 	}
-	if *undo {
-		return nil
+	if !*undo {
+		// setup teaches the agents and makes no board: it may run from a
+		// folder that is no project at all, such as / or $HOME.
+		fmt.Fprintln(e.stdout, "Next: `stickypane init` in a project makes its board; in a git repository the agent's first `stickypane show` does too.")
 	}
-	// With the plugin in place, init leaves the instruction files alone
-	// and takes out a guide an earlier run put there.
-	return initcmd.Run(root, initcmd.Options{}, e.stdout)
+	return nil
 }
 
 // choose asks a question with options, the first being the default, and
