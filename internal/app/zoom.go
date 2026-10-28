@@ -76,7 +76,13 @@ func (m *Model) layoutZoom() {
 		wl.full = true // zoomed in, a script shows its whole log
 		defer func() { wl.full = false }()
 	}
-	out, at := m.items[i].w.Draw(max(m.width-4, 1), true)
+	var out string
+	var at widget.Span
+	if r, ok := m.items[i].w.(widget.Roomy); ok {
+		out, at = r.DrawIn(max(m.width-4, 1), m.zoomRows(), true)
+	} else {
+		out, at = m.items[i].w.Draw(max(m.width-4, 1), true)
+	}
 	m.zoomLines = strings.Split(out, "\n")
 	rows := m.zoomRows()
 	if m.reveal == revealCursor && at.Ok() {

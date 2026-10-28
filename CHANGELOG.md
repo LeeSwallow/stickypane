@@ -6,6 +6,13 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Changed
+
+- A `spark` chart is a line chart that fills the pane (min and max on an
+  axis, first and last labels, the latest value marked), and a `heat` chart
+  a calendar with weeks two to four cells wide, month labels and a scale.
+  Zoomed, they use the whole screen (#11).
+
 ### Added
 
 - An `html` note: `.html` and `.htm` files in `.sticky/` are shown as text

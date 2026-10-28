@@ -53,6 +53,13 @@ type Widget interface {
 	Sync(d doc.Document) Widget
 }
 
+// Roomy is implemented by widgets that draw bigger when they are given
+// height: the zoomed screen passes the rows it has. A widget that is not
+// Roomy is drawn with Draw.
+type Roomy interface {
+	DrawIn(width, height int, active bool) (out string, at Span)
+}
+
 // Clicker is implemented by widgets that can be worked with the mouse. Click
 // is told which line and cell of the widget's last Draw was pressed. It
 // reports whether anything was there; a press on plain text is not a hit.
