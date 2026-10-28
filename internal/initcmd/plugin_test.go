@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -195,6 +196,9 @@ func TestBoardContextTakesOnlyStickyForABoard(t *testing.T) {
 	}
 	if _, err := exec.LookPath("sh"); err != nil {
 		t.Skip("no sh")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the hook runs under a Unix shell; Windows paths are not its input")
 	}
 	bin := t.TempDir()
 	fake := "#!/bin/sh\necho 'stickypane 0.0.0'\n"

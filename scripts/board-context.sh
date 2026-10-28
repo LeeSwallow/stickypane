@@ -21,7 +21,10 @@ while [ "$dir" != "/" ]; do
       exit 0
     fi
   done
-  dir="$(dirname "$dir")"
+  parent="$(dirname "$dir")"
+  # A path dirname cannot shorten (".", or a Windows path) ends the walk.
+  [ "$parent" = "$dir" ] && break
+  dir="$parent"
 done
 printf 'BOARD_DIR=\n'
 exit 3
