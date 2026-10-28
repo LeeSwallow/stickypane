@@ -4,7 +4,7 @@
 >
 > 터미널 보드에서 사용자가 할 수 있는 모든 일을 overlay에서 어떻게 하는지 정한다. 원칙 O1(overlay가 할 수 있는 일은 터미널도 할 수 있다)의 반대 방향, **터미널에서 되는 일은 overlay에서도 된다**를 확인하는 표다. 출처: `internal/app/*`, `internal/prefs`, `cmd/stickypane`의 조사(2026-10-28).
 
-**판정**: ✅ 같은 기능 · ↗ 더 낫게(그래픽이라 가능) · ↪ 다른 길로(이유 있음) · ✗ 하지 않음(이유 있음). **bridge** 열은 필요한 bridge 메시지(없으면 이미 있는 것으로 충분).
+**판정**: ✅ 같은 기능 · ↗ 더 낫게(그래픽이라 가능) · ↪ 다른 길로(이유 있음) · ✗ 하지 않음(이유 있음) · 미구현 아직 하지 않음(할 일). **bridge** 열은 필요한 bridge 메시지(없으면 이미 있는 것으로 충분).
 
 ## 10.1 화면 배치
 
@@ -53,7 +53,7 @@
 | 한 줄 입력 | 아래 줄 프롬프트 | 그 자리 입력칸(제목, 카드, 항목, 필드) | ✅ | 각 `Act` |
 | 스크립트 실행 + 확인 | `enter`/`space`, 클릭 | ▶ 실행 버튼 + 확인 메모지 "<프로젝트>에서 X를 실행할까요?". 로그는 스크립트 노트 아래 | ✅ | `note.run` |
 | api 요청 보내기 + 확인 | `enter`/`space`, 클릭 | 요청 목록에서 고르고 ▶ 보내기 + 확인. 결과·검사 표시 | ✅ | `note.send {note, request}` |
-| api 환경(`# @env`) 바꾸기 | `e` | 노트 머리의 환경 선택 | ✅ | `note.act` (api `Act: env`) |
+| api 환경(`# @env`) 바꾸기 | `e` | 노트 머리의 환경 선택 | 미구현 | `note.act` (api `Act: env`) — 아직 없음: api에 `Act`가 없다 |
 | 여기서 편집(vi 같은 편집기) | `e` | [설계자 판단] 하지 않는다(N1). 대신 `E`/"편집기로 열기" | ✗ | — |
 | `$EDITOR`로 편집 | `E` | GUI 편집기 또는 OS 기본 앱 | ↪ | `note.open` |
 | 빈 화면 | — | "아직 노트가 없어요. + 생성으로 만들거나 에이전트에게 붙여 달라고 해 보세요." / "열린 노트가 없어요." | ✅ | — |
@@ -70,7 +70,7 @@
 | log | 끝 따라가기, "마지막으로 늘어난 시각" | 같음, 새 줄이 아래에서 밀려 들어옴 | `data.lines` |
 | chat | `n` 말하기, `@user HH:MM` | 아래 입력칸, 이름은 터미널과 같은 규칙(`$STICKYPANE_USER` → git → 로그인) | `say` (who는 bridge가 같은 규칙으로 채움) |
 | script | ▶ Run, 로그 | 같음 | `note.run` |
-| api (.http) | 요청 고르기·보내기·환경 | 같음 | `note.send`, `Act: env` |
+| api (.http) | 요청 고르기·보내기·환경 | 같음(환경 바꾸기는 미구현) | `note.send`; `Act: env`는 미구현 |
 | html | 텍스트만 | 샌드박스에서 실제로 그림 | `data.html` |
 
 ## 10.5 설정
@@ -86,7 +86,7 @@
 | (overlay만) view | terminal · overlay · both | overlay 설정과 `init` |
 | `ignore` | 손으로만 | 손으로만(설정 화면에 넣지 않는다) |
 
-설정은 모두 루트 `sticky.json`에 쓰여 터미널과 overlay가 같은 값을 본다. bridge: `settings.get` / `settings.set {theme|language|time|editor|stale|style|view}`.
+설정은 모두 루트 `sticky.json`에 쓰여 터미널과 overlay가 같은 값을 본다. bridge: `settings.get`(`time`·`editor`·`stale`도 읽는다) / `settings.set {theme|language|style|view}`. **미구현**: `settings.set`의 `time`·`editor`·`stale`(지금은 터미널 `S`나 `stickypane config`로만 바꾼다).
 
 ## 10.6 마우스 · 알림
 

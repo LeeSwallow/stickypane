@@ -123,6 +123,11 @@ type Action struct {
 
 정확한 필드는 구현자가 정한다. 원칙은 **파일에서 읽을 수 있는 것만** 담는다는 것이다(VISION 1).
 
+**규약.**
+
+- **시각.** Data의 기계용 시각은 `when.Moment`가 쓰는 RFC 3339다. 예외는 둘: form의 `at`은 파일의 `submitted_at` 글자 그대로이고, chat의 `day`·`clock`은 터미널이 보여 주는 표시 문자열이다.
+- **Act 인자 이름**(`args`, 모두 문자열). checklist: `i`(`toggle`), `text`(`add`). board: `col`, `i`, `to`, `at`(`move`), `col`, `text`(`add`). form: `line`(`choose`·`fill`), `text`(`fill`), `label`(`submit`). chat: `text`, `who`(`say`; `who`가 비면 bridge가 사용자 이름 규칙으로 채운다).
+
 ### 2.4.3 `stickypane bridge` 프로토콜
 
 한 줄에 JSON 하나(newline-delimited JSON). 요청에는 `id`가 있고, 알림에는 없다.
