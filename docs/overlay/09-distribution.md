@@ -91,7 +91,7 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 
 | 플랫폼 | 파일 | 규칙 |
 |---|---|---|
-| macOS | `overlay/build/darwin/tray-template.svg` → `tray-template.png`(18×18)·`tray-template@2x.png`(36×36) | 템플릿 이미지: 검정 + 알파만. 위 메모지가 아래 메모지에 틈을 낸다. Wails `SystemTray.SetTemplateIcon`으로 넣어 메뉴 막대 색을 따른다. Wails가 막대 두께에 맞춰 크기를 정하므로 앱은 @2x 한 장을 넣는다 |
+| macOS | `overlay/build/darwin/tray-template.svg` → `tray-template.png`(18×18)·`tray-template@2x.png`(36×36) | 템플릿 이미지: 검정 + 알파만. 앱 아이콘처럼 크레용으로 그린다: 살짝 휜 굵은 외곽선, 옅은 바탕 위 −41° 빗금. 위 메모지가 아래 메모지에 틈을 낸다. Wails `SystemTray.SetTemplateIcon`으로 넣어 메뉴 막대 색을 따른다. Wails가 막대 두께에 맞춰 크기를 정하므로 앱은 @2x 한 장을 넣는다 |
 | Linux | `overlay/build/tray.png`(44×44, 컬러) | `SetIcon` |
 
 `overlay/build/darwin/tray.sh`가 두 가지를 다시 만든다. 어느 쪽을 쓸지는 `shell.trayIcon`이 정하고 테스트가 지킨다(darwin이면 템플릿 + 템플릿 플래그).
