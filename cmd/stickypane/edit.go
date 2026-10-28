@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
@@ -47,7 +46,7 @@ func editCmd(cmd string) func(env, []string) error {
 		case "log":
 			line := strings.Join(rest, " ")
 			if stamp {
-				line = time.Now().Format(when.Clock) + " " + line
+				line = e.now().Format(when.Clock) + " " + line
 			}
 			out, err = a.Log(name, line)
 		case "say":

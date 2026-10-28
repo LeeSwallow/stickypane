@@ -167,7 +167,12 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 // runCtx is run with a context that ends when the user interrupts.
 func runCtx(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	e := env{ctx: ctx, stdin: stdin, stdout: stdout, stderr: stderr}
+	return runEnv(env{ctx: ctx, stdin: stdin, stdout: stdout, stderr: stderr, now: time.Now}, args)
+}
+
+// runEnv is run in e: its context, its streams and its clock.
+func runEnv(e env, args []string) int {
+	stderr := e.stderr
 	if len(args) > 0 {
 		if c, ok := lookup(args[0]); ok {
 			e.cmd = args[0]

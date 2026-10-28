@@ -77,7 +77,7 @@ func Prepare(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	if p, _, err := env.Detect().Script(script); err == nil {
 		prog = p
 	}
-	head := fmt.Sprintf("$ %s %s   (%s)\n", prog, name, started.Format("2006-01-02 15:04:05"))
+	head := fmt.Sprintf("$ %s %s   (%s)\n", prog, name, when.LogHead(started))
 	if err := st.Write(log, []byte(head)); err != nil {
 		return nil, err
 	}

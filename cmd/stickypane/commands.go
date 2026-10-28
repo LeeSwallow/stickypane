@@ -19,7 +19,8 @@ type env struct {
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
-	cmd    string // the word of the command line that chose the command
+	cmd    string           // the word of the command line that chose the command
+	now    func() time.Time // the clock every time written is read from
 }
 
 // command is one word of the command line. Its usage is the lines of the

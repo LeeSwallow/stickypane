@@ -42,7 +42,7 @@ func open(e env, create bool) (*api.API, error) {
 	if changes[e.cmd] {
 		registry.Touch(filepath.Dir(dir), e.cmd)
 	}
-	return api.New(store.Open(dir), kinds.Default(note.Plain)), nil
+	return api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), e.now), nil
 }
 
 // printJSON writes v as JSON without escaping HTML.
@@ -187,7 +187,7 @@ func mcpCmd(e env, args []string) error {
 	// command line does, and one that reads it says there is none.
 	a, err := open(e, false)
 	if errors.Is(err, errNoBoard) {
-		a, err = api.New(nil, kinds.Default(note.Plain)), nil
+		a, err = api.NewWithClock(nil, kinds.Default(note.Plain), e.now), nil
 	}
 	if err != nil {
 		return err

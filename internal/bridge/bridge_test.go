@@ -70,12 +70,18 @@ type session struct {
 
 func serve(t *testing.T, dir string) *session {
 	t.Helper()
+	return serveAPI(t, newAPI(dir))
+}
+
+// serveAPI serves a bridge on a over pipes.
+func serveAPI(t *testing.T, a *api.API) *session {
+	t.Helper()
 	inR, inW := io.Pipe()
 	outR, outW := io.Pipe()
 	s := &session{t: t, in: inW, lines: make(chan map[string]json.RawMessage, 100), done: make(chan error, 1)}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		s.done <- Serve(ctx, newAPI(dir), kinds.Default(note.Plain), inR, outW)
+		s.done <- Serve(ctx, a, kinds.Default(note.Plain), inR, outW)
 		outW.Close()
 	}()
 	go func() {

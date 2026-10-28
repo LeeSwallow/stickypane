@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -60,7 +59,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		// open. Another file is what its extension makes it.
 		var d doc.Document
 		if strings.EqualFold(filepath.Ext(file), ".md") {
-			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"))
+			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
@@ -111,7 +110,7 @@ func (a *API) Todo(name, action, item string) (string, error) {
 	case "add":
 		op = checklist.AddItem{Text: item}
 	case "check", "uncheck":
-		op = checklist.Check{Item: item, Checked: action == "check", At: checklist.Stamp(time.Now())}
+		op = checklist.Check{Item: item, Checked: action == "check", At: checklist.Stamp(a.now())}
 	default:
 		return "", fmt.Errorf("unknown action %q: use add, check or uncheck", action)
 	}
@@ -201,7 +200,7 @@ func (a *API) Say(name, who, text string) (string, error) {
 	if who = strings.TrimSpace(who); who == "" {
 		who = "agent"
 	}
-	file, d, err := a.change(name, []string{"chat"}, chat.Say{Who: who, Text: text, At: time.Now()})
+	file, d, err := a.change(name, []string{"chat"}, chat.Say{Who: who, Text: text, At: a.now()})
 	if err != nil {
 		return "", err
 	}

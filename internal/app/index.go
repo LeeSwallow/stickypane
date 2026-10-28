@@ -27,7 +27,7 @@ func init() {
 			widget.Bold.Render("/ ") + m.indexFilter.View()
 	}
 	open := func(m *Model) tea.Cmd {
-		idx, err := api.New(m.store, m.reg).Index()
+		idx, err := api.NewWithClock(m.store, m.reg, m.now).Index()
 		if err != nil {
 			m.status = err.Error()
 			return nil

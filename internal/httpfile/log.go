@@ -129,7 +129,7 @@ func frameLine(f Frame) string {
 	if f.Kind == "wait" {
 		return "· wait " + f.Data
 	}
-	at := f.At.Format("15:04:05.000")
+	at := when.Milli(f.At)
 	switch f.Kind {
 	case "text":
 		return dir + " " + at + "  " + strings.ReplaceAll(f.Data, "\n", " ")

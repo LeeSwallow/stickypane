@@ -61,11 +61,26 @@ type Options struct {
 type API struct {
 	st  *store.Store
 	reg widget.Registry
+	now func() time.Time // the clock every time the API writes is read from
 }
 
 // New returns the API for a notes folder. reg decides which types exist and
 // what size a note has when it does not say.
-func New(st *store.Store, reg widget.Registry) *API { return &API{st: st, reg: reg} }
+func New(st *store.Store, reg widget.Registry) *API { return NewWithClock(st, reg, time.Now) }
+
+// NewWithClock is New with the clock the API reads when it writes a time:
+// when a note was made, an item ticked, a message said. A nil clock is
+// time.Now.
+func NewWithClock(st *store.Store, reg widget.Registry, now func() time.Time) *API {
+	if now == nil {
+		now = time.Now
+	}
+	return &API{st: st, reg: reg, now: now}
+}
+
+// Now is the time on the API's clock, for callers that write a time
+// beside what the API writes.
+func (a *API) Now() time.Time { return a.now() }
 
 // Store is the notes folder the API works on, for callers that read or
 // change the board's settings.
@@ -186,7 +201,7 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err == nil {
 		before = doc.Parse(old)
 	} else if isMarkdown(file) {
-		d = created(d)
+		d = created(d, a.now())
 	}
 	d = a.tend(file, before, d)
 	if err := a.st.Write(file, d.Bytes()); err != nil {
@@ -234,7 +249,7 @@ func (a *API) Create(name string, opts Options, body []byte) (string, error) {
 		return "", err
 	}
 	if isMarkdown(file) {
-		d = created(d)
+		d = created(d, a.now())
 	}
 	d = a.tend(file, doc.Document{}, d)
 	if err := a.st.WriteNew(file, d.Bytes()); err != nil {
@@ -248,18 +263,18 @@ func (a *API) Create(name string, opts Options, body []byte) (string, error) {
 func isMarkdown(file string) bool { return strings.EqualFold(filepath.Ext(file), ".md") }
 
 // created says in a new note when stickypane made it.
-func created(d doc.Document) doc.Document {
+func created(d doc.Document, now time.Time) doc.Document {
 	if _, ok := d.Get("created"); ok {
 		return d
 	}
-	return d.Set("created", time.Now().Format(when.Stamp))
+	return d.Set("created", now.Format(when.Stamp))
 }
 
 // tend writes what the note's kind fills in by itself, such as the time an
 // item was ticked, so that the agent does not have to.
 func (a *API) tend(file string, before, d doc.Document) doc.Document {
 	if k := a.reg.For(file, d); k.Tend != nil {
-		if op := k.Tend(before, d, time.Now()); op != nil {
+		if op := k.Tend(before, d, a.now()); op != nil {
 			if out, err := op.Apply(d); err == nil {
 				return out
 			}

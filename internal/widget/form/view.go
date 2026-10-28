@@ -329,7 +329,7 @@ func (f *Form) Update(key string) (widget.Widget, widget.Result) {
 				Submit:  func(text string) doc.Op { return Fill{Nth: nth, Old: old, Text: text} },
 			}
 		case buttons:
-			f.submitted, f.at = l.labels[c.button], now().Format(time.RFC3339)
+			f.submitted, f.at = l.labels[c.button], now().Format(when.Moment)
 			res.Op = Submit{Label: f.submitted, At: f.at}
 		}
 	}

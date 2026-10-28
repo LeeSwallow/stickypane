@@ -29,6 +29,22 @@ func TestShortSaysAsLittleAsTheDayAllows(t *testing.T) {
 	}
 }
 
+// The forms written beside a run are fixed: a log's head, a watch line, a
+// transcript's frame and a file name.
+func TestTheFixedFormsOfARun(t *testing.T) {
+	at := time.Date(2026, 10, 3, 14, 2, 5, 42_000_000, time.UTC)
+	for _, c := range []struct{ got, want string }{
+		{LogHead(at), "2026-10-03 14:02:05"},
+		{Second(at), "14:02:05"},
+		{Milli(at), "14:02:05.042"},
+		{Slug(at), "20261003-140205"},
+	} {
+		if c.got != c.want {
+			t.Errorf("%q, want %q", c.got, c.want)
+		}
+	}
+}
+
 func TestDurationIsReadable(t *testing.T) {
 	for d, want := range map[time.Duration]string{
 		420 * time.Millisecond:                     "0.42s",

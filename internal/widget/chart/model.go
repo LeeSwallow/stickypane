@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -43,7 +44,7 @@ func parse(d doc.Document) *Chart {
 		// as the text it is rather than dropped.
 		var dated []point
 		for _, p := range c.points {
-			if _, err := time.Parse(dayLayout, strings.TrimSpace(p.label)); err == nil {
+			if _, err := time.Parse(when.Date, strings.TrimSpace(p.label)); err == nil {
 				dated = append(dated, p)
 			} else {
 				c.prose = append(c.prose, p.label+": "+p.text)
@@ -71,7 +72,7 @@ type day struct {
 func (c *Chart) days() []day {
 	var days []day
 	for _, p := range c.points {
-		if t, err := time.Parse(dayLayout, strings.TrimSpace(p.label)); err == nil {
+		if t, err := time.Parse(when.Date, strings.TrimSpace(p.label)); err == nil {
 			days = append(days, day{t, p})
 		}
 	}
