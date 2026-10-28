@@ -77,8 +77,31 @@ function find(root: ParentNode, t: Target): HTMLElement[] {
   }
 }
 
-const deltaOf = (was: DOMRect | undefined, now: DOMRect): Delta | null =>
-  was ? { x: was.left - now.left, y: was.top - now.top } : null
+/**
+ * zoomOf is how much the free canvas around el is zoomed (its .layer is
+ * scaled): a slide is in the layer's own pixels, so a distance measured on
+ * the screen is divided by it. 1 outside a canvas.
+ */
+export function zoomOf(el: Element): number {
+  const layer = el.closest('[data-canvas] .layer') as HTMLElement | null
+  if (!layer || !layer.offsetWidth) return 1
+  const z = layer.getBoundingClientRect().width / layer.offsetWidth
+  return Number.isFinite(z) && z > 0 ? z : 1
+}
+
+/** deltaOf is how far el has to come from where it was, in its own pixels. */
+function deltaOf(was: DOMRect | undefined, el: Element): Delta | null {
+  if (!was) return null
+  const now = el.getBoundingClientRect()
+  const z = zoomOf(el)
+  return { x: (was.left - now.left) / z, y: (was.top - now.top) / z }
+}
+
+/**
+ * held reports whether the person is moving or sizing el (or the note it is
+ * in) right now: it follows their hand, and nothing else moves it.
+ */
+export const held = (el: Element): boolean => !!el.closest('.moving, .sizing')
 
 export interface PlayOptions {
   look: Look
@@ -147,7 +170,8 @@ export class Player {
       if (targeted.has(k)) continue
       const [part, frame] = k.split('\u0000')
       if (part !== 'f' && !flip.has(frame)) continue
-      const d = deltaOf(before.rects.get(k), el.getBoundingClientRect())
+      if (held(el)) continue
+      const d = deltaOf(before.rects.get(k), el)
       if (d) this.run(el, slide(d, o.look))
     }
 
@@ -179,8 +203,9 @@ export class Player {
     }
     const els = key ? (now.get(key) ? [now.get(key)!] : []) : find(root, s.target)
     els.forEach((el, i) => {
+      if (held(el)) return
       if (s.effect === 'glow') return this.glow(el, s.delay, o)
-      const d = key ? deltaOf(before.rects.get(key), el.getBoundingClientRect()) : null
+      const d = key ? deltaOf(before.rects.get(key), el) : null
       const a = this.run(el, movement(s.effect, o.look, d), s.delay + (s.effect === 'push' ? i * 40 : 0))
       // a carried or dropped part passes over its neighbours
       if (a && (s.effect === 'carry' || s.effect === 'drop')) this.above(el, a)

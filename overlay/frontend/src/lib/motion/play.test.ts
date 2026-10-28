@@ -25,7 +25,8 @@ beforeEach(() => {
   }
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     const y = Number((this as HTMLElement).dataset?.y ?? 0)
-    return { left: 0, top: y, width: 100, height: 20, right: 100, bottom: y + 20, x: 0, y, toJSON() {} } as DOMRect
+    const w = Number((this as HTMLElement).dataset?.w ?? 100)
+    return { left: 0, top: y, width: w, height: 20, right: w, bottom: y + 20, x: 0, y, toJSON() {} } as DOMRect
   })
 })
 afterEach(() => vi.restoreAllMocks())
@@ -82,6 +83,41 @@ describe('Player', () => {
     p.play(root, snapshot(root), { steps: [], flip: [] }, { look: full })
     expect(root.querySelector('.motion-glow')).toBeNull()
     expect(p.busy).toBe(false)
+  })
+
+  it('on a zoomed canvas, a slide is in the canvas\'s own pixels', () => {
+    const root = page(`<div data-canvas><div class="layer" data-w="200"><div data-frame="a.md" data-y="0"></div><div data-frame="b.md" data-y="40"></div></div></div>`)
+    Object.defineProperty(root.querySelector('.layer')!, 'offsetWidth', { value: 100 })
+    const before = snapshot(root)
+    root.querySelector<HTMLElement>('[data-frame="b.md"]')!.dataset.y = '0'
+    root.querySelector<HTMLElement>('[data-frame="a.md"]')!.dataset.y = '40'
+    new Player().play(root, before, { steps: [], flip: [] }, { look: full })
+    // shown at 200%: 40 screen pixels are 20 of the canvas's
+    expect(calls.map((c) => [(c.el as HTMLElement).dataset.frame, c.keyframes[0].transform])).toEqual([
+      ['a.md', 'translate(0px, -20px)'],
+      ['b.md', 'translate(0px, 20px)'],
+    ])
+  })
+
+  it('leaves alone a note the person is dragging or sizing', () => {
+    const root = page(`<div class="item moving"><div data-frame="a.md" data-y="0"><div data-card="x" data-y="0"></div></div></div><div class="sizing" data-frame="b.md" data-y="0"></div>`)
+    const before = snapshot(root)
+    root.querySelector<HTMLElement>('[data-frame="a.md"]')!.dataset.y = '50'
+    root.querySelector<HTMLElement>('[data-frame="b.md"]')!.dataset.y = '50'
+    new Player().play(
+      root,
+      before,
+      {
+        steps: [
+          { target: { part: 'card', frame: 'a.md', card: 'x' }, effect: 'carry', delay: 0 },
+          { target: { part: 'note', frame: 'b.md' }, effect: 'glow', delay: 0 },
+        ],
+        flip: ['a.md'],
+      },
+      { look: full },
+    )
+    expect(calls).toEqual([])
+    expect(root.querySelector('.motion-glow')).toBeNull()
   })
 
   it('moves nothing when motion is off, and skips parts that are not there', () => {

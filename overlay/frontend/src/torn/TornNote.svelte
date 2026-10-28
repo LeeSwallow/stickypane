@@ -8,13 +8,15 @@
   // same questions. The shell closes it when the note
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
-  import { onMount, setContext } from 'svelte'
+  import { onMount, setContext, tick as drawn } from 'svelte'
   import { setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { noteOf } from '../lib/shell'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
-  import { applyTheme } from '../lib/theme/tokens'
+  import { agentColor, applyTheme } from '../lib/theme/tokens'
+  import { director } from '../lib/motion/director'
+  import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -55,6 +57,8 @@
   let width = $state(360)
   // the page a book is open at, in this window
   let pages = $state<Record<string, number>>({})
+  // where the note is drawn: what moves when it changes (lib/motion)
+  let body: HTMLElement | undefined = $state()
 
   // the shell names the note again after a move
   const name = $derived(status?.note || start)
@@ -185,14 +189,31 @@
   }
   setContext(boardContext, ctx)
 
+  // a board.changed moves what changed in this note, as on the board (04 §4.3)
+  const stage = director({
+    root: () => body ?? null,
+    board: () => board,
+    refresh,
+    settle: drawn,
+    visible: () => new Set(note ? [note.name] : []),
+    look: () => ({ style: look.style, level: level() }),
+    colorOf: (who) => (look.palette ? agentColor(who, look.palette.notes) : undefined),
+    hidden: () => document.visibilityState === 'hidden',
+  })
+
   onMount(() => {
-    const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d))]
+    const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d)), watchReducedMotion(), () => stage.stop()]
     api
       .prefs()
-      .then((p) => (mode = modeOf(p.mode)))
+      .then((p) => {
+        mode = modeOf(p.mode)
+        motion.setting = p.motion ?? ''
+      })
       .catch(() => {})
     refresh()
-    offs.push(connect({ status: () => api.status(), bus, onChanged: () => refresh(), onRestarted: () => refresh(), onStatus: () => refresh() }))
+    offs.push(
+      connect({ status: () => api.status(), bus, onChanged: (data) => void stage.changed(data), onRestarted: () => refresh(), onStatus: () => refresh() }),
+    )
     const tick = setInterval(() => (now = new Date()), 60_000)
     offs.push(() => clearInterval(tick))
     return () => offs.forEach((off) => off())
@@ -216,7 +237,7 @@
     />
     <IconButton icon="restore" size="sm" label={$tr('note.putBack')} align="end" onclick={putBack} />
   </header>
-  <main class="body">
+  <main class="body" bind:this={body}>
     {#if note}
       {#key note.name}
         <NoteFrame {note} free narrow small={width < 300} {width} />
