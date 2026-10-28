@@ -19,7 +19,7 @@
 | 앱 실행 파일 | `Contents/MacOS/stickypane-app`, Linux는 `stickypane-app` (CLI `stickypane`와 겹치지 않게) |
 | `.desktop` | `Name=stickypane`, `Exec=stickypane-app %u`, `Icon=stickypane` |
 
-[사용자 결정] **앱만 깔면 다 된다.** 앱 안에 `stickypane` 명령을 넣는다. macOS는 `Stickypane.app/Contents/Resources/bin/stickypane`, Linux는 앱 바이너리 옆 `stickypane`. 같은 체크아웃의 `./cmd/stickypane`을 앱과 같은 버전(`-X main.version=<CFBundleShortVersionString>`), 같은 아키텍처로 `overlay-dmg.sh`·`overlay-linux.sh`가 빌드해 넣는다. 앱은 bridge를 찾을 때 이 번들 사본을 **먼저** 보고(`bridge.BundledCLI()`), 그다음 `STICKYPANE_BIN`, PATH, `/opt/homebrew/bin`·`/usr/local/bin`·`~/go/bin` 순이다. 터미널에서 쓰도록 PATH에 링크를 거는 버튼은 따로 한다.
+[사용자 결정] **앱만 깔면 다 된다.** 앱 안에 `stickypane` 명령을 넣는다. macOS는 `Stickypane.app/Contents/Helpers/stickypane`, Linux는 앱 바이너리 옆 `stickypane`. 같은 체크아웃의 `./cmd/stickypane`을 앱과 같은 버전(`-X main.version=<CFBundleShortVersionString>`), 같은 아키텍처로 `overlay-dmg.sh`·`overlay-linux.sh`가 빌드해 넣는다. 앱은 bridge를 찾을 때 이 번들 사본을 **먼저** 보고(`bridge.BundledCLI()`), 그다음 `STICKYPANE_BIN`, PATH, `/opt/homebrew/bin`·`/usr/local/bin`·`~/go/bin` 순이다. 터미널에서 쓰도록 PATH에 링크를 거는 버튼은 따로 한다.
 
 본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
@@ -62,7 +62,7 @@
 `scripts/overlay-dmg.sh <app> <out.dmg>`의 순서:
 
 1. `.app`을 검사한다(Info.plist와 그 `CFBundleExecutable`). 같은 이름의 볼륨이 이미 마운트돼 있으면 멈춘다.
-2. 임시 폴더에 `Stickypane.app`으로 복사하고, `stickypane` CLI를 빌드해 `Contents/Resources/bin/`에 넣고, 안쪽부터 ad-hoc 서명한다(CLI → 앱). `/Applications` 심볼릭 링크와 `.background/background.tiff`를 둔다.
+2. 임시 폴더에 `Stickypane.app`으로 복사하고, `stickypane` CLI를 빌드해 `Contents/Helpers/`에 넣고(Apple 규칙상 `Resources`에는 실행 코드를 두지 않는다), 안쪽부터 ad-hoc 서명한다(CLI → 앱). `/Applications` 심볼릭 링크와 `.background/background.tiff`를 둔다.
 3. `hdiutil create -format UDRW` → `hdiutil attach`(Finder가 볼 수 있게 `-nobrowse` 없이).
 4. AppleScript로 그 디스크 이미지의 Finder 창만 정리한다: 아이콘 보기, 도구 막대·상태 막대 숨김, 창 경계, 아이콘 크기·위치, 배경. Finder가 `.DS_Store`를 쓸 때까지 기다린다.
 5. `.VolumeIcon.icns`와 사용자 정의 아이콘 속성, `bless --openfolder`(마운트하면 창이 열린다).
@@ -97,6 +97,6 @@
 |---|---|
 | DMG 레이아웃 | 만든 DMG를 `open`으로 마운트해(사용자와 같이) Finder 창만 `screencapture -l <창 id>`로 찍는다. 이 문서의 그림이 그것이다 |
 | DMG 스크립트 | `overlay/scripts/dmg_test.sh`: 없는 `.app`, 빈 `.app`, `.dmg`가 아닌 출력에 0이 아닌 코드로 끝나고, 이미지를 쓰지 않고, 아무것도 마운트하지 않는다 |
-| 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Resources/bin/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
+| 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | Linux | CI(ubuntu)에서 빌드와 Go 테스트. 실기 실행은 [미검증] |

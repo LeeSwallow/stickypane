@@ -62,7 +62,7 @@ var searchDirs = func() []string {
 var executable = os.Executable
 
 // BundledCLI returns the stickypane that ships inside the app, if it is
-// there: Contents/Resources/bin/stickypane of the macOS bundle, or the
+// there: Contents/Helpers/stickypane of the macOS bundle, or the
 // stickypane next to the app's binary on Linux (docs/overlay/09 §9.1).
 func BundledCLI() (path string, ok bool) {
 	exe, err := executable()
@@ -81,7 +81,7 @@ func bundledPath(goos, exe string) string {
 	dir := filepath.Dir(exe)
 	switch goos {
 	case "darwin":
-		return filepath.Join(dir, "..", "Resources", "bin", "stickypane")
+		return filepath.Join(dir, "..", "Helpers", "stickypane")
 	case "windows":
 		return filepath.Join(dir, "stickypane.exe")
 	}

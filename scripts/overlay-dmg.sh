@@ -8,7 +8,7 @@
 #
 # The .app comes from `wails3 package` in overlay/; the background from
 # overlay/build/dmg/render.sh. The image's copy of the app carries the
-# command line program at Contents/Resources/bin/stickypane, built here
+# command line program at Contents/Helpers/stickypane, built here
 # from this checkout for the app's architectures with the app's version,
 # so installing the app is enough (09 §9.1). Both are signed ad hoc (codesign -s -), the program first.
 # Finder arranges the window through AppleScript, so it runs on a Mac with
@@ -58,7 +58,7 @@ mkdir -p "$stage/.background"
 ditto "$app" "$stage/$name"
 version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
 archs=$(lipo -archs "$app/Contents/MacOS/$exe")
-cli="$stage/$name/Contents/Resources/bin/stickypane"
+cli="$stage/$name/Contents/Helpers/stickypane"
 mkdir -p "$(dirname "$cli")"
 set --
 for a in $archs; do

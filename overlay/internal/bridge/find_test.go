@@ -151,7 +151,7 @@ func fakeBundle(t *testing.T) (exe, cliDir string) {
 	if runtime.GOOS == "darwin" {
 		app := filepath.Join(root, "Stickypane.app", "Contents")
 		exe = filepath.Join(app, "MacOS", "stickypane-app")
-		cliDir = filepath.Join(app, "Resources", "bin")
+		cliDir = filepath.Join(app, "Helpers")
 	} else {
 		exe = filepath.Join(root, "stickypane-app", "stickypane-app")
 		cliDir = filepath.Dir(exe)
@@ -204,7 +204,7 @@ func TestWithoutABundledStickypaneFindLooksFurther(t *testing.T) {
 func TestBundledPath(t *testing.T) {
 	for _, c := range []struct{ goos, exe, want string }{
 		{"darwin", "/Applications/Stickypane.app/Contents/MacOS/stickypane-app",
-			"/Applications/Stickypane.app/Contents/Resources/bin/stickypane"},
+			"/Applications/Stickypane.app/Contents/Helpers/stickypane"},
 		{"linux", "/opt/stickypane-app/stickypane-app", "/opt/stickypane-app/stickypane"},
 	} {
 		if got := bundledPath(c.goos, c.exe); got != filepath.FromSlash(c.want) {
