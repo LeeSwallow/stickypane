@@ -1,0 +1,68 @@
+package html
+
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/charmbracelet/x/ansi"
+
+	"github.com/LeeSwallow/stickypane/internal/doc"
+)
+
+func draw(src string, width int) string {
+	out, _ := Kind.Parse(doc.Document{Body: src}).Draw(width, false)
+	return ansi.Strip(out)
+}
+
+func TestHTMLViewShowsTextWithoutTags(t *testing.T) {
+	out := draw("<h1>Bench</h1><script>x()</script><style>p{color:red}</style><p>a &amp; b</p>", 40)
+	for _, want := range []string{"Bench", "a & b", "open it in the overlay to see it drawn"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("view lacks %q:\n%s", want, out)
+		}
+	}
+	for _, bad := range []string{"x()", "color", "<", "&amp;"} {
+		if strings.Contains(out, bad) {
+			t.Errorf("view shows %q:\n%s", bad, out)
+		}
+	}
+	lines := strings.Split(out, "\n")
+	if last := lines[len(lines)-1]; !strings.Contains(last, "overlay") {
+		t.Errorf("last line = %q", last)
+	}
+}
+
+func TestHTMLViewKeepsBlocksApart(t *testing.T) {
+	out := draw("<p>one</p><p>two</p><!-- hidden --><SCRIPT type=x>no</SCRIPT>", 40)
+	if !strings.Contains(out, "one\ntwo") || strings.Contains(out, "hidden") || strings.Contains(out, "no\n") {
+		t.Errorf("view = %q", out)
+	}
+}
+
+func TestHTMLViewFitsTheWidth(t *testing.T) {
+	for _, w := range []int{1, 7, 20} {
+		for _, l := range strings.Split(draw("<p>a long line of words that must wrap</p>", w), "\n") {
+			if len(l) > w && ansi.StringWidth(l) > w {
+				t.Errorf("width %d: %q too wide", w, l)
+			}
+		}
+	}
+}
+
+func TestHTMLDataIsTheSource(t *testing.T) {
+	src := "<h1>Bench</h1>\n"
+	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"html":"\u003ch1\u003eBench\u003c/h1\u003e\n"}`; string(b) != want {
+		t.Errorf("Data = %s, want %s", b, want)
+	}
+}
+
+func TestHTMLIsViewOnly(t *testing.T) {
+	if Kind.Act != nil || Kind.Events != nil {
+		t.Error("an html note has no Act and no Events")
+	}
+}

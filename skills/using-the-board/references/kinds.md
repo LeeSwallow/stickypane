@@ -120,6 +120,12 @@ For a command the user should run, not you: `deploy.sh` in `.sticky/`, or
 PowerShell in the project folder; the output
 goes to `deploy.log`, which opens and follows. It never runs without a yes.
 
+## HTML
+
+For a page to look at, not to change: `report.html` in `.sticky/`. The terminal
+shows its text, without tags, scripts or styles, and says the page can be
+seen drawn in the overlay. Nothing on it can be changed from a screen.
+
 ## API requests (exp)
 
 Experimental: the format and the commands may still change. For HTTP requests to try and check: `api.http` in `.sticky/`, written as

@@ -22,7 +22,7 @@ func TestDefaultRegistry(t *testing.T) {
 			t.Errorf("kind %q is incomplete", k.Name)
 		}
 	}
-	if got := strings.Join(names, ","); got != "note,board,checklist,log,chat,chart,form,script,api" {
+	if got := strings.Join(names, ","); got != "note,board,checklist,log,chat,chart,form,script,api,html" {
 		t.Errorf("kinds = %s", got)
 	}
 	if reg.Lookup("script").Name != "note" || reg.For("run.sh", doc.Document{}).Name != "script" || reg.For("build.log", doc.Document{}).Name != "log" {

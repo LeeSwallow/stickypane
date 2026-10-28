@@ -114,7 +114,7 @@ reader and a writer is laid out the same way:
 | `view.go` | the screen: drawing, keys, clicks, the cursor |
 | `events.go` | what happened between two versions of the file, for `stickypane watch` |
 
-Small shapes (`note`, `logview`, `script`) stay in one file.
+Small shapes (`note`, `logview`, `script`) stay in one file. `html` is view-only, so its `ops.go` and `events.go` hold only a comment.
 
 To add a shape:
 

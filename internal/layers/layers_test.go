@@ -56,6 +56,7 @@ var rank = map[string]int{
 	"internal/widget/chat":      22,
 	"internal/widget/script":    22,
 	"internal/widget/api":       22,
+	"internal/widget/html":      22,
 	// The registry of shapes, and how a note is arranged.
 	"internal/kinds":   30,
 	"internal/arrange": 30,
