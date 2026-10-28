@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,10 +77,75 @@ func TestNoteCommandsReportProblems(t *testing.T) {
 
 func TestNoteCommandsNeedANotesFolder(t *testing.T) {
 	t.Chdir(t.TempDir())
-	for _, args := range [][]string{{"list"}, {"show", "a"}, {"write", "a"}, {"mcp"}} {
+	for _, args := range [][]string{{"list"}, {"show", "a"}, {"write", "a"}} {
 		if code, _, errOut := exec(t, args...); code != 1 || !strings.Contains(errOut, "stickypane init") {
 			t.Errorf("%v: code = %d, stderr = %q", args, code, errOut)
 		}
+	}
+}
+
+// mcpTools runs the MCP server over tool calls, one {name, arguments} pair
+// each, and returns each call's text and whether it failed.
+func mcpTools(t *testing.T, calls ...string) (texts []string, failed []bool) {
+	t.Helper()
+	var in strings.Builder
+	for i := 0; i+1 < len(calls); i += 2 {
+		fmt.Fprintf(&in, `{"jsonrpc":"2.0","id":%d,"method":"tools/call","params":{"name":%q,"arguments":%s}}`+"\n", i/2+1, calls[i], calls[i+1])
+	}
+	code, out, errOut := execIn(t, in.String(), "mcp")
+	if code != 0 {
+		t.Fatalf("mcp should serve without a board: code = %d, stderr = %q", code, errOut)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		var r struct {
+			Result struct {
+				Content []struct{ Text string } `json:"content"`
+				IsError bool                    `json:"isError"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal([]byte(line), &r); err != nil || len(r.Result.Content) == 0 {
+			t.Fatalf("not a tool result: %q", line)
+		}
+		texts = append(texts, r.Result.Content[0].Text)
+		failed = append(failed, r.Result.IsError)
+	}
+	return texts, failed
+}
+
+// The MCP server starts without a board, as the command line does: in a git
+// repository the first change makes the board, a read before it says there
+// is none, and outside one every tool that needs a board says to run
+// stickypane init. The guide needs no board.
+func TestMCPServesWithoutABoard(t *testing.T) {
+	outside := t.TempDir()
+	t.Chdir(outside)
+	texts, failed := mcpTools(t, "guide", `{}`, "index", `{}`, "write_note", `{"name":"a","content":"hi\n"}`)
+	if failed[0] || !strings.Contains(texts[0], "## Skills") {
+		t.Errorf("the guide needs no board: %q", texts[0])
+	}
+	for i := 1; i < 3; i++ {
+		if !failed[i] || !strings.Contains(texts[i], "stickypane init") {
+			t.Errorf("call %d outside a project should say to run stickypane init: %q", i, texts[i])
+		}
+	}
+	if _, err := os.Stat(filepath.Join(outside, ".sticky")); err == nil {
+		t.Error("outside a git repository no board is made")
+	}
+
+	repo := t.TempDir()
+	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	texts, failed = mcpTools(t, "read_note", `{"name":"a"}`, "write_note", `{"name":"a","content":"hi\n"}`, "read_note", `{"name":"a"}`)
+	if !failed[0] || !strings.Contains(texts[0], "stickypane init") {
+		t.Errorf("a read before the board is made says there is none: %q", texts[0])
+	}
+	if failed[1] || failed[2] || plain(texts[2]) != "hi\n" {
+		t.Errorf("the first write makes the board: %q %v", texts, failed)
+	}
+	if _, err := os.Stat(filepath.Join(repo, ".sticky", "a.md")); err != nil {
+		t.Errorf("the note is in the new board: %v", err)
 	}
 }
 

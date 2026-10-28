@@ -54,6 +54,18 @@ on GitHub are built from pull request labels.
   `sticky.json` written by this version shows its notes there at their
   default size and height.
 
+### Fixed
+
+- The session hook and `/board:status` take only `.sticky/` for a board,
+  not `~/.stickypane` (#26).
+- `stickypane setup` makes no board and writes no `AGENTS.md`; it says to
+  run `stickypane init` in a project. It says when no agent was found, and
+  the README says what `--undo` removes (#26).
+- `stickypane mcp` starts in a project without a board: a tool that
+  changes the board makes it in a git repository, and any other tool says
+  to run `stickypane init` (#26).
+- The plugin manifests say 0.1.1 (#26).
+
 ## [0.1.1] - 2026-10-10
 
 ### Fixed

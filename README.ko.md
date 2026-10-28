@@ -56,7 +56,8 @@ stickypane version   # 설치 확인
 stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 ```
 
-지우려면 플러그인을 넣었을 때 `stickypane setup --undo`를 먼저 하고, 설치한
+지우려면 플러그인을 넣었을 때 `stickypane setup --undo`를 먼저 하고(설치할 때와 같은
+`--scope`로, MCP 서버를 등록했다면 `--mcp`도 붙여서), 설치한
 방법대로 지웁니다. 노트는 각 프로젝트의 `.sticky/`에 평범한 파일로 남습니다.
 
 ## 시작

@@ -42,9 +42,17 @@ const (
 
 // Server answers MCP requests for one notes folder.
 type Server struct {
-	API     *api.API
+	// API is the board the tools work on. A server may start before the
+	// project has a board: then API has no store (api.New(nil, reg)), which
+	// is enough for the guide, and Open is asked for the board.
+	API *api.API
+	// Open finds the board, or makes it when write is set and the project
+	// can have one; its error is what a tool that needs the board returns.
+	Open    func(write bool) (*api.API, error)
 	Guide   string // the short agent guide, which the "guide" tool opens with
 	Version string
+
+	mu sync.Mutex // guards API while Open has not found the board
 }
 
 type request struct {
@@ -407,11 +415,19 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, &rpcError{codeParams, "cannot read the tool arguments: " + err.Error()}
 	}
-	text, err := "", error(nil)
+	write, onBoard := boardTools[p.Name]
+	if p.Name == "arrange_note" && p.Arguments.Action == "show" {
+		write = true // as stickypane show, putting a note up makes the board
+	}
+	b, err := s.board(onBoard, write)
+	if err != nil {
+		return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}, nil
+	}
+	text := ""
 	switch a := p.Arguments; p.Name {
 	case "read_note":
-		b, rerr := s.API.Cat(a.Name)
-		text, err = string(b), rerr
+		body, rerr := b.Cat(a.Name)
+		text, err = string(body), rerr
 	case "write_note":
 		if a.Content == nil {
 			// Without this check a call that forgot its content would
@@ -419,20 +435,20 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			err = errors.New("write_note needs content: the whole note as Markdown")
 			break
 		}
-		file, werr := s.API.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
+		file, werr := b.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
 	case "todo":
-		text, err = s.API.Todo(a.Name, a.Action, a.Item)
+		text, err = b.Todo(a.Name, a.Action, a.Item)
 	case "card":
-		text, err = s.API.Card(a.Name, a.Action, a.Card, a.To)
+		text, err = b.Card(a.Name, a.Action, a.Card, a.To)
 	case "chart":
-		text, err = s.API.Chart(a.Name, a.Action, a.Label, plain(a.Value))
+		text, err = b.Chart(a.Name, a.Action, a.Label, plain(a.Value))
 	case "log":
-		text, err = s.API.Log(a.Name, a.Line)
+		text, err = b.Log(a.Name, a.Line)
 	case "say":
-		text, err = s.API.Say(a.Name, a.As, a.Text)
+		text, err = b.Say(a.Name, a.As, a.Text)
 	case "arrange_note":
-		text, err = s.arrange(a.Name, a.Action, a.To)
+		text, err = arrange(b, a.Name, a.Action, a.To)
 	case "set_keys":
 		keys := make([]string, 0, len(a.Keys))
 		for k := range a.Keys {
@@ -443,20 +459,20 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		for i, k := range keys {
 			pairs[i] = k + "=" + plain(a.Keys[k])
 		}
-		text, err = s.API.Set(a.Name, pairs)
+		text, err = b.Set(a.Name, pairs)
 	case "read_answers":
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
-		got, aerr := s.API.Wait(wctx, a.Name, waitEvery)
+		got, aerr := b.Wait(wctx, a.Name, waitEvery)
 		cancel()
 		if errors.Is(aerr, context.DeadlineExceeded) || errors.Is(aerr, context.Canceled) {
 			aerr = nil // the answers so far are the result
 		}
 		text, err = got.String(), aerr
 	case "api":
-		text, _, err = s.API.HTTP(ctx, a.Name, a.Request, a.Env, a.All)
+		text, _, err = b.HTTP(ctx, a.Name, a.Request, a.Env, a.All)
 	case "index":
 		var idx []api.Entry
-		if idx, err = s.API.Index(); err == nil {
+		if idx, err = b.Index(); err == nil {
 			text = api.IndexMarkdown(idx, "board")
 		}
 	case "wait_event":
@@ -467,7 +483,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(wait, maxWait)*float64(time.Second)))
 		f := api.Filter{Notes: split(a.Notes), Types: split(a.Types)}
 		var got *api.Event
-		werr := s.API.Watch(wctx, f, func(e api.Event) error {
+		werr := b.Watch(wctx, f, func(e api.Event) error {
 			got = &e
 			return errFound
 		}, nil)
@@ -482,7 +498,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			err = werr
 		}
 	case "guide":
-		text, err = s.API.Guide(a.Topic, s.Guide)
+		text, err = b.Guide(a.Topic, s.Guide)
 	default:
 		return nil, &rpcError{codeParams, "unknown tool " + p.Name}
 	}
@@ -499,23 +515,47 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 }
 
 // arrange runs the arrange_note tool.
-func (s *Server) arrange(name, action, to string) (string, error) {
+func arrange(b *api.API, name, action, to string) (string, error) {
 	switch action {
 	case "show":
-		return s.API.Show(name)
+		return b.Show(name)
 	case "hide":
-		return s.API.Hide(name)
+		return b.Hide(name)
 	case "move":
 		if to == "" {
 			return "", errors.New(`move needs "to": a new name, a folder ending in "/", or "."`)
 		}
-		return s.API.Move(name, to)
+		return b.Move(name, to)
 	case "remove":
-		return s.API.Remove(name)
+		return b.Remove(name)
 	case "restore":
-		return s.API.Restore(name)
+		return b.Restore(name)
 	}
 	return "", fmt.Errorf("unknown action %q: show, hide, move, remove or restore", action)
+}
+
+// boardTools are the tools that work on the board, each with whether it
+// changes the board, so that a missing board may be made for it. The guide
+// needs no board.
+var boardTools = map[string]bool{
+	"read_note": false, "read_answers": false, "api": false, "index": false, "wait_event": false, "arrange_note": false,
+	"write_note": true, "todo": true, "card": true, "chart": true, "log": true, "say": true, "set_keys": true,
+}
+
+// board is the API a tool works on. Until the server has a board, Open is
+// asked for one at each tool that needs it, and the first found is kept.
+func (s *Server) board(onBoard, write bool) (*api.API, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !onBoard || s.Open == nil || s.API.Store() != nil {
+		return s.API, nil
+	}
+	a, err := s.Open(write)
+	if err != nil {
+		return nil, err
+	}
+	s.API = a
+	return a, nil
 }
 
 // errFound ends a wait_event that has its event.

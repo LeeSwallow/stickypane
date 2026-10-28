@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -32,6 +33,54 @@ func TestPluginManifestsParse(t *testing.T) {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
 		if err != nil || !strings.HasPrefix(string(b), "---\ndescription: ") {
 			t.Errorf("%s should start with a description: %v", f, err)
+		}
+	}
+}
+
+// The plugin's manifests name the release they ship with: the newest
+// version the changelog lists.
+func TestPluginManifestsNameTheRelease(t *testing.T) {
+	log, err := os.ReadFile(filepath.Join(repoRoot, "CHANGELOG.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^## \[(\d+\.\d+\.\d+)\]`).FindSubmatch(log)
+	if m == nil {
+		t.Fatal("the changelog lists no release")
+	}
+	release := string(m[1])
+	versions := func(f string) []string {
+		b, err := os.ReadFile(filepath.Join(repoRoot, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var v struct {
+			Version string `json:"version"`
+			Plugins []struct {
+				Version string `json:"version"`
+			} `json:"plugins"`
+		}
+		if err := json.Unmarshal(b, &v); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		out := []string{}
+		if v.Version != "" {
+			out = append(out, v.Version)
+		}
+		for _, p := range v.Plugins {
+			out = append(out, p.Version)
+		}
+		return out
+	}
+	for _, f := range []string{".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json", ".agents/plugins/marketplace.json"} {
+		got := versions(f)
+		if len(got) == 0 {
+			t.Errorf("%s names no version", f)
+		}
+		for _, v := range got {
+			if v != release {
+				t.Errorf("%s says %s; the release is %s", f, v, release)
+			}
 		}
 	}
 }
@@ -135,6 +184,55 @@ func TestSessionStartHookIsQuietWithoutABoard(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil || len(out) != 0 {
 		t.Errorf("without a board the hook should say nothing: %q, %v", out, err)
+	}
+}
+
+// Only .sticky is a board. ~/.stickypane is where the registry lives, so a
+// project under it without a .sticky of its own has no board.
+func TestBoardContextTakesOnlyStickyForABoard(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join(repoRoot, "scripts", "board-context.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("no sh")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the hook runs under a Unix shell; Windows paths are not its input")
+	}
+	bin := t.TempDir()
+	fake := "#!/bin/sh\necho 'stickypane 0.0.0'\n"
+	if err := os.WriteFile(filepath.Join(bin, "stickypane"), []byte(fake), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	home := t.TempDir()
+	project := filepath.Join(home, "work", "app")
+	for _, d := range []string{filepath.Join(home, ".stickypane"), project} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(dir string) (string, int) {
+		cmd := exec.Command("sh", script)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"), "PWD="+dir)
+		out, err := cmd.CombinedOutput()
+		code := 0
+		if ee, ok := err.(*exec.ExitError); ok {
+			code = ee.ExitCode()
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		return string(out), code
+	}
+	if out, code := run(project); code != 3 || !strings.Contains(out, "BOARD_DIR=\n") {
+		t.Errorf("a folder named .stickypane is not a board: exit %d\n%s", code, out)
+	}
+	if err := os.Mkdir(filepath.Join(project, ".sticky"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := run(project); code != 0 || !strings.Contains(out, "BOARD_DIR="+filepath.Join(project, ".sticky")+"\n") {
+		t.Errorf(".sticky is the board: exit %d\n%s", code, out)
 	}
 }
 

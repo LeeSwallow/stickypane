@@ -14,14 +14,17 @@ printf 'STICKYPANE_INSTALLED=yes\nSTICKYPANE_VERSION=%s\n' "$(stickypane version
 
 dir="${PWD:-.}"
 while [ "$dir" != "/" ]; do
-  for name in .sticky .stickypane; do
+  for name in .sticky; do
     if [ -d "$dir/$name" ]; then
       printf 'BOARD_DIR=%s\n' "$dir/$name"
       printf 'NOTES<<END\n%s\nEND\n' "$(stickypane list 2>/dev/null)"
       exit 0
     fi
   done
-  dir="$(dirname "$dir")"
+  parent="$(dirname "$dir")"
+  # A path dirname cannot shorten (".", or a Windows path) ends the walk.
+  [ "$parent" = "$dir" ] && break
+  dir="$parent"
 done
 printf 'BOARD_DIR=\n'
 exit 3

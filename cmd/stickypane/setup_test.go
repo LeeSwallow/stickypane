@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -39,5 +41,61 @@ func TestSetupAsksBeforeItRuns(t *testing.T) {
 	}
 	if code, _, _ := exec(t, "setup", "--agents", "gemini"); code != exitUsage {
 		t.Errorf("an unknown agent is a usage error: %d", code)
+	}
+}
+
+// stubSetup replaces the agents' commands: found are the agents on the
+// PATH, and the commands run are collected in the returned slice.
+func stubSetup(t *testing.T, found ...string) *[]string {
+	t.Helper()
+	var ran []string
+	oldRun, oldCheck, oldLook, oldHas := setupRun, setupCheck, setupLook, setupHas
+	t.Cleanup(func() { setupRun, setupCheck, setupLook, setupHas = oldRun, oldCheck, oldLook, oldHas })
+	setupRun = func(cmd []string) error { ran = append(ran, strings.Join(cmd, " ")); return nil }
+	setupCheck = func([]string) error { return errors.New("not registered") }
+	setupLook = func(name string) (string, error) {
+		if slices.Contains(found, name) {
+			return "/bin/" + name, nil
+		}
+		return "", errors.New("missing")
+	}
+	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return false, false } }
+	return &ran
+}
+
+// setup installs the agents' integration and nothing else: run from a
+// folder that is not a project (a desktop app runs it from / or $HOME), it
+// makes no board and writes no AGENTS.md there, and says how to make one.
+func TestSetupMakesNoBoard(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	ran := stubSetup(t, "claude")
+	code, out, errOut := exec(t, "setup", "--yes")
+	if code != 0 || len(*ran) == 0 {
+		t.Fatalf("setup --yes: code %d, ran %q, err %q", code, *ran, errOut)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+		t.Errorf("setup wrote into the current folder: %v", entries)
+	}
+	if !strings.Contains(out, "stickypane init") {
+		t.Errorf("setup should say how to make a board:\n%s", out)
+	}
+}
+
+// With no agent on the PATH nothing is set up, and setup says so rather
+// than that every agent found is set up.
+func TestSetupSaysWhenNoAgentIsFound(t *testing.T) {
+	t.Chdir(t.TempDir())
+	stubSetup(t)
+	for _, args := range [][]string{{"setup", "--yes"}, {"setup", "--undo", "--yes"}, {"setup", "--agents", "codex", "--yes"}} {
+		code, out, _ := exec(t, args...)
+		if code != 0 || strings.Contains(out, "every agent found") || !strings.Contains(out, "No agent found") {
+			t.Errorf("%q: code %d\n%s", args, code, out)
+		}
+	}
+	stubSetup(t, "claude")
+	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return true, true } }
+	if code, out, _ := exec(t, "setup", "--yes"); code != 0 || !strings.Contains(out, "Nothing to do") {
+		t.Errorf("all set up: code %d\n%s", code, out)
 	}
 }

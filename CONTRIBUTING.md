@@ -148,7 +148,9 @@ may only import a lower layer; `internal/layers` fails the tests otherwise.
 
 The maintainer reviews within a week or says when. A pull request is
 squashed onto `main`, so its title is what the history and the release
-notes say. A `v*` tag builds a release from `main`.
+notes say. A `v*` tag builds a release from `main`; the changelog's entry
+for it and the plugin manifests' `version` change with it, which a test
+checks.
 
 ## With an AI agent
 

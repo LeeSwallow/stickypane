@@ -182,12 +182,19 @@ func mcpCmd(e env, args []string) error {
 	if _, err := parse(newFlags("mcp"), "mcp", args, 0, 0); err != nil {
 		return err
 	}
+	// The server starts without a board, as an agent's MCP client starts it
+	// in any project: a tool that changes the board makes it, as the
+	// command line does, and one that reads it says there is none.
 	a, err := open(e, false)
+	if errors.Is(err, errNoBoard) {
+		a, err = api.New(nil, kinds.Default(note.Plain)), nil
+	}
 	if err != nil {
 		return err
 	}
 	defer live("mcp")()
 	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: fullVersion()}
+	server.Open = func(write bool) (*api.API, error) { return open(e, write) }
 	return server.Serve(e.ctx, e.stdin, e.stdout)
 }
 

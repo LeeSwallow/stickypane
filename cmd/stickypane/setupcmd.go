@@ -21,7 +21,7 @@ var (
 )
 
 // setupCmd installs the board plugin for the agents found on the PATH,
-// through their own commands, then sets the project up. Every choice is a
+// through their own commands. It makes no board. Every choice is a
 // flag; in a terminal, the ones not given are asked, and the plan is
 // confirmed before anything runs.
 func setupCmd(e env, args []string) error {
@@ -30,7 +30,7 @@ func setupCmd(e env, args []string) error {
 	mcp := fs.Bool("mcp", false, "also register stickypane as an MCP server")
 	agents := fs.String("agents", "", "claude, codex or both, comma-separated (default: those found)")
 	yes := fs.Bool("yes", false, "run without asking")
-	undo := fs.Bool("undo", false, "remove what setup adds")
+	undo := fs.Bool("undo", false, "uninstall the plugin (and the MCP server with --mcp)")
 	dry := fs.Bool("dry-run", false, "print the plan and run nothing")
 	if _, err := parse(fs, "setup", args, 0, 0); err != nil {
 		return err
@@ -64,6 +64,15 @@ func setupCmd(e env, args []string) error {
 	if root == "" {
 		root = "."
 	}
+	wanted := opts.Agents
+	if len(wanted) == 0 {
+		wanted = []string{"claude", "codex"}
+	}
+	found := slices.ContainsFunc(wanted, func(a string) bool { _, err := setupLook(a); return err == nil })
+	if !found {
+		fmt.Fprintf(e.stdout, "No agent found: no %s command on the PATH. Install Claude Code or Codex first, or give any other agent the guide with `stickypane init` in a project.\n", strings.Join(wanted, " or "))
+		return nil
+	}
 	steps := initcmd.PlanSetup(opts, setupLook, setupHas(root))
 	if len(steps) == 0 {
 		fmt.Fprintln(e.stdout, "Nothing to do: the board plugin is set up for every agent found.")
@@ -85,12 +94,12 @@ func setupCmd(e env, args []string) error {
 	if err := initcmd.RunSetup(steps, setupRun, setupCheck, e.stdout); err != nil {
 		return err
 	}
-	if *undo {
-		return nil
+	if !*undo {
+		// setup teaches the agents and makes no board: it may run from a
+		// folder that is no project at all, such as / or $HOME.
+		fmt.Fprintln(e.stdout, "Next: `stickypane init` in a project makes its board; in a git repository the agent's first `stickypane show` does too.")
 	}
-	// With the plugin in place, init leaves the instruction files alone
-	// and takes out a guide an earlier run put there.
-	return initcmd.Run(root, initcmd.Options{}, e.stdout)
+	return nil
 }
 
 // choose asks a question with options, the first being the default, and

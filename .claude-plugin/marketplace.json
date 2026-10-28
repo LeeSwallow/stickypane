@@ -10,7 +10,7 @@
       "name": "board",
       "source": "./",
       "description": "Skills, commands and a session hook for using the stickypane board",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }

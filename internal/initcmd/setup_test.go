@@ -71,6 +71,11 @@ func TestSetupUndoRemovesWhatItAdded(t *testing.T) {
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("undo =\n%s", strings.Join(got, "\n"))
 	}
+	// Without --mcp, undo takes out the plugin only, as the README says.
+	got = cmds(PlanSetup(SetupOptions{Undo: true}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
+	if strings.Join(got, "\n") != "claude plugin uninstall board@stickypane --scope user\ncodex plugin remove board@stickypane" {
+		t.Errorf("undo without --mcp =\n%s", strings.Join(got, "\n"))
+	}
 }
 
 func TestRunSetupRunsStepsAndStopsAtAFailure(t *testing.T) {
