@@ -1,5 +1,6 @@
 <script lang="ts">
-  // Dev only (?demo=screens&screen=home|empty|board|zoom&mode=dark|light):
+  // Dev only (?demo=screens&screen=home|empty|board|zoom|create|settings
+  // &shape=board|form|chart…&mode=dark|light):
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. Nothing here ships.
   import Board from '../board/Board.svelte'
@@ -107,8 +108,13 @@
   const boardApi = fakeProject(board, mode, lang)
 </script>
 
-{#if screen === 'board' || screen === 'zoom'}
-  <Board api={boardApi} zoom={screen === 'zoom' ? 'work/auth.md' : undefined} />
+{#if screen === 'board' || screen === 'zoom' || screen === 'create' || screen === 'settings'}
+  <Board
+    api={boardApi}
+    zoom={screen === 'zoom' ? 'work/auth.md' : undefined}
+    create={screen === 'create' ? (q.get('shape') ?? 'board') : undefined}
+    settings={screen === 'settings'}
+  />
 {:else}
   <Home api={homeApi} />
 {/if}
