@@ -58,8 +58,39 @@ var searchDirs = func() []string {
 	return dirs
 }
 
+// executable is os.Executable; tests put the app in a fake bundle.
+var executable = os.Executable
+
+// BundledCLI returns the stickypane that ships inside the app, if it is
+// there: Contents/Resources/bin/stickypane of the macOS bundle, or the
+// stickypane next to the app's binary on Linux (docs/overlay/09 §9.1).
+func BundledCLI() (path string, ok bool) {
+	exe, err := executable()
+	if err != nil {
+		return "", false
+	}
+	if r, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = r
+	}
+	p := bundledPath(runtime.GOOS, exe)
+	return p, isExecutable(p)
+}
+
+// bundledPath is where the app whose binary is exe keeps its stickypane.
+func bundledPath(goos, exe string) string {
+	dir := filepath.Dir(exe)
+	switch goos {
+	case "darwin":
+		return filepath.Join(dir, "..", "Resources", "bin", "stickypane")
+	case "windows":
+		return filepath.Join(dir, "stickypane.exe")
+	}
+	return filepath.Join(dir, "stickypane")
+}
+
 // Find returns the path of a stickypane program that has the bridge. It
-// looks at STICKYPANE_BIN, then every directory of PATH, then
+// looks at the one bundled in the app (BundledCLI), then STICKYPANE_BIN,
+// then every directory of PATH, then
 // /opt/homebrew/bin, /usr/local/bin and ~/go/bin, and takes the first
 // whose `stickypane help` lists `stickypane bridge`: an older copy
 // earlier on PATH (Homebrew's, say) is passed over for a newer one later.
@@ -109,6 +140,9 @@ func candidates() []string {
 		}
 		seen[key] = true
 		out = append(out, p)
+	}
+	if p, ok := BundledCLI(); ok {
+		add(p)
 	}
 	add(os.Getenv("STICKYPANE_BIN"))
 	for _, d := range filepath.SplitList(os.Getenv("PATH")) {

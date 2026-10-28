@@ -40,7 +40,10 @@ func isolate(t *testing.T, path string, dirs ...string) {
 	t.Helper()
 	old := searchDirs
 	searchDirs = func() []string { return dirs }
-	t.Cleanup(func() { searchDirs = old })
+	oldExe := executable
+	nowhere := filepath.Join(t.TempDir(), "app", "Contents", "MacOS", "stickypane-app")
+	executable = func() (string, error) { return nowhere, nil }
+	t.Cleanup(func() { searchDirs, executable = old, oldExe })
 	t.Setenv("STICKYPANE_BIN", "")
 	t.Setenv("PATH", path)
 	resetProbes()
@@ -137,5 +140,75 @@ func TestOldStickypaneBinIsPassedOver(t *testing.T) {
 	t.Setenv("STICKYPANE_BIN", old)
 	if got, err := Find(); err != nil || got != want {
 		t.Fatalf("Find = %q, %v; want %q", got, err, want)
+	}
+}
+
+// fakeBundle lays out an app as it is installed on this OS and returns its
+// binary and the directory its stickypane belongs in.
+func fakeBundle(t *testing.T) (exe, cliDir string) {
+	t.Helper()
+	root := t.TempDir()
+	if runtime.GOOS == "darwin" {
+		app := filepath.Join(root, "Stickypane.app", "Contents")
+		exe = filepath.Join(app, "MacOS", "stickypane-app")
+		cliDir = filepath.Join(app, "Resources", "bin")
+	} else {
+		exe = filepath.Join(root, "stickypane-app", "stickypane-app")
+		cliDir = filepath.Dir(exe)
+	}
+	for _, d := range []string{filepath.Dir(exe), cliDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(exe, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return exe, cliDir
+}
+
+func TestFindPrefersTheStickypaneInTheApp(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "runs.log")
+	exe, cliDir := fakeBundle(t)
+	want, _ := filepath.EvalSymlinks(fakeStickypane(t, cliDir, "0.3.0", true, log))
+	env, path := t.TempDir(), t.TempDir()
+	isolate(t, path)
+	executable = func() (string, error) { return exe, nil }
+	t.Setenv("STICKYPANE_BIN", fakeStickypane(t, env, "0.2.0", true, log))
+	fakeStickypane(t, path, "0.2.0", true, log)
+
+	if got, ok := BundledCLI(); !ok || filepath.Clean(got) != want {
+		t.Fatalf("BundledCLI = %q, %v; want %q", got, ok, want)
+	}
+	if got, err := Find(); err != nil || filepath.Clean(got) != want {
+		t.Fatalf("Find = %q, %v; want the bundled %q", got, err, want)
+	}
+}
+
+func TestWithoutABundledStickypaneFindLooksFurther(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "runs.log")
+	exe, _ := fakeBundle(t)
+	path := t.TempDir()
+	want := fakeStickypane(t, path, "0.2.0", true, log)
+	isolate(t, path)
+	executable = func() (string, error) { return exe, nil }
+
+	if got, ok := BundledCLI(); ok {
+		t.Fatalf("BundledCLI = %q, true in an app without one", got)
+	}
+	if got, err := Find(); err != nil || got != want {
+		t.Fatalf("Find = %q, %v; want %q", got, err, want)
+	}
+}
+
+func TestBundledPath(t *testing.T) {
+	for _, c := range []struct{ goos, exe, want string }{
+		{"darwin", "/Applications/Stickypane.app/Contents/MacOS/stickypane-app",
+			"/Applications/Stickypane.app/Contents/Resources/bin/stickypane"},
+		{"linux", "/opt/stickypane-app/stickypane-app", "/opt/stickypane-app/stickypane"},
+	} {
+		if got := bundledPath(c.goos, c.exe); got != filepath.FromSlash(c.want) {
+			t.Errorf("bundledPath(%s, %s) = %s, want %s", c.goos, c.exe, got, c.want)
+		}
 	}
 }
