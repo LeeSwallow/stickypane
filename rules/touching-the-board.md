@@ -1,23 +1,26 @@
-# What the board keeps for itself
+# Changing the board
 
-Every skill of this plugin follows these. They are what keeps an agent and
-the user from undoing each other.
+Each command changes one thing and prints where the note stands
+(`plan.md: 2/5`): report that line, do not read the file back. A missing
+note is made, open, and so is a missing board in a git repository
+(elsewhere `stickypane init`).
 
-- **The arrangement is the user's.** Never edit `sticky.json`; change how a
-  note is shown with `stickypane set`, `show` or `hide`, and only when the
-  user would expect it.
-- **Times are the board's.** Do not write when something happened: the
-  board writes `created:`, the time an item is ticked (`✅ 2026-10-03
-  14:02`), a card's `@{date}`, a message's time and a log line's `--time`.
-- **Computed values are the board's.** A chart with `from:` is filled in by
-  the board; do not write its numbers.
-- **Change, do not rewrite.** A one-line command changes one thing in the
-  file as it is now. Rewriting a note loses what the user ticked, moved or
-  typed since you read it; read it first when you must.
-- **Nothing runs without a yes.** Scripts run when the user presses Run and
-  confirms. `stickypane watch --exec` runs commands in the user's shell:
-  start one only when the user asked for that reaction.
-- **Deleting is the user's call.** `stickypane rm` moves to `.trash/` and
-  `restore` brings it back; still, remove a note only when asked.
-- **The answer comes from the board.** Read a form with `wait` or
-  `answers` and a chat with `watch`, not by parsing the marks yourself.
+```sh
+stickypane show README.md                  # a note, or any file or folder of the project
+stickypane todo plan add "write tests"     # also: check, uncheck <item>
+stickypane card work move login --to Done  # also: add "text" --to Doing
+stickypane chart tokens add input 1200     # also: set
+stickypane log worklog --time "tests passed"
+stickypane say chat "41/41 pass"           # signed "agent"; --as <your name> to sign it
+stickypane set plan open=true size=1/2     # also: title="..."; hide <name> folds it
+stickypane mv plan deploy/                 # into a tab; also: rm, restore, link <path>
+```
+
+An item, a card or a column is named by its text, a part of it, or `#2`.
+
+- Never edit `sticky.json`: it is how the user arranged the screen.
+- Do not write times, or the numbers of a `from:` chart: the board does.
+- The user edits from the board too. Use the commands, and run
+  `stickypane cat <name>` before you rewrite a note.
+- Read a form with `stickypane wait` or `answers`, a chat with `watch`.
+- Run nothing (`watch --exec`) and remove nothing unless the user asks.

@@ -14,12 +14,32 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
 //go:embed guide.md
-var guide string
+var guideHead string
+
+// guide is the head, then the plugin's rules without their titles: each
+// rule is written once, in rules/, and an agent without the plugin reads
+// the same words.
+var guide = guideHead + rule("rules/touching-the-board.md") + rule("rules/writing-notes.md") + endMark + "\n"
+
+// rule is a file of the plugin's rules/ without its title line, after a
+// blank line.
+func rule(name string) string {
+	b, err := fs.ReadFile(stickypane.Harness, name)
+	if err != nil {
+		panic(err)
+	}
+	text := strings.ReplaceAll(string(b), "\r\n", "\n")
+	if strings.HasPrefix(text, "# ") {
+		_, text, _ = strings.Cut(text, "\n")
+	}
+	return "\n" + strings.TrimLeft(text, "\n")
+}
 
 //go:embed welcome.md
 var welcome string

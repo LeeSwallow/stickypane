@@ -34,8 +34,7 @@ out with no reply. Over MCP: the `say` tool, then `wait_event` with
 ## Rules
 
 - Say as yourself, with the same `--as` every time.
-- One message is one thing, one line. Point to a file with
-  `stickypane show <path>` instead of pasting it.
+- One message is one thing, one line.
 - Only add with `say`; never rewrite `chat.md`. It is the record of the
   conversation, and the user writes to it at the same time.
 - A question with a handful of answers is a form: `asking-the-user`.

@@ -54,9 +54,8 @@ type: checklist
 
 Shown with a progress bar, open items first and done ones below, newest
 first. The user ticks items with `space`; `stickypane todo plan check tests`
-ticks one from your side. Do not write times: the board writes
-`✅ 2026-10-03 14:02` after a ticked item by itself, even one you ticked by
-editing the file, and `created:` into a note it makes.
+ticks one from your side. The board writes `✅ 2026-10-03 14:02` after a
+ticked item, even one ticked by editing the file.
 
 ## Log
 
