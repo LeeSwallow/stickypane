@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { appName } from './lib/app'
-  // TEMPORARY: the look demo, at ?demo=look, in dev builds only. The dynamic
-  // import behind import.meta.env.DEV is dropped from production builds.
+  // Which window this page is decides what it draws: the home list or one
+  // project's board. The look demo stays reachable in dev builds only.
+  import { windowKind } from './lib/shell'
+  import Home from './home/Home.svelte'
+  import Board from './board/Board.svelte'
+
+  const kind = windowKind(location.search)
   const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
   const LookDemo = demo === 'look' ? import('./demo/LookDemo.svelte') : null
 </script>
@@ -10,21 +14,8 @@
   {#await LookDemo then m}
     <m.default />
   {/await}
+{:else if kind === 'project'}
+  <Board />
 {:else}
-  <main>
-    <h1>{appName}</h1>
-  </main>
+  <Home />
 {/if}
-
-<style>
-  main {
-    height: 100%;
-    display: grid;
-    place-items: center;
-  }
-  h1 {
-    font-family: var(--font-hand);
-    font-weight: 700;
-    font-size: 28px;
-  }
-</style>
