@@ -132,7 +132,18 @@ flowchart LR
 | chat | 말풍선 없이 `@이름 시각 내용` 줄. 이름은 에이전트 색 손글씨 |
 | html | 손그림 테두리 안의 샌드박스 iframe. 머리에 "HTML · 보기 전용" 배지 |
 
-## 3.8 접근성
+## 3.8 언어
+
+[사용자 결정] 앱은 한국어와 영어를 지원한다(R-33).
+
+- 언어 선택은 본체의 `language` 키(`sticky.json`, `stickypane language`)를 **공유**한다. 값은 `auto` | `ko` | `en`, `auto`는 본체 `i18n.Detect()`와 같은 규칙(STICKYPANE_LANG → LC_ALL → LC_MESSAGES → LANG → 시스템). bridge가 `board.load`의 `settings.language`에 **해석된 값**(`ko`/`en`)과 선택값을 함께 준다.
+- 홈 창은 프로젝트에 속하지 않으므로 `~/.stickypane/overlay.json`의 `language`(기본 `auto`)를 따른다.
+- 앱 설정(홈의 ⚙, 프로젝트 창의 메뉴)에 **한국어 / English / 시스템** 전환이 있다. 프로젝트 창에서 바꾸면 `settings.set {language}`로 그 board의 `sticky.json`에 쓰고 터미널 board도 같이 바뀐다. 바꾸면 다시 시작하지 않고 바로 다시 그린다.
+- 앱 문구는 `overlay/frontend/src/i18n/{ko,en}.json`, 영어가 기준이고 빠진 키는 영어로 보인다. 손글씨 글꼴 Gaegu는 한글·라틴을 모두 갖고 있어 언어가 바뀌어도 글꼴은 그대로다.
+- 노트 내용은 번역하지 않는다. 열 이름·카드 텍스트는 파일 그대로다.
+- 날짜 묶음("오늘", "어제", "10월 27일" / "Today", "Yesterday", "Oct 27")과 경과 시간("2분 전" / "2m ago")은 `Intl`로 그 언어에 맞춘다.
+
+## 3.9 접근성
 
 - 대비: 본문 글자는 `--ink` on `--paper`. 카드 글자는 wash 위 진한 색. 테마마다 4.5:1을 넘는지 테스트한다(밝은 테마의 노란 카드가 가장 위험).
 - 색만으로 상태를 말하지 않는다: 정체는 색 + 동그라미 + 경과 시간 숫자, 체크는 색 + ✓ + 취소선.

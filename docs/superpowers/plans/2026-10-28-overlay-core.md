@@ -208,12 +208,12 @@
 - 메시지(한 줄 JSON):
   - 요청 `{"id":n,"method":m,"params":{...}}`, 응답 `{"id":n,"result":...}` 또는 `{"id":n,"error":{"code":"stale"|"bad_request"|"not_found"|"failed","message":...}}`, 알림 `{"method":"board.changed","params":{...}}`.
   - `hello` → `{"protocol":1,"version":"<stickypane 버전>","project":"<root>"}`
-  - `board.load` → `{"title","tabs":[{"name","title","notes":[{"name","kind","icon","size","color","version","summary","data","modTime"}]}],"settings":{"theme","style","view","language"},"palette":{...internal/theme 역할 + notes[6]}}`
+  - `board.load` → `{"title","tabs":[{"name","title","notes":[{"name","kind","icon","size","color","version","summary","data","modTime"}]}],"settings":{"theme","style","view","language":{"choice":"auto|ko|en","resolved":"ko|en"}},"palette":{...internal/theme 역할 + notes[6]}}`
   - `note.act {note,version,action}` → `{"version"}`
   - `note.create {tab,kind,title,body}` → `{"note"}` (`api.Write`)
   - `note.run {note}` → `{"code","took"}` (runner; 사용자 확인은 앱이 이미 받았다)
   - `note.open {note}` → GUI 편집기로 연다: `$VISUAL`의 프로그램 이름이 `internal/env`의 GUI 편집기 목록(`code`, `cursor`, `zed`, `subl`, `mate`, `gedit`, `kate`)에 있으면 그것, 아니면 macOS `open -t <path>`, Linux `xdg-open <path>`. 기다리지 않는다. 테스트 `TestOpenPrefersAGUIEditorAndFallsBackToTheSystem`(실행 명령을 기록하는 가짜)
-  - `settings.set {theme|style|view}` → `{}`
+  - `settings.set {theme|style|view|language}` → `{}` (language는 `auto|ko|en`, `stickypane language`와 같은 저장 경로)
   - 알림 `board.changed {"notes":[바뀐 노트 board.load 형식],"removed":[name],"events":[{"note",...widget.Event}]}` — `store.Watch` 신호마다 이전 버전 맵과 비교.
 
 - [ ] **Step 1: Failing tests** — `io.Pipe`로 `Serve`를 띄운다: `TestBridgeLoadsTheBoard`, `TestBridgeActChangesTheFileAndAnswersTheNewVersion`, `TestBridgeReportsAnAgentsMoveAsAnEvent`(다른 경로로 `api.Card` 호출 → 2초 안에 `card.moved`), `TestBridgeAnswersBadInputAndKeepsRunning`, `TestBridgeStaleActIsRefused`.

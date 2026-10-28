@@ -17,7 +17,7 @@
 - 네트워크: listener 없음. 프런트엔드 CSP는 `default-src 'self'`, 외부 URL 금지. 글꼴·렌더러는 번들.
 - 플랫폼: darwin/arm64·amd64, linux/amd64·arm64. Windows 빌드 대상 없음.
 - 색은 bridge의 `palette`에서만 온다. 스타일은 `doodle`(기본) | `neat`.
-- 문구는 한국어 "~해요" 체와 영어 두 벌, 언어는 bridge의 `settings.language`.
+- 문구는 한국어("~해요" 체)와 영어 두 벌(03 §3.8). 프로젝트 창은 bridge의 `settings.language.resolved`, 홈은 `overlay.json`의 `language`. 하드코딩된 화면 문구 금지 — 모두 `t(key)`.
 - 움직임은 bridge 사건에만 반응, 반복 애니메이션 금지, `prefers-reduced-motion`이면 opacity만. 토큰: 120/200/320/620ms, `--ease`·`--slap`·`--exit`(04 §4.2).
 - 라이선스: 새 Go·npm 의존성은 MIT·BSD·Apache-2.0·ISC·OFL만. `overlay/scripts/licenses.sh`가 검사한다.
 - 매 Task 끝: 본체 게이트 + `cd overlay && go vet ./... && go test -race ./... && npm --prefix frontend run check && npm --prefix frontend test`.
@@ -80,6 +80,16 @@
 - Produces: `applyTheme(palette: Palette, dark: boolean)`(03 §3.4 파생 규칙 그대로: wash 35%/78%, 외곽선 55%/Text, paper 6%/50%, dot 12%/16%), `agentColor(name: string, notes: string[]): string`(본체 노트 색 해시와 같은 함수 — 본체 `color` 해시 구현을 TS로 옮기고 같은 입력에 같은 결과인지 golden으로), `seedOf(id: string): number`, 스타일 `doodle|neat`에서 `roughness` 0 처리.
 - [ ] Step 1: 실패 테스트 — `palette derivations match 03 §3.4`, `agentColor matches the Go hash for 10 names`, `contrast is at least 4.5:1 for every theme × card colour`(어긋나면 wash를 더 밝게 하는 규칙을 고친다), `neat style draws straight`.
 - [ ] Step 2–4: FAIL → 구현(목업 `overlay-doodle-v3-themes.html`의 `crayon`·`roughBox`가 출발점) → PASS. Step 5: Commit `feat(overlay): the doodle and neat looks in every colour theme (#10)`
+
+### Task A5b: Korean and English
+
+**Files:** Create `overlay/frontend/src/i18n/{index.ts,ko.json,en.json}`, `src/settings/Language.svelte`; Modify `overlay/internal/shell/state.go`(`overlay.json`의 `language`), 테스트 `i18n.test.ts`, `overlay/internal/shell/state_test.go`
+
+**Interfaces:**
+- Produces: `t(key: string, values?: Record<string, unknown>): string`(영어 기준, 빠진 키는 영어), `setLanguage(code: 'ko'|'en')`(즉시 다시 그림, Svelte store), `relativeTime(d: Date, now: Date, lang)`, `dayLabel(date: string, today: Date, lang)`(Intl). 설정 UI는 한국어 / English / 시스템.
+- [ ] Step 1: 실패 테스트 — `every ko key exists in en`(키 집합이 같다), `missing key falls back to English`, `day labels say 오늘/어제 and Today/Yesterday`, `relative time 2분 전 / 2m ago`, `changing language in a project window calls settings.set language`, Go `TestHomeLanguageDefaultsToAuto`.
+- [ ] Step 2–4: FAIL → 구현 → PASS. 이후 모든 Task의 문구는 두 파일에 함께 넣는다(검사 테스트가 키 집합 차이를 잡는다).
+- [ ] Step 5: Commit `feat(overlay): Korean and English, shared with the terminal's language (#10)`
 
 ### Task A6: Home — the list of boards
 

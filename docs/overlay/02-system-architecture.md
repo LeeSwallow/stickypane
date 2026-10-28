@@ -133,7 +133,7 @@ type Action struct {
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과로 새 버전 |
 | → | `note.create` `{tab, kind, title, body}` | "+ 끄적이기". `api.Write`와 같은 경로 |
 | → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
-| → | `settings.get` / `settings.set` `{theme \| style \| view}` | `store.SetTheme` / `SetRoot` |
+| → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `store.SetTheme` / `SetRoot` / 기존 language 저장 |
 | ← | `board.changed` `{notes:[...]}` | `store.Watch` 신호마다, 바뀐 노트만 다시 읽어 `Data`와 `Kind.Events`의 사건을 함께 |
 | ← | `error` | 버전 불일치, 알 수 없는 행동 등 |
 
