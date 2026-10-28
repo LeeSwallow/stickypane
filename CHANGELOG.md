@@ -50,6 +50,12 @@ on GitHub are built from pull request labels.
   comes from the bridge's new `themes.list`. `stickypane setup --command`
   registers the MCP server by a full path, and `stickypane init` refuses
   the home folder and the root.
+- The desktop app (in progress, #10) installs by dragging Stickypane.app to
+  Applications in a DMG drawn on graph paper, with the `stickypane` command
+  inside the app; on Linux a tar.gz with a `.desktop` entry and `install.sh`.
+  Its tray icon is the app icon's three notes in crayon, a template image
+  that follows the macOS menu bar. Pull requests that touch the app build
+  both and keep them as workflow artifacts (#23).
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder

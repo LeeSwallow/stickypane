@@ -24,7 +24,7 @@
 
 라이선스 전문도 앱과 함께 간다. macOS는 `Contents/Resources/`, Linux는 압축 폴더 맨 위에 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`를 둔다. `licenses/stickypane-app.txt`는 `overlay/scripts/licenses.sh --write`가 앱에 링크된 Go 모듈과 번들된 npm 패키지(글꼴의 OFL-1.1 포함)의 라이선스 파일을 그대로 모은 것이고, `licenses/stickypane.txt`는 `scripts/licenses.sh`가 번들 CLI의 모듈로 만든 것이다. robust-predicates(mermaid → d3-delaunay, Unlicense)도 목록에 그대로 둔다([미결정]: 뺄지).
 
-본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
+본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). 그 전까지 `overlay/`나 `scripts/overlay-*.sh`를 건드린 PR마다 `.github/workflows/overlay.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
 ## 9.2 DMG 설치 화면
 
@@ -103,7 +103,7 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 
 | 플랫폼 | 파일 | 규칙 |
 |---|---|---|
-| macOS | `overlay/build/darwin/tray-template.svg` → `tray-template.png`(18×18)·`tray-template@2x.png`(36×36) | 템플릿 이미지: 검정 + 알파만. 위 메모지가 아래 메모지에 틈을 낸다. Wails `SystemTray.SetTemplateIcon`으로 넣어 메뉴 막대 색을 따른다. Wails가 막대 두께에 맞춰 크기를 정하므로 앱은 @2x 한 장을 넣는다 |
+| macOS | `overlay/build/darwin/tray-template.svg` → `tray-template.png`(18×18)·`tray-template@2x.png`(36×36) | 템플릿 이미지: 검정 + 알파만. 앱 아이콘처럼 크레용으로 그린다: 살짝 휜 굵은 외곽선, 옅은 바탕 위 −41° 빗금. 위 메모지가 아래 메모지에 틈을 낸다. Wails `SystemTray.SetTemplateIcon`으로 넣어 메뉴 막대 색을 따른다. Wails가 막대 두께에 맞춰 크기를 정하므로 앱은 @2x 한 장을 넣는다 |
 | Linux | `overlay/build/tray.png`(44×44, 컬러) | `SetIcon` |
 
 `overlay/build/darwin/tray.sh`가 두 가지를 다시 만든다. 어느 쪽을 쓸지는 `shell.trayIcon`이 정하고 테스트가 지킨다(darwin이면 템플릿 + 템플릿 플래그).
@@ -115,7 +115,8 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 | DMG 레이아웃 | 만든 DMG를 `open`으로 마운트해(사용자와 같이) Finder 창만 `screencapture -l <창 id>`로 찍는다. 이 문서의 그림이 그것이다 |
 | DMG 스크립트 | `overlay/scripts/dmg_test.sh`: 없는 `.app`, 빈 `.app`, `.dmg`가 아닌 출력, 버전이 `config.yml`과 다른 `.app`에 0이 아닌 코드로 끝나고, 이미지를 쓰지 않고, 아무것도 마운트하지 않는다 |
 | 터미널 명령·에이전트 연결 | `install/service`의 테스트가 가짜 파일·실행기·관리자로 링크, 옛 사본 경고, 바꾸기 전 확인, 제거, setup의 폴더와 인자를 확인한다. 실제 `$HOME`·PATH 폴더는 건드리지 않는다. 실제 앱에서 한 번은 사람이 해 본다 |
+| Linux 압축 | `overlay/scripts/linux_test.sh`: 가짜 앱으로 `overlay-linux.sh`를 돌려 압축 안이 폴더 하나에 `stickypane-app`·`stickypane`(Linux ELF)·`stickypane.desktop`·`stickypane.png`·`install.sh`·`LICENSE`·`THIRD_PARTY_NOTICES.md`·`licenses/`뿐인지 보고, 임시 `HOME`에서 `install.sh`로 깔고 `--uninstall`로 남김없이 지운다. 잘못된 인자에는 아무것도 쓰지 않고 멈춘다 |
 | 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
-| Linux | CI(ubuntu)에서 빌드와 Go 테스트. 실기 실행은 [미검증] |
+| Linux | CI(ubuntu)에서 빌드와 Go 테스트, PR이면 tar.gz를 만들어 산출물로 올린다. 실기 실행은 [미검증] |
