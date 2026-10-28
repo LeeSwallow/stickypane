@@ -64,3 +64,29 @@ func TestStartGroupLeadsItsOwnGroup(t *testing.T) {
 		t.Errorf("pgid = %d, want its own %d", g, r.cmd.Process.Pid)
 	}
 }
+
+// openFiles counts the board's open files, or skips where it cannot.
+func openFiles(t *testing.T) int {
+	t.Helper()
+	fds, err := os.ReadDir("/dev/fd")
+	if err != nil {
+		t.Skip("no /dev/fd here")
+	}
+	return len(fds)
+}
+
+// The board lets go of the log as soon as the script has it: on Windows a
+// handle left open keeps the log from being moved or removed.
+func TestStartLeavesTheLogToTheScript(t *testing.T) {
+	st := longScript(t)
+	before := openFiles(t)
+	r, err := Start(st, "long.sh", time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Wait()
+	defer r.Kill()
+	if after := openFiles(t); after != before {
+		t.Errorf("open files = %d after Start, want %d: the board still holds the log", after, before)
+	}
+}

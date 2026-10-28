@@ -20,12 +20,15 @@ import (
 
 // Run is a script that has been started.
 type Run struct {
-	cmd     *exec.Cmd
-	log     *os.File
-	started time.Time
-	err     error // why it could not be run at all
-	inLog   bool  // whether err is to be written into the log too
-	group   bool  // whether it leads a process group of its own
+	script   string // the script's path
+	dir      string // the project folder, where it runs
+	log      string // the log's path
+	cmd      *exec.Cmd
+	started  time.Time
+	launched bool  // whether launch has been called
+	err      error // why it could not be run at all
+	inLog    bool  // whether err is to be written into the log too
+	group    bool  // whether it leads a process group of its own
 }
 
 // LogOf names the log a script writes to: the same name with ".log", next
@@ -43,17 +46,30 @@ func LogOf(name string) string {
 // The script stays in the caller's process group, as a program started
 // from a terminal does: it hangs up with the terminal and may read it.
 func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
-	return start(st, name, now, false)
+	r, err := Prepare(st, name, now)
+	if err == nil {
+		r.launch()
+	}
+	return r, err
 }
 
 // StartGroup is Start for a front end with no terminal, the desktop
 // overlay: on unix the script leads a process group of its own, so that
 // Kill stops what it started too (a server, a sleep).
 func StartGroup(st *store.Store, name string, now func() time.Time) (*Run, error) {
-	return start(st, name, now, true)
+	r, err := Prepare(st, name, now)
+	if err == nil {
+		r.group = true
+		r.launch()
+	}
+	return r, err
 }
 
-func start(st *store.Store, name string, now func() time.Time, group bool) (*Run, error) {
+// Prepare starts a script's log again with its head line, and starts
+// nothing: Wait starts the script, then waits for it. The terminal writes
+// the head at once and runs the script in a command of its own, so that a
+// run nobody waits for never starts.
+func Prepare(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	script := filepath.Join(st.Dir, filepath.FromSlash(name))
 	log := LogOf(name)
 	started := now()
@@ -65,36 +81,68 @@ func start(st *store.Store, name string, now func() time.Time, group bool) (*Run
 	if err := st.Write(log, []byte(head)); err != nil {
 		return nil, err
 	}
+	return &Run{
+		script:  script,
+		dir:     filepath.Dir(st.Dir),
+		log:     filepath.Join(st.Dir, filepath.FromSlash(log)),
+		started: started,
+	}, nil
+}
 
-	r := &Run{started: started, group: group}
-	// Not O_APPEND: on Windows that opens a handle that may only
-	// append, and the sh of Git for Windows cannot write to it, so the
-	// script's output would be lost. The log is the script's alone
-	// while it runs, so writing on from its end is the same.
-	f, err := os.OpenFile(filepath.Join(st.Dir, filepath.FromSlash(log)), os.O_WRONLY, 0o644)
+// launch starts the script with its log as its output. The board closes
+// its own handle on the log as soon as the script has one: the script is
+// then the only one holding the log, and on Windows the log can be moved
+// or removed once the script has ended.
+func (r *Run) launch() {
+	if r.launched {
+		return
+	}
+	r.launched = true
+	f, err := openLog(r.log)
 	if err != nil {
 		r.err = err
-		return r, nil
+		return
 	}
-	if _, err := f.Seek(0, io.SeekEnd); err != nil {
-		f.Close()
-		r.err = err
-		return r, nil
-	}
-	r.log = f
-	prog, args, err := env.Detect().Script(script)
+	defer f.Close()
+	prog, args, err := env.Detect().Script(r.script)
 	if err == nil {
 		r.cmd = exec.Command(prog, args...)
-		if group {
+		if r.group {
 			inOwnGroup(r.cmd)
 		}
-		r.cmd.Dir, r.cmd.Stdout, r.cmd.Stderr = filepath.Dir(st.Dir), f, f
+		r.cmd.Dir, r.cmd.Stdout, r.cmd.Stderr = r.dir, f, f
 		err = r.cmd.Start()
 	}
 	if err != nil {
-		r.err, r.inLog = err, true
+		r.cmd, r.err, r.inLog = nil, err, true
 	}
-	return r, nil
+}
+
+// openLog opens a log to write on from its end. Not O_APPEND: on Windows
+// that opens a handle that may only append, and the sh of Git for Windows
+// cannot write to it, so the script's output would be lost. The log is
+// the script's alone while it runs, so writing on from its end is the
+// same.
+func openLog(name string) (*os.File, error) {
+	f, err := os.OpenFile(name, os.O_WRONLY, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.Seek(0, io.SeekEnd); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}
+
+// addToLog writes a line at the end of the log, and lets go of it.
+func (r *Run) addToLog(format string, a ...any) {
+	f, err := openLog(r.log)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(f, format, a...)
+	f.Close()
 }
 
 // Kill stops the script, for a front end that is ending while it still
@@ -112,13 +160,11 @@ func (r *Run) Kill() {
 	_ = r.cmd.Process.Kill()
 }
 
-// Wait waits for the script to end and writes how it ended as the last
+// Wait starts a prepared script, waits for it to end and writes how it ended as the last
 // line of its log. The error is why it could not be run at all; a script
 // that ran and failed has an exit code instead.
 func (r *Run) Wait() (code int, took time.Duration, err error) {
-	if r.log != nil {
-		defer r.log.Close()
-	}
+	r.launch()
 	err = r.err
 	if err == nil {
 		err = r.cmd.Wait()
@@ -130,10 +176,10 @@ func (r *Run) Wait() (code int, took time.Duration, err error) {
 		code = exit.ExitCode()
 	case err != nil:
 		if r.inLog {
-			fmt.Fprintf(r.log, "%v\n", err)
+			r.addToLog("%v\n", err)
 		}
 		return 0, took, err
 	}
-	fmt.Fprintf(r.log, "[exit %d · %s]\n", code, when.Duration(took))
+	r.addToLog("[exit %d · %s]\n", code, when.Duration(took))
 	return code, took, nil
 }

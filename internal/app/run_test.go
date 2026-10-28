@@ -22,6 +22,26 @@ func finish(t *testing.T, m *Model, cmd tea.Cmd) {
 	m.Update(cmd())
 }
 
+// finishAll is finish for a command that may be a batch: each command in
+// it runs, and its message goes back to the model.
+func finishAll(t *testing.T, m *Model, cmd tea.Cmd) {
+	t.Helper()
+	if cmd == nil {
+		t.Fatal("the update should have started something")
+	}
+	msg := cmd()
+	batch, ok := msg.(tea.BatchMsg)
+	if !ok {
+		m.Update(msg)
+		return
+	}
+	for _, c := range batch {
+		if c != nil {
+			finishAll(t, m, c)
+		}
+	}
+}
+
 func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"deploy.sh": failing})
 	press(m, "o", "enter")
@@ -129,8 +149,18 @@ func TestAScriptRunsAgainWithTheMouseAlone(t *testing.T) {
 	click(m, x, y)
 	click(m, x, y)
 	yx, yy := find(t, m, "[ Yes ]")
-	click(m, yx+2, yy)
-	if m.pending == nil && !m.running["deploy.sh"] {
-		t.Errorf("Yes runs the script")
+	_, press := m.Update(tea.MouseClickMsg{X: yx + 2, Y: yy, Button: tea.MouseLeft})
+	_, release := m.Update(tea.MouseReleaseMsg{X: yx + 2, Y: yy, Button: tea.MouseLeft})
+	if !m.running["deploy.sh"] {
+		t.Fatalf("Yes runs the script")
+	}
+	finishAll(t, m, tea.Batch(press, release))
+	if log := readFile(t, dir, "deploy.log"); !strings.Contains(log, "hello") || !strings.Contains(log, "[exit 0") {
+		t.Errorf("Yes runs the script to its end:\n%s", log)
+	}
+	// Nothing holds the log once the run is over: on Windows a handle left
+	// open would keep it from being removed.
+	if err := os.Remove(filepath.Join(dir, "deploy.log")); err != nil {
+		t.Errorf("the log is still held after the run: %v", err)
 	}
 }

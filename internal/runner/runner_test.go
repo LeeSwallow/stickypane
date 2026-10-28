@@ -37,6 +37,43 @@ func TestStartWritesTheLogAndExitCode(t *testing.T) {
 	if log := string(b); !strings.HasPrefix(log, "$ ") || !strings.Contains(log, "hi\n") || !strings.Contains(log, "[exit 3") {
 		t.Errorf("the log should have a head, the output and the exit line:\n%s", log)
 	}
+	// Nothing holds the log once Wait is over: on Windows a handle left
+	// open would keep it from being removed.
+	if err := os.Remove(filepath.Join(dir, LogOf("job.sh"))); err != nil {
+		t.Errorf("the log is still held after Wait: %v", err)
+	}
+}
+
+// Prepare writes the head of the log and starts nothing; Wait starts the
+// script.
+func TestPrepareStartsNothingUntilWait(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("needs sh")
+	}
+	dir := filepath.Join(t.TempDir(), store.DirName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "job.sh"), []byte("echo hi\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := Prepare(store.Open(dir), "job.sh", time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.cmd != nil {
+		t.Fatal("Prepare started the script")
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, LogOf("job.sh")))
+	if log := string(b); !strings.HasPrefix(log, "$ ") || strings.Contains(log, "hi") {
+		t.Errorf("after Prepare the log is its head alone:\n%s", log)
+	}
+	if code, _, err := r.Wait(); err != nil || code != 0 {
+		t.Fatalf("Wait = %d, %v; want 0, nil", code, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, LogOf("job.sh"))); !strings.Contains(string(b), "hi\n") {
+		t.Errorf("Wait runs the script:\n%s", b)
+	}
 }
 
 func TestKillEndsAScriptThatNeverEnds(t *testing.T) {
