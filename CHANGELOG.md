@@ -28,6 +28,14 @@ on GitHub are built from pull request labels.
   runs a script or sends a request after a question; cards move by drag or
   `h l j k`; a settings dialog (`⌘,`) for the board's theme, style and
   language and the app's mode and hotkey (#18).
+- One install (#22): the app's settings link its own stickypane as the
+  terminal command (`~/.local/bin`, or `/usr/local/bin` with a password),
+  name an older copy that comes first on the PATH with the way to fix it,
+  and connect the agents through its own `stickypane setup`, showing the
+  plan first. A folder without a board offers 보드 만들기. The theme list
+  comes from the bridge's new `themes.list`. `stickypane setup --command`
+  registers the MCP server by a full path, and `stickypane init` refuses
+  the home folder and the root.
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder

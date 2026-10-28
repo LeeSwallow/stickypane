@@ -22,3 +22,4 @@
 | [0016](0016-dmg-doodle-installer.md) | macOS 설치는 손그림 배경의 DMG로 한다 | Proposed |
 | [0017](0017-free-canvas-and-torn-notes.md) | overlay는 자유 캔버스와 떼어낸 노트를 두고, 위치는 이 컴퓨터에만 둔다 | Proposed |
 | [0018](0018-app-layers.md) | 앱은 도메인 · 포트 · 유스케이스 · 어댑터 · 화면 층으로 나누고 테스트로 지킨다 | Accepted |
+| [0019](0019-one-install.md) | 앱 하나만 깔면 된다: 터미널 명령은 암호 없이 링크하고, 에이전트는 앱의 stickypane으로 잇는다 | Accepted |

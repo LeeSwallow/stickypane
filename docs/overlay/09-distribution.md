@@ -84,6 +84,18 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 1. 사용자가 DMG에서 앱을 Applications로 끌어 놓고 연다.
 2. 앱은 `~/.stickypane/`을 만들고 세션 목록을 보인다. 비어 있으면 빈 상태 한 장([08 §8.2](08-app-home-and-sessions.md#82-첫-실행--설명-없이-바로-목록)).
 3. bridge는 앱에 든 `stickypane`으로 연다(9.1). 그것이 없거나 지워졌을 때만 PATH 등에서 찾고, 그래도 없으면 `brew install --cask LeeSwallow/tap/stickypane`을 보인다.
+4. 설정(⌘,)의 **터미널과 에이전트**에서 나머지를 한다([ADR-0019](adr/0019-one-install.md)). 셸의 `SetupService`가 `install/service`를 부른다.
+
+**터미널 명령 설치.** 앱 안의 `stickypane`을 PATH에 링크한다. 기본은 `~/.local/bin/stickypane`(폴더가 없으면 만든다, 암호 없음). `/usr/local/bin/stickypane`은 사용자가 그쪽 버튼을 고를 때만, 시스템 암호 창(macOS `osascript … with administrator privileges`, Linux `pkexec`)으로 `ln -sfn`한다. 그 자리에 앱이 둔 것이 아닌 프로그램이 있으면 묻고 나서 바꾼다. 다른 위치의 앱(옛 사본, 옮긴 앱)을 가리키는 링크나 끊어진 링크는 앱의 것으로 보고 묻지 않고 바꾼다. **제거**는 앱의 링크만 지운다.
+
+앱은 사용자의 로그인 셸(`$SHELL -ilc`)에게 PATH를 물어 터미널이 실제로 무엇을 먼저 쓰는지 본다. GUI 앱의 PATH는 짧아서 그대로는 알 수 없다. 그래서 두 가지를 알려 준다.
+
+- `~/.local/bin`이 PATH에 없으면: 셸의 시작 파일(`~/.zshrc`, `~/.bashrc`, fish는 `config.fish`, 그 밖은 `~/.profile`)과 넣을 한 줄(`export PATH="$HOME/.local/bin:$PATH"`).
+- PATH에서 앱의 것보다 먼저 오는 다른 `stickypane`이 있으면(예: Homebrew의 0.1.1): 그 경로와 `stickypane version`이 말한 버전, 그리고 고치는 법. Homebrew cask면 `brew uninstall --cask stickypane`, formula면 `brew uninstall stickypane`, 그 밖은 `rm <경로>`. 또는 PATH에서 링크 폴더를 그 폴더보다 앞에 둔다.
+
+**에이전트 연결.** 앱 안의 `stickypane setup`을 사용자 범위(`--scope user`)로 돌린다. 먼저 `setup --dry-run`의 계획을 보이고, **실행**을 누를 때만 `setup --yes`를 돌려 그 출력을 보인다. setup은 앱이 만든 빈 임시 폴더에서 돌고 끝나면 지운다. 루트나 홈 폴더(심볼릭 링크를 따라간 경로까지)에서는 돌지 않는다. PATH는 로그인 셸의 것에 `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`을 더한다. 그래야 setup이 `claude`·`codex`를 찾는다. **MCP 서버로도 등록**(기본 켬)은 `--mcp --command <전체 경로>`로 등록한다. 앱의 터미널 명령 링크가 있으면 그 링크를(앱을 업데이트해도 맞다), 없으면 앱 안의 `stickypane`을 쓴다. 그러면 에이전트가 PATH의 옛 사본을 띄우지 않는다. 연결한 뒤 프로젝트 창에서는 **이 프로젝트에도 stickypane init**을 권한다. 다시 돌려도 안전하다.
+
+**보드 만들기.** 홈에서 고른 폴더에 `.sticky/`가 없으면 묻고(**보드 만들기**) 앱 안의 `stickypane init`을 그 폴더에서 돌린다. 앱이 띄운 프로젝트 창의 폴더에 보드가 없으면(`no_board`) 창 안에 같은 버튼을 두고, 만든 뒤 bridge를 다시 띄운다. 홈 폴더와 루트는 셸(`refuseInit`)과 본체(`stickypane init`) 둘 다 거절한다.
 
 ## 9.5 트레이 아이콘
 
@@ -102,6 +114,7 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 |---|---|
 | DMG 레이아웃 | 만든 DMG를 `open`으로 마운트해(사용자와 같이) Finder 창만 `screencapture -l <창 id>`로 찍는다. 이 문서의 그림이 그것이다 |
 | DMG 스크립트 | `overlay/scripts/dmg_test.sh`: 없는 `.app`, 빈 `.app`, `.dmg`가 아닌 출력, 버전이 `config.yml`과 다른 `.app`에 0이 아닌 코드로 끝나고, 이미지를 쓰지 않고, 아무것도 마운트하지 않는다 |
+| 터미널 명령·에이전트 연결 | `install/service`의 테스트가 가짜 파일·실행기·관리자로 링크, 옛 사본 경고, 바꾸기 전 확인, 제거, setup의 폴더와 인자를 확인한다. 실제 `$HOME`·PATH 폴더는 건드리지 않는다. 실제 앱에서 한 번은 사람이 해 본다 |
 | 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
