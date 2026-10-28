@@ -394,7 +394,9 @@ the same thing without front matter.
 
 **Chart.** Each `label: number` line is a value; any other line is shown as
 text above the chart. `view` picks the drawing: `bar` (default), `spark` for
-a one-line trend, or `heat` for a calendar of days when the labels are dates.
+a line chart as wide as the pane (six rows; one line for a single value), or
+`heat` for a calendar of days when the labels are dates. Both grow with the
+pane, and most when the note is zoomed.
 
 ```markdown
 ---
