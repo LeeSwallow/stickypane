@@ -1,10 +1,12 @@
 # Roadmap
 
-**The goal: show it in the terminal, simply, with no desktop.** Everything
-an agent produces for you to look at — a plan, progress, a structure, a
-number, a log, a question — should be one command away from being on the
-screen next to the agent, over ssh as well as at your desk, with nothing to
-install but one binary. Every item below is measured against that.
+**The goal: show it in the terminal, simply.** Everything an agent produces
+for you to look at — a plan, progress, a structure, a number, a log, a
+question — should be one command away from being on the screen next to the
+agent, over ssh as well as at your desk, with nothing to install but one
+binary. Every item below is measured against that. The desktop app is a
+second screen of the same folder for those who want one; it never replaces
+the terminal.
 
 The open questions that decide the order are pinned in
 [Discussions](https://github.com/LeeSwallow/stickypane/discussions).
@@ -54,6 +56,22 @@ WezTerm on a Mac, and a 40-column pane is still usable.
       tiny pane or a popup
 - [ ] Windows
 
+## Next: the desktop app ships
+
+Done when: someone who has never used a terminal board installs the app from
+a DMG, makes a board, connects their agent and answers its first question
+without reading a page of docs.
+
+- [x] Every shape drawn in a window, `.html` pages in a sandbox
+- [x] Clicks that are the terminal's keys: tick, answer, move a card, run
+- [x] A free canvas, notes torn off into windows of their own, a hotkey
+- [x] One install: the app carries `stickypane`, installs the terminal
+      command and connects the agents
+- [ ] The first release: a DMG and a Linux archive on the releases page,
+      and a Homebrew cask for the app
+- [ ] Signed and notarized on macOS, so Gatekeeper does not ask
+- [ ] Checked on a real Linux desktop: tray, hotkey, windows on top
+
 ## Later: the agent as a first-class user
 
 Done when: an agent that has never seen stickypane does the right thing
@@ -68,6 +86,6 @@ with the plugin alone.
 
 ## Not planned
 
-A web or desktop view, a server, a database, accounts, sync between
-machines. The board is files in a folder next to the agent; that is the
-point.
+A web view, a server, accounts, sync between machines. The board is files
+in a folder next to the agent; that is the point. (The desktop app keeps an
+index of your boards in `~/.stickypane`; the files stay the truth.)
