@@ -24,7 +24,7 @@ flowchart TB
   agent(["🤖 에이전트들<br/>Claude Code · Codex · ..."])
   folder[(".sticky/<br/>노트 파일 + sticky.json")]
   tui["stickypane<br/>터미널 board"]
-  ov["stickypane overlay<br/>데스크톱 창"]
+  ov["stickypane 앱<br/>데스크톱 창"]
 
   agent -->|"파일 쓰기 · stickypane 명령 · MCP"| folder
   tui <-->|"읽기 · doc.Op"| folder
@@ -201,11 +201,11 @@ flowchart TD
   v -- "terminal (기본)" --> tui["TUI"]
   v -- "overlay" --> has{"overlay 앱 설치됨?"}
   has -- 예 --> launch["overlay 앱에 이 프로젝트 창을 연다<br/>TUI는 띄우지 않음"]
-  has -- 아니오 --> tui2["TUI + 한 줄 안내<br/>brew install --cask stickypane-overlay"]
+  has -- 아니오 --> tui2["TUI + 한 줄 안내<br/>brew install --cask LeeSwallow/tap/stickypane"]
   v -- "both" --> both["overlay 창을 열고 TUI도 띄운다"]
 ```
 
-overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(PATH의 `stickypane-overlay`, macOS의 `open -a`)은 `internal/env`가 안다.
+overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/env`가 안다.
 
 ## 2.6 레이어와 모듈
 
@@ -245,9 +245,9 @@ flowchart LR
 | 산출물 | 내용 | 배포 |
 |---|---|---|
 | `stickypane` | 기존 바이너리 + `bridge` 명령 | 기존 (Homebrew formula, GitHub release) |
-| `Stickypane Overlay.app` / `stickypane-overlay` | Wails v3 앱, 글꼴·렌더러 번들 | macOS: 손그림 DMG, `brew install --cask stickypane-overlay`. Linux: tar.gz. Windows는 만들지 않는다([09](09-distribution.md), [ADR-0014](adr/0014-macos-and-linux-only.md)) |
+| `Stickypane.app` / `stickypane-app` | Wails v3 앱, 글꼴·렌더러·`stickypane` 번들 | macOS: 손그림 DMG, Homebrew cask(이름은 [09](09-distribution.md)의 [미결정]). Linux: tar.gz. Windows는 만들지 않는다([09](09-distribution.md), [ADR-0014](adr/0014-macos-and-linux-only.md)) |
 
-overlay 앱은 실행 시 `stickypane` 바이너리를 PATH에서 찾는다. 버전이 맞지 않으면(bridge 프로토콜 버전) 창에 업데이트 안내를 띄운다.
+앱은 실행 시 자기 안에 든 `stickypane`을 먼저 쓰고, 없을 때만 `STICKYPANE_BIN`·PATH 등에서 찾는다([09 §9.1](09-distribution.md#91-산출물)). 버전이 맞지 않으면(bridge 프로토콜 버전) 창에 업데이트 안내를 띄운다.
 
 ## 2.9 교차 관심사
 

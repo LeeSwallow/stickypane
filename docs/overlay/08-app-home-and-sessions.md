@@ -188,7 +188,7 @@ sequenceDiagram
   App->>App: 그 프로젝트의 overlay 창 (bridge 자식 프로세스)
 ```
 
-열기 요청은 단일 인스턴스 앱에 두 번째 실행의 인자를 넘기는 방식으로 한다(Wails v3 single instance). macOS는 `open -a "Stickypane Overlay" --args --project=<path>`, Linux는 PATH의 `stickypane-overlay --project=<path>`.
+열기 요청은 단일 인스턴스 앱에 두 번째 실행의 인자를 넘기는 방식으로 한다(Wails v3 single instance). macOS는 `open -a stickypane --args --project=<path>`, Linux는 PATH의 `stickypane-app --project=<path>`.
 
 ## 8.6 플랫폼
 

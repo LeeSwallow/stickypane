@@ -1,4 +1,4 @@
-# stickypane overlay 기술 문서
+# stickypane 앱 기술 문서
 
 | 항목 | 내용 |
 |---|---|
