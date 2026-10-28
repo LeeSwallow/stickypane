@@ -7,9 +7,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/registry"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
 // env is what every command gets: the context, which ends when the user
@@ -311,12 +315,20 @@ func initCmd(e env, args []string) error {
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
 		return err
 	}
+	// how the board shows, checked before anything is made; written once it is
+	var changes []api.Setting
 	mode, ok := viewOf(*view)
 	if !ok {
 		return usagef("init", "--view is terminal, app or both, not %q", *view)
 	}
-	if *style != "" && *style != store.StyleDoodle && *style != store.StyleNeat {
-		return usagef("init", "--style is doodle or neat, not %q", *style)
+	if mode != "" {
+		changes = append(changes, api.Setting{Key: "view", Value: mode})
+	}
+	if *style != "" {
+		if _, err := prefs.Normal("style", *style); err != nil {
+			return usagef("init", "--style is doodle or neat, not %q", *style)
+		}
+		changes = append(changes, api.Setting{Key: "style", Value: *style})
 	}
 	if err := initcmd.RefuseBoard("."); err != nil {
 		return err
@@ -328,14 +340,9 @@ func initCmd(e env, args []string) error {
 	if err != nil {
 		return nil
 	}
-	st := store.Open(dir)
-	if mode != "" {
-		if err := st.SetViewMode(mode); err != nil {
-			return err
-		}
-	}
-	if *style != "" {
-		if err := st.SetStyle(*style); err != nil {
+	if len(changes) > 0 {
+		a := api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), e.now)
+		if err := a.ChangeSettings(changes...); err != nil {
 			return err
 		}
 	}
