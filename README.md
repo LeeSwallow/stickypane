@@ -66,7 +66,7 @@ in your repository, readable without stickypane.
 - [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
 - [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
 - [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
-- [Command line and MCP](#command-line-and-mcp)
+- [Command line and MCP](#command-line-and-mcp), and [what is recorded in `~/.stickypane`](#what-stickypane-records-on-this-machine)
 - [Contributing](#contributing), [support](#support), [license](#license)
 
 ## Install
@@ -242,7 +242,7 @@ What a file is depends on its name:
 | `*.md`                  | a note; its front matter may give it a shape (below)   |
 | `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
 | `*.sh` `*.ps1`          | a script: shown with a Run button, run with sh or PowerShell |
-| `*.html` `*.htm`        | a web page: its text here, drawn in the overlay        |
+| `*.html` `*.htm`        | a web page, to look at: its text here (the overlay, in progress, will draw it) |
 | a folder                | a tab: a screen of its own, with the files in it as notes |
 | a folder in a tab       | a book: one note whose pages are the files in it       |
 | anything else           | not shown                                              |
@@ -332,6 +332,11 @@ are only in the root file.
 | `color`        | `yellow` `pink` `blue` `green` `purple` `orange` | `c`           |
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
+
+Two more root keys are for the desktop overlay (in progress, #10); the
+terminal ignores them. `view` is `terminal` (the default), `overlay` or
+`both`, and `style` is `doodle` or `neat`. A key at its default is not
+written.
 
 Next to `notes`, `theme` names the theme (`T` on the board), `language` the
 language of the screen (`stickypane language ko`; `auto` follows `LANG`),
@@ -882,9 +887,33 @@ without the plugin reads the same ones.
 claude mcp add stickypane -- stickypane mcp
 ```
 
+`stickypane bridge` is not for agents or for typing: it serves the board
+as JSON lines on standard input and output to the desktop overlay (in
+progress, #10). It ends, and stops the scripts it started, when its input
+closes.
+
 `write` and `write_note` replace the whole note, exactly as overwriting the
 file would. Read a note before rewriting it. A name may point into a book
 (`docs/intro`) or at a log (`build.log`).
+
+## What stickypane records on this machine
+
+Only if the folder `~/.stickypane` (or `$STICKYPANE_HOME`) already exists.
+stickypane never makes it: the desktop overlay does, so a person who only
+uses the terminal gets nothing in their home. Where it exists, stickypane
+writes two things there, to let the overlay list your boards:
+
+- `events/YYYY-MM-DD.jsonl`, one JSON line per event: the time, the type
+  (`session.start`, `session.end`, `project.init`, `project.touch`), the
+  project's path, and for a session its process id and kind (`tui`, `mcp`,
+  `watch`, `bridge`); for `project.touch` the name of the command, at most
+  once a minute per project and command.
+- `run/<pid>.json` while a session lives: process id, project path, kind
+  and start time. It is removed when the session ends. `run/touch-*` files
+  are empty markers that keep the once-a-minute count.
+
+No note text, no arguments, no file contents. Nothing leaves your machine.
+Delete the folder to stop it.
 
 ## How edits are written
 

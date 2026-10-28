@@ -6,6 +6,19 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Added
+
+- An `html` note: `.html` and `.htm` files in `.sticky/` are shown as text
+  in the terminal, and cannot be changed from a screen.
+- `stickypane bridge`: serves the board as JSON lines on standard input and
+  output, for the desktop overlay (in progress, #10). It is not for agents.
+- `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
+  already exists: `events/YYYY-MM-DD.jsonl` and `run/<pid>.json` record
+  project paths, command names, times and process ids, so the overlay can
+  list your boards. See the README.
+- `view` and `style` keys in `sticky.json`, for the overlay; the terminal
+  ignores them.
+
 ## [0.1.1] - 2026-10-10
 
 ### Fixed
