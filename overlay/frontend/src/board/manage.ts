@@ -73,9 +73,15 @@ export const run = (d: ManageDeps, n: Note) =>
     return { message: t(r?.code ? 'run.failed' : 'run.done', { code: r?.code ?? 0, took: r?.took ?? 0 }) }
   })
 
-/** send sends the note's first request, as enter on the terminal does with none chosen. */
-export const send = (d: ManageDeps, n: Note) =>
-  attempt(d, n.title, async () => (await d.api.send(n.name, 1), { message: t('send.done') }))
+/** Request is one request of a .http note: its place, from 1, and its title. */
+export interface Request {
+  at: number
+  title: string
+}
+
+/** send sends one request of the note, the first when none is named (the ⋯ menu, as enter on the terminal with none chosen). */
+export const send = (d: ManageDeps, n: Note, request?: Request) =>
+  attempt(d, n.title, async () => (await d.api.send(n.name, request?.at ?? 1), { message: t('send.done') }))
 
 /** moveTargets are where a note can go: the top level and every other tab. */
 export function moveTargets(tabs: { name: string }[], from: string): string[] {

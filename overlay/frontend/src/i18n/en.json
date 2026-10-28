@@ -246,5 +246,6 @@
   "settings.version": "stickypane {version}",
   "settings.open": "Settings…",
   "checklist.add": "New item",
-  "kanban.add": "New card"
+  "kanban.add": "New card",
+  "send.confirmBodyOne": "It sends this request, as in the terminal."
 }

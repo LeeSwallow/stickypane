@@ -5,7 +5,7 @@
 import { getContext } from 'svelte'
 import type { Action } from './model'
 import type { ArrangePatch, Note } from './model'
-import type { Manage } from './manage'
+import type { Manage, Request } from './manage'
 import { NOTE_NAMES, type Palette } from '../lib/theme/palette'
 
 export const boardContext = Symbol('stickypane.board')
@@ -33,8 +33,11 @@ export interface BoardCtx {
   now(): Date
   /** note.open: the note's file in the person's editor (E, "편집기로 열기") */
   edit?(name: string): void
-  /** the ⋯ menu's archive, delete, move, run and send (board/manage.ts) */
-  manage?(note: Note, what: Manage): void
+  /**
+   * the ⋯ menu's archive, delete, move, run and send (board/manage.ts);
+   * a .http note's own Send names the request (its place from 1 and title)
+   */
+  manage?(note: Note, what: Manage, request?: Request): void
 }
 
 export const useBoard = (): BoardCtx => getContext<BoardCtx>(boardContext)

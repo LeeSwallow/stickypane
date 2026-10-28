@@ -246,5 +246,6 @@
   "settings.version": "stickypane {version}",
   "settings.open": "설정…",
   "checklist.add": "새 항목",
-  "kanban.add": "새 카드"
+  "kanban.add": "새 카드",
+  "send.confirmBodyOne": "터미널에서처럼 이 요청을 보내요."
 }
