@@ -96,26 +96,26 @@ stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 도움말은 프로그램 안에 있고, 화면의 언어를 따릅니다(`stickypane language ko`). 보드가 처음이면 이 길로 들어옵니다. `stickypane help start`가 같은 것을 출력하고, 보드가 아직 없는 곳에서는 `stickypane help`가 이것을 먼저 보여 줍니다.
 
 ```text
-처음 하는 길
+처음 시작하기
 
 1. 프로젝트에서 보드를 만들고 에이전트에게 알립니다.
      stickypane init
 2. 노트를 하나 올립니다. 스크립트나 에이전트가 파일을 쓰면 됩니다. 직접 써도 됩니다.
      echo "- [ ] 보드 써 보기" | stickypane write plan --type checklist --open
-   (노트 모양은 stickypane kinds 에서 봅니다)
+   (노트 모양은 stickypane kinds에서 봅니다)
 3. 에이전트 옆 창에서 보드를 엽니다.
      stickypane
-   (내 터미널에 맞는 명령은 stickypane env 가 알려 줍니다)
+   (내 터미널에 맞는 명령은 stickypane env가 알려 줍니다)
 4. 에이전트를 한 번 연결합니다.
      stickypane setup
-   (또는 stickypane setup --mcp, 또는 init 이 CLAUDE.md / AGENTS.md 에 넣은 줄)
-5. 데스크톱 앱은 같은 보드를 화면 위에 보여 줍니다. stickypane bridge 는
+   (또는 stickypane setup --mcp, 또는 init이 CLAUDE.md / AGENTS.md에 넣은 줄)
+5. 데스크톱 앱은 같은 보드를 화면 위에 보여 줍니다. stickypane bridge는
    앱이 알아서 띄우니 입력할 것이 없습니다.
 
 다음: stickypane help, 그다음 stickypane help <명령>.
 ```
 
-일 별로 묶은 개요입니다. `stickypane help <명령>`은 명령 하나의 인자, 예시, 관련 명령이고, `stickypane help <모양>`은 `stickypane kinds <모양>`처럼 노트의 파일 형식과 예시입니다.
+작업별로 묶은 개요입니다. `stickypane help <명령>`은 명령 하나의 인자, 예시, 관련 명령이고, `stickypane help <모양>`은 `stickypane kinds <모양>`처럼 노트의 파일 형식과 예시입니다.
 
 ```text
 stickypane - 사람과 코딩 에이전트가 함께 쓰는 노트 보드
@@ -126,7 +126,7 @@ stickypane - 사람과 코딩 에이전트가 함께 쓰는 노트 보드
   kinds     노트가 가질 수 있는 모양을 나열합니다
   env       보드가 찾은 실행 환경을 알려 줍니다
   version   버전을 출력합니다
-  help      이 도움말: 명령, 모양, 처음 하는 길
+  help      이 도움말: 명령, 모양, 처음 시작하기
 
 노트
   list      노트 목록
@@ -145,9 +145,9 @@ stickypane - 사람과 코딩 에이전트가 함께 쓰는 노트 보드
 정리
   mv        노트 이름을 바꾸거나 탭, 책으로 옮깁니다
   link      복사 없이 프로젝트의 파일이나 폴더를 보여 줍니다
-  rm        노트, 페이지, 폴더를 .trash/로 옮깁니다
+  rm        노트, 페이지, 폴더를 삭제합니다 (.trash/로 옮김)
   restore   rm이 마지막으로 지운 것을 되돌립니다
-  archive   노트를 archive/로 치웁니다
+  archive   노트를 archive/로 보관합니다
 
 설정
   theme     테마 목록을 보거나 하나를 고릅니다
@@ -159,20 +159,20 @@ stickypane - 사람과 코딩 에이전트가 함께 쓰는 노트 보드
   guide     에이전트 안내문을 출력합니다
   answers   폼에 사용자가 답한 것을 출력합니다
   wait      폼의 버튼이 눌릴 때까지 기다린 뒤 답을 출력합니다
-  mcp       노트를 MCP로 내놓습니다
+  mcp       MCP 서버로 노트를 제공합니다
 
 스크립트
   api       (실험) .http 노트의 요청을 보냅니다
   watch     보드에서 일어나는 일을 바로 출력합니다
-  bridge    보드를 데스크톱 앱에 내놓습니다
+  bridge    데스크톱 앱에 보드를 제공합니다
 
 stickypane help <명령>    명령 하나의 설명과 예시
 stickypane help <모양>    노트의 파일 형식과 예시
-stickypane help start     처음 하는 길
-stickypane help --all     모든 명령과 옵션을 한 쪽에
+stickypane help start     처음 시작하기
+stickypane help --all     모든 명령과 옵션을 한 페이지에
 ```
 
-`stickypane help --all`은 모든 명령과 옵션을 한 쪽에 보여 줍니다. 맞는 이름이 없으면 가장 가까운 명령을 알려 줍니다. 에이전트 안내문(`stickypane guide`)은 영어로 남습니다.
+`stickypane help --all`은 모든 명령과 옵션을 한 페이지에 보여 줍니다. 맞는 이름이 없으면 가장 가까운 명령을 알려 줍니다. 에이전트 안내문(`stickypane guide`)은 영어로 남습니다.
 
 ## 폴더가 곧 보드
 
