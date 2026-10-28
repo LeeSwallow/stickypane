@@ -1,10 +1,11 @@
 <script lang="ts">
-  // Which window this page is decides what it draws: the home list or one
-  // project's board. The demo pages (look, system, screens) are reachable in
+  // Which window this page is decides what it draws: the home list, one
+  // project's board, or one note torn off a board. The demo pages (look, system, screens) are reachable in
   // dev builds only.
   import { windowKind } from './lib/shell'
   import Home from './home/Home.svelte'
   import Board from './board/Board.svelte'
+  import TornNote from './torn/TornNote.svelte'
 
   const kind = windowKind(location.search)
   const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
@@ -27,6 +28,8 @@
   {/await}
 {:else if kind === 'project'}
   <Board />
+{:else if kind === 'note'}
+  <TornNote />
 {:else}
   <Home />
 {/if}
