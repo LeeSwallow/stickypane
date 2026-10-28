@@ -1,10 +1,13 @@
 <script lang="ts">
   // Which window this page is decides what it draws: the home list or one
-  // project's board. The demo pages (look, system, screens, shapes) are reachable in
-  // dev builds only.
+  // project's board. The demo pages (look, system, screens, shapes)
+  // are reachable in dev builds only. The launch intro plays over either
+  // window when it first shows (lib/motion/Intro.svelte).
   import { windowKind } from './lib/shell'
   import Home from './home/Home.svelte'
   import Board from './board/Board.svelte'
+  import Intro from './lib/motion/Intro.svelte'
+  import { settingsService } from './services/settings'
 
   const kind = windowKind(location.search)
   const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demo') : null
@@ -30,8 +33,11 @@
   {#await ShapesDemo then m}
     <m.default />
   {/await}
-{:else if kind === 'project'}
-  <Board />
 {:else}
-  <Home />
+  {#if kind === 'project'}
+    <Board />
+  {:else}
+    <Home />
+  {/if}
+  <Intro prefs={settingsService.appPrefs} />
 {/if}
