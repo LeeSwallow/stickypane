@@ -108,8 +108,11 @@ editor by `api.Save`, archived, trashed, restored and moved by
 `api.Archive`, `api.Remove`, `api.Restore`/`api.Return` and `api.Move`,
 and a `.http` request is sent by `api.SendPart`. Settings are changed by
 `api.ChangeSettings`, over `prefs.Normal`, the one rule for what each
-setting takes. api answers with values (`api.Moved`, `api.Sent`); the
-front end says them in its own words. A note's colour is
+setting takes. api answers with values, never sentences: `api.Edited`
+(a todo, card, chart, log or say), `api.Keyed` (set), `api.Shown` (show,
+hide), `api.Linked`, `api.Moved`, `api.Sent`; the front end says them in
+its own words (`said.go` in `cmd/stickypane` and in `internal/mcp`, each
+pinned line by line by its tests). A note's colour is
 `arrange.ColorIndex`, and the language a choice comes to `i18n.Resolve`.
 What a front end still takes from the store only reads it, or arranges
 the screen in `sticky.json` (a view, the tab).
@@ -181,8 +184,8 @@ To add a shape:
    of the "labels" in `internal/i18n/translations`.
 4. Add one line to `internal/kinds.Default`.
 5. If the command line should change one thing in it, add a function to
-   `internal/api/edit.go` that applies one of its ops, and a command to the
-   table in `cmd/stickypane/commands.go`.
+   `internal/api/edit.go` that applies one of its ops and answers an
+   `api.Edited`, and a command to the table in `cmd/stickypane/commands.go`.
 6. Describe it in `skills/using-the-board/references/kinds.md`, and in a
    line of `rules/writing-notes.md` if agents write it by hand.
 
@@ -224,6 +227,7 @@ library only:
 | `help.go` | `help`: the overview, one command or shape, the way to start; words from `internal/i18n` |
 | `errors.go` | `exitCode`: the one place errors become exit codes 0, 1, 2, 3, 130 |
 | `flags.go` | `parse`: flags anywhere among the words |
+| `said.go` | the line each command that changes the board prints, from what api answered |
 | `notes.go`, `edit.go`, `settings.go`, `kinds.go` | the commands |
 
 A command is `func(env, []string) error`. Its usage is the lines of the

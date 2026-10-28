@@ -24,8 +24,9 @@ import (
 // The functions in this file change one thing in a note: tick an item, move
 // a card, count a value up, add a log line. The caller names the note and
 // the thing; it does not read the note first and does not need to know the
-// file format. Each returns one line saying where the note stands now, so
-// the caller does not have to read it afterwards either.
+// file format. Each answers what it did and where the note stands now, as
+// a value the caller says in its own words, so the caller does not have to
+// read the note afterwards either.
 
 // shaped is an Op that applies only to a note of one of the given kinds.
 type shaped struct {
@@ -88,12 +89,24 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 	return file, after, nil
 }
 
-// status is the line an edit returns: the file and its summary.
-func (a *API) status(file string, d doc.Document) string {
-	if s := a.reg.For(file, d).Parse(d, a.env).Summary(); s != "" {
-		return file + ": " + s
-	}
-	return file
+// Edited is what Todo, Card, Chart, Log and Say did to one thing in a
+// note, for the caller to say in its own words.
+type Edited struct {
+	Note    string `json:"note"`              // the note's file name
+	Action  string `json:"action"`            // add, check, uncheck, move, set, log or say
+	Item    string `json:"item"`              // the item, card, value's label, line or message, as asked
+	To      string `json:"to,omitempty"`      // the column a card was moved to, or put in as asked ("" for the first)
+	Who     string `json:"who,omitempty"`     // who said a message
+	Value   string `json:"value,omitempty"`   // a chart's value now, as its file writes it
+	Summary string `json:"summary,omitempty"` // the note's summary now, in the Env's words; "" when it has none
+}
+
+// edited is what an edit answers: the note, what was done, and the note's
+// summary afterwards.
+func (a *API) edited(file string, d doc.Document, e Edited) Edited {
+	e.Note = file
+	e.Summary = a.reg.For(file, d).Parse(d, a.env).Summary()
+	return e
 }
 
 // oneLine keeps text that becomes a line of a file to one line.
@@ -107,10 +120,10 @@ func oneLine(s string) (string, error) {
 
 // Todo changes a checklist: action "add" appends item, "check" and
 // "uncheck" set the item named by its text, a part of it, or "#2".
-func (a *API) Todo(name, action, item string) (string, error) {
+func (a *API) Todo(name, action, item string) (Edited, error) {
 	item, err := oneLine(item)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	var op doc.Op
 	switch action {
@@ -119,22 +132,22 @@ func (a *API) Todo(name, action, item string) (string, error) {
 	case "check", "uncheck":
 		op = checklist.Check{Item: item, Checked: action == "check", At: checklist.Stamp(a.now())}
 	default:
-		return "", fmt.Errorf("unknown action %q: use add, check or uncheck", action)
+		return Edited{}, fmt.Errorf("unknown action %q: use add, check or uncheck", action)
 	}
 	file, d, err := a.change(name, []string{"checklist"}, op)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
-	return a.status(file, d), nil
+	return a.edited(file, d, Edited{Action: action, Item: item}), nil
 }
 
 // Card changes a board: action "add" puts a new card in column to (the
 // first column when to is empty), "move" moves the card named by its text,
 // a part of it, or "#2" to column to.
-func (a *API) Card(name, action, card, to string) (string, error) {
+func (a *API) Card(name, action, card, to string) (Edited, error) {
 	card, err := oneLine(card)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	var op doc.Op
 	switch action {
@@ -142,25 +155,25 @@ func (a *API) Card(name, action, card, to string) (string, error) {
 		op = board.Add{Card: card, To: strings.TrimSpace(to)}
 	case "move":
 		if strings.TrimSpace(to) == "" {
-			return "", errors.New("a move needs the column to move the card to")
+			return Edited{}, errors.New("a move needs the column to move the card to")
 		}
 		op = board.Move{Card: card, To: to}
 	default:
-		return "", fmt.Errorf("unknown action %q: use add or move", action)
+		return Edited{}, fmt.Errorf("unknown action %q: use add or move", action)
 	}
 	file, d, err := a.change(name, []string{"board"}, op)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
-	return a.status(file, d), nil
+	return a.edited(file, d, Edited{Action: action, Item: card, To: strings.TrimSpace(to)}), nil
 }
 
 // Chart changes one value of a chart: action "set" writes value as given,
 // "add" counts the value up by it (down when it is negative).
-func (a *API) Chart(name, action, label, value string) (string, error) {
+func (a *API) Chart(name, action, label, value string) (Edited, error) {
 	label, err := oneLine(label)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	var op doc.Op
 	switch action {
@@ -169,49 +182,49 @@ func (a *API) Chart(name, action, label, value string) (string, error) {
 	case "add":
 		delta, err := strconv.ParseFloat(strings.NewReplacer(",", "", "_", "").Replace(strings.TrimSpace(value)), 64)
 		if err != nil {
-			return "", fmt.Errorf("%q is not a number", value)
+			return Edited{}, fmt.Errorf("%q is not a number", value)
 		}
 		op = chart.Add{Label: label, Delta: delta}
 	default:
-		return "", fmt.Errorf("unknown action %q: use set or add", action)
+		return Edited{}, fmt.Errorf("unknown action %q: use set or add", action)
 	}
 	file, d, err := a.change(name, []string{"chart"}, op)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	now, _ := chart.Value(d, label)
-	return fmt.Sprintf("%s: %s = %s", file, label, now), nil
+	return a.edited(file, d, Edited{Action: action, Item: label, Value: now}), nil
 }
 
 // Log adds one line at the end of a log, or of a plain note.
-func (a *API) Log(name, line string) (string, error) {
+func (a *API) Log(name, line string) (Edited, error) {
 	line, err := oneLine(line)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	file, d, err := a.change(name, []string{"log", "note"}, logview.Append{Line: line})
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
-	return a.status(file, d), nil
+	return a.edited(file, d, Edited{Action: "log", Item: line}), nil
 }
 
 // Say adds a message to a chat note, from who, at the current time. A chat
 // that does not exist yet is made. who defaults to "agent": the command
 // line and MCP are how agents talk.
-func (a *API) Say(name, who, text string) (string, error) {
+func (a *API) Say(name, who, text string) (Edited, error) {
 	text, err := oneLine(text)
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
 	if who = strings.TrimSpace(who); who == "" {
 		who = "agent"
 	}
 	file, d, err := a.change(name, []string{"chat"}, chat.Say{Who: who, Text: text, At: a.now()})
 	if err != nil {
-		return "", err
+		return Edited{}, err
 	}
-	return a.status(file, d), nil
+	return a.edited(file, d, Edited{Action: "say", Item: text, Who: who}), nil
 }
 
 // keyRe is what a front matter key looks like.
@@ -233,21 +246,29 @@ func (o setKeys) Apply(d doc.Document) (doc.Document, error) {
 	return d, nil
 }
 
+// Keyed is what Set did: the keys it set and the keys it removed, each in
+// the order asked, for the caller to say in its own words.
+type Keyed struct {
+	Note    string   `json:"note"`              // the note's file name, or the book's folder
+	Set     []string `json:"set,omitempty"`     // the keys given a value
+	Removed []string `json:"removed,omitempty"` // the keys taken away
+}
+
 // Set changes keys of an existing note and nothing else. Each pair is
 // "key=value"; "key=" removes the key. Keys about where the note is on the
 // screen (open, size, rows, color, pin) go to sticky.json, where the user's
 // own arrangement is kept; the others go to the note's front matter. A book
 // is named by its folder and takes only the first kind.
-func (a *API) Set(name string, pairs []string) (string, error) {
+func (a *API) Set(name string, pairs []string) (Keyed, error) {
 	file, book, err := a.target(name)
 	if err != nil {
-		return "", err
+		return Keyed{}, err
 	}
 	if len(pairs) == 0 {
-		return "", errors.New("nothing to set: give key=value pairs")
+		return Keyed{}, errors.New("nothing to set: give key=value pairs")
 	}
 	if _, err := a.st.Read(file); err != nil && !book {
-		return "", fmt.Errorf("there is no note %s", file)
+		return Keyed{}, fmt.Errorf("there is no note %s", file)
 	}
 	var op setKeys
 	var views []func(*store.View)
@@ -256,7 +277,7 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 		key, value, ok := strings.Cut(p, "=")
 		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
 		if !ok || !keyRe.MatchString(key) || strings.ContainsAny(value, "\r\n") {
-			return "", fmt.Errorf("%q is not key=value", p)
+			return Keyed{}, fmt.Errorf("%q is not key=value", p)
 		}
 		if value == "" {
 			removed = append(removed, key)
@@ -270,13 +291,13 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 		}
 		switch {
 		case err != nil:
-			return "", err
+			return Keyed{}, err
 		case isView:
 			views = append(views, change)
 		case book:
-			return "", fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
+			return Keyed{}, fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
 		case !strings.EqualFold(filepath.Ext(file), ".md"):
-			return "", fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
+			return Keyed{}, fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
 		case value == "":
 			op.remove = append(op.remove, key)
 		default:
@@ -290,23 +311,15 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 			}
 		})
 		if err != nil {
-			return "", err
+			return Keyed{}, err
 		}
 	}
 	if len(op.set)+len(op.remove) > 0 {
 		if err := a.st.Apply(file, op); err != nil {
-			return "", err
+			return Keyed{}, err
 		}
 	}
-	op.remove = removed
-	var parts []string
-	if len(set) > 0 {
-		parts = append(parts, "set "+strings.Join(set, ", "))
-	}
-	if len(op.remove) > 0 {
-		parts = append(parts, "removed "+strings.Join(op.remove, ", "))
-	}
-	return file + ": " + strings.Join(parts, "; "), nil
+	return Keyed{Note: file, Set: set, Removed: removed}, nil
 }
 
 // target turns a name into what it points at: a book, named by its folder,
@@ -517,38 +530,45 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 	return file, dest, nil
 }
 
+// Linked is what Link made: a note, or a book, that is a link to a file or
+// a folder of the project.
+type Linked struct {
+	Note   string `json:"note"`   // the note's name on the board
+	Target string `json:"target"` // what it points to, relative to the notes folder, with forward slashes
+}
+
 // Link shows a file or a folder of the project on the board without
 // copying it: it makes a symbolic link in the notes folder, relative so the
 // project can be moved, and opens the note. A file becomes a note, a folder
 // a book. name is what to call it; empty means the name it has. What the
 // board changes in a linked note is changed in the file it points to.
-func (a *API) Link(target, name string) (string, error) {
+func (a *API) Link(target, name string) (Linked, error) {
 	abs, err := filepath.Abs(target)
 	if err != nil {
-		return "", err
+		return Linked{}, err
 	}
 	fi, err := os.Stat(abs)
 	if err != nil {
-		return "", fmt.Errorf("cannot link %s: %w", target, err)
+		return Linked{}, fmt.Errorf("cannot link %s: %w", target, err)
 	}
 	if name = strings.TrimSpace(name); name == "" {
 		name = filepath.Base(abs)
 	}
 	if fi.IsDir() {
 		if strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") || name == store.ArchiveDir {
-			return "", ErrBadName
+			return Linked{}, ErrBadName
 		}
 	} else {
 		if filepath.Ext(name) == "" {
 			name += filepath.Ext(abs)
 		}
 		if !store.IsNote(name) || strings.ContainsAny(name, `/\`) {
-			return "", fmt.Errorf("%s is not a file the board shows: it shows .md, .log, .txt, .out and .sh files, and folders of them", name)
+			return Linked{}, fmt.Errorf("%s is not a file the board shows: it shows .md, .log, .txt, .out and .sh files, and folders of them", name)
 		}
 	}
 	dir, err := filepath.EvalSymlinks(a.st.Dir)
 	if err != nil {
-		return "", err
+		return Linked{}, err
 	}
 	if real, err := filepath.EvalSymlinks(abs); err == nil {
 		abs = real
@@ -558,21 +578,29 @@ func (a *API) Link(target, name string) (string, error) {
 		rel = abs
 	}
 	if err := a.st.Link(name, rel); err != nil {
-		return "", err
+		return Linked{}, err
 	}
 	open := true
 	if err := a.st.SetView(name, func(v *store.View) { v.Open = &open }); err != nil {
 		_ = a.st.Delete(name) // the link alone, so that trying again works
-		return "", err
+		return Linked{}, err
 	}
-	return fmt.Sprintf("linked %s to %s", name, filepath.ToSlash(rel)), nil
+	return Linked{Note: name, Target: filepath.ToSlash(rel)}, nil
+}
+
+// Shown is what Show and Hide did: whether the note is on the screen now,
+// and the file of the project Show linked onto the board first, if it did.
+type Shown struct {
+	Note   string `json:"note"`             // the note's file name
+	Open   bool   `json:"open"`             // whether it is on the screen now
+	Linked string `json:"linked,omitempty"` // the project file it now links to, relative to the notes folder; "" when it was on the board already
 }
 
 // Show puts a note on the screen. target is a note's name, or a path to a
 // file or a folder of the project, which is first linked onto the board
 // unless it already is. This is the one call an agent needs to put
 // something in front of the user.
-func (a *API) Show(target string) (string, error) {
+func (a *API) Show(target string) (Shown, error) {
 	target = strings.TrimSpace(target)
 	isPath := strings.ContainsAny(target, `/\`) || filepath.IsAbs(target)
 	// A bare name is a note first. Only when no note has that name is it
@@ -588,35 +616,35 @@ func (a *API) Show(target string) (string, error) {
 			name := filepath.Base(abs)
 			if linked, err := filepath.EvalSymlinks(filepath.Join(a.st.Dir, name)); err != nil || !sameFile(linked, abs) {
 				if _, err := a.Link(abs, ""); err != nil {
-					return "", err
+					return Shown{}, err
 				}
 				rel, err := filepath.Rel(a.st.Dir, abs)
 				if err != nil {
 					rel = abs
 				}
-				return fmt.Sprintf("showing %s (linked to %s)", name, filepath.ToSlash(rel)), nil
+				return Shown{Note: name, Open: true, Linked: filepath.ToSlash(rel)}, nil
 			}
 			target = name
 		}
 	}
 	file, _, err := a.target(target)
 	if err != nil {
-		return "", err
+		return Shown{}, err
 	}
 	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return "", fmt.Errorf("there is no note %s", file)
+		return Shown{}, fmt.Errorf("there is no note %s", file)
 	}
 	open := true
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
-		return "", err
+		return Shown{}, err
 	}
 	// The board switches to the note's tab.
 	if tab := a.st.TabOf(file); tab != a.st.Tab() {
 		if err := a.st.SetTab(tab); err != nil {
-			return "", err
+			return Shown{}, err
 		}
 	}
-	return "showing " + file, nil
+	return Shown{Note: file, Open: true}, nil
 }
 
 // hasNote reports whether name is a note on the board.
@@ -630,19 +658,19 @@ func (a *API) hasNote(name string) bool {
 }
 
 // Hide folds a note away.
-func (a *API) Hide(name string) (string, error) {
+func (a *API) Hide(name string) (Shown, error) {
 	file, _, err := a.target(name)
 	if err != nil {
-		return "", err
+		return Shown{}, err
 	}
 	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return "", fmt.Errorf("there is no note %s", file)
+		return Shown{}, fmt.Errorf("there is no note %s", file)
 	}
 	open := false
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
-		return "", err
+		return Shown{}, err
 	}
-	return "hidden " + file, nil
+	return Shown{Note: file}, nil
 }
 
 func sameFile(a, b string) bool {
