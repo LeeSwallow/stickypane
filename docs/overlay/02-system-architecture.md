@@ -129,9 +129,10 @@ type Action struct {
 
 | 방향 | 메시지 | 내용 |
 |---|---|---|
-| → | `board.load` | 탭·노트 목록, 각 노트의 kind·크기·색·버전·`Data` |
+| → | `board.load` | 탭·노트 목록, 각 노트의 kind·크기(`size`, `rows`)·색·고정·버전·`Data`. 책은 `pages`(같은 형식의 노트 목록, 파일 이름순) |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과로 새 버전 |
 | → | `note.create` `{tab, kind, title, body}` | "+ 끄적이기". `api.Write`와 같은 경로 |
+| → | `note.view` `{note, size?, rows?, open?, pin?}` | 노트의 보기 설정(`sticky.json`)을 `store.SetView`로 바꾼다. 터미널 배치도 같이 바뀐다 |
 | → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
 | → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `store.SetTheme` / `SetRoot` / 기존 language 저장 |
 | ← | `board.changed` `{notes:[...]}` | `store.Watch` 신호마다, 바뀐 노트만 다시 읽어 `Data`와 `Kind.Events`의 사건을 함께 |
@@ -240,5 +241,5 @@ overlay 앱은 실행 시 `stickypane` 바이너리를 PATH에서 찾는다. 버
 | 네트워크 | overlay는 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
 | 상태 | 창 위치·크기·핀은 앱 자체 설정(OS 표준 위치). 노트와 화면 배치는 `sticky.json`뿐 |
 | 언어 | 화면 문구는 `internal/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
-| 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.9](03-design-system.md#39-접근성)) |
+| 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.10](03-design-system.md#310-접근성)) |
 | 라이선스 | 본체 `scripts/licenses.sh`는 그대로. overlay 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |

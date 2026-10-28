@@ -67,7 +67,7 @@
 
 **Interfaces:**
 - Produces: 홈 창 1개(860×620), 프로젝트 창은 경로당 1개(프레임 없음, 840×화면 70%, 위치·크기·핀은 `~/.stickypane/overlay.json`), 트레이(활성 수, 최근 5개, 홈, 종료), 전역 단축키 기본 `Option+Space`(설정 가능, 등록 실패 시 홈에 한 줄 안내), 핀 = `SetAlwaysOnTop`, 핀 꺼짐이면 `HideOnFocusLost`, 단일 인스턴스로 두 번째 실행의 `--project=<path>`를 받아 창을 연다.
-- Wails 바인딩 서비스 `ProjectService`(`Load`, `Act`, `Create`, `Run`, `Open`, `SetSetting`)와 `HomeService`(`Ensure`, `Sessions`, `Restore`, `PickFolder`, `InitProject`, `StickypaneStatus`)를 프런트에 연다. 알림은 Wails 이벤트 `board.changed:<window id>`.
+- Wails 바인딩 서비스 `ProjectService`(`Load`, `Act`, `View`, `Create`, `Run`, `Open`, `SetSetting`)와 `HomeService`(`Ensure`, `Sessions`, `Restore`, `PickFolder`, `InitProject`, `StickypaneStatus`)를 프런트에 연다. 알림은 Wails 이벤트 `board.changed:<window id>`.
 - [ ] Step 1: 실패 테스트(셸 로직을 Wails 없이 시험할 수 있게 `windows.go`는 인터페이스 뒤에) — `TestOpenProjectReusesItsWindow`, `TestWindowStateRoundTrips`, `TestWindowShowsMissingStickypane`(Find 실패 → 창 상태 `missing`), `TestSecondLaunchOpensTheProject`.
 - [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: 이 Mac에서 `wails3 dev`로 단축키·핀·트레이를 사람이 확인하고 결과를 07 실행 기록에.
 - [ ] Step 6: Commit `feat(overlay): home and board windows, the tray and the hotkey (#10)`
@@ -109,7 +109,8 @@
 **Interfaces:**
 - 배치: 03 §3.6(2열, page=2칸, 720px 미만 1열, 순서는 bridge가 준 순서). Glance 줄은 board 노트들의 카드 `who`에서 에이전트별 지금 카드(Doing 우선)·경과·정체.
 - `markdown.ts`: `render(md: string, style): Promise<string>` — remark-parse → remark-gfm → remark-math → remark-rehype → rehype-sanitize(기본 스키마 + `class`는 코드·수식만) → rehype-katex → Shiki(번들 테마 2개: 밝음·어두움, 언어는 지연 로드) → HTML. ```` ```mermaid ```` 블록은 Mermaid로 SVG(테마 변수는 palette에서, `securityLevel: 'strict'`).
-- [ ] Step 1: 실패 테스트 — `markdown renders GFM table, task list, footnote`, `markdown strips script and on* attributes`, `mermaid block becomes svg`, `math renders`, `board draws columns and stalled ring`, `glance picks the Doing card per agent`, `300 notes render under 1s`(jsdom 근사, 실패 시 가상 스크롤).
+- 노트 크기·높이·크게 보기·책 페이지: 03 §3.7 그대로. 크기 버튼/`-` `=` → `ProjectService.View`(bridge `note.view`), 아래 가장자리 끌기 → `rows`, 더블클릭/`Enter` → 크게 보기(창 상태), 책은 `‹ n / m ›`와 `[` `]`.
+- [ ] Step 1: 실패 테스트 — `size button sends note.view and the grid reflows`, `zoom fills the window and Esc returns`, `book pages flip with [ and ]`, `markdown renders GFM table, task list, footnote`, `markdown strips script and on* attributes`, `mermaid block becomes svg`, `math renders`, `board draws columns and stalled ring`, `glance picks the Doing card per agent`, `300 notes render under 1s`(jsdom 근사, 실패 시 가상 스크롤).
 - [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: 이 Mac에서 실제 프로젝트(`stickypane` 레포 자신)를 열어 확인. Step 6: Commit `feat(overlay): draw notes, checklists and kanban boards (#10)`
 
 ### Task A8: The rest of the shapes and the html sandbox
