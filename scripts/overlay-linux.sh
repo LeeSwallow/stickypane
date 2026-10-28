@@ -27,7 +27,7 @@ trap 'rm -rf "$work"' EXIT
 dir="$work/$pkg"
 mkdir -p "$dir"
 cp "$bin" "$dir/stickypane-app"
-(cd "$root" && CGO_ENABLED=0 GOOS=linux GOARCH=$goarch go build -trimpath \
+(cd "$root" && CGO_ENABLED=0 GOOS=linux GOARCH=$goarch go build -trimpath -buildvcs=false \
 	-ldflags "-s -w -X main.version=$version" -o "$dir/stickypane" ./cmd/stickypane)
 cp "$root/overlay/build/linux/stickypane.desktop" "$dir/"
 cp "$root/overlay/build/appicon.png" "$dir/stickypane.png"
@@ -39,5 +39,14 @@ sh "$root/scripts/licenses.sh" "$dir/licenses/stickypane.txt" >/dev/null ||
 
 mkdir -p "$outdir"
 out="$(cd "$outdir" && pwd)/$pkg.tar.gz"
-tar -C "$work" -czf "$out" "$pkg"
+# GNU tar makes the archive reproducible: sorted names, owner and group 0,
+# and every time SOURCE_DATE_EPOCH (else the last commit's). Another tar
+# makes an ordinary one.
+if tar --version 2>/dev/null | grep -q 'GNU tar'; then
+	epoch=${SOURCE_DATE_EPOCH:-$(git -C "$root" log -1 --format=%ct 2>/dev/null || echo 0)}
+	tar -C "$work" --sort=name --owner=0 --group=0 --numeric-owner \
+		--mtime="@$epoch" -cf - "$pkg" | gzip -n >"$out"
+else
+	tar -C "$work" -czf "$out" "$pkg"
+fi
 echo "overlay-linux: wrote $out"

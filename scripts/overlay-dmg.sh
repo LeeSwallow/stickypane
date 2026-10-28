@@ -72,7 +72,7 @@ mkdir -p "$(dirname "$cli")"
 set --
 for a in $archs; do
 	case $a in x86_64) goarch=amd64 ;; arm64) goarch=arm64 ;; *) die "$app: unknown architecture $a" ;; esac
-	(cd "$root" && CGO_ENABLED=0 GOOS=darwin GOARCH=$goarch go build -trimpath \
+	(cd "$root" && CGO_ENABLED=0 GOOS=darwin GOARCH=$goarch go build -trimpath -buildvcs=false \
 		-ldflags "-s -w -X main.version=$version" -o "$work/stickypane-$a" ./cmd/stickypane)
 	set -- "$@" "$work/stickypane-$a"
 done

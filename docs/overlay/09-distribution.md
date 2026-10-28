@@ -71,6 +71,8 @@
 5. `.VolumeIcon.icns`와 사용자 정의 아이콘 속성, `bless --openfolder`. Apple Silicon에서는 `bless --openfolder`가 지원되지 않아 실패할 수 있고, 그러면 경고만 내고 계속한다. 마운트하면 창이 저절로 열리는지는 [미검증]이다.
 6. 분리 → `hdiutil convert -format UDZO`. `trap`이 어떤 경우에도 분리하고 임시 파일을 지운다.
 
+CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은 바이너리가 나온다. Linux 압축은 GNU tar일 때 이름 순서, 소유자·그룹 0, 시각 `SOURCE_DATE_EPOCH`(없으면 마지막 커밋 시각)로 묶어 재현된다. DMG는 그렇지 않다: HFS+ 이미지는 만든 시각과 볼륨 id를 담아 매번 비트가 다르다.
+
 ## 9.3 서명과 공증
 
 - 지금 본체 바이너리도 공증하지 않는다(README의 cask가 quarantine을 지운다). 앱도 **ad-hoc 서명**(`codesign --force -s -`)만 한다. 번들 안의 `stickypane`을 먼저, 앱을 나중에 서명하고 `codesign --verify --deep --strict`로 확인한다.
