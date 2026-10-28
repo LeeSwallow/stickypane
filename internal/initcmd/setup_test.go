@@ -110,3 +110,53 @@ func TestRunSetupRunsStepsAndStopsAtAFailure(t *testing.T) {
 		t.Errorf("out = %q", out.String())
 	}
 }
+
+// An MCP server registered with another command (a bare stickypane from
+// the PATH) is removed and added again with the full path asked for; one
+// that has it already is left.
+func TestSetupReplacesAnMCPServerThatRunsAnotherCommand(t *testing.T) {
+	const app = "/Applications/Stickypane.app/Contents/Helpers/stickypane"
+	reg := func(cmd string) func(string) (MCPServer, bool) {
+		return func(agent string) (MCPServer, bool) {
+			if agent == "claude" {
+				return MCPServer{Command: cmd, Scope: "local"}, true
+			}
+			return MCPServer{Command: cmd}, true
+		}
+	}
+	got := cmds(PlanSetup(SetupOptions{MCP: true, Command: app, Registered: reg("stickypane")}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
+	want := []string{
+		"claude mcp remove --scope local stickypane",
+		"claude mcp add --scope user stickypane -- " + app + " mcp",
+		"codex mcp remove stickypane",
+		"codex mcp add stickypane -- " + app + " mcp",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("replace =\n%s", strings.Join(got, "\n"))
+	}
+	steps := PlanSetup(SetupOptions{MCP: true, Command: app, Registered: reg(app)}, lookFor("claude"), func() (bool, bool) { return true, true })
+	if len(steps) != 1 || len(steps[0].Unless) == 0 {
+		t.Errorf("already the full path: %+v", steps)
+	}
+	// without --command nothing is replaced
+	if got := cmds(PlanSetup(SetupOptions{MCP: true, Registered: reg("/old/stickypane")}, lookFor("claude"), func() (bool, bool) { return true, true })); len(got) != 1 {
+		t.Errorf("no command: %q", got)
+	}
+}
+
+func TestParseTheAgentsMCPRegistrations(t *testing.T) {
+	out := "stickypane:\n  Scope: User config (available in all your projects)\n  Status: ✓ Connected\n  Type: stdio\n  Command: stickypane\n  Args: mcp\n"
+	if m, ok := ParseClaudeMCP(out); !ok || m.Command != "stickypane" || m.Scope != "user" {
+		t.Errorf("claude: %+v %v", m, ok)
+	}
+	if _, ok := ParseClaudeMCP("No MCP server found"); ok {
+		t.Error("claude: none")
+	}
+	toml := "[mcp_servers.other]\ncommand = \"x\"\n\n[mcp_servers.stickypane]\ncommand = \"/usr/local/bin/stickypane\"\nargs = [\"mcp\"]\n"
+	if m, ok := ParseCodexMCP(toml); !ok || m.Command != "/usr/local/bin/stickypane" {
+		t.Errorf("codex: %+v %v", m, ok)
+	}
+	if _, ok := ParseCodexMCP("[mcp_servers.other]\ncommand = \"x\"\n"); ok {
+		t.Error("codex: none")
+	}
+}

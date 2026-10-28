@@ -19,6 +19,7 @@ var (
 	setupCheck = initcmd.QuietCommand
 	setupLook  = osexec.LookPath
 	setupHas   = initcmd.InstalledPlugins
+	setupMCP   = initcmd.RegisteredMCP
 )
 
 // setupCmd installs the board plugin for the agents found on the PATH,
@@ -55,6 +56,9 @@ func setupCmd(e env, args []string) error {
 		return usagef("setup", "--command is a full path, not %q", *command)
 	}
 	opts := initcmd.SetupOptions{Scope: *scope, MCP: *mcp, Undo: *undo, Command: *command}
+	if *command != "" && *mcp && !*undo {
+		opts.Registered = setupMCP
+	}
 	if *agents != "" {
 		for _, a := range strings.Split(*agents, ",") {
 			a = strings.TrimSpace(a)

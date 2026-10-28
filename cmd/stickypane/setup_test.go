@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"path/filepath"
 
 	"errors"
@@ -16,8 +17,11 @@ import (
 func TestSetupAsksBeforeItRuns(t *testing.T) {
 	project(t)
 	var ran []string
-	oldRun, oldCheck, oldLook, oldHas := setupRun, setupCheck, setupLook, setupHas
-	t.Cleanup(func() { setupRun, setupCheck, setupLook, setupHas = oldRun, oldCheck, oldLook, oldHas })
+	oldRun, oldCheck, oldLook, oldHas, oldMCP := setupRun, setupCheck, setupLook, setupHas, setupMCP
+	t.Cleanup(func() {
+		setupRun, setupCheck, setupLook, setupHas, setupMCP = oldRun, oldCheck, oldLook, oldHas, oldMCP
+	})
+	setupMCP = func(string) (initcmd.MCPServer, bool) { return initcmd.MCPServer{}, false }
 	setupRun = func(cmd []string) error { ran = append(ran, strings.Join(cmd, " ")); return nil }
 	setupCheck = func([]string) error { return errors.New("not registered") }
 	setupLook = func(name string) (string, error) {
@@ -52,8 +56,11 @@ func TestSetupAsksBeforeItRuns(t *testing.T) {
 func stubSetup(t *testing.T, found ...string) *[]string {
 	t.Helper()
 	var ran []string
-	oldRun, oldCheck, oldLook, oldHas := setupRun, setupCheck, setupLook, setupHas
-	t.Cleanup(func() { setupRun, setupCheck, setupLook, setupHas = oldRun, oldCheck, oldLook, oldHas })
+	oldRun, oldCheck, oldLook, oldHas, oldMCP := setupRun, setupCheck, setupLook, setupHas, setupMCP
+	t.Cleanup(func() {
+		setupRun, setupCheck, setupLook, setupHas, setupMCP = oldRun, oldCheck, oldLook, oldHas, oldMCP
+	})
+	setupMCP = func(string) (initcmd.MCPServer, bool) { return initcmd.MCPServer{}, false }
 	setupRun = func(cmd []string) error { ran = append(ran, strings.Join(cmd, " ")); return nil }
 	setupCheck = func([]string) error { return errors.New("not registered") }
 	setupLook = func(name string) (string, error) {
@@ -112,6 +119,14 @@ func TestSetupCommandNamesTheMCPServersProgram(t *testing.T) {
 	code, _, errOut := exec(t, "setup", "--mcp", "--command", "/opt/app/stickypane", "--yes")
 	if code != 0 || len(*ran) != 1 || (*ran)[0] != "claude mcp add --scope user stickypane -- /opt/app/stickypane mcp" {
 		t.Fatalf("code %d, ran %q, err %q", code, *ran, errOut)
+	}
+	setupMCP = func(string) (initcmd.MCPServer, bool) {
+		return initcmd.MCPServer{Command: "stickypane", Scope: "user"}, true
+	}
+	*ran = nil
+	code, out, _ := exec(t, "setup", "--mcp", "--command", "/opt/app/stickypane", "--dry-run")
+	if code != 0 || len(*ran) != 0 || !strings.Contains(out, "claude mcp remove --scope user stickypane") {
+		t.Errorf("an old registration is replaced, in the plan first: %d %q\n%s", code, *ran, out)
 	}
 	if code, _, errOut := exec(t, "setup", "--mcp", "--command", "stickypane"); code != exitUsage || !strings.Contains(errOut, "full path") {
 		t.Errorf("a relative --command: %d %q", code, errOut)

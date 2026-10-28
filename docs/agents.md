@@ -40,7 +40,8 @@ stickypane setup --undo                # uninstalls the plugin again
 default), `project` (this repository, shared with the team) or `local`
 (this repository, just you). `--mcp` also registers `stickypane mcp` as an
 MCP server, `--command` gives the full path of the stickypane that server
-runs (the desktop app passes its own copy), `--agents claude,codex` limits
+runs (the desktop app passes its own copy; a server registered before
+with another command is removed and added again with it), `--agents claude,codex` limits
 it to some agents, and `--dry-run` prints the commands without running
 them. `--undo`
 uninstalls the plugin from each agent found (from Claude Code at the
