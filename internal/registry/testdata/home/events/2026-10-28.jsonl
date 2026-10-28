@@ -1,0 +1,5 @@
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"project.init","project":"/work/demo"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"session.start","project":"/work/demo","pid":4242,"kind":"tui"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"project.touch","project":"/work/demo","cmd":"card"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"session.start","project":"/work/demo","pid":4343,"kind":"bridge"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"session.end","project":"/work/demo","pid":4343}
