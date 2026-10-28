@@ -208,7 +208,10 @@ Mouse
   click a title    open, focus, close
   click a note     focus; tick, choose
   double click     zoom
-  wheel            scroll that note`,
+  wheel            scroll that note
+  drag right edge  width
+  drag lower edge  height
+  double click it  content height`,
 	}
 }
 

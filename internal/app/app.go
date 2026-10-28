@@ -175,6 +175,7 @@ type layoutState struct {
 	drawn         map[string]drawn // panes.go: what each note drew last, by name
 	wakeAt        time.Time        // wake.go: when the screen next redraws by itself
 	mark          mark             // manage.go: a note's new size, shown until the next key
+	drag          dragging         // mouse.go: the border held with the mouse
 }
 
 // mark is what a note's border says for a moment after it was resized, in
@@ -337,6 +338,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.click(msg.Mouse())
 	case tea.MouseWheelMsg:
 		m.wheel(msg.Mouse())
+	case tea.MouseMotionMsg:
+		if m.drag.name != "" {
+			m.pull(msg.Mouse())
+		}
+	case tea.MouseReleaseMsg:
+		if m.drag.name != "" {
+			m.drop()
+		}
 	default:
 		cmd = m.dispatch(msg)
 	}

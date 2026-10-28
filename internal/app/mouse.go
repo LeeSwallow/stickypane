@@ -1,10 +1,12 @@
 package app
 
 import (
+	"fmt"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -24,6 +26,78 @@ type hit struct {
 type lastClick struct {
 	name string
 	at   time.Time
+}
+
+// dragging is a note's border held with the mouse: the right border sets
+// the width, snapped to the nearest fraction, and the bottom border the
+// height in lines. The screen follows while the button is held; sticky.json
+// is written once, when it is let go.
+type dragging struct {
+	name  string
+	right bool   // the right border; else the bottom one
+	size  string // the width so far, "" before the pointer moved
+	rows  int    // the height so far, 0 before the pointer moved
+}
+
+// grab starts dragging a border when the press is on one: the right
+// border of a pane (its corners included), or its bottom border. Two
+// quick presses on the bottom border give the note back its own height
+// instead. It reports whether the press was on a border.
+func (m *Model) grab(x, y int) bool {
+	p, ok := m.paneAt(x, y)
+	if !ok {
+		return false
+	}
+	r, row := p.rect, y-min(len(m.bar), m.height-1)
+	right, bottom := x == r.X+r.W-1, row == r.Y+r.H-1
+	i := m.index(p.name)
+	if !right && !bottom || i < 0 {
+		return false
+	}
+	if m.focus != p.name {
+		m.focus = p.name
+		m.markSeen(p.name)
+	}
+	now := m.now()
+	edge := "edge:" + p.name // not a click on the note itself
+	if !right && m.lastClick.name == edge && now.Sub(m.lastClick.at) <= doubleClick {
+		m.lastClick = lastClick{}
+		m.setRows(m.items[i], 0)
+		return true
+	}
+	m.lastClick = lastClick{name: edge, at: now}
+	m.drag = dragging{name: p.name, right: right}
+	return true
+}
+
+// pull follows the pointer while a border is held.
+func (m *Model) pull(e tea.Mouse) {
+	p, ok := m.paneOf(m.drag.name)
+	if !ok {
+		return
+	}
+	if m.drag.right {
+		m.drag.size = widget.NearestSize(e.X-p.rect.X+1, m.width)
+		m.mark = mark{name: p.name, text: tr.L("width") + " " + m.drag.size}
+		return
+	}
+	h := e.Y - min(len(m.bar), m.height-1) - p.rect.Y + 1
+	m.drag.rows = max(min(h-2, m.bodyHeight()-2), 1)
+	m.mark = mark{name: p.name, text: fmt.Sprintf(tr.L("%d lines"), m.drag.rows)}
+}
+
+// drop writes what a dragged border was let go at.
+func (m *Model) drop() {
+	d := m.drag
+	m.drag = dragging{}
+	i := m.index(d.name)
+	switch {
+	case i < 0:
+	case d.size != "" && d.size != m.views[d.name].Size:
+		m.setView(d.name, func(v *store.View) { v.Size = d.size })
+	case d.rows > 0:
+		m.setRows(m.items[i], d.rows)
+	}
 }
 
 // wheel scrolls what is on the screen.
@@ -71,10 +145,13 @@ func (m *Model) click(e tea.Mouse) {
 	}
 	switch m.mode {
 	case modeBoard:
-		m.status = ""
+		m.status, m.mark = "", mark{}
 		bar := min(len(m.bar), m.height-1)
 		if e.Y < bar {
 			m.clickTab(e.X, e.Y)
+			return
+		}
+		if m.grab(e.X, e.Y) {
 			return
 		}
 		if p, ok := m.paneAt(e.X, e.Y); ok {

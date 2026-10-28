@@ -33,12 +33,18 @@ func (m *Model) isOpen(it item) bool {
 
 // sizeOf returns the note's size.
 func (m *Model) sizeOf(it item) string {
+	if m.drag.name == it.note.Name && m.drag.size != "" {
+		return m.drag.size
+	}
 	return arrange.Size(m.views[it.note.Name], it.note.Doc, it.kind, it.file().Doc)
 }
 
 // rowsOf returns the height in lines the note asks for, or 0 when it asks
 // for as much as its content takes.
 func (m *Model) rowsOf(it item) int {
+	if m.drag.name == it.note.Name && m.drag.rows > 0 {
+		return m.drag.rows
+	}
 	return arrange.Rows(m.views[it.note.Name], it.note.Doc, it.kind)
 }
 

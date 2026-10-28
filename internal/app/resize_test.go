@@ -3,7 +3,96 @@ package app
 import (
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
+
+// drag presses the left button at one cell, moves to the others with it
+// held, and lets go at the last.
+func drag(m *Model, cells ...[2]int) {
+	m.Update(tea.MouseClickMsg{X: cells[0][0], Y: cells[0][1], Button: tea.MouseLeft})
+	for _, c := range cells[1:] {
+		m.Update(tea.MouseMotionMsg{X: c[0], Y: c[1], Button: tea.MouseLeft})
+	}
+	last := cells[len(cells)-1]
+	m.Update(tea.MouseReleaseMsg{X: last[0], Y: last[1], Button: tea.MouseLeft})
+}
+
+// edges returns the screen cells of a pane's right border and of its
+// bottom border, each halfway along.
+func edges(t *testing.T, m *Model, name string) (right, bottom [2]int) {
+	t.Helper()
+	p, ok := m.paneOf(name)
+	if !ok {
+		t.Fatalf("%s has no pane", name)
+	}
+	bar, r := len(m.bar), p.rect
+	return [2]int{r.X + r.W - 1, bar + r.Y + r.H/2}, [2]int{r.X + r.W/2, bar + r.Y + r.H - 1}
+}
+
+func TestDraggingTheRightBorderSnapsTheWidthToAFraction(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
+	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/2"}}}`)
+	m.reload()
+	m.relayout()
+	right, _ := edges(t, m, "a.md")
+	m.Update(tea.MouseClickMsg{X: right[0], Y: right[1], Button: tea.MouseLeft})
+	m.Update(tea.MouseMotionMsg{X: right[0] - 12, Y: right[1], Button: tea.MouseLeft})
+	if got := viewsOf(t, dir)["a.md"].Size; got != "1/2" {
+		t.Errorf("nothing is written while the border is held: %q", got)
+	}
+	if p, _ := m.paneOf("a.md"); p.rect.W >= 40 {
+		t.Errorf("the screen follows the border as it moves: %+v", p.rect)
+	}
+	m.Update(tea.MouseReleaseMsg{X: right[0] - 12, Y: right[1], Button: tea.MouseLeft})
+	if got := viewsOf(t, dir)["a.md"].Size; got != "1/3" {
+		t.Errorf("a border let go at 28 cells snaps to 1/3, got %q", got)
+	}
+	if m.focus != "a.md" || m.mode != modeBoard {
+		t.Errorf("focus = %q, mode = %v", m.focus, m.mode)
+	}
+	right, _ = edges(t, m, "a.md")
+	drag(m, [2]int{right[0], right[1]}, [2]int{right[0] + 30, right[1]})
+	if got := viewsOf(t, dir)["a.md"].Size; got != "3/4" && got != "2/3" {
+		t.Errorf("dragged wider: %q", got)
+	}
+}
+
+func TestDraggingTheBottomBorderSetsRows(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened(numbered(40)), "b.md": opened(numbered(40))})
+	writeView(t, dir, `{"notes":{"a.md":{"size":"1"},"b.md":{"size":"1"}}}`)
+	m.reload()
+	m.relayout()
+	before, _ := m.paneOf("a.md")
+	_, bottom := edges(t, m, "a.md")
+	drag(m, bottom, [2]int{bottom[0], bottom[1] - 2}, [2]int{bottom[0], bottom[1] - 4})
+	want := before.rect.H - 4 - 2
+	if got := viewsOf(t, dir)["a.md"].Rows; got != want {
+		t.Errorf("rows = %d, want %d: the pane is 4 lines shorter", got, want)
+	}
+	if p, _ := m.paneOf("a.md"); p.rect.H != before.rect.H-4 {
+		t.Errorf("pane = %+v, was %+v", p.rect, before.rect)
+	}
+	if got := readFile(t, dir, "a.md"); got != opened(numbered(40)) {
+		t.Errorf("the note is not touched: %q", got)
+	}
+}
+
+func TestADoubleClickOnTheBottomBorderGoesBackToTheContent(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
+	writeView(t, dir, `{"notes":{"a.md":{"size":"1","rows":5},"b.md":{"size":"1"}}}`)
+	m.reload()
+	m.relayout()
+	_, bottom := edges(t, m, "a.md")
+	click(m, bottom[0], bottom[1])
+	if got := viewsOf(t, dir)["a.md"].Rows; got != 5 {
+		t.Fatalf("one click on a border changes nothing: rows = %d", got)
+	}
+	click(m, bottom[0], bottom[1])
+	if got := viewsOf(t, dir)["a.md"].Rows; got != 0 || m.mode != modeBoard {
+		t.Errorf("a double click on the bottom border should forget the height: rows = %d, mode = %v", got, m.mode)
+	}
+}
 
 func TestHeightKeysWriteRows(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})

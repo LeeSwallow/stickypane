@@ -59,6 +59,9 @@ func TestHelpNamesTheResizeKeys(t *testing.T) {
 				t.Errorf("%s: the help should list %q", code, k)
 			}
 		}
+		if !strings.Contains(s.Help, "\n  ") || strings.Count(s.Help, "\n") < strings.Count(English().Help, "\n") {
+			t.Errorf("%s: the help should have every line the English one has", code)
+		}
 		for _, phrase := range []string{"width", "content height"} {
 			if code != "en" && s.L(phrase) == phrase {
 				t.Errorf("%s: %q is not translated", code, phrase)
