@@ -17,6 +17,7 @@ func applyTo(t *testing.T, src string, op doc.Op) string {
 }
 
 func TestCheckFindsTheItemByNameOrPosition(t *testing.T) {
+	t.Parallel()
 	src := "intro\n- [ ] write tests\n  detail\n- [ ] ship it\n"
 	if got := applyTo(t, src, Check{Item: "tests", Checked: true}); got != "intro\n- [x] write tests\n  detail\n- [ ] ship it\n" {
 		t.Errorf("by a part of the text: %q", got)

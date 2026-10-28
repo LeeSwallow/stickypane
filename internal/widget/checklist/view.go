@@ -16,9 +16,6 @@ const (
 	formatHint = `no items yet: add "- [ ] task" lines`
 )
 
-// now is the clock that stamps a ticked item, replaced in tests.
-var now = func() time.Time { return widget.Now() }
-
 // Checklist is the widget for a checklist note: the list and where the
 // cursor is. The screen shows the open items first, in the order of the
 // file, then the finished ones, the most recent first; the file's own order
@@ -57,16 +54,16 @@ func (c *Checklist) selected() int { return c.items[c.order()[c.cursor]] }
 
 // doneAt says when an item was done, as short as the day allows: the time
 // for today, the day for this year, the date before that.
-func (c *Checklist) doneAt(t time.Time) string { return c.env.Times.Short(t, now()) }
+func (c *Checklist) doneAt(t time.Time) string { return c.env.Short(t) }
 
-func bar(done, total, width int) string {
+func (c *Checklist) bar(done, total, width int) string {
 	label := fmt.Sprintf(" %d/%d", done, total)
 	w := min(barWidth, width-widget.Width(label))
 	if w < 1 {
 		return widget.Truncate(strings.TrimSpace(label), width)
 	}
 	fill := done * w / total
-	return widget.Good.Render(strings.Repeat("▓", fill)) + widget.Faint.Render(strings.Repeat("░", w-fill)) + label
+	return c.env.Styles.Good.Render(strings.Repeat("▓", fill)) + c.env.Styles.Faint.Render(strings.Repeat("░", w-fill)) + label
 }
 
 // nth is how many items above the cursor share the selected item's text. It
@@ -91,7 +88,7 @@ func (c *Checklist) nth() int {
 func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 	done, total := c.counts()
 	if total == 0 {
-		lines := []string{widget.Faint.Render(widget.Truncate(widget.T(formatHint), width))}
+		lines := []string{c.env.Styles.Faint.Render(widget.Truncate(c.env.T(formatHint), width))}
 		for _, e := range c.entries {
 			if e.text != "" {
 				lines = append(lines, widget.Wrap(widget.Clean(e.text), max(width, 1))...)
@@ -100,7 +97,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		return widget.Fit(strings.Join(lines, "\n"), width), widget.NoSpan
 	}
 	c.clamp()
-	lines := []string{bar(done, total, width), ""}
+	lines := []string{c.bar(done, total, width), ""}
 	at := widget.NoSpan
 	order := c.order()
 	pos := make(map[int]int, len(order)) // entry -> place on the screen
@@ -112,7 +109,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		mark, style := "☐ ", func(s string) string { return s }
 		if e.checked {
 			// A finished item steps back so the open ones stand out.
-			mark, style = "☑ ", func(s string) string { return widget.Struck.Render(s) }
+			mark, style = "☑ ", func(s string) string { return c.env.Styles.Struck.Render(s) }
 		}
 		stamp := c.doneAt(e.done)
 		textWidth := max(width-4, 1)
@@ -125,16 +122,16 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 			switch {
 			case j == 0 && selected:
 				at.Start = len(lines)
-				l = widget.Selected.Render("› " + mark + l)
+				l = c.env.Styles.Selected.Render("› " + mark + l)
 			case j == 0:
 				l = "  " + mark + style(l)
 			case selected:
-				l = widget.Selected.Render("    " + l)
+				l = c.env.Styles.Selected.Render("    " + l)
 			default:
 				l = "    " + style(l)
 			}
 			if j == 0 && stamp != "" {
-				l += strings.Repeat(" ", max(width-widget.Width(l)-widget.Width(stamp), 1)) + widget.Faint.Render(stamp)
+				l += strings.Repeat(" ", max(width-widget.Width(l)-widget.Width(stamp), 1)) + c.env.Styles.Faint.Render(stamp)
 			}
 			lines = append(lines, l)
 		}
@@ -149,7 +146,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		case !e.item:
 			for _, l := range widget.Wrap(widget.Clean(e.text), max(width, 1)) {
 				if strings.HasPrefix(e.text, "#") {
-					l = widget.Bold.Render(l)
+					l = c.env.Styles.Bold.Render(l)
 				}
 				lines = append(lines, l)
 			}
@@ -162,7 +159,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 		if len(lines) > 2 {
 			lines = append(lines, "")
 		}
-		lines = append(lines, widget.Faint.Render(fmt.Sprintf(widget.T("Done (%d)"), done)))
+		lines = append(lines, c.env.Styles.Faint.Render(fmt.Sprintf(c.env.T("Done (%d)"), done)))
 		for p := len(order) - done; p < len(order); p++ {
 			item(c.entries[c.items[order[p]]], p)
 		}
@@ -188,7 +185,7 @@ func (c *Checklist) Update(key string) (widget.Widget, widget.Result) {
 			e := &c.entries[c.selected()]
 			op := Toggle{Text: e.text, Checked: !e.checked, Nth: c.nth()}
 			if op.Checked {
-				op.At = Stamp(now())
+				op.At = Stamp(c.env.Now())
 				e.done, _ = time.ParseInLocation(StampLayout, op.At, time.Local)
 			} else {
 				e.done = time.Time{}
