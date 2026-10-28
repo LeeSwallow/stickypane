@@ -106,7 +106,7 @@ func init() {
 			related:  []string{"env", "help"},
 		}},
 		{[]string{"help", "--help", "-h"}, helpCmd, helpText{
-			group: "start", brief: "this help: a command, a shape, or the way to start",
+			group: "start", brief: "this help: a command, a shape, or getting started",
 			what:     "Prints a short overview grouped by task, or the help of one command or shape, or the path to start with. An unknown name suggests the closest command.",
 			syntax:   "stickypane help [command|shape|start] [--all]",
 			args:     "--all  every command with every option, in one page",

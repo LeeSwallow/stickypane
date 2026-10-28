@@ -98,19 +98,19 @@ stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 ```text
 처음 시작하기
 
-1. 프로젝트에서 보드를 만들고 에이전트에게 알립니다.
+1. 프로젝트에 보드를 만들고, 에이전트에게도 알려 둡니다.
      stickypane init
-2. 노트를 하나 올립니다. 스크립트나 에이전트가 파일을 쓰면 됩니다. 직접 써도 됩니다.
+2. 첫 메모를 붙입니다. 에이전트나 스크립트가 파일을 쓰면 되고, 직접 써도 됩니다.
      echo "- [ ] 보드 써 보기" | stickypane write plan --type checklist --open
-   (노트 모양은 stickypane kinds에서 봅니다)
-3. 에이전트 옆 창에서 보드를 엽니다.
+   (어떤 모양이 있는지는 stickypane kinds에서)
+3. 에이전트 옆 창에 보드를 띄웁니다.
      stickypane
-   (내 터미널에 맞는 명령은 stickypane env가 알려 줍니다)
-4. 에이전트를 한 번 연결합니다.
+   (내 터미널에서 띄우는 법은 stickypane env가 압니다)
+4. 에이전트를 연결합니다. 한 번이면 됩니다.
      stickypane setup
-   (또는 stickypane setup --mcp, 또는 init이 CLAUDE.md / AGENTS.md에 넣은 줄)
-5. 데스크톱 앱은 같은 보드를 화면 위에 보여 줍니다. stickypane bridge는
-   앱이 알아서 띄우니 입력할 것이 없습니다.
+   (또는 setup --mcp, 아니면 init이 CLAUDE.md / AGENTS.md에 남긴 줄)
+5. 데스크톱에서 보고 싶다면 앱을 여세요. 같은 보드를 보여 주고
+   stickypane bridge도 알아서 띄웁니다.
 
 다음: stickypane help, 그다음 stickypane help <명령>.
 ```
@@ -118,7 +118,7 @@ stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 작업별로 묶은 개요입니다. `stickypane help <명령>`은 명령 하나의 인자, 예시, 관련 명령이고, `stickypane help <모양>`은 `stickypane kinds <모양>`처럼 노트의 파일 형식과 예시입니다.
 
 ```text
-stickypane - 사람과 코딩 에이전트가 함께 쓰는 노트 보드
+stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신은 힐끗 봅니다.
 
 시작
   [path]    경로의 프로젝트 보드를 엽니다 (기본: 여기)

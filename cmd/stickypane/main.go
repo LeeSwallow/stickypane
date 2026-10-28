@@ -51,7 +51,7 @@ func versionOf(set, module string) string {
 	return strings.TrimPrefix(module, "v")
 }
 
-const usage = `stickypane - a note board for you and your coding agent
+const usage = `stickypane - sticky notes for coding agents. They pin, you glance.
 
 Usage:
   stickypane [path]      open the board of the project at path (default: here);
@@ -81,7 +81,7 @@ Usage:
   stickypane version     print the version
   stickypane help [command|shape|start] [--all]
                          a short overview, or the help of one command or shape,
-                         or the way to start; --all: this page
+                         or getting started; --all: this page
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane list [--json]       list the notes

@@ -63,7 +63,7 @@ in your repository, readable without stickypane.
 
 - [Install](#install): Homebrew, a release archive, `go install`, from source
 - [Quick start](#quick-start): the board next to your agent in four steps
-- [Usage](#usage): the way to start, and help for each command
+- [Usage](#usage): getting started, and help for each command
 - [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
 - [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
 - [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
@@ -232,21 +232,21 @@ is needed.
 The help is in the program, in the language of the screen (`stickypane language ko`). New to the board? This is the way in; `stickypane help start` prints it, and `stickypane help` prints it first where there is no board yet.
 
 ```text
-The way to start
+Getting started
 
-1. In your project, make the board and tell your agents about it:
+1. Give the project a board, and tell your agents it is there:
      stickypane init
-2. Put a note on it. A script or an agent writes the file; so can you:
+2. Pin something up. Agents and scripts write files; so can you:
      echo "- [ ] try the board" | stickypane write plan --type checklist --open
-   (stickypane kinds lists the shapes a note can take)
+   (stickypane kinds shows every shape a note can take)
 3. Open the board in a pane beside your agent:
      stickypane
-   (stickypane env says the command for your terminal)
-4. Connect an agent, once:
+   (not sure how in your terminal? stickypane env knows)
+4. Hook up your agent, once:
      stickypane setup
-   (or stickypane setup --mcp, or the lines init put in CLAUDE.md / AGENTS.md)
-5. The desktop app shows the same board on your screen. It starts
-   stickypane bridge by itself; there is nothing to type.
+   (or setup --mcp, or the lines init left in CLAUDE.md / AGENTS.md)
+5. Rather see it outside the terminal? The desktop app shows the
+   same board and starts stickypane bridge on its own.
 
 Next: stickypane help, then stickypane help <command>.
 ```
@@ -254,7 +254,7 @@ Next: stickypane help, then stickypane help <command>.
 The overview, grouped by task. `stickypane help <command>` is one command with its arguments, examples and related commands; `stickypane help <shape>` is a note's file format and an example, as `stickypane kinds <shape>` prints it.
 
 ```text
-stickypane - a note board for you and your coding agent
+stickypane - sticky notes for coding agents. They pin, you glance.
 
 Start
   [path]    open the board of the project at path (default: here)
@@ -262,7 +262,7 @@ Start
   kinds     list the shapes a note can take
   env       say what the board found about where it runs
   version   print the version
-  help      this help: a command, a shape, or the way to start
+  help      this help: a command, a shape, or getting started
 
 Notes
   list      list the notes
@@ -304,7 +304,7 @@ Scripts
 
 stickypane help <command>   one command, with examples
 stickypane help <shape>     a note's file format and an example
-stickypane help start       the way to start
+stickypane help start       getting started
 stickypane help --all       every command with every option
 ```
 

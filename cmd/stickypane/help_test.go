@@ -92,7 +92,7 @@ func TestHelpPrefersTheCommandOverTheShape(t *testing.T) {
 	}
 }
 
-// The way to start is the first thing `help` says where there is no board,
+// Getting started is the first thing `help` says where there is no board,
 // and is not repeated where there is one.
 func TestHelpStart(t *testing.T) {
 	english(t)
@@ -110,11 +110,11 @@ func TestHelpStart(t *testing.T) {
 		last = i
 	}
 	if _, out, _ := exec(t, "help"); !strings.HasPrefix(out, start) {
-		t.Errorf("help without a board starts with the way to start:\n%s", out)
+		t.Errorf("help without a board starts with getting started:\n%s", out)
 	}
 	project(t)
 	english(t)
-	if _, out, _ := exec(t, "help"); strings.Contains(out, "The way to start") || !strings.Contains(out, "Notes") {
+	if _, out, _ := exec(t, "help"); strings.Contains(out, "Getting started") || !strings.Contains(out, "Notes") {
 		t.Errorf("help in a board is the overview:\n%s", out)
 	}
 }

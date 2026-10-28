@@ -38,29 +38,29 @@ var helpGroups = []struct{ key, title string }{
 }
 
 // startText is the first steps, in English.
-const startText = `The way to start
+const startText = `Getting started
 
-1. In your project, make the board and tell your agents about it:
+1. Give the project a board, and tell your agents it is there:
      stickypane init
-2. Put a note on it. A script or an agent writes the file; so can you:
+2. Pin something up. Agents and scripts write files; so can you:
      echo "- [ ] try the board" | stickypane write plan --type checklist --open
-   (stickypane kinds lists the shapes a note can take)
+   (stickypane kinds shows every shape a note can take)
 3. Open the board in a pane beside your agent:
      stickypane
-   (stickypane env says the command for your terminal)
-4. Connect an agent, once:
+   (not sure how in your terminal? stickypane env knows)
+4. Hook up your agent, once:
      stickypane setup
-   (or stickypane setup --mcp, or the lines init put in CLAUDE.md / AGENTS.md)
-5. The desktop app shows the same board on your screen. It starts
-   stickypane bridge by itself; there is nothing to type.
+   (or setup --mcp, or the lines init left in CLAUDE.md / AGENTS.md)
+5. Rather see it outside the terminal? The desktop app shows the
+   same board and starts stickypane bridge on its own.
 
 Next: stickypane help, then stickypane help <command>.`
 
-const overviewHead = "stickypane - a note board for you and your coding agent"
+const overviewHead = "stickypane - sticky notes for coding agents. They pin, you glance."
 
 const overviewFoot = `stickypane help <command>   one command, with examples
 stickypane help <shape>     a note's file format and an example
-stickypane help start       the way to start
+stickypane help start       getting started
 stickypane help --all       every command with every option`
 
 // helpStrings are the words of the help: the board's language when there
@@ -80,7 +80,7 @@ func hasBoard() bool {
 }
 
 // helpCmd prints the overview, the help of one command or shape, or the
-// way to start. It needs no board.
+// getting started. It needs no board.
 func helpCmd(e env, args []string) error {
 	fs := newFlags("help")
 	all := fs.Bool("all", false, "print every command with every option")
@@ -148,7 +148,7 @@ func findShape(want string) (*widget.Kind, *folderShape, bool) {
 }
 
 // helpNames are what an unknown name is matched against: the commands and
-// the way to start. Shapes are left out, so a mistyped command is never
+// getting started. Shapes are left out, so a mistyped command is never
 // taken for a shape; kinds lists those.
 func helpNames() []string {
 	var out []string
