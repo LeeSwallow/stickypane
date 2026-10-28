@@ -47,6 +47,18 @@ test('keys act on the frame around a focused link, not on the note it links to',
   expect(keyAction({ key: ']' }, ctx)).toEqual({ type: 'page', delta: 1 })
 })
 
+test('a makes a note, x archives, D deletes, u and ⌘Z undo, ⌘, opens the settings', () => {
+  const ctx = { zoomed: false, canBack: false }
+  expect(keyAction({ key: 'a' }, ctx)).toEqual({ type: 'create' })
+  expect(keyAction({ key: 'x' }, ctx)).toEqual({ type: 'archive' })
+  expect(keyAction({ key: 'D' }, ctx)).toEqual({ type: 'trash' })
+  expect(keyAction({ key: 'u' }, ctx)).toEqual({ type: 'undo' })
+  expect(keyAction({ key: 'z', metaKey: true }, ctx)).toEqual({ type: 'undo' })
+  expect(keyAction({ key: ',', metaKey: true }, ctx)).toEqual({ type: 'settings' })
+  expect(keyAction({ key: ',', ctrlKey: true }, ctx)).toEqual({ type: 'settings' })
+  expect(keyAction({ key: 'a', editing: true }, ctx)).toBeNull()
+})
+
 test('a frame carries data-frame; an embed link inside it carries only data-note', () => {
   const host = { ...base, name: 'host.md', title: 'Host', kind: 'note', data: { markdown: '![[plan]]' } } as unknown as Note
   const plan = { ...base, name: 'plan.md', title: 'Plan', kind: 'note', data: { markdown: 'p' } } as unknown as Note

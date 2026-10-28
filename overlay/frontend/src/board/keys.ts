@@ -9,12 +9,18 @@ export type KeyAction =
   | { type: 'focus'; delta: -1 | 1 }
   | { type: 'order'; delta: -1 | 1 }
   | { type: 'edit' }
+  | { type: 'create' }
+  | { type: 'settings' }
+  | { type: 'archive' }
+  | { type: 'trash' }
+  | { type: 'undo' }
 
 export interface KeyLike {
   key: string
   metaKey?: boolean
   ctrlKey?: boolean
   altKey?: boolean
+  shiftKey?: boolean
   /** the key went to a text field: it is the field's */
   editing?: boolean
 }
@@ -37,6 +43,8 @@ export const frameOf = (el: Element | null): string | null =>
 export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
   if (e.editing || e.altKey) return null
   if (e.metaKey || e.ctrlKey) {
+    if (e.key === ',') return { type: 'settings' }
+    if (e.key === 'z' && !e.shiftKey) return { type: 'undo' }
     return /^[1-9]$/.test(e.key) ? { type: 'tab', index: Number(e.key) - 1 } : null
   }
   switch (e.key) {
@@ -68,6 +76,15 @@ export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
     case 'e':
     case 'E':
       return { type: 'edit' }
+    case 'a':
+    case 'A':
+      return { type: 'create' }
+    case 'x':
+      return { type: 'archive' }
+    case 'D':
+      return { type: 'trash' }
+    case 'u':
+      return { type: 'undo' }
   }
   return null
 }
