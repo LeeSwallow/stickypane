@@ -3,7 +3,7 @@
 // output (one JSON object a line), and starts it again when it dies. The
 // types mirror the main module's internal/surface/bridge, which this module cannot
 // import.
-package bridge
+package bridgeclient
 
 import (
 	"encoding/json"

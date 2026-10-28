@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/desktop/internal/bridge"
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/model"
@@ -65,11 +65,11 @@ func StatusEvent(window uint) string {
 	return "project.status:" + strconv.FormatUint(uint64(window), 10)
 }
 
-// Board is a running bridge: *bridge.Client.
+// Board is a running bridge: *bridgeclient.Client.
 type Board interface {
 	Call(ctx context.Context, method string, params, result any) error
-	Notifications() <-chan bridge.Notification
-	Hello() bridge.Hello
+	Notifications() <-chan bridgeclient.Notification
+	Hello() bridgeclient.Hello
 	Close() error
 }
 
@@ -88,8 +88,8 @@ type Index interface {
 type Config struct {
 	Home          string // ~/.stickypane, or $STICKYPANE_HOME
 	Platform      Platform
-	Find          func() (string, error)             // a stickypane with the bridge
-	Probe         func(path string) bridge.Candidate // what a stickypane says of itself
+	Find          func() (string, error)                   // a stickypane with the bridge
+	Probe         func(path string) bridgeclient.Candidate // what a stickypane says of itself
 	Start         func(ctx context.Context, bin, project string) (Board, error)
 	OpenIndex     func(home string) (Index, error)
 	IndexDeadline time.Duration // how long Sessions waits for the index to open
@@ -156,7 +156,7 @@ type Shell struct {
 	tornByWin map[uint]*tornWin
 	notices   []Notice
 	hotkey    string // registered accelerator, "" when none
-	hello     bridge.Hello
+	hello     bridgeclient.Hello
 	started   bool
 
 	ix      Index
@@ -185,14 +185,14 @@ func New(cfg Config) (*Shell, error) {
 		cfg.Home = DefaultHome()
 	}
 	if cfg.Find == nil {
-		cfg.Find = bridge.Find
+		cfg.Find = bridgeclient.Find
 	}
 	if cfg.Probe == nil {
-		cfg.Probe = bridge.Probe
+		cfg.Probe = bridgeclient.Probe
 	}
 	if cfg.Start == nil {
 		cfg.Start = func(ctx context.Context, bin, project string) (Board, error) {
-			c, err := bridge.Start(ctx, bin, project)
+			c, err := bridgeclient.Start(ctx, bin, project)
 			if err != nil {
 				return nil, err
 			}
@@ -432,22 +432,22 @@ func (s *Shell) refreshTray() {
 // StickypaneState is whether a stickypane was found, whether it has the
 // bridge the overlay needs, and what it says of itself.
 type StickypaneState struct {
-	Found       bool               `json:"found"`
-	Bridge      bool               `json:"bridge"` // false: every copy found is too old
-	Path        string             `json:"path,omitempty"`
-	Version     string             `json:"version,omitempty"`
-	Protocol    int                `json:"protocol"`             // the bridge's, 0 until a bridge has said hello
-	AppProtocol int                `json:"appProtocol"`          // the one this app speaks
-	Candidates  []bridge.Candidate `json:"candidates,omitempty"` // the copies found, when all are too old
-	Error       string             `json:"error,omitempty"`
+	Found       bool                     `json:"found"`
+	Bridge      bool                     `json:"bridge"` // false: every copy found is too old
+	Path        string                   `json:"path,omitempty"`
+	Version     string                   `json:"version,omitempty"`
+	Protocol    int                      `json:"protocol"`             // the bridge's, 0 until a bridge has said hello
+	AppProtocol int                      `json:"appProtocol"`          // the one this app speaks
+	Candidates  []bridgeclient.Candidate `json:"candidates,omitempty"` // the copies found, when all are too old
+	Error       string                   `json:"error,omitempty"`
 }
 
 // StickypaneStatus finds the stickypane the app would use. The protocol is
 // known once a project window's bridge has said hello.
 func (s *Shell) StickypaneStatus() StickypaneState {
-	st := StickypaneState{AppProtocol: bridge.Protocol}
+	st := StickypaneState{AppProtocol: bridgeclient.Protocol}
 	bin, err := s.cfg.Find()
-	var old *bridge.TooOldError
+	var old *bridgeclient.TooOldError
 	switch {
 	case errors.As(err, &old):
 		st.Found, st.Candidates, st.Error = true, old.Found, err.Error()
@@ -671,7 +671,7 @@ func (s *Shell) OpenProject(path string) uint {
 // connect starts the project's bridge and passes its notifications on.
 func (s *Shell) connect(ctx context.Context, p *project) {
 	bin, err := s.cfg.Find() // only ever a stickypane that has the bridge
-	if errors.Is(err, bridge.ErrTooOld) {
+	if errors.Is(err, bridgeclient.ErrTooOld) {
 		s.setState(p, StateTooOld, err.Error(), nil)
 		return
 	}
@@ -703,7 +703,7 @@ func (s *Shell) connect(ctx context.Context, p *project) {
 		s.mu.Unlock()
 		for _, id := range ids {
 			switch n.Method {
-			case bridge.MethodRestarted:
+			case bridgeclient.MethodRestarted:
 				s.cfg.Platform.Emit(RestartedEvent(id), nil)
 			default:
 				s.cfg.Platform.Emit(ChangedEvent(id), n.Params)

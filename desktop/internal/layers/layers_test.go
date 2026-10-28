@@ -36,7 +36,7 @@ var rank = map[string]int{
 	"internal/index/registryfs": 30,
 	"internal/index/boardfs":    30,
 	"internal/index/procs":      30,
-	"internal/bridge":           30,
+	"internal/bridgeclient":     30,
 	"internal/install/osys":     30,
 	// Wiring of the index's parts.
 	"internal/index": 40,

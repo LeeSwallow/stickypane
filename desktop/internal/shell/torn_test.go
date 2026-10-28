@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/LeeSwallow/stickypane/desktop/internal/bridge"
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 )
 
@@ -185,8 +185,8 @@ func TestATornNoteSpeaksForItsNote(t *testing.T) {
 		t.Error("the unpin was not saved")
 	}
 	// it hears what its board hears
-	lb.notes <- bridge.Notification{Method: "board.changed", Params: json.RawMessage(`{"n":1}`)}
-	lb.notes <- bridge.Notification{Method: bridge.MethodRestarted}
+	lb.notes <- bridgeclient.Notification{Method: "board.changed", Params: json.RawMessage(`{"n":1}`)}
+	lb.notes <- bridgeclient.Notification{Method: bridgeclient.MethodRestarted}
 	waitFor(t, "events to the torn note", func() bool {
 		return len(r.p.emitted(ChangedEvent(nid))) == 1 && len(r.p.emitted(RestartedEvent(nid))) == 1 && len(r.p.emitted(ChangedEvent(id))) == 1
 	})

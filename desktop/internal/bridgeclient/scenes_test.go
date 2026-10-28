@@ -1,4 +1,4 @@
-package bridge
+package bridgeclient
 
 // The scenes of docs/desktop/01 §1.7, end to end at the level a test can
 // reach without a window: the real `stickypane` of this repository, built

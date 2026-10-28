@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/desktop/internal/bridge"
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 )
 
@@ -189,13 +189,13 @@ func (p *fakePlatform) emitted(name string) []any {
 
 // fakeBoard is a bridge that answers from a table.
 type fakeBoard struct {
-	notes  chan bridge.Notification
+	notes  chan bridgeclient.Notification
 	mu     sync.Mutex
 	calls  []string
 	closed bool
 }
 
-func newFakeBoard() *fakeBoard { return &fakeBoard{notes: make(chan bridge.Notification, 8)} }
+func newFakeBoard() *fakeBoard { return &fakeBoard{notes: make(chan bridgeclient.Notification, 8)} }
 
 func (b *fakeBoard) Call(ctx context.Context, method string, params, result any) error {
 	b.mu.Lock()
@@ -209,8 +209,10 @@ func (b *fakeBoard) Call(ctx context.Context, method string, params, result any)
 	}
 	return nil
 }
-func (b *fakeBoard) Notifications() <-chan bridge.Notification { return b.notes }
-func (b *fakeBoard) Hello() bridge.Hello                       { return bridge.Hello{Protocol: 1, Version: "9.9.9"} }
+func (b *fakeBoard) Notifications() <-chan bridgeclient.Notification { return b.notes }
+func (b *fakeBoard) Hello() bridgeclient.Hello {
+	return bridgeclient.Hello{Protocol: 1, Version: "9.9.9"}
+}
 func (b *fakeBoard) Close() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -396,7 +398,7 @@ func TestWindowStateRoundTrips(t *testing.T) {
 	r.s.Shutdown()
 
 	p2 := &fakePlatform{}
-	s2, err := New(Config{Home: r.home, Platform: p2, Find: func() (string, error) { return "", bridge.ErrNotFound },
+	s2, err := New(Config{Home: r.home, Platform: p2, Find: func() (string, error) { return "", bridgeclient.ErrNotFound },
 		OpenIndex: func(string) (Index, error) { return &fakeIndex{}, nil }})
 	if err != nil {
 		t.Fatal(err)
@@ -434,7 +436,7 @@ func TestAPointOfRoundingIsNotAMove(t *testing.T) {
 }
 
 func TestWindowShowsMissingStickypane(t *testing.T) {
-	r := newRig(t, func(c *Config) { c.Find = func() (string, error) { return "", bridge.ErrNotFound } })
+	r := newRig(t, func(c *Config) { c.Find = func() (string, error) { return "", bridgeclient.ErrNotFound } })
 	id := r.s.OpenProject(filepath.Join(r.home, "a"))
 	waitFor(t, "status missing", func() bool { return r.s.Status(id).State == StateMissing })
 	if got := r.p.emitted(StatusEvent(id)); len(got) == 0 {
@@ -447,10 +449,10 @@ func TestWindowShowsMissingStickypane(t *testing.T) {
 }
 
 func TestWindowSaysStickypaneIsTooOld(t *testing.T) {
-	old := []bridge.Candidate{{Path: "/opt/homebrew/bin/stickypane", Version: "0.1.1"}}
+	old := []bridgeclient.Candidate{{Path: "/opt/homebrew/bin/stickypane", Version: "0.1.1"}}
 	started := false
 	r := newRig(t, func(c *Config) {
-		c.Find = func() (string, error) { return "", &bridge.TooOldError{Found: old} }
+		c.Find = func() (string, error) { return "", &bridgeclient.TooOldError{Found: old} }
 		c.Start = func(context.Context, string, string) (Board, error) { started = true; return nil, nil }
 	})
 	id := r.s.OpenProject(filepath.Join(r.home, "a"))
@@ -470,7 +472,9 @@ func TestWindowSaysStickypaneIsTooOld(t *testing.T) {
 func TestStickypaneStatusNamesTheOneWithTheBridge(t *testing.T) {
 	r := newRig(t, func(c *Config) {
 		c.Find = func() (string, error) { return "/home/go/bin/stickypane", nil }
-		c.Probe = func(p string) bridge.Candidate { return bridge.Candidate{Path: p, Version: "0.2.0", Bridge: true} }
+		c.Probe = func(p string) bridgeclient.Candidate {
+			return bridgeclient.Candidate{Path: p, Version: "0.2.0", Bridge: true}
+		}
 	})
 	st := r.s.StickypaneStatus()
 	if !st.Found || !st.Bridge || st.Path != "/home/go/bin/stickypane" || st.Version != "0.2.0" || st.Error != "" {
@@ -480,7 +484,7 @@ func TestStickypaneStatusNamesTheOneWithTheBridge(t *testing.T) {
 
 func TestBridgeStartFailureIsShownInTheWindow(t *testing.T) {
 	r := newRig(t, func(c *Config) {
-		c.Start = func(context.Context, string, string) (Board, error) { return nil, bridge.ErrProtocol }
+		c.Start = func(context.Context, string, string) (Board, error) { return nil, bridgeclient.ErrProtocol }
 	})
 	id := r.s.OpenProject(filepath.Join(r.home, "a"))
 	waitFor(t, "status failed", func() bool { return r.s.Status(id).State == StateFailed })
@@ -493,8 +497,8 @@ func TestBoardChangedReachesTheWindow(t *testing.T) {
 	r := newRig(t)
 	id := r.s.OpenProject(filepath.Join(r.home, "a"))
 	waitFor(t, "ready", func() bool { return r.s.Status(id).State == StateReady })
-	r.board.notes <- bridge.Notification{Method: "board.changed", Params: json.RawMessage(`{"notes":["x"]}`)}
-	r.board.notes <- bridge.Notification{Method: bridge.MethodRestarted}
+	r.board.notes <- bridgeclient.Notification{Method: "board.changed", Params: json.RawMessage(`{"notes":["x"]}`)}
+	r.board.notes <- bridgeclient.Notification{Method: bridgeclient.MethodRestarted}
 	waitFor(t, "board.changed event", func() bool { return len(r.p.emitted(ChangedEvent(id))) == 1 })
 	waitFor(t, "bridge.restarted event", func() bool { return len(r.p.emitted(RestartedEvent(id))) == 1 })
 	if got := r.p.emitted(ChangedEvent(id))[0]; string(got.(json.RawMessage)) != `{"notes":["x"]}` {

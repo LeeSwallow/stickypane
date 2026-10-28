@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The scenes of docs/desktop/01 §1.7 on the app's side, over what a real
 // bridge sent while an agent worked from another process
-// (desktop/internal/bridge/scenes_test.go; `go test ./internal/bridge -run
+// (desktop/internal/bridgeclient/scenes_test.go; `go test ./internal/bridgeclient -run
 // Scene -update` writes fixtures/). What the window draws and sends from
 // those payloads is checked here; the Go test checks the files and the
 // agent's side.

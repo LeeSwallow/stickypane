@@ -230,7 +230,7 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 | 도메인 (0) | `internal/index/model`, `internal/install/model`, `internal/prefs`, `internal/canvas` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. 캔버스의 노트 자리와 떼어낸 노트 창의 틀(사라진 노트 잊기, 이름 바꾸기, 겹침 순서). 터미널 명령의 링크 자리, 앱의 사본인지, 앞선 옛 사본을 고치는 법, setup이 돌 수 있는 폴더. I/O 없음 |
 | 포트 (10) | `internal/index/ports`, `internal/install/ports` | 유스케이스가 바깥에 바라는 것: `ProjectRepository`·`DayRepository`·`SessionRepository`·`IngestLog`·`Store`(작업 단위), `Records`, `Boards`, `Clock`, `ProcessChecker`. 설치는 `Runner`(프로그램 실행)·`Files`·`Admin`(관리자 권한) |
 | 유스케이스 (20) | `internal/index/service`, `internal/install/service` | `Ingest`·`Prune`·`Sessions`·`Restore`·`Retitle`. 트랜잭션 경계를 여기서 정하고 포트로만 일한다. 설치는 `Command`·`Install`·`Uninstall`·`Connect`·`Init`([09 §9.4](09-distribution.md#94-첫-실행-연결)) |
-| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridge`, `internal/install/osys`(os/exec, 파일, osascript·pkexec) | 포트의 구현 |
+| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridgeclient`, `internal/install/osys`(os/exec, 파일, osascript·pkexec) | 포트의 구현 |
 | 조립 (40) · 화면 (50–60) | `internal/index`, `internal/shell`, `main.go` | 부품을 잇고 창에 낸다 |
 
 색인은 `~/.stickypane`을 읽기만 한다. 지우는 것은 본체(`registry.Prune`)뿐이고, 프로젝트 제목은 `sticky.json`을 직접 읽지 않고 bridge의 `board.load`가 답한 `title`로 셸이 `Retitle`한다.

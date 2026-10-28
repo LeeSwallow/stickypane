@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/desktop/internal/bridge"
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/model"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/osys"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
@@ -29,7 +29,7 @@ func defaultInstaller(find func() (string, error)) Installer {
 		Shell:  shell,
 		PATH:   filepath.SplitList(os.Getenv("PATH")),
 		Bundled: func() string {
-			if p, ok := bridge.BundledCLI(); ok {
+			if p, ok := bridgeclient.BundledCLI(); ok {
 				return p
 			}
 			return ""

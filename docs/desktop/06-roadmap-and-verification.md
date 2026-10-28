@@ -51,7 +51,7 @@ flowchart LR
 
 **완료 조건**: [01 §1.7](01-product-overview.md#17-사용-장면)의 장면 A·B·C를 손으로 재현한다. HTML 격리 검사(아래)를 통과한다.
 
-[구현] 장면 A·B·C는 창 없이 닿는 데까지 자동으로 본다. `desktop/internal/bridge/scenes_test.go`가 이 저장소의 `stickypane`을 빌드해 임시 프로젝트(임시 `HOME`·`STICKYPANE_HOME`)에서 bridge로 띄우고, 다른 프로세스에서 에이전트처럼 `card … move`, `write --type form` + `wait --json`, `.html` 파일 쓰기를 하며, 앱 쪽이 받는 `board.changed`·`board.load`·`note.act` 결과를 확인한다. `-update`로 받은 것을 `frontend/src/scenes/fixtures/`에 쓰고, `frontend/src/scenes/scenes.test.ts`가 그것으로 Glance 줄의 멈춤, 카드 carry, form의 답 대기와 보낸 동작, html 샌드박스를 본다. 창에서 손으로 하는 확인은 [09 §9.6](09-distribution.md#96-검증)의 점검표에 있다.
+[구현] 장면 A·B·C는 창 없이 닿는 데까지 자동으로 본다. `desktop/internal/bridgeclient/scenes_test.go`가 이 저장소의 `stickypane`을 빌드해 임시 프로젝트(임시 `HOME`·`STICKYPANE_HOME`)에서 bridge로 띄우고, 다른 프로세스에서 에이전트처럼 `card … move`, `write --type form` + `wait --json`, `.html` 파일 쓰기를 하며, 앱 쪽이 받는 `board.changed`·`board.load`·`note.act` 결과를 확인한다. `-update`로 받은 것을 `frontend/src/scenes/fixtures/`에 쓰고, `frontend/src/scenes/scenes.test.ts`가 그것으로 Glance 줄의 멈춤, 카드 carry, form의 답 대기와 보낸 동작, html 샌드박스를 본다. 창에서 손으로 하는 확인은 [09 §9.6](09-distribution.md#96-검증)의 점검표에 있다.
 
 ### 5단계 — 연결과 배포
 

@@ -47,7 +47,7 @@ type Config struct {
 	PATH   []string // the app's own PATH (a GUI app's is short)
 	// Bundled is the stickypane inside the app, "" when there is none.
 	Bundled func() string
-	// Find is the stickypane the app would use otherwise (bridge.Find).
+	// Find is the stickypane the app would use otherwise (bridgeclient.Find).
 	Find func() (string, error)
 }
 
