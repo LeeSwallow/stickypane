@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/httpfile"
+	"github.com/LeeSwallow/stickypane/internal/httpfile/syntax"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -53,14 +53,14 @@ var Kind = widget.Kind{
 
 // API is the widget for a .http file.
 type API struct {
-	file   httpfile.File
+	file   syntax.File
 	lines  []string
 	cursor int
 	drawn  []widget.Span // the lines of each request in the last Draw
 }
 
 func parse(d doc.Document) *API {
-	return &API{file: httpfile.Parse(d.Body), lines: doc.Lines(d.Body)}
+	return &API{file: syntax.Parse(d.Body), lines: doc.Lines(d.Body)}
 }
 
 func (a *API) clamp() { a.cursor = max(min(a.cursor, len(a.file.Requests)-1), 0) }
@@ -150,7 +150,7 @@ func (a *API) Draw(width int, active bool) (string, widget.Span) {
 // block is the request as written, without its "###" line, its request
 // line, which the line above shows, and the blank lines around it. The
 // hooks before the request line are kept: they run when it is sent.
-func (a *API) block(r httpfile.Request) []string {
+func (a *API) block(r syntax.Request) []string {
 	end := min(r.End, len(a.lines))
 	var ls []string
 	for i := r.Start; i < end; i++ {

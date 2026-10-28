@@ -1,14 +1,10 @@
-// Package httpfile reads and sends the requests of a .http file, the plain
-// text format that resterm, the VS Code REST Client and JetBrains share:
-// requests separated by "###" lines, each a request line, headers, a blank
-// line and a body. Directives in comments ("# @assert status == 200") check
-// the response, carry values to the next request and run hooks around it.
-//
-// The files: parse.go reads a file, vars.go fills in {{variables}} from the
-// file, the environment and earlier responses, run.go sends a request and
-// checks what came back, and log.go writes it down for the board and the
-// agent.
-package httpfile
+// Package syntax reads a .http file, the plain text format that resterm,
+// the VS Code REST Client and JetBrains share: requests separated by "###"
+// lines, each a request line, headers, a blank line and a body, with
+// directives in comments ("# @assert status == 200"). It only reads: it
+// sends nothing and runs nothing, so the board can draw a file without
+// the code that talks to the network. Sending is internal/httpfile's.
+package syntax
 
 import (
 	"strconv"

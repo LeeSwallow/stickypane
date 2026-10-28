@@ -29,6 +29,7 @@ written through a named form in `when`, and a clock is handed in as a
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
+| 0 | `internal/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
 
 The packages stay side by side under `internal/` rather than in folders by
 role. The layers do not split by role: widgets draw with the theme, the

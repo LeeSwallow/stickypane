@@ -28,7 +28,8 @@ var rank = map[string]int{
 	"internal/i18n":            5, // reads the locale from env
 	".":                        0, // the plugin's files, carried in the program
 	"internal/harness":         5, // the plugin's skills, read for MCP and guide
-	"internal/httpfile":        5, // .http files: read, send, check; writes times with when
+	"internal/httpfile":        5, // .http files: send, check; writes times with when
+	"internal/httpfile/syntax": 0, // .http files read, with nothing sent: what the board draws
 	"internal/registry":        5, // which boards are used on this machine; writes times with when
 	"internal/layout":          0,
 	"internal/editor":          0,
