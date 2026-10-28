@@ -28,6 +28,12 @@ on GitHub are built from pull request labels.
   runs a script or sends a request after a question; cards move by drag or
   `h l j k`; a settings dialog (`⌘,`) for the board's theme, style and
   language and the app's mode and hotkey (#18).
+- The desktop app (in progress, #10): a free canvas beside the grid, where
+  notes are dragged, resized and stacked and stay where this computer left
+  them; a note torn off into a small window of its own that stays on top,
+  follows its file and is put back from it. Places are kept in
+  `~/.stickypane/overlay.json`; the notes and `sticky.json` do not change
+  (#19).
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
