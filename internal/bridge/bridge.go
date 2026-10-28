@@ -493,6 +493,9 @@ func (s *server) noteOpen(params json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if n.Book() {
+		return nil, badRequest(fmt.Sprintf("%s is a book, a folder: open one of its pages", p.Note))
+	}
 	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name))
 	cmd := env.Detect().OpenCommand(file)
 	if cmd == nil {

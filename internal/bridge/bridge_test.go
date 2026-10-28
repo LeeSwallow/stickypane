@@ -652,3 +652,22 @@ func TestScriptLanguageIsTheExtensionThenTheShebang(t *testing.T) {
 		}
 	}
 }
+
+// A book is a folder, not a file to edit: note.open asks for one of its
+// pages instead, and opens nothing.
+func TestOpenRefusesABook(t *testing.T) {
+	ran := 0
+	was := start
+	start = func([]string) error { ran++; return nil }
+	t.Cleanup(func() { start = was })
+	t.Setenv("VISUAL", "/usr/local/bin/code")
+	dir := board(t, map[string]string{"t/docs/a.md": "a\n", "t/keep.md": "k\n"})
+	s := serve(t, dir)
+	if r := s.call("note.open", map[string]any{"note": "t/docs"}); r.code != CodeBadRequest || !strings.Contains(r.msg, "page") {
+		t.Errorf("open a book: %q %s", r.code, r.msg)
+	}
+	s.ok("note.open", map[string]any{"note": "t/docs/a.md"}, nil)
+	if ran != 1 {
+		t.Errorf("ran %d commands, want only the page's", ran)
+	}
+}

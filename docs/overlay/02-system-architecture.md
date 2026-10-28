@@ -141,7 +141,7 @@ type Action struct {
 | → | `note.archive` / `note.trash` / `note.restore` `{note}` | `api.Archive` / `api.Remove` / `api.Restore`(책은 `store`로 직접). restore는 휴지통에 없으면 `not_found` |
 | → | `note.run` `{note}` | 스크립트를 실행하고 끝나면 `{code, took}`(밀리초). 확인은 앱이 이미 받았다. 세션이 끝나면 실행 중인 스크립트는 중단된다 |
 | → | `note.send` `{note, request}` | `.http` 노트의 요청 하나를 보낸다(`httpfile.SendNote`, 터미널과 같다). `request`는 제목 또는 1부터 센 번호. 끝나면 `{status, text, took, failed, end, log}` |
-| → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
+| → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다. 책(폴더)은 열지 않고 `bad_request`: 그 페이지를 연다 |
 | → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `settings.get`은 `board.load`의 `settings`. `settings.set`은 값을 모두 검사한 뒤에야 쓴다 |
 | ← | `board.changed` `{notes, removed, events, settings?, palette?}` | `store.Watch` 신호마다. 바뀐 노트(`board.load` 모양)·사라진 이름·`Kind.Events`의 사건. 루트 `sticky.json`의 설정이 바뀌었으면(에이전트의 `show`가 바꾼 `tab`, 터미널에서 고른 테마·언어 등) `settings` 전체를, 테마가 바뀌었으면 `palette`도 |
 | ← | 오류 응답 | `{id, error:{code, message}}`. `code`는 `bad_request` · `not_found` · `stale` · `failed` |
