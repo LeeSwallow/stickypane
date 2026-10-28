@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/LeeSwallow/stickypane/overlay/internal/canvas"
 	"github.com/LeeSwallow/stickypane/overlay/internal/index"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -167,9 +168,30 @@ func (p *ProjectService) Order(ctx context.Context, o OrderParams) (json.RawMess
 	return p.call(ctx, "tab.order", o)
 }
 
-// Move is note.move.
+// Move is note.move. The note's place on the canvas, and its torn-off
+// window, go with it to its new name.
 func (p *ProjectService) Move(ctx context.Context, m MoveParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.move", m)
+	out, err := p.call(ctx, "note.move", m)
+	if err != nil {
+		return out, err
+	}
+	if to := movedTo(out); to != "" {
+		if id, werr := window(ctx); werr == nil {
+			p.S.Renamed(id, m.Note, to)
+		}
+	}
+	return out, nil
+}
+
+// movedTo is the new name note.move answered with, or "".
+func movedTo(out json.RawMessage) string {
+	var moved struct {
+		Note string `json:"note"`
+	}
+	if json.Unmarshal(out, &moved) != nil {
+		return ""
+	}
+	return moved.Note
 }
 
 // Archive is note.archive.
@@ -225,4 +247,65 @@ func (p *ProjectService) Settings(ctx context.Context) (json.RawMessage, error) 
 // SetSetting is settings.set.
 func (p *ProjectService) SetSetting(ctx context.Context, s SettingsParams) (json.RawMessage, error) {
 	return p.call(ctx, "settings.set", s)
+}
+
+// CanvasService is what a project window, and a torn-off note's window,
+// call for where notes sit on this computer (docs/overlay/03 §3.6.1): the
+// canvas's layout and the notes torn off it. Each acts on the project of
+// the window that called it.
+type CanvasService struct{ S *Shell }
+
+// Layout is the project's canvas: its mode, snap, places and torn-off notes.
+func (c *CanvasService) Layout(ctx context.Context) (Layout, error) {
+	id, err := window(ctx)
+	if err != nil {
+		return Layout{}, err
+	}
+	return c.S.Layout(id)
+}
+
+// SetMode is canvas or grid.
+func (c *CanvasService) SetMode(ctx context.Context, mode string) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.SetMode(id, mode)
+}
+
+// SetSnap makes notes land on the canvas's grid, or anywhere.
+func (c *CanvasService) SetSnap(ctx context.Context, on bool) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.SetSnap(id, on)
+}
+
+// Place keeps where notes are on the canvas, by note name.
+func (c *CanvasService) Place(ctx context.Context, places map[string]canvas.Place) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.SetPlaces(id, places)
+}
+
+// TearOff opens a note in a window of its own and returns its id.
+func (c *CanvasService) TearOff(ctx context.Context, note string) (uint, error) {
+	id, err := window(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return c.S.TearOff(id, note)
+}
+
+// PutBack puts a torn-off note back on the board and closes its window;
+// from that window, note "" is its own.
+func (c *CanvasService) PutBack(ctx context.Context, note string) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.PutBack(id, note)
 }
