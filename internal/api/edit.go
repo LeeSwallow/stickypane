@@ -232,18 +232,14 @@ func (o setKeys) Apply(d doc.Document) (doc.Document, error) {
 // own arrangement is kept; the others go to the note's front matter. A book
 // is named by its folder and takes only the first kind.
 func (a *API) Set(name string, pairs []string) (string, error) {
-	file, err := fileName(name)
+	file, book, err := a.target(name)
 	if err != nil {
 		return "", err
 	}
-	file = a.existing(name, file)
 	if len(pairs) == 0 {
 		return "", errors.New("nothing to set: give key=value pairs")
 	}
-	book := false
-	if fi, err := os.Stat(filepath.Join(a.st.Dir, strings.TrimSpace(name))); err == nil && fi.IsDir() && !strings.Contains(name, "/") {
-		file, book = strings.TrimSpace(name), true
-	} else if _, err := a.st.Read(file); err != nil {
+	if _, err := a.st.Read(file); err != nil && !book {
 		return "", fmt.Errorf("there is no note %s", file)
 	}
 	var op setKeys
@@ -310,8 +306,7 @@ func (a *API) Set(name string, pairs []string) (string, error) {
 // or a file.
 func (a *API) target(name string) (string, bool, error) {
 	name = strings.TrimSpace(name)
-	plain := name != "" && !strings.ContainsAny(name, `/\`) && !strings.HasPrefix(name, ".") && name != store.ArchiveDir
-	if fi, err := os.Stat(filepath.Join(a.st.Dir, name)); plain && err == nil && fi.IsDir() {
+	if a.isBook(name) {
 		return name, true, nil
 	}
 	file, err := fileName(name)
@@ -343,78 +338,119 @@ func (a *API) existing(name, file string) string {
 	return file
 }
 
+// Moved is where a note, a page or a book went: what Remove, Archive,
+// Restore and Move answer, for the caller to say in its own words.
+type Moved struct {
+	From string `json:"from"` // its name before
+	To   string `json:"to"`   // its name now: in the trash, the archive, or where it was moved
+}
+
+// isBook reports whether name is a book: a folder of the notes folder, at
+// the top level or in a tab ("deploy/docs"), that is not the archive.
+func (a *API) isBook(name string) bool {
+	if !bookName(name) {
+		return false
+	}
+	fi, err := os.Stat(filepath.Join(a.st.Dir, filepath.FromSlash(name)))
+	return err == nil && fi.IsDir()
+}
+
+// bookName reports whether name could be a book's: one or two plain folder
+// names, the archive not among them.
+func bookName(name string) bool {
+	parts := strings.Split(name, "/")
+	if name == "" || len(parts) > 2 || strings.ContainsAny(name, `\`) || parts[0] == store.ArchiveDir {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" || strings.HasPrefix(p, ".") {
+			return false
+		}
+	}
+	return true
+}
+
 // Remove moves a note, a page or a whole book to the trash. Nothing is
 // removed from the disk, so an agent that removes the wrong note has done
 // no harm: Restore brings it back.
-func (a *API) Remove(name string) (string, error) {
+func (a *API) Remove(name string) (Moved, error) {
 	file, _, err := a.target(name)
 	if err != nil {
-		return "", err
+		return Moved{}, err
 	}
 	to, err := a.st.Trash(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("there is no note %s", file)
+		return Moved{}, fmt.Errorf("there is no note %s", file)
 	} else if err != nil {
-		return "", err
+		return Moved{}, err
 	}
-	short := strings.TrimSuffix(file, ".md")
-	return fmt.Sprintf("moved %s to %s; `stickypane restore %s` brings it back", file, to, short), nil
+	_, _ = a.Derive() // charts computed from this note follow it
+	return Moved{From: file, To: to}, nil
 }
 
-// Restore brings back the note of that name that was removed last.
-func (a *API) Restore(name string) (string, error) {
+// Restore brings back the note of that name that was removed last, or
+// the book of that folder's name.
+func (a *API) Restore(name string) (Moved, error) {
 	name = strings.TrimSpace(name)
-	file, err := fileName(name)
-	if err != nil {
-		return "", err
+	file, ferr := fileName(name)
+	from, ok := "", false
+	if ferr == nil {
+		from, ok = a.st.Trashed(file)
 	}
-	from, ok := a.st.Trashed(file)
-	if !ok && !strings.ContainsAny(name, `/\.`) {
+	if !ok && !store.IsNote(name) && bookName(name) {
 		// A book was removed as a folder, under its bare name.
-		if from, ok = a.st.Trashed(name); ok {
-			file = name
+		if from, ok = a.st.Trashed(name); ok || ferr != nil {
+			file, ferr = name, nil
 		}
 	}
+	if ferr != nil {
+		return Moved{}, ferr
+	}
 	if !ok {
-		return "", missing(fmt.Sprintf("there is no %s in the trash", file))
+		return Moved{}, missing(fmt.Sprintf("there is no %s in the trash", file))
 	}
-	if err := a.st.Restore(from, file); err != nil {
-		return "", err
-	}
-	return "restored " + file, nil
+	return a.Return(Moved{From: file, To: from})
 }
 
-// Archive moves a note out of sight into the archive folder.
-func (a *API) Archive(name string) (string, error) {
+// Return takes back what Remove or Archive did: what they moved to m.To
+// goes back to m.From, unless a note is there now. It answers the move
+// back.
+func (a *API) Return(m Moved) (Moved, error) {
+	if err := a.st.Restore(m.To, m.From); err != nil {
+		return Moved{}, err
+	}
+	_, _ = a.Derive()
+	return Moved{From: m.To, To: m.From}, nil
+}
+
+// Archive moves a note, a page or a book out of sight into the archive
+// folder.
+func (a *API) Archive(name string) (Moved, error) {
 	file, _, err := a.target(name)
 	if err != nil {
-		return "", err
+		return Moved{}, err
 	}
 	to, err := a.st.Archive(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("there is no note %s", file)
+		return Moved{}, fmt.Errorf("there is no note %s", file)
 	} else if err != nil {
-		return "", err
+		return Moved{}, err
 	}
-	return fmt.Sprintf("moved %s to %s", file, to), nil
+	_, _ = a.Derive()
+	return Moved{From: file, To: to}, nil
 }
 
 // Move renames a note or moves it. to is "." for the top level, the name
 // of a folder (an existing one, or any name ending in "/") to make the note
 // a page of that book, or a new name. A new name without an extension
 // keeps the note's. A note that is moved keeps where it was on the screen.
-func (a *API) Move(name, to string) (string, error) {
+func (a *API) Move(name, to string) (Moved, error) {
 	file, dest, err := a.move(name, to)
 	if err != nil {
-		return "", err
+		return Moved{}, err
 	}
-	return fmt.Sprintf("moved %s to %s", file, dest), nil
-}
-
-// MoveTo is Move that answers where the note went instead of saying so.
-func (a *API) MoveTo(name, to string) (string, error) {
-	_, dest, err := a.move(name, to)
-	return dest, err
+	_, _ = a.Derive()
+	return Moved{From: file, To: dest}, nil
 }
 
 // missing is an error that is fs.ErrNotExist, with its own words.

@@ -69,10 +69,10 @@ func (m *Model) send(name string, part int) tea.Cmd {
 	}
 	m.running[name] = true
 	m.status = say(tr.Sending, map[string]any{"Name": path.Base(name)})
-	st := m.store
+	calls := m.calls()
 	return func() tea.Msg {
-		res, err := httpfile.SendNote(context.Background(), st, st.Dir, name, part, "")
-		return sentMsg{name: name, end: strings.Trim(httpfile.End(res), "[]"), err: err}
+		res, err := calls.SendPart(context.Background(), name, part, "")
+		return sentMsg{name: name, end: res.End, err: err}
 	}
 }
 

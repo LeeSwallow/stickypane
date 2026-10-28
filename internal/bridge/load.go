@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"os"
 	"path"
 	"path/filepath"
@@ -154,7 +153,7 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 	out := Note{
 		Name: n.Name, Tab: tab, Title: arrange.Title(v, n.Doc, n.Name),
 		Kind: "book", Icon: "▤", Open: open, Size: widget.SizeFull,
-		Color: color(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
+		Color: arrange.ColorName(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
 		ModTime: n.ModTime, Data: json.RawMessage("null"), Pages: []Note{},
 	}
 	out.Linked, out.Target = s.link(n.Name)
@@ -182,7 +181,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 		Name: n.Name, Tab: tab, Kind: k.Name, Icon: k.Icon, Open: open,
 		Size:    arrange.Size(v, owner.Doc, k, n.Doc),
 		Rows:    arrange.Rows(v, owner.Doc, k),
-		Color:   color(owner.Name, arrange.Color(v, owner.Doc)),
+		Color:   arrange.ColorName(owner.Name, arrange.Color(v, owner.Doc)),
 		Pinned:  arrange.Pinned(v, owner.Doc),
 		ModTime: n.ModTime,
 		Data:    json.RawMessage("null"),
@@ -207,7 +206,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 
 // link says whether a note is a symbolic link, and to what.
 func (s *server) link(name string) (bool, string) {
-	st := s.api.Store()
+	st := s.api.Store() // read only: whether the file is a link, and where it is
 	if !st.Linked(name) {
 		return false, ""
 	}
@@ -251,21 +250,8 @@ func data(name string, v any) json.RawMessage {
 	return raw
 }
 
-// color is the name of a note's color: the one chosen, else one the name
-// picks, the way the terminal picks it, so both screens agree.
-func color(name, chosen string) string {
-	for _, c := range theme.NoteNames {
-		if strings.EqualFold(c, chosen) {
-			return c
-		}
-	}
-	h := fnv.New32a()
-	h.Write([]byte(name))
-	return theme.NoteNames[h.Sum32()%uint32(len(theme.NoteNames))]
-}
-
 // settings reads the root settings.
-func (s *server) settings() Settings { return settingsOf(s.api.Store().Settings()) }
+func (s *server) settings() Settings { return settingsOf(s.api.Settings()) }
 
 // settingsOf is what the settings files say, with the defaults.
 func settingsOf(set store.Settings) Settings {
@@ -279,27 +265,12 @@ func settingsOf(set store.Settings) Settings {
 	}
 	return Settings{
 		Theme: th, Style: set.Style(), View: set.ViewMode(),
-		Language: Language{lang, resolve(lang)},
+		Language: Language{lang, i18n.Resolve(lang)},
 		Tab:      set.Tab(),
 		Time:     prefs.Get(set, "time"),
 		Editor:   prefs.Get(set, "editor"),
 		Stale:    prefs.Get(set, "stale"),
 	}
-}
-
-// resolve is the language a choice comes to: the choice when there is a
-// translation for it, else what the environment asks for when there is
-// one for that, else English.
-func resolve(choice string) string {
-	for _, c := range []string{choice, i18n.Detect()} {
-		if c == "en" {
-			return c
-		}
-		if _, err := i18n.Load(c); err == nil && c != "" && c != "auto" {
-			return c
-		}
-	}
-	return "en"
 }
 
 // palette is the colors of the chosen theme. The bridge has no terminal

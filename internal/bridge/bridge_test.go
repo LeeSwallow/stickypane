@@ -16,6 +16,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -559,6 +560,34 @@ func TestBridgeSetsSettings(t *testing.T) {
 	s.ok("board.load", nil, &b)
 	if b.Settings.Language.Choice != "auto" || b.Settings.Language.Resolved != "en" {
 		t.Errorf("language after auto: %+v", b.Settings.Language)
+	}
+}
+
+// What settings.set says of a value it refuses is pinned: the desktop app
+// shows it as it is. A refused value writes nothing, not even the good ones
+// beside it.
+func TestBridgeRefusesSettingsInItsOwnWords(t *testing.T) {
+	dir := board(t, nil)
+	s := serve(t, dir)
+	langs := strings.Join(i18n.Languages(), ", ")
+	for _, c := range []struct {
+		params map[string]any
+		says   string
+	}{
+		{map[string]any{"theme": "no-such-theme"}, `there is no theme "no-such-theme"`},
+		{map[string]any{"style": "fancy"}, `style "fancy" is not doodle or neat`},
+		{map[string]any{"view": "hologram"}, `view "hologram" is not terminal, overlay or both`},
+		{map[string]any{"language": "tlh"}, `there is no translation for "tlh": use auto, ` + langs},
+		{map[string]any{"theme": "nord", "view": "hologram"}, `view "hologram" is not terminal, overlay or both`},
+		{map[string]any{}, "settings.set needs theme, style, view or language"},
+	} {
+		r := s.call("settings.set", c.params)
+		if r.code != CodeBadRequest || r.msg != c.says {
+			t.Errorf("%v: %q %q, want bad_request %q", c.params, r.code, r.msg, c.says)
+		}
+	}
+	if th := store.Open(dir).Theme(); th != "" {
+		t.Errorf("a refused settings.set wrote the theme %q", th)
 	}
 }
 

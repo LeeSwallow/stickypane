@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 )
 
@@ -18,12 +19,12 @@ func configCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	st := a.Store()
+	set := a.Settings()
 	switch len(words) {
 	case 0:
 		w := tabwriter.NewWriter(e.stdout, 0, 0, 2, ' ', 0)
 		for _, p := range prefs.All {
-			v := prefs.Get(st.Settings(), p.Key)
+			v := prefs.Get(set, p.Key)
 			mark := ""
 			if v == p.Default {
 				mark = "(default)"
@@ -33,14 +34,15 @@ func configCmd(e env, args []string) error {
 		return w.Flush()
 	case 1:
 		if prefs.Lookup(words[0]).Key == "" {
-			return prefs.Set(st, words[0], "")
+			_, err := prefs.Normal(words[0], "")
+			return err // there is no such setting
 		}
-		_, err := fmt.Fprintln(e.stdout, prefs.Get(st.Settings(), words[0]))
+		_, err := fmt.Fprintln(e.stdout, prefs.Get(set, words[0]))
 		return err
 	}
-	if err := prefs.Set(st, words[0], words[1]); err != nil {
+	if err := a.ChangeSettings(api.Setting{Key: words[0], Value: words[1]}); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(e.stdout, "%s: %s\n", words[0], prefs.Get(st.Settings(), words[0]))
+	_, err = fmt.Fprintf(e.stdout, "%s: %s\n", words[0], prefs.Get(a.Settings(), words[0]))
 	return err
 }

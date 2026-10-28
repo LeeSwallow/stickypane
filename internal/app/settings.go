@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -88,7 +89,7 @@ func settingsUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func (m *Model) changePref(step int) {
 	p := prefs.All[m.settingsAt]
 	next := p.Next(prefs.Get(m.store.Settings(), p.Key), step)
-	if err := prefs.Set(m.store, p.Key, next); err != nil {
+	if err := m.calls().ChangeSettings(api.Setting{Key: p.Key, Value: next}); err != nil {
 		m.status = err.Error()
 		return
 	}

@@ -12,7 +12,7 @@ import (
 // apply writes an intent to the file called name and refreshes the screen. On a conflict
 // nothing is written and the screen simply catches up with the file.
 func (m *Model) apply(name string, op doc.Op) {
-	err := m.store.Apply(name, op)
+	err := m.calls().Do(name, op)
 	switch {
 	case errors.Is(err, doc.ErrConflict):
 		m.status = tr.Conflict

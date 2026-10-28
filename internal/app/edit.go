@@ -1,10 +1,12 @@
 package app
 
 import (
+	"errors"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/editor"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -69,12 +71,15 @@ func editUpdate(m *Model, msg tea.Msg) tea.Cmd {
 // file that changed since it was loaded is someone else's work, usually the
 // agent's: it is overwritten only when the user insists.
 func (m *Model) save(force bool) bool {
-	if now, err := m.store.Read(m.editName); !force && (err != nil || string(now) != m.editDisk) {
-		m.edit.SetMessage(tr.FileChangedSave)
-		return false
+	was := []byte(m.editDisk)
+	if force {
+		was = nil
 	}
 	text := m.edit.Text()
-	if err := m.store.Write(m.editName, []byte(text)); err != nil {
+	if err := m.calls().Save(m.editName, was, []byte(text)); errors.Is(err, api.ErrStale) {
+		m.edit.SetMessage(tr.FileChangedSave)
+		return false
+	} else if err != nil {
 		m.edit.SetMessage(say(tr.WriteFailed, map[string]any{"Err": err.Error()}))
 		return false
 	}

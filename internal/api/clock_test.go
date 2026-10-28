@@ -82,3 +82,37 @@ func TestTheAPIWritesTheTimeOfItsClock(t *testing.T) {
 		t.Error("no note.removed")
 	}
 }
+
+// TendAll fills in what a kind writes by itself at the time the file
+// changed, not on the clock: an item ticked in an editor gets the file's
+// time.
+func TestTendAllStampsAtTheTimeTheFileChanged(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), store.DirName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	st := store.Open(dir)
+	a := NewWithClock(st, kinds.Default(note.Plain), func() time.Time { return at })
+	file := filepath.Join(dir, "plan.md")
+	if err := os.WriteFile(file, []byte("---\ntype: checklist\n---\n- [x] tests\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed := time.Date(2026, 5, 6, 7, 8, 0, 0, time.Local)
+	if err := os.Chtimes(file, changed, changed); err != nil {
+		t.Fatal(err)
+	}
+	b, err := st.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !a.TendAll(b.Tabs, nil) {
+		t.Fatal("TendAll wrote nothing")
+	}
+	if got := readRaw(t, dir, "plan.md"); !strings.Contains(got, "- [x] tests ✅ 2026-05-06 07:08\n") {
+		t.Errorf("tended:\n%s", got)
+	}
+	b, _ = st.Load()
+	if a.TendAll(b.Tabs, nil) {
+		t.Error("a tended note is tended once")
+	}
+}

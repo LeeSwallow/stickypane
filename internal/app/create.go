@@ -5,9 +5,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -46,16 +46,8 @@ func init() {
 // sticky.json, so it is still on the screen after a restart: it is the
 // user's own note, and no agent is in the middle of editing it.
 func (m *Model) create(text, ext string, content []byte) {
-	if ext == "" {
-		ext = ".md"
-	}
-	if ext == ".md" {
-		// A note the board makes says when it was made.
-		if d := doc.Parse(content); !hasKey(d, "created") {
-			content = d.Set("created", m.now().Format(when.Stamp)).Bytes()
-		}
-	}
-	name, err := m.store.Create(text, ext, content, m.now())
+	// Named and stamped as every screen makes a note (api.CreateFrom).
+	name, err := m.calls().CreateFrom("", text, ext, api.Options{}, content)
 	if err != nil {
 		m.status = say(tr.CannotCreate, map[string]any{"Err": err.Error()})
 		return
@@ -135,9 +127,4 @@ func catalogBody(m *Model, h int) []string {
 		}
 	}
 	return dialog(tr.AddANote, body, boxW, m.width, h, m.accent())
-}
-
-func hasKey(d doc.Document, key string) bool {
-	_, ok := d.Get(key)
-	return ok
 }

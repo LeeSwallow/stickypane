@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,8 +10,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/httpfile"
-	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -72,50 +71,24 @@ func (s *server) noteArrange(params json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A page is arranged by its book, by the book's folder name, but has
+	// its own title.
 	switch {
-	case owner.Book():
-		// api.Set names a book by a folder of the notes folder itself; a
-		// book is also in a tab, so its view is written here, with the
-		// same changes Set makes.
-		if owner.Name == n.Name {
-			view = append(view, title...)
+	case owner.Name == n.Name:
+		_, err = s.api.Set(n.Name, append(view, title...))
+	default:
+		if len(view) > 0 {
+			_, err = s.api.Set(owner.Name, view)
 		}
-		err = s.setView(owner.Name, view)
-		if err == nil && owner.Name != n.Name && len(title) > 0 {
+		if err == nil && len(title) > 0 {
 			_, err = s.api.Set(n.Name, title)
 		}
-	default: // a note of its own: only a book has pages
-		_, err = s.api.Set(n.Name, append(view, title...))
 	}
 	if err != nil {
 		return nil, err
 	}
 	s.derive()
 	return empty{}, nil
-}
-
-// setView writes "key=value" arrangements of a note that api.Set cannot
-// name, as Set does: a title is the note's name in sticky.json.
-func (s *server) setView(name string, pairs []string) error {
-	var changes []func(*store.View)
-	for _, kv := range pairs {
-		key, value, _ := strings.Cut(kv, "=")
-		if key == "title" {
-			value = strings.TrimSpace(value)
-			changes = append(changes, func(v *store.View) { v.Title = value })
-			continue
-		}
-		change, _, err := arrange.Change(key, strings.TrimSpace(value))
-		if err != nil {
-			return badRequest(err.Error())
-		}
-		changes = append(changes, change)
-	}
-	return s.api.Store().SetView(name, func(v *store.View) {
-		for _, change := range changes {
-			change(v)
-		}
-	})
 }
 
 // tabOrder puts a tab's notes in the order the screen drew them, as the
@@ -126,39 +99,14 @@ func (s *server) tabOrder(params json.RawMessage) (any, error) {
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
-	tabs, err := s.api.Store().Tabs()
-	if err != nil {
-		return nil, err
-	}
-	var here map[string]bool
-	for _, t := range tabs {
-		if t.Name == p.Tab {
-			here = map[string]bool{}
-			for _, n := range t.Notes {
-				here[n.Name] = true
-			}
-		}
-	}
-	if here == nil {
-		return nil, notFound(fmt.Sprintf("there is no tab %q", p.Tab))
-	}
 	if len(p.Order) == 0 {
 		return nil, badRequest("params.order is empty")
 	}
-	seen := map[string]bool{}
-	for _, name := range p.Order {
-		switch {
-		case !here[name]:
-			return nil, badRequest(fmt.Sprintf("%q is not a note of tab %q: use the names board.load gave", name, p.Tab))
-		case seen[name]:
-			return nil, badRequest(fmt.Sprintf("%q is twice in the order", name))
-		}
-		seen[name] = true
-	}
-	if err := s.api.Store().SetOrder(p.Tab, p.Order); err != nil {
+	if err := s.api.Order(p.Tab, p.Order); errors.Is(err, api.ErrBadOrder) {
+		return nil, badRequest(err.Error())
+	} else if err != nil {
 		return nil, err
 	}
-	s.derive()
 	return empty{}, nil
 }
 
@@ -176,39 +124,26 @@ func (s *server) noteMove(params json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	dest, err := s.api.MoveTo(n.Name, p.To) // a book is moved by its folder's name
+	moved, err := s.api.Move(n.Name, p.To) // a book is moved by its folder's name
 	if err != nil {
 		return nil, err
 	}
-	s.derive()
-	return map[string]string{"note": dest}, nil
+	return map[string]string{"note": moved.To}, nil
 }
 
-// noteArchive moves a note out of sight into the archive.
+// noteArchive moves a note, a page or a book out of sight into the archive.
 func (s *server) noteArchive(params json.RawMessage) (any, error) {
-	return s.manage(params, func(n string, book bool) error {
-		if book {
-			_, err := s.api.Store().Archive(n)
-			return err
-		}
-		_, err := s.api.Archive(n)
-		return err
-	})
+	return s.manage(params, s.api.Archive)
 }
 
 // noteTrash moves a note, a page or a book to the trash.
 func (s *server) noteTrash(params json.RawMessage) (any, error) {
-	return s.manage(params, func(n string, book bool) error {
-		if book {
-			_, err := s.api.Store().Trash(n)
-			return err
-		}
-		_, err := s.api.Remove(n)
-		return err
-	})
+	return s.manage(params, s.api.Remove)
 }
 
-func (s *server) manage(params json.RawMessage, do func(name string, book bool) error) (any, error) {
+// manage does to a note on the board what api does to it, a book by its
+// folder's name as the terminal does.
+func (s *server) manage(params json.RawMessage, do func(name string) (api.Moved, error)) (any, error) {
 	var p noteParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
@@ -217,10 +152,9 @@ func (s *server) manage(params json.RawMessage, do func(name string, book bool) 
 	if err != nil {
 		return nil, err
 	}
-	if err := do(n.Name, n.Book()); err != nil {
+	if _, err := do(n.Name); err != nil {
 		return nil, err
 	}
-	s.derive()
 	return empty{}, nil
 }
 
@@ -235,19 +169,11 @@ func (s *server) noteRestore(params json.RawMessage) (any, error) {
 	if err := checkName(name); err != nil {
 		return nil, err
 	}
-	if !store.IsNote(name) { // a book was trashed as a folder, whatever dots its name has
-		st := s.api.Store()
-		from, ok := st.Trashed(name)
-		if !ok {
-			return nil, notFound(fmt.Sprintf("there is no %s in the trash", name))
-		}
-		if err := st.Restore(from, name); err != nil {
-			return nil, err
-		}
-	} else if _, err := s.api.Restore(name); err != nil {
+	// A book was trashed as a folder, whatever dots its name has; api
+	// takes it by that name.
+	if _, err := s.api.Restore(name); err != nil {
 		return nil, err
 	}
-	s.derive()
 	return empty{}, nil
 }
 
@@ -264,7 +190,7 @@ type sendResult struct {
 
 // noteSend sends one request of a .http note and waits for its answer, as
 // the terminal does after the user said yes. The log is written by the
-// same function (httpfile.SendNote); the app reads it from the board.
+// same function (api.SendPart); the app reads it from the board.
 func (s *server) noteSend(params json.RawMessage) (any, error) {
 	var p sendParams
 	if err := decode(params, &p); err != nil {
@@ -286,27 +212,17 @@ func (s *server) noteSend(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "api" {
 		return nil, badRequest(fmt.Sprintf("%s has no requests to send", p.Note))
 	}
-	st := s.api.Store()
-	data, err := st.Read(n.Name)
-	if err != nil {
-		return nil, err
-	}
-	f := httpfile.Parse(string(data))
-	titles := make([]string, len(f.Requests))
-	for i, r := range f.Requests {
-		titles[i] = r.Title()
-	}
-	part, err := widget.Pick(titles, want, "request")
+	part, err := s.api.Request(n.Name, want)
 	if err != nil {
 		return nil, badRequest(err.Error())
 	}
-	res, err := httpfile.SendNote(s.ctx, st, st.Dir, n.Name, part, "")
+	res, err := s.api.SendPart(s.ctx, n.Name, part, "")
 	if err != nil {
 		return nil, err
 	}
 	return sendResult{
-		Status: res.Status, Text: res.Text, Took: res.Took.Milliseconds(), Failed: res.Failed(),
-		End: strings.Trim(httpfile.End(res), "[]"), Log: httpfile.LogName(n.Name),
+		Status: res.Status, Text: res.Text, Took: res.Took.Milliseconds(), Failed: res.Failed,
+		End: res.End, Log: res.Log,
 	}, nil
 }
 
