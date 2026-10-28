@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 const (
 	formatHint = `no data yet: add "label: number" lines`
-	dayLayout  = "2006-01-02"
 	gutterDays = 5 // cells for the weekday names left of a calendar
 
 	sparkRows    = 6  // height of a trend line when nothing says more
@@ -234,7 +234,7 @@ func heat(days []day, width int) []string {
 	first, last, peak := days[0].date, days[0].date, days[0]
 	total := 0.0
 	for _, d := range days {
-		values[d.date.Format(dayLayout)] = d.p
+		values[d.date.Format(when.Date)] = d.p
 		if d.date.Before(first) {
 			first = d.date
 		}
@@ -281,7 +281,7 @@ func heat(days []day, width int) []string {
 	for row := 0; row < 7; row++ {
 		var cells strings.Builder
 		for w := 0; w < weeks; w++ {
-			p, ok := values[start.AddDate(0, 0, 7*w+row).Format(dayLayout)]
+			p, ok := values[start.AddDate(0, 0, 7*w+row).Format(when.Date)]
 			switch {
 			case !ok:
 				cells.WriteString(strings.Repeat(" ", cw))
@@ -303,7 +303,7 @@ func heat(days []day, width int) []string {
 		line := widget.Faint.Render(widget.Pad(names[row], gutterDays)) + cells.String()
 		lines = append(lines, strings.TrimRight(line, " "))
 	}
-	legend := fmt.Sprintf("total %s · peak %s (%s)", trim(total), peak.p.text, peak.date.Format(dayLayout))
+	legend := fmt.Sprintf("total %s · peak %s (%s)", trim(total), peak.p.text, peak.date.Format(when.Date))
 	lines = append(lines, "")
 	if width < heatMinW {
 		return append(lines, faintLines(legend, width)...)

@@ -22,6 +22,30 @@ const (
 	Moment = time.RFC3339
 )
 
+// The layouts of lines the board writes for people to read beside a run.
+const (
+	started = "2006-01-02 15:04:05" // the head of a script's log
+	second  = "15:04:05"            // a line of stickypane watch
+	milli   = "15:04:05.000"        // a frame of a WebSocket transcript
+	compact = "20060102-150405"     // a file name made from a time
+)
+
+// LogHead writes when a script started, in the head of its log:
+// "2026-10-03 14:02:05".
+func LogHead(t time.Time) string { return t.Format(started) }
+
+// Second writes the time of day to the second, as a line of stickypane
+// watch starts: "14:02:05".
+func Second(t time.Time) string { return t.Format(second) }
+
+// Milli writes the time of day to the millisecond, as a line of a
+// WebSocket transcript says it: "14:02:05.042".
+func Milli(t time.Time) string { return t.Format(milli) }
+
+// Slug writes a time as part of a file name, without spaces or colons:
+// "20261003-140205".
+func Slug(t time.Time) string { return t.Format(compact) }
+
 // How the screen writes a time of day, a day of this year and a day of
 // another year. UseLocale sets them for the user's country; they are Go
 // layouts. What is written into files stays in the layouts above, which

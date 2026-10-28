@@ -539,7 +539,7 @@ func Slug(text string, now time.Time) string {
 	if slug := strings.TrimRight(b.String(), "-"); slug != "" {
 		return slug
 	}
-	return "note-" + now.Format("20060102-150405")
+	return "note-" + when.Slug(now)
 }
 
 // put moves the note called name to dst, a path inside the notes folder.

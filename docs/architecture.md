@@ -8,7 +8,10 @@ are in [VISION.md](../VISION.md).
 
 A package only imports packages of a lower layer. `internal/layers` checks
 this on every test run: an import the wrong way, or a new package without a
-layer, fails the build.
+layer, fails the build. It also fails on a time layout outside
+`internal/when` (a string such as `"15:04"`, or `time.RFC3339`): a time is
+written through a named form in `when`, and a clock is handed in as a
+`now func() time.Time`, never read from `time.Now` where a stamp is made.
 
 | Layer | Packages | Is |
 | --- | --- | --- |
