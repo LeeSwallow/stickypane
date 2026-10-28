@@ -3,10 +3,12 @@ package bridge
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeStickypane writes a stickypane into dir that answers help and
@@ -87,6 +89,42 @@ func TestFindRefusesAStickypaneTooOldForTheBridge(t *testing.T) {
 	runs, _ := os.ReadFile(log)
 	if strings.Contains(string(runs), "bridge") {
 		t.Errorf("an old stickypane was run with bridge:\n%s", runs)
+	}
+}
+
+// The first run of a new program on macOS may wait for a malware scan; a
+// probe that ran out of time is no answer and is asked again.
+func TestASlowFirstProbeIsAskedAgain(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell scripts")
+	}
+	dir := t.TempDir()
+	once := filepath.Join(dir, "scanned")
+	script := "#!/bin/sh\n" +
+		"if [ \"$1\" = help ] && [ ! -f '" + once + "' ]; then /usr/bin/touch '" + once + "'; /bin/sleep 4; fi\n" +
+		"case \"$1\" in\n" +
+		"help) echo '  stickypane bridge   serve the board' ;;\n" +
+		"version) echo 'stickypane 0.2.0' ;;\n" +
+		"esac\n"
+	p := filepath.Join(dir, "stickypane")
+	if err := os.WriteFile(p, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// The real first-run scan of this script happens here, untimed, so
+	// that only the script's own sleep makes the first probe late.
+	if err := exec.Command(p, "warm").Run(); err != nil {
+		t.Fatal(err)
+	}
+	isolate(t, dir)
+	old := probeTimeout
+	probeTimeout = time.Second
+	t.Cleanup(func() { probeTimeout = old })
+
+	if c := Probe(p); c.Bridge {
+		t.Fatalf("the slow first probe answered %+v", c)
+	}
+	if got, err := Find(); err != nil || got != p {
+		t.Fatalf("Find after a slow first probe = %q, %v; want %q", got, err, p)
 	}
 }
 

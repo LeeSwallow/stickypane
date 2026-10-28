@@ -55,7 +55,8 @@ func LoadState(path string) (State, error) {
 	return s, nil
 }
 
-// Save writes the state file whole: to a temporary file, then renamed.
+// Save writes the state file whole: to a temporary file, synced to disk,
+// then renamed, so that a crash leaves the old file or the new one.
 func (s State) Save(path string) error {
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
@@ -69,6 +70,11 @@ func (s State) Save(path string) error {
 		return err
 	}
 	if _, err := tmp.Write(append(b, '\n')); err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name())
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
 		tmp.Close()
 		os.Remove(tmp.Name())
 		return err

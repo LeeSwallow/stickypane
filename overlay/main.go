@@ -46,7 +46,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "io.github.leeswallow.stickypane-overlay",
+			UniqueID: "io.github.leeswallow.stickypane.overlay",
 			OnSecondInstanceLaunch: func(d application.SecondInstanceData) {
 				<-ready
 				s.Launch(d.Args, d.WorkingDir)

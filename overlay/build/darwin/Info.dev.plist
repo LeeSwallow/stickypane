@@ -8,7 +8,7 @@
         <key>CFBundleExecutable</key>
             <string>stickypane_overlay</string>
         <key>CFBundleIdentifier</key>
-            <string>com.example.stickypaneoverlay</string>
+            <string>io.github.leeswallow.stickypane.overlay</string>
         <key>CFBundleVersion</key>
             <string>0.1.0</string>
         <key>CFBundleGetInfoString</key>

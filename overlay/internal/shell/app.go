@@ -122,6 +122,8 @@ type project struct {
 type Shell struct {
 	cfg       Config
 	statePath string
+	saveMu    sync.Mutex // one write of overlay.json at a time
+	hotkeyMu  sync.Mutex // one change of the hotkey at a time
 
 	mu       sync.Mutex
 	state    State
@@ -222,6 +224,8 @@ func (s *Shell) registerHotkey(accel string) {
 	if accel == "" {
 		return
 	}
+	s.hotkeyMu.Lock()
+	defer s.hotkeyMu.Unlock()
 	if err := s.cfg.Platform.RegisterHotkey(accel, s.Toggle); err != nil {
 		s.notice(Notice{Code: NoticeHotkey, Detail: fmt.Sprintf("%s: %v", accel, err)})
 		return
@@ -231,17 +235,30 @@ func (s *Shell) registerHotkey(accel string) {
 	s.mu.Unlock()
 }
 
-// SetHotkey changes the hotkey and keeps it in the state.
+// SetHotkey changes the hotkey, or registers it again when it is the one
+// that could not be had, and keeps it in the state. If the new one cannot
+// be had the old one is kept; if the old one cannot be had back either,
+// the home window is told there is no hotkey.
 func (s *Shell) SetHotkey(accel string) error {
+	s.hotkeyMu.Lock()
+	defer s.hotkeyMu.Unlock()
 	s.mu.Lock()
-	old := s.hotkey
+	old := s.hotkey // registered now; "" when none is
 	s.mu.Unlock()
+	if old == accel {
+		return nil
+	}
 	if old != "" {
 		s.cfg.Platform.UnregisterHotkey(old)
 	}
 	if err := s.cfg.Platform.RegisterHotkey(accel, s.Toggle); err != nil {
 		if old != "" {
-			s.cfg.Platform.RegisterHotkey(old, s.Toggle)
+			if rerr := s.cfg.Platform.RegisterHotkey(old, s.Toggle); rerr != nil {
+				s.mu.Lock()
+				s.hotkey = ""
+				s.mu.Unlock()
+				s.notice(Notice{Code: NoticeHotkey, Detail: fmt.Sprintf("%s: %v; %s: %v", accel, err, old, rerr)})
+			}
 		}
 		return err
 	}
@@ -468,10 +485,15 @@ func (s *Shell) ShowHome() {
 	w.Focus()
 }
 
-// cleanPath makes one key of the ways a folder is written.
+// cleanPath makes one key of the ways a folder is written: absolute,
+// clean, and through its symlinks (/tmp is /private/tmp on macOS) when
+// the folder exists.
 func cleanPath(p string) string {
 	if abs, err := filepath.Abs(p); err == nil {
 		p = abs
+	}
+	if real, err := filepath.EvalSymlinks(p); err == nil {
+		return real
 	}
 	return filepath.Clean(p)
 }
@@ -767,7 +789,11 @@ func ProjectArg(args []string) string {
 }
 
 // save writes the state file.
+// Saves are one at a time, each taking the state when its turn comes, so
+// an older state never lands after a newer one.
 func (s *Shell) save() error {
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
 	s.mu.Lock()
 	st := s.state.clone()
 	s.mu.Unlock()
@@ -792,10 +818,15 @@ func (s *Shell) Prefs() Prefs {
 func (s *Shell) SetPrefs(p Prefs) error {
 	s.mu.Lock()
 	s.state.Language, s.state.Mode = p.Language, p.Mode
-	change := p.Hotkey != "" && p.Hotkey != s.state.Hotkey
+	// A new hotkey, or the same one that could not be had: try it.
+	change := p.Hotkey != "" && p.Hotkey != s.hotkey
 	s.mu.Unlock()
 	if change {
-		return s.SetHotkey(p.Hotkey)
+		if err := s.SetHotkey(p.Hotkey); err != nil {
+			s.save()
+			return err
+		}
+		return nil
 	}
 	return s.save()
 }

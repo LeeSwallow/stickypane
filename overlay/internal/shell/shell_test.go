@@ -104,6 +104,7 @@ type fakePlatform struct {
 	windows   []*fakeWindow
 	hotkeys   map[string]func()
 	hotkeyErr error
+	refuse    map[string]error // accelerators the desktop will not give
 	events    []event
 	tray      Tray
 	quit      bool
@@ -124,6 +125,9 @@ func (p *fakePlatform) RegisterHotkey(accel string, fn func()) error {
 	defer p.mu.Unlock()
 	if p.hotkeyErr != nil {
 		return p.hotkeyErr
+	}
+	if err := p.refuse[accel]; err != nil {
+		return err
 	}
 	if p.hotkeys == nil {
 		p.hotkeys = map[string]func(){}
@@ -299,6 +303,27 @@ func TestOpenProjectReusesItsWindow(t *testing.T) {
 	}
 	if n := len(r.p.projectWindows()); n != 2 {
 		t.Errorf("%d project windows, want 2", n)
+	}
+}
+
+// /tmp and /private/tmp are one folder on macOS: one window, one path.
+func TestOpenProjectSeesThroughSymlinks(t *testing.T) {
+	r := newRig(t)
+	real := filepath.Join(t.TempDir(), "real")
+	if err := os.Mkdir(real, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Skip("no symlinks here:", err)
+	}
+	id := r.s.OpenProject(link)
+	if again := r.s.OpenProject(real); again != id {
+		t.Errorf("the folder through its link and itself made windows %d and %d", id, again)
+	}
+	want, _ := filepath.EvalSymlinks(real)
+	if got := r.s.Status(id).Path; got != want {
+		t.Errorf("path %q, want the resolved %q", got, want)
 	}
 }
 
@@ -548,6 +573,75 @@ func TestHotkeyFailureIsANoticeInHome(t *testing.T) {
 	}
 	if len(r.p.emitted(NoticesEvent)) == 0 {
 		t.Error("the home window is told")
+	}
+}
+
+func TestSavingTheSameHotkeyRetriesAFailedOne(t *testing.T) {
+	r := newRig(t)
+	r.p.hotkeyErr = errors.New("taken by another app")
+	r.s.Start()
+	r.p.mu.Lock()
+	r.p.hotkeyErr = nil // the other app let go
+	r.p.mu.Unlock()
+	if err := r.s.SetPrefs(Prefs{Hotkey: DefaultHotkey}); err != nil {
+		t.Fatal(err)
+	}
+	if r.p.hotkeys[DefaultHotkey] == nil {
+		t.Error("the unchanged hotkey was not registered again")
+	}
+	if len(r.s.Notices()) != 0 {
+		t.Errorf("notices %+v", r.s.Notices())
+	}
+}
+
+func TestAHotkeyThatCannotBeHadKeepsTheOld(t *testing.T) {
+	r := newRig(t)
+	r.s.Start()
+	r.p.refuse = map[string]error{"Ctrl+K": errors.New("taken")}
+	if err := r.s.SetHotkey("Ctrl+K"); err == nil {
+		t.Fatal("a refused hotkey is an error")
+	}
+	if r.p.hotkeys[DefaultHotkey] == nil || r.s.Prefs().Hotkey != DefaultHotkey {
+		t.Errorf("the old hotkey is lost: %v, prefs %+v", r.p.hotkeys, r.s.Prefs())
+	}
+
+	// If the old one cannot be had back either, the home window says so.
+	r.p.mu.Lock()
+	r.p.refuse[DefaultHotkey] = errors.New("taken meanwhile")
+	r.p.mu.Unlock()
+	if err := r.s.SetHotkey("Ctrl+K"); err == nil {
+		t.Fatal("a refused hotkey is an error")
+	}
+	if ns := r.s.Notices(); len(ns) != 1 || ns[0].Code != NoticeHotkey {
+		t.Errorf("notices %+v", ns)
+	}
+}
+
+func TestConcurrentSavesLeaveTheLastState(t *testing.T) {
+	r := newRig(t)
+	id := r.s.OpenProject(filepath.Join(r.home, "a"))
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(on bool) {
+			defer wg.Done()
+			r.s.SetPin(id, on)
+		}(i%2 == 0)
+	}
+	wg.Wait()
+	if err := r.s.SetPin(id, true); err != nil {
+		t.Fatal(err)
+	}
+	st, err := LoadState(filepath.Join(r.home, StateFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Windows[r.s.Status(id).Path].Pinned {
+		t.Error("the file does not hold the last pin")
+	}
+	left, _ := filepath.Glob(filepath.Join(r.home, ".overlay-*"))
+	if len(left) != 0 {
+		t.Errorf("temporary files left: %v", left)
 	}
 }
 

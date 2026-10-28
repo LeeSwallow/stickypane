@@ -16,8 +16,10 @@ import (
 // ErrTooOld: stickypane was found, but no copy of it has the bridge.
 var ErrTooOld = errors.New("bridge: stickypane too old")
 
-// probeTimeout bounds each `stickypane help` and `stickypane version`.
-const probeTimeout = 3 * time.Second
+// probeTimeout bounds each `stickypane help` and `stickypane version`. It
+// is long because the first run of a new program on macOS can wait for
+// Gatekeeper's scan; a probe that runs out of time is not remembered.
+var probeTimeout = 10 * time.Second
 
 // Candidate is one stickypane program on this machine and what it said of
 // itself.
@@ -154,10 +156,14 @@ func Probe(path string) Candidate {
 	probes.Unlock()
 
 	c := Candidate{Path: path}
-	help, _ := run(path, "help") // an old copy may exit non-zero; its words still count
+	help, _, late := run(path, "help") // an old copy may exit non-zero; its words still count
 	c.Bridge = strings.Contains(help, "stickypane bridge")
-	if v, err := run(path, "version"); err == nil {
+	v, err, lateV := run(path, "version")
+	if err == nil {
 		c.Version = strings.TrimPrefix(strings.TrimSpace(v), "stickypane ")
+	}
+	if late || lateV { // no answer yet: ask again next time
+		return c
 	}
 	probes.Lock()
 	probes.m[path] = probed{size: fi.Size(), mod: fi.ModTime(), c: c}
@@ -165,15 +171,15 @@ func Probe(path string) Candidate {
 	return c
 }
 
-// run runs the program with one argument and no input, briefly.
-func run(path, arg string) (string, error) {
+// run runs the program with one argument and no input, briefly. late
+// says it ran out of time.
+func run(path, arg string) (out string, err error, late bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, path, arg)
-	cmd.Stdin = nil
 	cmd.WaitDelay = time.Second
-	out, err := cmd.CombinedOutput()
-	return string(out), err
+	b, err := cmd.CombinedOutput()
+	return string(b), err, ctx.Err() != nil
 }
 
 func isExecutable(p string) bool {
