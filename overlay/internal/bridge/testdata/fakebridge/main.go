@@ -4,11 +4,15 @@
 //
 //	FAKE_PROTOCOL   the protocol hello reports (default 1)
 //	FAKE_STARTS     a file; one byte is appended at each start
+//	FAKE_PROTO_FROM from this start on (1-based) hello reports protocol 2
+//	FAKE_GRANDCHILD set: start a long-lived child that holds stdout
 //	FAKE_DIE_UNTIL  die at the first echo while the file FAKE_STARTS
 //	                holds at most this many bytes
 //
 // Methods besides hello: echo (answers its params), fail (an error
-// answer), emit (answers, then sends a board.changed notification).
+// answer), emit (answers, then sends a board.changed notification),
+// flood (params {"n":N}: N notifications, then the answer), stall (stops
+// reading input, for ever).
 package main
 
 import (
@@ -16,7 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
+	"time"
 )
 
 type req struct {
@@ -26,6 +32,16 @@ type req struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "sleep" {
+		time.Sleep(20 * time.Second)
+		return
+	}
+	if os.Getenv("FAKE_GRANDCHILD") != "" {
+		c := exec.Command(os.Args[0], "sleep")
+		c.Env = append(os.Environ(), "FAKE_GRANDCHILD=")
+		c.Stdout, c.Stderr = os.Stdout, os.Stderr
+		c.Start()
+	}
 	proto := 1
 	if s := os.Getenv("FAKE_PROTOCOL"); s != "" {
 		proto, _ = strconv.Atoi(s)
@@ -40,6 +56,9 @@ func main() {
 			}
 			f.Close()
 		}
+	}
+	if from, _ := strconv.Atoi(os.Getenv("FAKE_PROTO_FROM")); from > 0 && starts >= from {
+		proto = 2
 	}
 	dieUntil, _ := strconv.Atoi(os.Getenv("FAKE_DIE_UNTIL"))
 	wd, _ := os.Getwd()
@@ -62,6 +81,7 @@ func main() {
 			send(map[string]any{"id": r.ID, "result": map[string]any{"protocol": proto, "version": "fake", "project": wd}})
 		case "echo":
 			if dieUntil > 0 && starts <= dieUntil {
+				fmt.Fprintln(os.Stderr, "boom: the fake died")
 				os.Exit(3)
 			}
 			result := r.Params
@@ -69,6 +89,17 @@ func main() {
 				result = json.RawMessage("{}")
 			}
 			send(map[string]any{"id": r.ID, "result": result})
+		case "stall":
+			time.Sleep(time.Hour)
+		case "flood":
+			var p struct{ N int }
+			json.Unmarshal(r.Params, &p)
+			for i := 0; i < p.N; i++ {
+				b, _ := json.Marshal(map[string]any{"method": "board.changed", "params": map[string]any{"i": i}})
+				out.Write(append(b, '\n'))
+			}
+			out.Flush()
+			send(map[string]any{"id": r.ID, "result": map[string]any{}})
 		case "fail":
 			send(map[string]any{"id": r.ID, "error": map[string]string{"code": "stale", "message": "the note changed"}})
 		case "emit":

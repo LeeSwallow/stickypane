@@ -4,21 +4,25 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	maxRestarts   = 3
-	helloTimeout  = 10 * time.Second
-	closeTimeout  = 3 * time.Second
-	notifications = 256
+	maxRestarts  = 3
+	helloTimeout = 10 * time.Second
+	closeTimeout = 3 * time.Second
+	queueMax     = 256  // notifications held for a reader that is slow
+	stderrTail   = 4096 // bytes of the bridge's stderr kept
+	waitDelay    = 2 * time.Second
 )
 
 // Client is a running `stickypane bridge`. It is safe for concurrent use.
@@ -30,6 +34,9 @@ type Client struct {
 	bin, project string
 	hello        Hello
 	notes        chan Notification
+	qmu          sync.Mutex
+	queue        []Notification // waiting for notes; the reader never waits for the consumer
+	wake         chan struct{}
 	quit         chan struct{}
 	wg           sync.WaitGroup // readers and the supervisor: the senders on notes
 
@@ -38,15 +45,18 @@ type Client struct {
 	ready    chan struct{} // closed when cur, down or closed changes from what a waiter saw
 	restarts int
 	down     bool
+	downErr  error
 	closed   bool
 }
 
 // proc is one bridge process.
 type proc struct {
-	cmd   *exec.Cmd
-	stdin io.WriteCloser
-	wmu   sync.Mutex // one line at a time on stdin
-	dead  chan struct{}
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	wsem   chan struct{} // one line at a time on stdin; taken with the call's context
+	dead   chan struct{}
+	waited chan struct{} // the process has exited
+	errs   *tail
 
 	pmu     sync.Mutex
 	next    int64
@@ -60,7 +70,8 @@ func Start(ctx context.Context, stickypane, project string) (*Client, error) {
 	c := &Client{
 		bin:     stickypane,
 		project: project,
-		notes:   make(chan Notification, notifications),
+		notes:   make(chan Notification, 16),
+		wake:    make(chan struct{}, 1),
 		quit:    make(chan struct{}),
 		ready:   make(chan struct{}),
 	}
@@ -70,8 +81,9 @@ func Start(ctx context.Context, stickypane, project string) (*Client, error) {
 	}
 	c.hello = h
 	c.cur = p
-	c.wg.Add(1)
+	c.wg.Add(2)
 	go c.supervise(p)
+	go c.pump()
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -86,8 +98,10 @@ func Start(ctx context.Context, stickypane, project string) (*Client, error) {
 func (c *Client) Hello() Hello { return c.hello }
 
 // Notifications is where the bridge's own lines (board.changed) arrive,
-// and the client's bridge.restarted. It is closed by Close. It should be
-// read: a full channel holds up the bridge's answers.
+// and the client's bridge.restarted. It is closed by Close. A consumer
+// that is slow loses the oldest board.changed (the app loads the board
+// again anyway); bridge.restarted is never lost, and the bridge never
+// waits for the consumer.
 func (c *Client) Notifications() <-chan Notification { return c.notes }
 
 // Call sends one request and waits for its answer. params and result may
@@ -109,8 +123,9 @@ func (c *Client) Call(ctx context.Context, method string, params, result any) er
 			c.mu.Unlock()
 			return ErrClosed
 		case c.down:
+			err := c.downErr
 			c.mu.Unlock()
-			return ErrBridgeDown
+			return err
 		}
 		p, wait := c.cur, c.ready
 		c.mu.Unlock()
@@ -168,23 +183,46 @@ func (c *Client) launch(ctx context.Context) (*proc, Hello, error) {
 	if err != nil {
 		return nil, Hello{}, err
 	}
-	out, err := cmd.StdoutPipe()
+	// Our own pipe for stdout, so that no copying goroutine makes Wait wait
+	// for a grandchild that holds it.
+	pr, pw, err := os.Pipe()
 	if err != nil {
 		return nil, Hello{}, err
 	}
+	errs := &tail{}
+	cmd.Stdout = pw
+	cmd.Stderr = errs
+	cmd.WaitDelay = waitDelay
 	if err := cmd.Start(); err != nil {
+		pr.Close()
+		pw.Close()
 		return nil, Hello{}, err
 	}
-	p := &proc{cmd: cmd, stdin: in, dead: make(chan struct{}), pending: map[int64]chan Response{}}
+	pw.Close()
+	p := &proc{cmd: cmd, stdin: in, wsem: make(chan struct{}, 1), dead: make(chan struct{}), waited: make(chan struct{}), errs: errs, pending: map[int64]chan Response{}}
+	readerDone := make(chan struct{})
+	go func() { // reaps the process, and frees the reader if a grandchild keeps stdout open
+		cmd.Wait()
+		close(p.waited)
+		select {
+		case <-readerDone:
+		case <-time.After(waitDelay):
+			pr.Close()
+		}
+	}()
 	c.wg.Add(1)
-	go c.read(p, out)
+	go func() {
+		defer close(readerDone)
+		c.read(p, pr)
+		pr.Close()
+	}()
 
 	hctx, cancel := context.WithTimeout(ctx, helloTimeout)
 	defer cancel()
 	var h Hello
 	if err := p.call(hctx, "hello", nil, &h); err != nil {
 		p.kill()
-		return nil, Hello{}, fmt.Errorf("bridge: hello: %w", err)
+		return nil, Hello{}, fmt.Errorf("bridge: hello: %w%s", err, p.errs.suffix())
 	}
 	if h.Protocol != Protocol {
 		p.kill()
@@ -206,7 +244,8 @@ func (c *Client) read(p *proc, out io.Reader) {
 			break
 		}
 	}
-	p.cmd.Wait()
+	p.kill() // a bridge that closed its output is no use; a dead one is already reaped
+	<-p.waited
 	c.mu.Lock()
 	if c.cur == p { // from here a call waits for the new bridge
 		c.cur = nil
@@ -244,10 +283,48 @@ func (c *Client) dispatch(p *proc, line []byte) {
 	}
 }
 
+// notify queues a notification and never waits. A full queue drops its
+// oldest board.changed.
 func (c *Client) notify(n Notification) {
+	c.qmu.Lock()
+	if len(c.queue) >= queueMax {
+		for i, o := range c.queue {
+			if o.Method != MethodRestarted {
+				c.queue = append(c.queue[:i], c.queue[i+1:]...)
+				break
+			}
+		}
+	}
+	c.queue = append(c.queue, n)
+	c.qmu.Unlock()
 	select {
-	case c.notes <- n:
-	case <-c.quit:
+	case c.wake <- struct{}{}:
+	default:
+	}
+}
+
+// pump hands the queue to the consumer.
+func (c *Client) pump() {
+	defer c.wg.Done()
+	for {
+		c.qmu.Lock()
+		if len(c.queue) == 0 {
+			c.qmu.Unlock()
+			select {
+			case <-c.wake:
+				continue
+			case <-c.quit:
+				return
+			}
+		}
+		n := c.queue[0]
+		c.queue = c.queue[1:]
+		c.qmu.Unlock()
+		select {
+		case c.notes <- n:
+		case <-c.quit:
+			return
+		}
 	}
 }
 
@@ -269,12 +346,13 @@ func (c *Client) supervise(p *proc) {
 			c.restarts++
 			if c.restarts > maxRestarts {
 				c.down = true
+				c.downErr = fmt.Errorf("%w%s", ErrBridgeDown, p.errs.suffix())
 				c.settle()
 				c.mu.Unlock()
 				return
 			}
 			c.mu.Unlock()
-			np, h, err := c.launch(context.Background())
+			np, _, err := c.launch(context.Background())
 			c.mu.Lock()
 			if c.closed {
 				c.mu.Unlock()
@@ -283,7 +361,14 @@ func (c *Client) supervise(p *proc) {
 				}
 				return
 			}
-			if err != nil || h.Protocol != Protocol {
+			if errors.Is(err, ErrProtocol) { // another version: starting again will not help
+				c.down = true
+				c.downErr = err
+				c.settle()
+				c.mu.Unlock()
+				return
+			}
+			if err != nil {
 				c.mu.Unlock()
 				continue // counts as one more death
 			}
@@ -320,12 +405,27 @@ func (p *proc) call(ctx context.Context, method string, params json.RawMessage, 
 		forget()
 		return err
 	}
-	p.wmu.Lock()
-	_, err = p.stdin.Write(append(b, '\n'))
-	p.wmu.Unlock()
-	if err != nil {
+	select { // the line goes out whole, one at a time, but a call does not wait for the pipe past its context
+	case p.wsem <- struct{}{}:
+	case <-ctx.Done():
 		forget()
-		return ErrConnectionLost
+		return ctx.Err()
+	}
+	wrote := make(chan error, 1)
+	go func() {
+		_, err := p.stdin.Write(append(b, '\n'))
+		<-p.wsem
+		wrote <- err
+	}()
+	select {
+	case err := <-wrote:
+		if err != nil {
+			forget()
+			return ErrConnectionLost
+		}
+	case <-ctx.Done():
+		forget()
+		return ctx.Err()
 	}
 	select {
 	case resp, ok := <-ch:
@@ -398,4 +498,30 @@ func Find() (string, error) {
 func isExecutable(p string) bool {
 	fi, err := os.Stat(p)
 	return err == nil && fi.Mode().IsRegular() && (runtime.GOOS == "windows" || fi.Mode().Perm()&0o111 != 0)
+}
+
+// tail keeps the last bytes written to it: the end of the bridge's stderr.
+type tail struct {
+	mu sync.Mutex
+	b  []byte
+}
+
+func (t *tail) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.b = append(t.b, p...)
+	if len(t.b) > stderrTail {
+		t.b = append([]byte(nil), t.b[len(t.b)-stderrTail:]...)
+	}
+	return len(p), nil
+}
+
+// suffix is ": " and the tail, or nothing when the bridge said nothing.
+func (t *tail) suffix() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if s := strings.TrimSpace(string(t.b)); s != "" {
+		return ": " + s
+	}
+	return ""
 }
