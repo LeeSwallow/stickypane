@@ -614,10 +614,10 @@ func TestOpenPrefersAGUIEditorAndFallsBackToTheSystem(t *testing.T) {
 	}
 	mu.Unlock()
 
-	// The overlay is for macOS and Linux (docs/overlay/adr/0014): Windows
+	// The app is for macOS and Linux (docs/desktop/adr/0014): Windows
 	// has no system fallback.
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("no system way to open a file on " + runtime.GOOS + "; the overlay is for macOS and Linux")
+		t.Skip("no system way to open a file on " + runtime.GOOS + "; the app is for macOS and Linux")
 	}
 	t.Setenv("VISUAL", "nvim") // a terminal editor: the bridge has no terminal
 	s.ok("note.open", map[string]any{"note": "plan.md"}, nil)

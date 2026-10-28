@@ -12,8 +12,8 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
-// The desktop app (overlay/): its bundle id on macOS and its program on
-// Linux (docs/overlay/09 §9.1).
+// The desktop app (desktop/): its bundle id on macOS and its program on
+// Linux (docs/desktop/09 §9.1).
 const (
 	appBundleID = "io.github.leeswallow.stickypane"
 	appProgram  = "stickypane-app"

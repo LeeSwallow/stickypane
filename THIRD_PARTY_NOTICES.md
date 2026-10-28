@@ -22,7 +22,7 @@ Markdown and the one-line editor are stickypane's own (`internal/core/markdown`,
 
 ## The desktop app
 
-The desktop app (`overlay/`, shipped as `Stickypane.app` and
+The desktop app (`desktop/`, shipped as `Stickypane.app` and
 `stickypane-app-<version>-linux-<arch>.tar.gz`) carries the stickypane
 program above and, in addition, these.
 
@@ -42,7 +42,7 @@ program above and, in addition, these.
 | [Pretendard](https://github.com/orioncactus/pretendard) | OFL-1.1 | the body font |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | the code font |
 
-`overlay/scripts/licenses.sh` checks every Go module and npm package of the
+`desktop/scripts/licenses.sh` checks every Go module and npm package of the
 app against MIT, BSD, Apache-2.0, ISC and OFL-1.1, with a few listed
 exceptions. One of them ships in the app: robust-predicates (pulled in by
 mermaid through d3-delaunay), under the Unlicense, a public-domain
@@ -69,7 +69,7 @@ the Linux archive hold `LICENSE`, this file and a `licenses/` folder:
 `licenses/stickypane-app.txt` has the license of every Go module linked into
 the app and every npm package bundled in it (the SIL Open Font License 1.1
 with each font's copyright among them), as each package ships it, written by
-`overlay/scripts/licenses.sh --write`; `licenses/stickypane.txt` has those of
+`desktop/scripts/licenses.sh --write`; `licenses/stickypane.txt` has those of
 the bundled stickypane program, written by `scripts/licenses.sh`.
 
 ## Color palettes

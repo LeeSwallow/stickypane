@@ -52,7 +52,7 @@ func TestStartKeepsTheBoardsProcessGroup(t *testing.T) {
 	}
 }
 
-// A script the overlay runs leads a group of its own, so Kill stops what it
+// A script the app runs leads a group of its own, so Kill stops what it
 // started too.
 func TestStartGroupLeadsItsOwnGroup(t *testing.T) {
 	r, err := StartGroup(longScript(t), "long.sh", time.Now)

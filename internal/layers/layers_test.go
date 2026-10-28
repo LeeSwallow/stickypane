@@ -167,7 +167,7 @@ func importsOf(t *testing.T) map[string]map[string]bool {
 			if path != root && (strings.HasPrefix(name, ".") || name == "testdata" || name == "dist") {
 				return filepath.SkipDir
 			}
-			// A nested module (overlay/) is not part of this one's layers.
+			// A nested module (desktop/) is not part of this one's layers.
 			if path != root {
 				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
 					return filepath.SkipDir

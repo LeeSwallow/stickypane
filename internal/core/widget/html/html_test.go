@@ -92,7 +92,7 @@ func TestHTMLTextSurvivesOddSource(t *testing.T) {
 }
 
 // A '>' inside a quoted attribute ends the tag early, so the rest of the
-// attribute shows as text. A text preview may leak it; the overlay draws the
+// attribute shows as text. A text preview may leak it; the app draws the
 // page properly.
 func TestHTMLQuotedGreaterThanMayLeak(t *testing.T) {
 	t.Parallel()
