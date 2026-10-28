@@ -40,6 +40,7 @@ func NewKind(render Renderer) widget.Kind {
 		Size:     size,
 		Template: func(title string) []byte { return widget.NewFile("note", title, "") },
 		Parse:    func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
+		Data:     data,
 	}
 }
 
@@ -104,3 +105,10 @@ func (n *Note) Update(string) (widget.Widget, widget.Result) { return n, widget.
 
 // Sync implements widget.Widget.
 func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render) }
+
+// data is what a note says: its Markdown, as the file has it.
+func data(d doc.Document) any {
+	return struct {
+		Markdown string `json:"markdown"`
+	}{d.Body}
+}

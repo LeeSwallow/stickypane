@@ -24,4 +24,5 @@ var Kind = widget.Kind{
 	Template: func(title string) []byte { return widget.NewFile("chat", title, "") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
 	Events:   events,
+	Data:     data,
 }

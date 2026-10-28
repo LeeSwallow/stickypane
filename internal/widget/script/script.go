@@ -31,6 +31,7 @@ var Kind = widget.Kind{
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(string) []byte { return []byte("#!/bin/sh\n") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
+	Data:     data,
 }
 
 // Script is the widget for a script.
@@ -120,3 +121,18 @@ func (s *Script) Click(line, _ int) (widget.Widget, widget.Result, bool) {
 
 // Sync implements widget.Widget.
 func (s *Script) Sync(d doc.Document) widget.Widget { return parse(d) }
+
+// data is the script as written and the language to run it in. A document
+// does not know its file's name, so the language comes from the first line:
+// "ps1" when it is a shebang for PowerShell, "sh" otherwise.
+func data(d doc.Document) any {
+	first, _, _ := strings.Cut(d.Body, "\n")
+	lang := "sh"
+	if strings.HasPrefix(first, "#!") && (strings.Contains(first, "pwsh") || strings.Contains(first, "powershell")) {
+		lang = "ps1"
+	}
+	return struct {
+		Source string `json:"source"`
+		Lang   string `json:"lang"`
+	}{d.Body, lang}
+}
