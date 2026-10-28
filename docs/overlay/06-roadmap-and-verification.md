@@ -1,6 +1,6 @@
 # 06. 로드맵과 검증
 
-> 상태: Draft · 2026-10-28 · 양식: 기술 리포트의 *Evaluation* 절
+> 상태: 1–5단계 구현됨, 미출시 · 2026-10-29 · 양식: 기술 리포트의 *Evaluation* 절
 
 ## 6.1 단계 개요
 
@@ -46,10 +46,12 @@ flowchart LR
 ### 4단계 — 렌더러와 상호작용
 
 - 나머지 shape 렌더러(form, chart, logview, script, chat, api, html 샌드박스).
-- 클릭 동작(체크, 카드 드래그, form 답, 실행), "+ 만들기"(카탈로그), `$EDITOR`로 열기.
+- 클릭 동작(체크, 카드 드래그, form 답, 실행), "+ 새 노트"(카탈로그), `$EDITOR`로 열기.
 - Motion 전체([04](04-motion.md)), 동작 줄이기.
 
 **완료 조건**: [01 §1.7](01-product-overview.md#17-사용-장면)의 장면 A·B·C를 손으로 재현한다. HTML 격리 검사(아래)를 통과한다.
+
+[구현] 장면 A·B·C는 창 없이 닿는 데까지 자동으로 본다. `overlay/internal/bridge/scenes_test.go`가 이 저장소의 `stickypane`을 빌드해 임시 프로젝트(임시 `HOME`·`STICKYPANE_HOME`)에서 bridge로 띄우고, 다른 프로세스에서 에이전트처럼 `card … move`, `write --type form` + `wait --json`, `.html` 파일 쓰기를 하며, 앱 쪽이 받는 `board.changed`·`board.load`·`note.act` 결과를 확인한다. `-update`로 받은 것을 `frontend/src/scenes/fixtures/`에 쓰고, `frontend/src/scenes/scenes.test.ts`가 그것으로 Glance 줄의 멈춤, 카드 carry, form의 답 대기와 보낸 동작, html 샌드박스를 본다. 창에서 손으로 하는 확인은 [09 §9.6](09-distribution.md#96-검증)의 점검표에 있다.
 
 ### 5단계 — 연결과 배포
 
@@ -73,6 +75,8 @@ flowchart LR
 ### HTML 격리 검사 (반목표 X3 자동화)
 
 악의적인 `.html` 노트 묶음을 테스트 자료로 둔다: `fetch`·`img src=https://`·`window.parent`·`top.location`·Wails 바인딩 호출·`localStorage`. 각각이 막히는지 webview에서 확인한다.
+
+[구현] 묶음은 `frontend/src/demo/probe.ts` 한 페이지다(이미지·스타일시트·@import·배경·스크립트·프레임·object·refresh·form, 그리고 페이지 자신의 스크립트로 fetch·parent·top.location·바인딩·localStorage). `node overlay/scripts/html-isolation.mjs`가 dev 서버와 요청을 세는 서버를 띄워 headless Chromium에서 이 노트를 열고, 서버에 요청이 하나도 오지 않았는지, 페이지 스크립트가 돌지 않았는지, 창의 제목·주소·저장소가 그대로인지 본다(Playwright는 앱 의존성이 아니라 전역 설치를 쓴다). 창과 프레임의 정책을 함께 풀면 실패하는 것을 확인했다. WebKit 실기 확인은 09 §9.6 점검표에 있다.
 
 ## 6.4 측정하지 않은 것
 
