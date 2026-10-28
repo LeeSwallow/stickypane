@@ -1,0 +1,398 @@
+[
+ {
+  "name": "note",
+  "icon": "✎",
+  "label": "Note",
+  "blurb": "Anything in Markdown, from one line to a full page.",
+  "example": "결정: 토큰은 세션 쿠키에 둔다.\n\n- SSO를 붙일 때 다시 본다\n",
+  "data": {
+   "markdown": "결정: 토큰은 세션 쿠키에 둔다.\n\n- SSO를 붙일 때 다시 본다\n"
+  },
+  "options": [
+   {
+    "name": "text",
+    "type": "lines",
+    "label": "Text",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "board",
+  "icon": "▦",
+  "label": "Board (kanban)",
+  "blurb": "Cards in columns. Move a card as the work moves.",
+  "example": "---\ntype: board\n---\n## 할 일\n- 결제\n## 하는 중\n- 로그인 API\n## 끝\n- 스키마\n",
+  "data": {
+   "desc": [],
+   "columns": [
+    {
+     "title": "할 일",
+     "cards": [
+      {
+       "text": "결제",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    },
+    {
+     "title": "하는 중",
+     "cards": [
+      {
+       "text": "로그인 API",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    },
+    {
+     "title": "끝",
+     "cards": [
+      {
+       "text": "스키마",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    }
+   ]
+  },
+  "options": [
+   {
+    "name": "columns",
+    "type": "lines",
+    "label": "Columns",
+    "default": "To do\nDoing\nDone"
+   },
+   {
+    "name": "cards",
+    "type": "lines",
+    "label": "First cards",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "checklist",
+  "icon": "☑",
+  "label": "Checklist",
+  "blurb": "Steps to tick off, with a progress bar.",
+  "example": "---\ntype: checklist\n---\n- [x] 엔드포인트 추가\n- [x] 입력 검증\n- [ ] 테스트 작성\n",
+  "data": {
+   "items": [
+    {
+     "text": "엔드포인트 추가",
+     "checked": true
+    },
+    {
+     "text": "입력 검증",
+     "checked": true
+    },
+    {
+     "text": "테스트 작성",
+     "checked": false
+    }
+   ],
+   "prose": [],
+   "done": 2,
+   "total": 3
+  },
+  "options": [
+   {
+    "name": "items",
+    "type": "lines",
+    "label": "Items",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "log",
+  "icon": "≣",
+  "label": "Log",
+  "blurb": "One entry per line. The newest entries stay in sight.",
+  "example": "---\ntype: log\n---\n14:02 테스트 통과\n14:10 리뷰 반영 시작\n14:31 수정 푸시\n",
+  "data": {
+   "lines": [
+    "14:02 테스트 통과",
+    "14:10 리뷰 반영 시작",
+    "14:31 수정 푸시"
+   ]
+  },
+  "options": [
+   {
+    "name": "entries",
+    "type": "lines",
+    "label": "First entries",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "chat",
+  "icon": "✉",
+  "label": "Chat",
+  "blurb": "A conversation in a note: who said what and when, the newest in sight.",
+  "example": "---\ntype: chat\n---\n## 2026-10-03\n@min 14:02 테스트 다시 돌려 줄래요?\n@claude 14:03 41/41 통과\n",
+  "data": {
+   "messages": [
+    {
+     "day": "2026-10-03",
+     "who": "min",
+     "clock": "14:02",
+     "text": "테스트 다시 돌려 줄래요?"
+    },
+    {
+     "day": "2026-10-03",
+     "who": "claude",
+     "clock": "14:03",
+     "text": "41/41 통과"
+    }
+   ]
+  },
+  "options": []
+ },
+ {
+  "name": "chart",
+  "icon": "▤",
+  "label": "Chart",
+  "blurb": "Numbers as bars, a trend line, or a calendar of days.",
+  "example": "---\ntype: chart\n---\n앱: 61\n보드: 31\n체크리스트: 21\n저장소: 16\n",
+  "data": {
+   "view": "bar",
+   "prose": [],
+   "points": [
+    {
+     "label": "앱",
+     "text": "61",
+     "value": 61
+    },
+    {
+     "label": "보드",
+     "text": "31",
+     "value": 31
+    },
+    {
+     "label": "체크리스트",
+     "text": "21",
+     "value": 21
+    },
+    {
+     "label": "저장소",
+     "text": "16",
+     "value": 16
+    }
+   ]
+  },
+  "options": [
+   {
+    "name": "view",
+    "type": "choice",
+    "label": "View",
+    "choices": [
+     "bar",
+     "spark",
+     "heat"
+    ],
+    "default": "bar"
+   },
+   {
+    "name": "values",
+    "type": "lines",
+    "label": "Values",
+    "default": ""
+   },
+   {
+    "name": "from",
+    "type": "text",
+    "label": "Count from note",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "form",
+  "icon": "◉",
+  "label": "Form",
+  "blurb": "A document that asks: options to choose, lines to fill in, buttons to press. The answers land in the file.",
+  "example": "---\ntype: form\n---\n## 어디에 배포할까요?\n- (x) 스테이징\n- ( ) 프로덕션\n\n## 메모\n> 점심 먹고\n\n[ 배포 ] [ 취소 ]\n",
+  "data": {
+   "lines": [
+    {
+     "kind": "text",
+     "text": "## 어디에 배포할까요?"
+    },
+    {
+     "kind": "option",
+     "text": "스테이징",
+     "group": "어디에 배포할까요?",
+     "radio": true,
+     "checked": true
+    },
+    {
+     "kind": "option",
+     "text": "프로덕션",
+     "group": "어디에 배포할까요?",
+     "radio": true
+    },
+    {
+     "kind": "text",
+     "text": ""
+    },
+    {
+     "kind": "text",
+     "text": "## 메모"
+    },
+    {
+     "kind": "field",
+     "text": "점심 먹고",
+     "group": "메모"
+    },
+    {
+     "kind": "text",
+     "text": ""
+    },
+    {
+     "kind": "buttons",
+     "text": "",
+     "labels": [
+      "배포",
+      "취소"
+     ]
+    },
+    {
+     "kind": "text",
+     "text": ""
+    }
+   ],
+   "submitted": "",
+   "at": ""
+  },
+  "options": [
+   {
+    "name": "question",
+    "type": "text",
+    "label": "Question",
+    "default": "Question"
+   },
+   {
+    "name": "answer",
+    "type": "choice",
+    "label": "Answer",
+    "choices": [
+     "one",
+     "many",
+     "text"
+    ],
+    "default": "one"
+   },
+   {
+    "name": "choices",
+    "type": "lines",
+    "label": "Choices",
+    "default": "Yes\nNo"
+   },
+   {
+    "name": "buttons",
+    "type": "lines",
+    "label": "Buttons",
+    "default": "Submit"
+   }
+  ]
+ },
+ {
+  "name": "script",
+  "icon": "▶",
+  "label": "Script",
+  "blurb": "A shell script with a Run button. It runs in the project folder and its output is a log next to it.",
+  "example": "#!/bin/sh\ngo test ./...\n",
+  "data": {
+   "lang": "sh",
+   "source": "#!/bin/sh\ngo test ./...\n"
+  },
+  "options": [
+   {
+    "name": "commands",
+    "type": "lines",
+    "label": "Commands",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "api",
+  "icon": "⇄",
+  "label": "API requests (exp)",
+  "blurb": "Experimental. REST, WebSocket and gRPC requests in a .http file, sent with enter; the response, its checks and what it captured show under them.",
+  "example": "@base = https://httpbin.org\n\n### Echo\nPOST {{base}}/anything\nContent-Type: application/json\n\n{\"user\": \"min\"}\n# @assert response.statusCode == 200\n# @assert response.json(\"json.user\") == \"min\"\n",
+  "data": {
+   "source": "@base = https://httpbin.org\n\n### Echo\nPOST {{base}}/anything\nContent-Type: application/json\n\n{\"user\": \"min\"}\n# @assert response.statusCode == 200\n# @assert response.json(\"json.user\") == \"min\"\n",
+   "env": "",
+   "requests": [
+    {
+     "title": "Echo",
+     "method": "POST",
+     "where": "{{base}}/anything",
+     "asserts": 2,
+     "hooks": false,
+     "block": [
+      "Content-Type: application/json",
+      "",
+      "{\"user\": \"min\"}",
+      "# @assert response.statusCode == 200",
+      "# @assert response.json(\"json.user\") == \"min\""
+     ]
+    }
+   ]
+  },
+  "options": [
+   {
+    "name": "method",
+    "type": "choice",
+    "label": "Method",
+    "choices": [
+     "GET",
+     "POST",
+     "PUT",
+     "PATCH",
+     "DELETE"
+    ],
+    "default": "GET"
+   },
+   {
+    "name": "url",
+    "type": "text",
+    "label": "URL",
+    "default": "https://httpbin.org/get"
+   },
+   {
+    "name": "status",
+    "type": "number",
+    "label": "Expected status",
+    "default": "200"
+   }
+  ]
+ },
+ {
+  "name": "html",
+  "icon": "⌗",
+  "label": "HTML (view only)",
+  "blurb": "A web page. The terminal shows its text; the app draws it.",
+  "example": "<h1>벤치마크</h1>\n<p>실행 4.2초. 전에는 6.1초.</p>\n",
+  "data": {
+   "html": "<h1>벤치마크</h1>\n<p>실행 4.2초. 전에는 6.1초.</p>\n"
+  },
+  "options": [
+   {
+    "name": "text",
+    "type": "lines",
+    "label": "Text",
+    "default": ""
+   }
+  ]
+ }
+]
