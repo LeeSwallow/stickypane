@@ -108,13 +108,15 @@ go test -race ./...                   # the tests are the specification
 gofmt -l .                            # prints nothing when all is formatted
 sh scripts/selfcheck.sh               # the plugin's files
 sh scripts/licenses.sh                # the licenses of the linked modules
-go test ./internal/store ./internal/app -run XXX -bench .   # before and after a change to loading or drawing
+go test ./internal/adapter/store ./internal/surface/app -run XXX -bench .   # before and after a change to loading or drawing
 ```
 
 Where things are: [docs/architecture.md](docs/architecture.md) (the layers,
 how a note is read and written, how to add a shape) and
 [docs/plugin.md](docs/plugin.md) (the skills, commands and hooks). A package
-may only import a lower layer; `internal/layers` fails the tests otherwise.
+sits in its layer's folder under `internal/` (`core`, `adapter`, `usecase`,
+`surface`) and may only import a lower layer; `internal/layers` fails the
+tests otherwise.
 
 ## Making the change
 

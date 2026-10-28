@@ -101,7 +101,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph main["stickypane 본체 (표준 라이브러리만)"]
-    reg["internal/registry<br/>Append · Live"]
+    reg["internal/adapter/registry<br/>Append · Live"]
   end
   subgraph app["overlay 앱 (overlay/ 모듈)"]
     idx["index<br/>GORM · glebarez/sqlite"]
@@ -114,7 +114,7 @@ flowchart LR
 ```
 
 - **본체**는 SQLite를 모른다. `~/.stickypane/`이 있으면, 프로젝트에서 무엇인가 할 때(`init`, TUI 시작·종료, `bridge`, `mcp`, `watch`, 노트를 바꾸는 명령) 그날의 `events/*.jsonl`에 한 줄을 덧붙이고, 오래 사는 프로세스는 `run/<pid>.json`을 만든다. 실패해도 명령은 실패하지 않는다(best-effort).
-- **overlay 앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
+- **overlay 앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/adapter/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
 
 이렇게 나누는 이유:
 1. 본체는 "표준 라이브러리 먼저" 규칙을 지키고 바이너리가 커지지 않는다(반목표 X5).
@@ -135,7 +135,7 @@ flowchart LR
 | `project.touch` | 노트를 바꾸는 명령. 같은 프로젝트·같은 명령은 1분에 한 번만 |
 | `session.start` / `session.end` | TUI, `bridge`, `mcp`, `watch`의 시작과 정상 종료 |
 
-시각은 `internal/when`으로 쓴다(AGENTS.md).
+시각은 `internal/core/when`으로 쓴다(AGENTS.md).
 
 ### 8.4.3 SQLite 스키마
 

@@ -20,16 +20,16 @@ flowchart LR
 
 - `widget.Action`, `Kind.Data`, `Kind.Act` 추가.
 - 9개 shape 모두 `Data`, 상호작용 shape(checklist, board, form, chat, script, api)는 `Act`.
-- 새 shape `html`(`internal/widget/html/` 6파일 + `internal/kinds` 한 줄). 터미널에서는 태그를 걷은 텍스트.
+- 새 shape `html`(`internal/core/widget/html/` 6파일 + `internal/core/kinds` 한 줄). 터미널에서는 태그를 걷은 텍스트.
 - `api.Apply(name, version, action)`: 버전 확인 → `Act` → `Tend` → `store.Apply`.
 
 **완료 조건**: 각 shape의 `Data`가 예제 노트(`Kind.Example`)에서 golden JSON과 같다. `Act`로 만든 Op를 적용한 파일이 같은 키를 TUI에서 누른 결과와 같다. 버전이 다르면 거절한다.
 
 ### 2단계 — bridge와 레지스트리 (본체만)
 
-- 스크립트 실행을 `internal/app`에서 낮은 레이어로 내린다.
-- `internal/registry`: `~/.stickypane/events/YYYY-MM-DD.jsonl` 덧붙이기, `run/<pid>.json` 만들고 지우기, `STICKYPANE_HOME`. 명령 표에서 프로젝트를 다루는 명령이 부른다([08 §8.4](08-app-home-and-sessions.md#84-레지스트리--sticky)).
-- `internal/bridge`(layer 50)와 `stickypane bridge` 명령.
+- 스크립트 실행을 `internal/surface/app`에서 낮은 레이어로 내린다.
+- `internal/adapter/registry`: `~/.stickypane/events/YYYY-MM-DD.jsonl` 덧붙이기, `run/<pid>.json` 만들고 지우기, `STICKYPANE_HOME`. 명령 표에서 프로젝트를 다루는 명령이 부른다([08 §8.4](08-app-home-and-sessions.md#84-레지스트리--sticky)).
+- `internal/surface/bridge`(layer 50)와 `stickypane bridge` 명령.
 - `sticky.json` 루트 키 `view`, `style`. `stickypane init`은 아직 묻지 않는다.
 
 **완료 조건**: 레지스트리 쓰기가 실패해도 명령이 성공한다(읽기 전용 HOME으로 테스트). 동시에 여러 프로세스가 덧붙여도 줄이 섞이지 않는다. 테스트가 bridge를 파이프로 띄워 `board.load` → 다른 프로세스가 `stickypane card … move` → `board.changed`에 `card.moved`가 오는지 확인한다. `note.act`가 파일을 바꾸고 `stickypane watch`도 같은 사건을 본다.
