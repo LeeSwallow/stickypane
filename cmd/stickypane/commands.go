@@ -309,6 +309,9 @@ func initCmd(e env, args []string) error {
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
 		return err
 	}
+	if err := initcmd.RefuseBoard("."); err != nil {
+		return err
+	}
 	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout); err != nil {
 		return err
 	}

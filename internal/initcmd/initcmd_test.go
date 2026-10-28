@@ -166,3 +166,22 @@ func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
 		t.Errorf(".sticky/.gitignore = %q", ignore)
 	}
 }
+
+// No board in the home folder or the root: every project below would find
+// it. A symlink to the home folder is the home folder.
+func TestRefuseBoardInHomeAndRoot(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	link := filepath.Join(t.TempDir(), "h")
+	if err := os.Symlink(home, link); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{home, link, "/"} {
+		if err := RefuseBoard(dir); !errors.Is(err, ErrNoBoardHere) {
+			t.Errorf("RefuseBoard(%q) = %v", dir, err)
+		}
+	}
+	if err := RefuseBoard(filepath.Join(home, "project")); err != nil {
+		t.Errorf("a folder under home: %v", err)
+	}
+}

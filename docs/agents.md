@@ -69,7 +69,8 @@ when they exist, a Claude Code skill (`.claude/skills/stickypane/SKILL.md`)
 when the project has a `.claude` folder but no `CLAUDE.md`, and a new
 `AGENTS.md` when there is nothing. An agent with the plugin installed gets
 nothing in its file, since the plugin teaches it. `init` works outside a
-git repository too, and is safe to run again. `--skill` writes the skill
+git repository too, but not in the home folder or the root, where every
+project below would find the board; it is safe to run again. `--skill` writes the skill
 instead of the instruction files and `--no-agent-docs` makes the folder
 only. `stickypane guide` prints the guide; it stays English.
 

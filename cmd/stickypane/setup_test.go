@@ -114,3 +114,18 @@ func TestSetupCommandNamesTheMCPServersProgram(t *testing.T) {
 		t.Errorf("a relative --command: %d %q", code, errOut)
 	}
 }
+
+// init refuses the home folder, as the desktop app does: a board there
+// would be found from every project below it.
+func TestInitRefusesTheHomeFolder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Chdir(home)
+	code, _, errOut := exec(t, "init")
+	if code == 0 || !strings.Contains(errOut, "home folder") {
+		t.Errorf("init in home: code %d, %q", code, errOut)
+	}
+	if entries, _ := os.ReadDir(home); len(entries) != 0 {
+		t.Errorf("init wrote into home: %v", entries)
+	}
+}
