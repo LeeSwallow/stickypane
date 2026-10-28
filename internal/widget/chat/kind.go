@@ -22,7 +22,7 @@ var Kind = widget.Kind{
 	Keys:     "n enter",
 	Tail:     true,
 	Template: func(title string) []byte { return widget.NewFile("chat", title, "") },
-	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:    func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Events:   events,
 	Data:     data,
 	Act:      act,

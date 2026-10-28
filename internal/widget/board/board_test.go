@@ -14,7 +14,7 @@ const src = "---\ntype: board\ntitle: Auth\n---\n" + body
 
 const body = "## To do\n- payments\n## Doing\n- login API\n  - refresh token later\n## Done\n- schema\n"
 
-func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s))) }
+func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s)), widget.DefaultEnv()) }
 
 // draw returns the board without colors, plus the cursor line: the line
 // of the selection that shows the "›", or the start of the selection.
@@ -314,7 +314,7 @@ func TestKindDescribesItself(t *testing.T) {
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
 		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
 	}
-	example := Kind.Parse(doc.Parse([]byte(Kind.Example)))
+	example := Kind.Parse(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv())
 	if out, _ := example.Draw(40, false); !strings.Contains(ansi.Strip(out), "(") {
 		t.Errorf("the example should draw as a board with columns:\n%s", out)
 	}

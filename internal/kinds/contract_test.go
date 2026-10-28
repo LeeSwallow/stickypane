@@ -29,7 +29,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 			if k.New != "" {
 				d = doc.Document{Body: k.Example}
 			}
-			w := k.Parse(d)
+			w := k.Parse(d, widget.DefaultEnv())
 			for _, width := range []int{1, 7, 20, 80} {
 				for _, active := range []bool{false, true} {
 					out, at := w.Draw(width, active)
@@ -53,7 +53,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 			if w.Sync(d) == nil {
 				t.Error("Sync returned no widget")
 			}
-			if empty := k.Parse(doc.Document{}); empty == nil {
+			if empty := k.Parse(doc.Document{}, widget.DefaultEnv()); empty == nil {
 				t.Error("an empty file must still give a widget")
 			} else {
 				empty.Draw(20, true)
@@ -74,12 +74,12 @@ func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
 			if k.New != "" {
 				d = doc.Document{Body: k.Example}
 			}
-			b, err := json.Marshal(k.Data(d))
+			b, err := json.Marshal(k.Data(d, widget.DefaultEnv()))
 			if err != nil || string(b) == "null" {
 				t.Errorf("Data of the example = %s, %v", b, err)
 			}
 			if k.Act != nil {
-				if _, err := k.Act(d, widget.Action{Name: "no-such"}); !errors.Is(err, widget.ErrUnknownAction) {
+				if _, err := k.Act(d, widget.Action{Name: "no-such"}, widget.DefaultEnv()); !errors.Is(err, widget.ErrUnknownAction) {
 					t.Errorf("Act(no-such) = %v, want ErrUnknownAction", err)
 				}
 			}

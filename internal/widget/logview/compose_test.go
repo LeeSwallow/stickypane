@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestComposeWritesTheFirstEntries(t *testing.T) {
@@ -13,7 +14,7 @@ func TestComposeWritesTheFirstEntries(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := doc.Parse(b)
-	if d.Type() != "log" || strings.Join(parse(d).lines, "|") != "started|read the spec" {
-		t.Errorf("type %q, lines %q", d.Type(), parse(d).lines)
+	if d.Type() != "log" || strings.Join(parse(d, widget.DefaultEnv()).lines, "|") != "started|read the spec" {
+		t.Errorf("type %q, lines %q", d.Type(), parse(d, widget.DefaultEnv()).lines)
 	}
 }

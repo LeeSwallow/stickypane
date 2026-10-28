@@ -12,7 +12,7 @@ import (
 
 const deploy = "#!/bin/sh\n# ship it\ngo test ./... && ./deploy.sh\n"
 
-func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, widget.DefaultEnv()) }
 
 func TestKind(t *testing.T) {
 	if Kind.Name != "script" || Kind.New != ".sh" || strings.Join(Kind.Exts, " ") != ".sh .ps1" {

@@ -36,7 +36,7 @@ title: 배포
 
 var kind = NewKind(note.Plain)
 
-func parseSrc(s string) widget.Widget { return kind.Parse(doc.Parse([]byte(s))) }
+func parseSrc(s string) widget.Widget { return kind.Parse(doc.Parse([]byte(s)), widget.DefaultEnv()) }
 
 func draw(t *testing.T, w widget.Widget, width int) ([]string, widget.Span) {
 	t.Helper()
@@ -108,7 +108,7 @@ func TestDrawShowsTheDocumentWithItsControls(t *testing.T) {
 func TestSpacingFollowsTheFileNotTheRenderer(t *testing.T) {
 	// A renderer such as Glamour pads its output with blank lines.
 	padded := NewKind(func(md string, width int) string { return "\n   \n" + note.Plain(md, width) + "\n   \n\n" })
-	w := padded.Parse(doc.Parse([]byte("intro\n\n## Q\n- ( ) a\n- ( ) b\n\n\n[ Go ]\n\n")))
+	w := padded.Parse(doc.Parse([]byte("intro\n\n## Q\n- ( ) a\n- ( ) b\n\n\n[ Go ]\n\n")), widget.DefaultEnv())
 	lines, _ := draw(t, w, 30)
 	want := "intro\n\n## Q\n› ○ a\n  ○ b\n\n╭────╮\n│ Go │\n╰────╯"
 	if got := strings.Join(lines, "\n"); got != want {

@@ -49,7 +49,7 @@ func NewKind(render Renderer) widget.Kind {
 			}
 			return widget.NewFile("note", title, body), nil
 		},
-		Parse: func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
+		Parse: func(d doc.Document, e widget.Env) widget.Widget { return newNote(d.Body, render, e) },
 		Data:  data,
 	}
 }
@@ -75,10 +75,11 @@ type Note struct {
 	body   string
 	render Renderer
 	cache  map[int][]string // rendered lines by width
+	env    widget.Env
 }
 
-func newNote(body string, render Renderer) *Note {
-	return &Note{body: body, render: render, cache: map[int][]string{}}
+func newNote(body string, render Renderer, e widget.Env) *Note {
+	return &Note{body: body, render: render, cache: map[int][]string{}, env: e}
 }
 
 // lines renders the body at width and trims blank lines from both ends.
@@ -114,10 +115,10 @@ func (n *Note) Summary() string { return "" }
 func (n *Note) Update(string) (widget.Widget, widget.Result) { return n, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render) }
+func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render, n.env) }
 
 // data is what a note says: its Markdown, as the file has it.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	return struct {
 		Markdown string `json:"markdown"`
 	}{d.Body}

@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestDataOfTheExample(t *testing.T) {
-	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example))))
+	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}

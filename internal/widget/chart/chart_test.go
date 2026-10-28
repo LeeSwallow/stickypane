@@ -12,7 +12,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s))) }
+func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Parse([]byte(s)), widget.DefaultEnv()) }
 
 func draw(t *testing.T, src string, width int) []string {
 	t.Helper()

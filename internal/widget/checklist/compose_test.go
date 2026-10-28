@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestComposeWritesOpenItems(t *testing.T) {
@@ -16,7 +17,7 @@ func TestComposeWritesOpenItems(t *testing.T) {
 	if d.Type() != "checklist" {
 		t.Errorf("type = %q", d.Type())
 	}
-	raw, _ := json.Marshal(data(d))
+	raw, _ := json.Marshal(data(d, widget.DefaultEnv()))
 	var got struct {
 		Items []thing `json:"items"`
 		Done  int     `json:"done"`

@@ -117,7 +117,8 @@ type Kind struct {
 	// A kind without Compose takes no options.
 	Options []Option
 	Compose func(title string, opts map[string]string) ([]byte, error)
-	Parse   func(d doc.Document) Widget
+	// Parse makes the widget of a note, drawing and acting with e.
+	Parse func(d doc.Document, e Env) Widget
 	// Tend, when set, returns what stickypane writes into a note of this
 	// kind by itself after the note changed from before to after at the
 	// time changed, or nil when nothing is missing: the time an item was
@@ -131,12 +132,14 @@ type Kind struct {
 	// reacts to the board.
 	Events func(before, after doc.Document) []Event
 	// Data says what a note of this kind holds, as a value that encodes to
-	// JSON, so that a screen other than the terminal can draw it.
-	Data func(d doc.Document) any
+	// JSON, so that a screen other than the terminal can draw it. e is
+	// the clock and settings it is read with: whether a card stalled.
+	Data func(d doc.Document, e Env) any
 	// Act turns an action from such a screen into the Op that does it, or
 	// answers ErrUnknownAction. Like every change to a note, the Op is
-	// applied by the store.
-	Act func(d doc.Document, a Action) (doc.Op, error)
+	// applied by the store. A time the Op writes is e's: the clock of
+	// whoever applies the action.
+	Act func(d doc.Document, a Action, e Env) (doc.Op, error)
 }
 
 // Event is one thing that happened in a note: Type names it, such as

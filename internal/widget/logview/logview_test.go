@@ -10,7 +10,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, widget.DefaultEnv()) }
 
 func TestDrawShowsEveryEntry(t *testing.T) {
 	out, at := parseBody("one\ntwo\n\nthree\n\n\n").Draw(40, true)

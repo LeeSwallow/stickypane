@@ -62,7 +62,7 @@ func TestMovingACardTakesItsOldTimeOff(t *testing.T) {
 func TestACardShowsWhoAndWhenAndWhetherItStalled(t *testing.T) {
 	now = func() time.Time { return at(15, 0) }
 	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	b := parse(doc.Parse([]byte("## Doing\n- fresh @claude-a @{2026-10-03} @@{14:50}\n- stuck @codex-1 @{2026-10-03} @@{14:20}\n## Done\n- old @x @{2026-10-03} @@{09:00}\n")))
+	b := parse(doc.Parse([]byte("## Doing\n- fresh @claude-a @{2026-10-03} @@{14:50}\n- stuck @codex-1 @{2026-10-03} @@{14:20}\n## Done\n- old @x @{2026-10-03} @@{09:00}\n")), widget.DefaultEnv())
 	out, _ := b.Draw(80, false)
 	s := ansi.Strip(out)
 	for _, want := range []string{"@claude-a · 14:50", "@codex-1 · 14:20 ⚠", "@x · 09:00"} {
@@ -82,7 +82,7 @@ func TestACardShowsWhoAndWhenAndWhetherItStalled(t *testing.T) {
 func TestALongNameIsCutBeforeTheTime(t *testing.T) {
 	now = func() time.Time { return at(15, 0) }
 	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	b := parse(doc.Parse([]byte("## Doing\n- x @refactor/widget-modules @{2026-10-03} @@{14:55}\n## Done\n")))
+	b := parse(doc.Parse([]byte("## Doing\n- x @refactor/widget-modules @{2026-10-03} @@{14:55}\n## Done\n")), widget.DefaultEnv())
 	out, _ := b.Draw(40, false)
 	if s := ansi.Strip(out); !strings.Contains(s, "· 14:55") || !strings.Contains(s, "@refa") {
 		t.Errorf("the time stays whole:\n%s", s)

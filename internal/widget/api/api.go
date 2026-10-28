@@ -47,7 +47,7 @@ var Kind = widget.Kind{
 		{Name: "status", Type: widget.OptNumber, Label: "Expected status", Default: "200"},
 	},
 	Compose: compose,
-	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:   func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Data:    data,
 }
 
@@ -57,10 +57,11 @@ type API struct {
 	lines  []string
 	cursor int
 	drawn  []widget.Span // the lines of each request in the last Draw
+	env    widget.Env
 }
 
-func parse(d doc.Document) *API {
-	return &API{file: syntax.Parse(d.Body), lines: doc.Lines(d.Body)}
+func parse(d doc.Document, e widget.Env) *API {
+	return &API{file: syntax.Parse(d.Body), lines: doc.Lines(d.Body), env: e}
 }
 
 func (a *API) clamp() { a.cursor = max(min(a.cursor, len(a.file.Requests)-1), 0) }
@@ -235,7 +236,7 @@ func (a *API) Click(line, _ int) (widget.Widget, widget.Result, bool) {
 
 // Sync implements widget.Widget: the file changed; the cursor stays.
 func (a *API) Sync(d doc.Document) widget.Widget {
-	n := parse(d)
+	n := parse(d, a.env)
 	n.cursor = a.cursor
 	n.clamp()
 	return n
@@ -277,7 +278,7 @@ func (o SetEnv) Apply(d doc.Document) (doc.Document, error) {
 
 // data is the requests file as written. Its structure is left to the
 // screen for now.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	return struct {
 		Source string `json:"source"`
 	}{d.Body}

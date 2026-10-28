@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestComposeWritesAPageWithItsTitleEscaped(t *testing.T) {
@@ -19,7 +20,7 @@ func TestComposeWritesAPageWithItsTitleEscaped(t *testing.T) {
 			t.Errorf("page lacks %q: %q", want, page)
 		}
 	}
-	raw, _ := json.Marshal(data(doc.Document{Body: page}))
+	raw, _ := json.Marshal(data(doc.Document{Body: page}, widget.DefaultEnv()))
 	var got struct {
 		HTML string `json:"html"`
 	}

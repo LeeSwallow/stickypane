@@ -14,7 +14,7 @@ const listSrc = "Release plan\n- [ ] build\n- [x] test ✅ 2026-10-03 14:02\n- [
 
 func dataOf(t *testing.T, d doc.Document) string {
 	t.Helper()
-	b, err := json.Marshal(Kind.Data(d))
+	b, err := json.Marshal(Kind.Data(d, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestDataOfAnEmptyList(t *testing.T) {
 func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document, error) {
 	t.Helper()
 	d := doc.Parse([]byte(src))
-	op, err := Kind.Act(d, widget.Action{Name: name, Args: args})
+	op, err := Kind.Act(d, widget.Action{Name: name, Args: args}, widget.DefaultEnv())
 	if err != nil {
 		if op != nil {
 			t.Errorf("Op = %v with an error", op)

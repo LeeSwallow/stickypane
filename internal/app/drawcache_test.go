@@ -32,7 +32,7 @@ func (c *counted) Sync(d doc.Document) widget.Widget { return &counted{draws: c.
 // the screen; one that took a key is.
 func TestAnUnchangedNoteIsNotDrawnAgain(t *testing.T) {
 	draws := 0
-	kind := widget.Kind{Name: "note", Keys: "x", Parse: func(d doc.Document) widget.Widget { return &counted{draws: &draws, text: d.Body} }}
+	kind := widget.Kind{Name: "note", Keys: "x", Parse: func(d doc.Document, _ widget.Env) widget.Widget { return &counted{draws: &draws, text: d.Body} }}
 	dir := filepath.Join(t.TempDir(), store.DirName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)

@@ -29,7 +29,7 @@ type boardData struct {
 
 func dataOf(t *testing.T, d doc.Document) boardData {
 	t.Helper()
-	b, err := json.Marshal(Kind.Data(d))
+	b, err := json.Marshal(Kind.Data(d, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func dataOf(t *testing.T, d doc.Document) boardData {
 func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document, error) {
 	t.Helper()
 	d := doc.Parse([]byte(src))
-	op, err := Kind.Act(d, widget.Action{Name: name, Args: args})
+	op, err := Kind.Act(d, widget.Action{Name: name, Args: args}, widget.DefaultEnv())
 	if err != nil {
 		if op != nil {
 			t.Errorf("Op = %v with an error", op)
@@ -149,7 +149,7 @@ func TestDataMarksAStalledCard(t *testing.T) {
 	if c[0].Who[0] != "alice" || c[0].Detail[0] != "note" || c[0].Moved == "" {
 		t.Errorf("card = %+v", c[0])
 	}
-	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B")))); !strings.Contains(string(raw), `"desc":[]`) {
+	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B")), widget.DefaultEnv())); !strings.Contains(string(raw), `"desc":[]`) {
 		t.Errorf("empty board = %s", raw)
 	}
 }

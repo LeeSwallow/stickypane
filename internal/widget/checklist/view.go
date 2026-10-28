@@ -29,6 +29,7 @@ type Checklist struct {
 	list
 	cursor int           // index into order
 	drawn  []widget.Span // the lines of each item in the last Draw, in order
+	env    widget.Env
 }
 
 // order lists the items as the screen shows them, as indexes into items:
@@ -221,7 +222,8 @@ func (c *Checklist) Click(line, _ int) (widget.Widget, widget.Result, bool) {
 
 // Sync implements widget.Widget.
 func (c *Checklist) Sync(d doc.Document) widget.Widget {
-	nc := parse(d)
+	nc := parse(d, c.env)
+
 	nc.cursor = c.cursor
 	nc.clamp()
 	return nc

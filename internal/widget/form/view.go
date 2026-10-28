@@ -37,6 +37,7 @@ type Form struct {
 	render note.Renderer
 	cursor int
 	drawn  []area // where each control was in the last Draw
+	env    widget.Env
 }
 
 // area is the cells a control took in the last Draw: its lines and, for a
@@ -352,7 +353,8 @@ func (f *Form) Click(line, col int) (widget.Widget, widget.Result, bool) {
 
 // Sync implements widget.Widget.
 func (f *Form) Sync(d doc.Document) widget.Widget {
-	nf := parse(d, f.render)
+	nf := parse(d, f.render, f.env)
+
 	nf.cursor = f.cursor
 	nf.clamp()
 	return nf

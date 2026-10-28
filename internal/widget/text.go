@@ -165,7 +165,11 @@ func Unlink(s string) string {
 // NameStyle gives a name (an @owner, a chat's author) its color, the same
 // each time it appears and in every note.
 func NameStyle(name string) lipgloss.Style {
-	styles := []lipgloss.Style{Info, Good, Accent, Warn}
+	return nameStyle(theme.Styles{Info: Info, Good: Good, Accent: Accent, Warn: Warn}, name)
+}
+
+func nameStyle(s theme.Styles, name string) lipgloss.Style {
+	styles := []lipgloss.Style{s.Info, s.Good, s.Accent, s.Warn}
 	h := fnv.New32a()
 	h.Write([]byte(name))
 	return styles[h.Sum32()%uint32(len(styles))]

@@ -345,4 +345,4 @@ func trim(v float64) string {
 func (c *Chart) Update(string) (widget.Widget, widget.Result) { return c, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (c *Chart) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (c *Chart) Sync(d doc.Document) widget.Widget { return parse(d, c.env) }

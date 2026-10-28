@@ -23,9 +23,17 @@ type Chart struct {
 	view   string // "bar", "spark" or "heat"
 	points []point
 	prose  []string // the lines that are not data, shown above the chart
+	env    widget.Env
 }
 
-func parse(d doc.Document) *Chart {
+func parse(d doc.Document, e widget.Env) *Chart {
+	c := read(d)
+	c.env = e
+	return c
+}
+
+// read reads a chart note.
+func read(d doc.Document) *Chart {
 	c := &Chart{}
 	c.view, _ = d.Get("view")
 	c.view = strings.ToLower(c.view)
@@ -118,9 +126,10 @@ type DataPoint struct {
 
 // data reads the chart with the same parse the board draws from. A view
 // the board does not know is drawn as bars, so it is said as "bar".
-func data(d doc.Document) any {
-	c := parse(d)
-	out := Data{View: c.view, Prose: []string{}, Points: []DataPoint{}}
+func data(d doc.Document, _ widget.Env) any {
+	c := read(d)
+	out := Data{
+		View: c.view, Prose: []string{}, Points: []DataPoint{}}
 	// The view the terminal draws: a calendar with values but no day among
 	// them is drawn as bars (see Draw).
 	if out.View != "spark" && out.View != "heat" || out.View == "heat" && len(c.points) > 0 && len(c.days()) == 0 {

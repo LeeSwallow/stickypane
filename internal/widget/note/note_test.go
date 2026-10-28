@@ -11,7 +11,7 @@ import (
 )
 
 func parse(src string) widget.Widget {
-	return NewKind(Plain).Parse(doc.Parse([]byte(src)))
+	return NewKind(Plain).Parse(doc.Parse([]byte(src)), widget.DefaultEnv())
 }
 
 func numbered(n int) string {

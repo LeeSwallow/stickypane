@@ -83,7 +83,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 
 // status is the line an edit returns: the file and its summary.
 func (a *API) status(file string, d doc.Document) string {
-	if s := a.reg.For(file, d).Parse(d).Summary(); s != "" {
+	if s := a.reg.For(file, d).Parse(d, a.env).Summary(); s != "" {
 		return file + ": " + s
 	}
 	return file

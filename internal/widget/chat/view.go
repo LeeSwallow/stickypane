@@ -14,7 +14,10 @@ var now = func() time.Time { return widget.Now() }
 
 // Chat is the widget for a chat note. It has no cursor: the pane follows
 // its end, as a log does.
-type Chat struct{ messages []message }
+type Chat struct {
+	messages []message
+	env      widget.Env
+}
 
 // Draw implements widget.Widget: a faint line per day, then each message
 // with who said it, in their color, and when; its text hangs under it.
@@ -71,4 +74,4 @@ func (c *Chat) Update(key string) (widget.Widget, widget.Result) {
 }
 
 // Sync implements widget.Widget.
-func (c *Chat) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (c *Chat) Sync(d doc.Document) widget.Widget { return parse(d, c.env) }

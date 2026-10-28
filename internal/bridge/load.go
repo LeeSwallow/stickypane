@@ -197,9 +197,9 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 		return out
 	}
 	out.Version = widget.Version(n.Doc)
-	out.Summary = k.Parse(n.Doc).Summary()
+	out.Summary = k.Parse(n.Doc, s.api.Env()).Summary()
 	if k.Data != nil {
-		out.Data = data(n.Name, k.Data(n.Doc))
+		out.Data = data(n.Name, k.Data(n.Doc, s.api.Env()))
 	}
 	return out
 }

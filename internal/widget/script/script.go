@@ -41,7 +41,7 @@ var Kind = widget.Kind{
 		}
 		return []byte(file), nil
 	},
-	Parse: func(d doc.Document) widget.Widget { return parse(d) },
+	Parse: func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Data:  data,
 }
 
@@ -49,10 +49,11 @@ var Kind = widget.Kind{
 type Script struct {
 	lines  []string
 	button widget.Span // the lines of the button in the last Draw
+	env    widget.Env
 }
 
-func parse(d doc.Document) *Script {
-	s := &Script{}
+func parse(d doc.Document, e widget.Env) *Script {
+	s := &Script{env: e}
 	for _, l := range doc.Lines(d.Body) {
 		s.lines = append(s.lines, strings.TrimRight(widget.Clean(l), " "))
 	}
@@ -131,12 +132,12 @@ func (s *Script) Click(line, _ int) (widget.Widget, widget.Result, bool) {
 }
 
 // Sync implements widget.Widget.
-func (s *Script) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (s *Script) Sync(d doc.Document) widget.Widget { return parse(d, s.env) }
 
 // data is the script as written and the language to run it in. A document
 // does not know its file's name, so the language comes from the first line:
 // "ps1" when it is a shebang for PowerShell, "sh" otherwise.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	first, _, _ := strings.Cut(d.Body, "\n")
 	lang := "sh"
 	if strings.HasPrefix(first, "#!") && (strings.Contains(first, "pwsh") || strings.Contains(first, "powershell")) {

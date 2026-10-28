@@ -15,7 +15,7 @@ func TestComposeWritesTheViewAndValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := doc.Parse(b)
-	got := data(d).(Data)
+	got := data(d, widget.DefaultEnv()).(Data)
 	if d.Type() != "chart" || got.View != "spark" {
 		t.Errorf("type %q, view %q", d.Type(), got.View)
 	}

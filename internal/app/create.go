@@ -103,7 +103,7 @@ func catalogBody(m *Model, h int) []string {
 			detail = append(detail, widget.Faint.Render(l))
 		}
 		if kind.Example != "" && kind.Parse != nil {
-			example, _ := kind.Parse(doc.Parse([]byte(kind.Example))).Draw(side-4, false)
+			example, _ := kind.Parse(doc.Parse([]byte(kind.Example)), m.env).Draw(side-4, false)
 			detail = append(detail, "")
 			detail = append(detail, strings.Split(frame(box{
 				title: tr.Example, icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),

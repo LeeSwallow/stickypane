@@ -8,10 +8,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func draw(src string, width int) string {
-	out, _ := Kind.Parse(doc.Document{Body: src}).Draw(width, false)
+	out, _ := Kind.Parse(doc.Document{Body: src}, widget.DefaultEnv()).Draw(width, false)
 	return ansi.Strip(out)
 }
 
@@ -52,7 +53,7 @@ func TestHTMLViewFitsTheWidth(t *testing.T) {
 
 func TestHTMLDataIsTheSource(t *testing.T) {
 	src := "<h1>Bench</h1>\n"
-	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}))
+	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}

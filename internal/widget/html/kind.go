@@ -28,7 +28,7 @@ var Kind = widget.Kind{
 		{Name: "text", Type: widget.OptLines, Label: "Text"},
 	},
 	Compose: compose,
-	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:   func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Data:    data,
 }
 

@@ -25,6 +25,7 @@ type Board struct {
 	content
 	col, row int    // cursor
 	drawn    []area // where each card was in the last Draw
+	env      widget.Env
 }
 
 func (b *Board) clamp() {
@@ -361,7 +362,8 @@ func (b *Board) Update(key string) (widget.Widget, widget.Result) {
 
 // Sync implements widget.Widget.
 func (b *Board) Sync(d doc.Document) widget.Widget {
-	nb := parse(d)
+	nb := parse(d, b.env)
+
 	nb.col, nb.row = b.col, b.row
 	nb.clamp()
 	return nb

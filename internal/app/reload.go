@@ -22,7 +22,7 @@ func (m *Model) widgetFor(n store.Note, old page, had bool) (kind widget.Kind, w
 	kind = m.reg.For(n.Name, n.Doc)
 	switch {
 	case !had || old.kind.Name != kind.Name:
-		return kind, kind.Parse(n.Doc), false
+		return kind, kind.Parse(n.Doc, m.env), false
 	case old.note.Err == nil && n.Err == nil && old.note.ModTime.Equal(n.ModTime) && old.note.Path == n.Path:
 		// The file was not touched: the store handed back what it read.
 		return kind, old.w, true
@@ -168,7 +168,7 @@ func (m *Model) reload() {
 	if changedAny {
 		for i := range items {
 			if it := &items[i]; len(it.pages) == 0 && strings.Contains(it.note.Doc.Body, "![[") {
-				it.w = it.kind.Parse(it.note.Doc)
+				it.w = it.kind.Parse(it.note.Doc, m.env)
 				m.forget(it.note.Name)
 			}
 		}
@@ -299,12 +299,12 @@ func (m *Model) setEmbeds(b store.Board) {
 			}
 		}
 	}
-	reg := m.reg
+	reg, env := m.reg, m.env
 	kinds.Embeds = func(name string) (string, widget.Widget, bool) {
 		f, ok := files[api.Resolve(name, names)]
 		if !ok {
 			return "", nil, false
 		}
-		return arrange.Title(store.View{}, f.Doc, f.Name), reg.For(f.Name, f.Doc).Parse(f.Doc), true
+		return arrange.Title(store.View{}, f.Doc, f.Name), reg.For(f.Name, f.Doc).Parse(f.Doc, env), true
 	}
 }

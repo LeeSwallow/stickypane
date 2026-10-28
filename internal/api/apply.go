@@ -32,7 +32,7 @@ func (o acted) Apply(d doc.Document) (doc.Document, error) {
 	if k.Act == nil {
 		return d, fmt.Errorf("%s is a %s: it takes no action from a screen", o.file, k.Name)
 	}
-	op, err := k.Act(d, o.act)
+	op, err := k.Act(d, o.act, o.api.env)
 	if err != nil {
 		return d, err
 	}

@@ -30,4 +30,4 @@ func (p *Page) Summary() string { return "" }
 func (p *Page) Update(string) (widget.Widget, widget.Result) { return p, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (p *Page) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (p *Page) Sync(d doc.Document) widget.Widget { return parse(d, p.env) }

@@ -46,7 +46,7 @@ func TestTickingAnItemWritesWhenItWasDone(t *testing.T) {
 
 // The time is not part of the item's name: an item is found by its text.
 func TestTheTimeIsNotPartOfTheName(t *testing.T) {
-	c := parse(doc.Parse([]byte("- [x] write tests ✅ 2026-10-02\n")))
+	c := parse(doc.Parse([]byte("- [x] write tests ✅ 2026-10-02\n")), widget.DefaultEnv())
 	if e := c.entries[c.items[0]]; e.text != "write tests" || e.done.Format("2006-01-02") != "2026-10-02" {
 		t.Errorf("entry = %+v", e)
 	}
@@ -61,7 +61,7 @@ func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local) }
 	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	src := "- [x] old ✅ 2026-09-30 10:00\n- [ ] first\n- [x] recent ✅ 2026-10-03 14:02\n- [ ] second\n- [x] undated\n"
-	c := parse(doc.Parse([]byte(src)))
+	c := parse(doc.Parse([]byte(src)), widget.DefaultEnv())
 	out, _ := c.Draw(50, false)
 	lines := strings.Split(ansi.Strip(out), "\n")
 	var order []string
@@ -89,13 +89,13 @@ func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
 func TestTheCursorFollowsTheScreenAndTickingStampsNow(t *testing.T) {
 	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
 	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	c := parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")))
+	c := parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")), widget.DefaultEnv())
 	_, res := c.Update("space") // the first on the screen is the open one
 	op, ok := res.Op.(Toggle)
 	if !ok || op.Text != "todo" || !op.Checked || op.At != at {
 		t.Fatalf("op = %#v", res.Op)
 	}
-	c = parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")))
+	c = parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")), widget.DefaultEnv())
 	c.Update("j")
 	if _, res := c.Update("space"); res.Op.(Toggle).Text != "done" || res.Op.(Toggle).Checked {
 		t.Errorf("j moves into the done items: %#v", res.Op)

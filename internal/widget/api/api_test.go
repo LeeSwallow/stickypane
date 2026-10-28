@@ -25,7 +25,7 @@ GET {{base}}/me
 `
 
 func TestDrawAndSend(t *testing.T) {
-	var w widget.Widget = Kind.Parse(doc.Document{Body: file})
+	var w widget.Widget = Kind.Parse(doc.Document{Body: file}, widget.DefaultEnv())
 	out, at := w.Draw(60, true)
 	plain := ansi.Strip(out)
 	if !strings.Contains(plain, "› POST   Log in") || !strings.Contains(plain, "GET    Me") {
@@ -61,7 +61,7 @@ func TestSetEnv(t *testing.T) {
 
 func TestAWebSocketAndAGRPCCallShowTheirProtocol(t *testing.T) {
 	src := "### Chat\n# @ws send hi\n# @ws close\nGET ws://localhost/chat\n\n### Get user\n# @grpc users.v1.Users/Get\nGRPC localhost:9090\n\n{\"id\": 7}\n"
-	out, _ := Kind.Parse(doc.Document{Body: src}).Draw(80, false)
+	out, _ := Kind.Parse(doc.Document{Body: src}, widget.DefaultEnv()).Draw(80, false)
 	plain := ansi.Strip(out)
 	for _, want := range []string{"WS     Chat  ws://localhost/chat  2 steps", "GRPC   Get user  users.v1.Users/Get localhost:9090"} {
 		if !strings.Contains(plain, want) {

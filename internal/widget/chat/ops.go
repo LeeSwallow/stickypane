@@ -39,8 +39,9 @@ func (o Say) Apply(d doc.Document) (doc.Document, error) {
 }
 
 // act is the chat's Kind.Act: "say" with text and who, the author, which
-// is "agent" when left out. The time is the board's, from now.
-func act(_ doc.Document, a widget.Action) (doc.Op, error) {
+// is "agent" when left out. The time is e's: the clock of whoever applies
+// the action.
+func act(_ doc.Document, a widget.Action, e widget.Env) (doc.Op, error) {
 	if a.Name != "say" {
 		return nil, fmt.Errorf("%w: %q", widget.ErrUnknownAction, a.Name)
 	}
@@ -52,5 +53,6 @@ func act(_ doc.Document, a widget.Action) (doc.Op, error) {
 	if who == "" {
 		who = "agent"
 	}
-	return Say{Who: who, Text: text, At: now()}, nil
+	return Say{Who: who, Text: text, At: e.Now()}, nil
+
 }

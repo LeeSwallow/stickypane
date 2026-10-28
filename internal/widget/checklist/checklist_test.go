@@ -17,7 +17,7 @@ const body = "## Login API\n- [x] Add endpoint\n- [x] Validate input\n- [ ] Writ
 
 const sameItems = "## Backend\n- [ ] tests\n## Frontend\n- [ ] tests\n"
 
-func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, widget.DefaultEnv()) }
 
 func draw(w widget.Widget, width int, active bool) ([]string, int) {
 	out, at := w.Draw(width, active)
@@ -229,7 +229,7 @@ func TestKind(t *testing.T) {
 	if Kind.Size(doc.Document{}) != widget.SizeHalf {
 		t.Errorf("Size = %q", Kind.Size(doc.Document{}))
 	}
-	w := Kind.Parse(doc.Parse(Kind.Template("Release")))
+	w := Kind.Parse(doc.Parse(Kind.Template("Release")), widget.DefaultEnv())
 	if lines, _ := draw(w, 50, false); strings.Contains(strings.Join(lines, "\n"), "0/1") {
 		t.Errorf("a new checklist must not contain a blank item: %q", lines)
 	}
@@ -248,7 +248,7 @@ func TestKindDescribesItself(t *testing.T) {
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
 		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
 	}
-	example := Kind.Parse(doc.Parse([]byte(Kind.Example)))
+	example := Kind.Parse(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv())
 	if got := example.Summary(); got == "" {
 		t.Errorf("the example should be a checklist with items, summary = %q", got)
 	}

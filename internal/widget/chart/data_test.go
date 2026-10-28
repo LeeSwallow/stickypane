@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestDataOfTheExample(t *testing.T) {
-	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example))))
+	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +29,7 @@ func TestDataSaysBarWhenAHeatHasNoDays(t *testing.T) {
 		"---\nview: spark\n---\napp: 3\n":           "spark",
 		"---\nview: nonsense\n---\n2026-10-01: 3\n": "bar",
 	} {
-		if got := Kind.Data(doc.Parse([]byte(src))).(Data).View; got != want {
+		if got := Kind.Data(doc.Parse([]byte(src)), widget.DefaultEnv()).(Data).View; got != want {
 			t.Errorf("%q: view %q, want %q", src, got, want)
 		}
 	}

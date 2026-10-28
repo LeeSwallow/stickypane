@@ -36,7 +36,7 @@ func read(d doc.Document) []message {
 	return out
 }
 
-func parse(d doc.Document) *Chat { return &Chat{messages: read(d)} }
+func parse(d doc.Document, e widget.Env) *Chat { return &Chat{messages: read(d), env: e} }
 
 // Summary implements widget.Widget: how many messages.
 func (c *Chat) Summary() string {
@@ -59,7 +59,7 @@ type said struct {
 }
 
 // data is the messages in order, from the same read the board draws.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	out := struct {
 		Messages []said `json:"messages"`
 	}{Messages: []said{}}

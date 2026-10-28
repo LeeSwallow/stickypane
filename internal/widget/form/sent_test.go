@@ -21,7 +21,7 @@ func TestASentFormSaysWhen(t *testing.T) {
 		time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local).Format(time.RFC3339): "sent 14:02",
 		time.Date(2026, 9, 30, 9, 0, 0, 0, time.Local).Format(time.RFC3339):  "sent Sep 30",
 	} {
-		f := parse(doc.Parse([]byte("---\ntype: form\nsubmitted: OK\nsubmitted_at: "+at+"\n---\n- ( ) a\n")), note.Plain)
+		f := parse(doc.Parse([]byte("---\ntype: form\nsubmitted: OK\nsubmitted_at: "+at+"\n---\n- ( ) a\n")), note.Plain, widget.DefaultEnv())
 		out, _ := f.Draw(40, false)
 		if !strings.Contains(ansi.Strip(out), want) {
 			t.Errorf("submitted_at %s: want %q in\n%s", at, want, ansi.Strip(out))
@@ -36,14 +36,14 @@ func TestASentFormShowsItsAnswers(t *testing.T) {
 	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
 	src := "---\ntype: form\nsubmitted: Deploy\nsubmitted_at: " + time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local).Format(time.RFC3339) +
 		"\n---\n## Target\n- ( ) staging\n- (x) production\n\n## Also\n- [x] run migrations\n- [ ] clear the cache\n\n## Note\n> after lunch\n\n[ Deploy ] [ Cancel ]\n"
-	out, _ := parse(doc.Parse([]byte(src)), note.Plain).Draw(50, false)
+	out, _ := parse(doc.Parse([]byte(src)), note.Plain, widget.DefaultEnv()).Draw(50, false)
 	s := ansi.Strip(out)
 	for _, want := range []string{"Deploy · sent 14:02", "Target: production", "Also: run migrations", "Note: after lunch"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("want %q in\n%s", want, s)
 		}
 	}
-	if before, _ := parse(doc.Parse([]byte(strings.Replace(src, "submitted: Deploy\n", "", 1))), note.Plain).Draw(50, false); strings.Contains(ansi.Strip(before), "Target: production") {
+	if before, _ := parse(doc.Parse([]byte(strings.Replace(src, "submitted: Deploy\n", "", 1))), note.Plain, widget.DefaultEnv()).Draw(50, false); strings.Contains(ansi.Strip(before), "Target: production") {
 		t.Error("a form not sent yet has no answers to show")
 	}
 }

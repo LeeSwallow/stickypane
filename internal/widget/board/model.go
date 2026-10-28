@@ -29,7 +29,7 @@ type content struct {
 	cols []column
 }
 
-func parse(d doc.Document) *Board { return &Board{content: read(d)} }
+func parse(d doc.Document, e widget.Env) *Board { return &Board{content: read(d), env: e} }
 
 // read reads a board note.
 func read(d doc.Document) content {
@@ -94,7 +94,7 @@ type columnJSON struct {
 
 // data is the columns and their cards, from the same read the board draws,
 // with the same call on which cards stalled.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	b := read(d)
 	t := now()
 	out := struct {

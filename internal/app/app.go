@@ -116,6 +116,7 @@ type Model struct {
 	reg   widget.Registry
 	watch <-chan struct{}
 	now   func() time.Time
+	env   widget.Env // what every widget is parsed with: the clock, words and styles
 
 	theme       *theme.Holder // the theme in use, shared with the Markdown renderer
 	dark        bool          // what the terminal said about its background
@@ -247,6 +248,8 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 	m.offsets, m.reveal = map[string]int{}, revealNote
 	m.tabFocus = map[string]string{}
 	widget.Now = func() time.Time { return m.now() }
+	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter}
+
 	m.language = st.Language()
 	UseLanguage(m.language)
 	// Times are written the way the user's country does, whatever language

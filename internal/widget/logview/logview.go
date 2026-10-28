@@ -37,16 +37,19 @@ var Kind = widget.Kind{
 		}
 		return widget.NewFile("log", title, body), nil
 	},
-	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:  func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Events: events,
 	Data:   data,
 }
 
 // Log is the widget for a log note.
-type Log struct{ lines []string }
+type Log struct {
+	lines []string
+	env   widget.Env
+}
 
-func parse(d doc.Document) *Log {
-	l := &Log{}
+func parse(d doc.Document, e widget.Env) *Log {
+	l := &Log{env: e}
 	for _, line := range doc.Lines(d.Body) {
 		l.lines = append(l.lines, strings.TrimRight(widget.Clean(line), " "))
 	}
@@ -91,7 +94,7 @@ func (l *Log) Summary() string {
 func (l *Log) Update(string) (widget.Widget, widget.Result) { return l, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (l *Log) Sync(d doc.Document) widget.Widget { return parse(d, l.env) }
 
 // Append adds one entry at the end of the log. An entry is one line: line
 // breaks inside Line become spaces.
@@ -108,8 +111,9 @@ func (o Append) Apply(d doc.Document) (doc.Document, error) {
 const maxLines = 1000
 
 // data is the lines of the log as the board shows them, the last maxLines.
-func data(d doc.Document) any {
-	lines := parse(d).lines
+func data(d doc.Document, _ widget.Env) any {
+	lines := parse(d, widget.Env{}).lines
+
 	if len(lines) > maxLines {
 		lines = lines[len(lines)-maxLines:]
 	}
