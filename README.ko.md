@@ -158,14 +158,15 @@ stickypane wait deploy --timeout 10m        # 폼의 버튼이 눌릴 때까지
 stickypane가 만들지 않고 오버레이가 만들므로, 터미널만 쓰면 홈에 아무것도 생기지
 않습니다. 있으면 보드 목록을 보여 주려고 두 가지를 적습니다.
 
-- `events/YYYY-MM-DD.jsonl`: 한 줄에 사건 하나. 시각, 종류(`session.start`,
+- `events/YYYY-MM-DD.jsonl`: 한 줄에 사건 하나, `{v: 1, at, type, …}`. 시각, 종류(`session.start`,
   `session.end`, `project.init`, `project.touch`), 프로젝트 경로, 세션이면 프로세스
   번호와 종류(`tui` `mcp` `watch` `bridge`), `project.touch`면 명령 이름(프로젝트·명령당
   1분에 한 번).
 - `run/<pid>.json`: 세션이 살아 있는 동안 프로세스 번호, 프로젝트 경로, 종류, 시작
-  시각. 세션이 끝나면 지워집니다.
+  시각. 세션이 끝나면 지워집니다. `run/touch-*` 파일은 1분에 한 번만 적기 위한 빈
+  표시 파일입니다.
 
-노트 내용, 명령 인자, 파일 내용은 적지 않고 밖으로 나가는 것도 없습니다. 폴더를
+노트 내용, 명령 인자, 파일 내용은 적지 않습니다. 밖으로 나가는 것도 없습니다. 폴더를
 지우면 멈춥니다.
 
 ## 설계

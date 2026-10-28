@@ -38,7 +38,8 @@ For anything else, write a file into `.sticky/`; front matter gives it a
   until a button is pressed and prints the answers. To ask again, leave the
   `submitted` keys out.
 - `name.log`: a log, followed live. `name.html`: a page to look at, shown as
-  text. `name.sh`: a script the user runs after a yes. `name.http` (exp): HTTP requests. `type: chat`: a conversation.
+  text. `name.sh`: a script the user runs after a yes. `name.http` (exp):
+  HTTP requests. `type: chat`: a conversation.
 - A folder: a tab, a screen of its own. A folder in a tab: a book, one note
   with a page per file.
 

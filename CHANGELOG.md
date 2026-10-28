@@ -13,7 +13,8 @@ on GitHub are built from pull request labels.
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
-  already exists: `events/YYYY-MM-DD.jsonl` and `run/<pid>.json` record
+  already exists: `events/YYYY-MM-DD.jsonl` (lines of `{v: 1, at, type, …}`) and
+  `run/<pid>.json` record
   project paths, command names, times and process ids, so the overlay can
   list your boards. See the README.
 - `view` and `style` keys in `sticky.json`, for the overlay; the terminal

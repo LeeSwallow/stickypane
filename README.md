@@ -66,7 +66,8 @@ in your repository, readable without stickypane.
 - [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
 - [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
 - [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
-- [Command line and MCP](#command-line-and-mcp), and [what is recorded in `~/.stickypane`](#what-stickypane-records-on-this-machine)
+- [Command line and MCP](#command-line-and-mcp)
+- [What is recorded in `~/.stickypane`](#what-stickypane-records-on-this-machine)
 - [Contributing](#contributing), [support](#support), [license](#license)
 
 ## Install
@@ -903,8 +904,8 @@ stickypane never makes it: the desktop overlay does, so a person who only
 uses the terminal gets nothing in their home. Where it exists, stickypane
 writes two things there, to let the overlay list your boards:
 
-- `events/YYYY-MM-DD.jsonl`, one JSON line per event: the time, the type
-  (`session.start`, `session.end`, `project.init`, `project.touch`), the
+- `events/YYYY-MM-DD.jsonl`, one JSON line per event, `{v: 1, at, type, …}`:
+  the time, the type (`session.start`, `session.end`, `project.init`, `project.touch`), the
   project's path, and for a session its process id and kind (`tui`, `mcp`,
   `watch`, `bridge`); for `project.touch` the name of the command, at most
   once a minute per project and command.
