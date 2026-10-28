@@ -24,25 +24,25 @@ contents:
   - src: "./build/linux/stickypane.desktop"
     dst: "/usr/share/applications/stickypane.desktop"
 
-# The app is built on the GTK3 + WebKitGTK 4.1 stack (as CI builds it:
-# libgtk-3-dev, libwebkit2gtk-4.1-dev).
+# Wails v3 builds on GTK4 + WebKitGTK 6.0 unless the gtk3 tag is given
+# (CI installs libgtk-4-dev and libwebkitgtk-6.0-dev).
 depends:
-  - libgtk-3-0
-  - libwebkit2gtk-4.1-0
+  - libgtk-4-1
+  - libwebkitgtk-6.0-4
 
 # Distribution-specific overrides for different package formats
 overrides:
   # RPM packages for Fedora / RHEL / AlmaLinux / Rocky Linux
   rpm:
     depends:
-      - gtk3
-      - webkit2gtk4.1
+      - gtk4
+      - webkitgtk6.0
 
   # Arch Linux packages
   archlinux:
     depends:
-      - gtk3
-      - webkit2gtk-4.1
+      - gtk4
+      - webkitgtk-6.0
 
 # scripts section to ensure desktop database is updated after install
 scripts:

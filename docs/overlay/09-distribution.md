@@ -10,7 +10,7 @@
 |---|---|---|
 | macOS (arm64, amd64) | `stickypane-<버전>-<arch>.dmg`, 볼륨 이름 `stickypane`, 안에 `Stickypane.app` | `wails3 package` → `scripts/overlay-dmg.sh`(hdiutil + 배경 + 아이콘 배치) |
 | macOS | Homebrew cask | 같은 DMG를 가리킨다([미결정]: 이름과 본체 cask와의 관계) |
-| Linux (amd64, arm64) | `stickypane-app-<버전>-linux-<arch>.tar.gz` (앱 + `stickypane` + `.desktop` + 아이콘 + `install.sh` + 라이선스(`LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`)) | Linux에서 `wails3 build` → `scripts/overlay-linux.sh`. WebKitGTK 4.1이 필요하다. 풀고 `sh install.sh`를 하면 `~/.local/lib/stickypane-app/`에 앱과 CLI, `~/.local/bin/stickypane-app` 링크, `~/.local/share/applications/stickypane.desktop`과 아이콘이 깔린다(`--uninstall`로 지운다) |
+| Linux (amd64, arm64) | `stickypane-app-<버전>-linux-<arch>.tar.gz` (앱 + `stickypane` + `.desktop` + 아이콘 + `install.sh` + 라이선스(`LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`)) | Linux에서 `wails3 build` → `scripts/overlay-linux.sh`. GTK4와 WebKitGTK 6.0이 필요하다(Wails v3의 기본). 풀고 `sh install.sh`를 하면 `~/.local/lib/stickypane-app/`에 앱과 CLI, `~/.local/bin/stickypane-app` 링크, `~/.local/share/applications/stickypane.desktop`과 아이콘이 깔린다(`--uninstall`로 지운다) |
 
 | 이름 | 값 |
 |---|---|
