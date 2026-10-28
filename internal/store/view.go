@@ -31,9 +31,15 @@ type View struct {
 	Open  *bool  `json:"open,omitempty"`
 	Pin   *bool  `json:"pin,omitempty"`
 	Size  string `json:"size,omitempty"`
+	// Rows is the height in lines the user chose; 0 is no choice, and
+	// ContentRows is "as tall as its content", over what the note's front
+	// matter or its kind says.
 	Rows  int    `json:"rows,omitempty"`
 	Color string `json:"color,omitempty"`
 }
+
+// ContentRows is the Rows of a note the user made as tall as its content.
+const ContentRows = -1
 
 func (v View) empty() bool {
 	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == ""

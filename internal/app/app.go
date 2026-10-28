@@ -44,10 +44,6 @@ const (
 	revealCursor                // the selection inside the focused note
 )
 
-// cardWidth is the narrowest a note is drawn when the pane allows it. A pane
-// at least two cards wide shows half-size notes side by side.
-const cardWidth = 36
-
 // Screens register themselves in these tables from their own files, so
 // adding a screen or a key never means editing this file.
 var (
@@ -178,7 +174,13 @@ type layoutState struct {
 	reveal        reveal           // how a note that comes into view is shown
 	drawn         map[string]drawn // panes.go: what each note drew last, by name
 	wakeAt        time.Time        // wake.go: when the screen next redraws by itself
+	mark          mark             // manage.go: a note's new size, shown until the next key
+	drag          dragging         // mouse.go: the border held with the mouse
 }
+
+// mark is what a note's border says for a moment after it was resized, in
+// place of its summary.
+type mark struct{ name, text string }
 
 // zoomState is zoom.go's and help.go's: one note, or the help, on the whole screen.
 type zoomState struct {
@@ -323,7 +325,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.String() == "ctrl+c" && m.mode != modeEdit {
 			return m, tea.Quit
 		}
-		m.status = ""
+		m.status, m.mark = "", mark{}
 		cmd = m.dispatch(msg)
 	case scriptDoneMsg:
 		m.finished(msg)
@@ -336,6 +338,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.click(msg.Mouse())
 	case tea.MouseWheelMsg:
 		m.wheel(msg.Mouse())
+	case tea.MouseMotionMsg:
+		if m.drag.name != "" {
+			m.pull(msg.Mouse())
+		}
+	case tea.MouseReleaseMsg:
+		if m.drag.name != "" {
+			m.drop()
+		}
 	default:
 		cmd = m.dispatch(msg)
 	}
@@ -411,5 +421,6 @@ func (m *Model) zoomed() bool {
 }
 
 // minPane is the least a note gets on the screen, borders included, before
-// the notes after it go to the next screen.
-const minPane = 10
+// the notes after it go to the next screen; a note that needs less asks for
+// only what it needs.
+const minPane = 6

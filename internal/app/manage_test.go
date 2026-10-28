@@ -147,7 +147,7 @@ func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	if m.mode != modeHelp {
 		t.Fatalf("j should scroll the help, mode = %v", m.mode)
 	}
-	for _, want := range []string{"open or close", "jot a note", "move to archive", "quit", "reorder a card", "tick an item", "bigger"} {
+	for _, want := range []string{"open or close", "jot a note", "move to archive", "quit", "reorder a card", "tick an item", "wider", "taller", "drag lower edge"} {
 		if !strings.Contains(seen, want) {
 			t.Errorf("scrolling the help should reveal %q", want)
 		}

@@ -309,7 +309,7 @@ folder's settings in the folder. The board writes them as you press keys:
 ```json
 {
   "notes": {
-    "10-plan.md": { "open": true, "size": "half", "pin": true },
+    "10-plan.md": { "open": true, "size": "1/2", "pin": true },
     "build.log": { "title": "CI build", "open": true, "rows": 12 },
     "docs": { "open": true, "color": "blue" }
   },
@@ -328,8 +328,8 @@ are only in the root file.
 | Key in `notes` | Values                                        | Key on the board |
 | -------------- | --------------------------------------------- | ---------------- |
 | `open`         | `true` shows the note, `false` folds it away  | `o`, `enter`     |
-| `size`         | `page` (whole width), `half`, `card`          | `+` `-`          |
-| `rows`         | the height in lines the note asks for         |                  |
+| `size`         | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1` | `+` `-`, drag the right edge |
+| `rows`         | the height in lines the note asks for; `-1` is as tall as its content, over what the note or its kind says | `shift+up` `shift+down`, `0`, drag the bottom edge |
 | `color`        | `yellow` `pink` `blue` `green` `purple` `orange` | `c`           |
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
@@ -352,6 +352,10 @@ linked README can be opened, sized and named although it has no front matter.
 The board never rewrites a note because you rearranged the screen, so it
 cannot collide with your agent writing that note. And you can commit the file
 to share a layout, or leave it out of git to keep it yours.
+
+The old size names are still read: `page` is `1`, `half` is `1/2`, and
+`card` is the narrowest share a 36-cell card fits in (`1/2` of 80 cells,
+`1/4` of 160). The board writes a fraction the next time the size changes.
 
 A Markdown note may still carry `open`, `size`, `rows`, `color` and `pin` in
 its front matter. That is the note's own proposal, which is how an agent says
@@ -517,7 +521,9 @@ file that does not fit its shape is still shown, never hidden.
 | `tab` / `shift+tab` | next, previous note     | `h` `l`                 | change column        |
 | `enter`             | open, then zoom         | `j` `k`                 | change card or item  |
 | `o`                 | open or close           | `H` `L`                 | move a card sideways |
-| `+` / `-`           | bigger, smaller         | `J` `K`                 | reorder a card       |
+| `+` / `-`           | wider, narrower         | `J` `K`                 | reorder a card       |
+| `shift+up` / `down` | taller, shorter (`pgup` `pgdn`: by five) | |              |
+| `0`                 | as tall as its content  |                         |                      |
 | `N`                 | jot a note              | `space`                 | tick an item         |
 | `a`                 | add by shape            | `n`                     | new card or item     |
 | `p` / `c` / `R`     | pin, color, rename      | **Open script**         |                      |
@@ -540,13 +546,18 @@ own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
 `ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
 a cursor scrolls to keep the cursor in view.
 
-**How the screen is shared.** Open notes are placed left to right by `size`
-(`page` takes a row, two `half` notes share one, `card`s sit three or more
-to a row) and each row is stretched to the full width. The rows then share
-the height: a short note takes what it needs and the long ones split the
-rest, so the screen is always full and never scrolls as a whole. A note gets
-at least ten lines; notes that would get less go to the next screen, shown
-as `2/3` under the title bar. A form uses `enter` itself,
+**How the screen is shared.** Open notes are placed left to right by `size`,
+a share of the screen's width (`1` takes a row, two `1/2` notes share one,
+four `1/4` notes sit side by side; on a narrow screen a share under 20 cells
+takes the next one up), and each row is stretched to the full width, its
+notes growing by their shares. The rows then share the height: a short note
+takes what it needs and the long ones split the rest, so the screen is
+always full and never scrolls as a whole. A note gets at least six lines, or
+all it needs if that is less; notes that would get less go to the next
+screen, shown as `2/3` under the title bar. `+` and `-` step a note through
+the shares and its border says the new one for a moment; `shift+up` and
+`shift+down` make it a line taller or shorter (`shift+pgup` and
+`shift+pgdn` five), and `0` lets it be as tall as its content again. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
 ## Notes that link
@@ -819,6 +830,9 @@ there.
 | double-click a note        | zoom; on a script, run it after a yes           |
 | click Yes or No on a question | answer it; a click anywhere else is no       |
 | wheel                      | scroll the note under the pointer               |
+| drag a note's right edge   | its width, snapped to the nearest share         |
+| drag a note's bottom edge  | its height in lines                             |
+| double-click a bottom edge | as tall as its content again                    |
 
 In tmux the mouse reaches stickypane only with `set -g mouse on`.
 
@@ -862,7 +876,7 @@ stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
 stickypane say chat "41/41 pass" --as claude # chat.md: 3 messages
-stickypane set plan open=true size=half      # to sticky.json
+stickypane set plan open=true size=1/2       # to sticky.json
 stickypane set plan title="The plan"         # to the note's front matter
 ```
 

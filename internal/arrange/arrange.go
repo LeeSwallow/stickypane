@@ -24,10 +24,17 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
-// ValidSize reports whether s is a size a note can take.
+// ValidSize reports whether s is a size a note can take: a fraction of the
+// screen (1/4, 1/3, 1/2, 2/3, 3/4, 1) or one of the old names (card, half,
+// page).
 func ValidSize(s string) bool {
-	return s == widget.SizePage || s == widget.SizeHalf || s == widget.SizeCard
+	_, ok := widget.NormalSize(s)
+	return ok
 }
+
+// SizeNames lists the sizes for a message: the fractions, then the old
+// names that are still read.
+const SizeNames = "1/4, 1/3, 1/2, 2/3, 3/4, 1 (or card, half, page)"
 
 // Open reports whether the note is open, and whether anything said so at
 // all. When nothing said, the screen may still show the note for a while
@@ -42,26 +49,35 @@ func Open(v store.View, front doc.Document) (open, said bool) {
 	return false, false
 }
 
-// Size returns the note's size. content is what the kind measures: for a
+// Size returns the note's size, a fraction or "card", with an old name
+// read as its fraction. content is what the kind measures: for a
 // book, the page in view; otherwise the note itself.
 func Size(v store.View, front doc.Document, k widget.Kind, content doc.Document) string {
-	if s := strings.ToLower(v.Size); ValidSize(s) {
+	if s, ok := widget.NormalSize(v.Size); ok {
 		return s
 	}
-	if s, _ := front.Get("size"); ValidSize(strings.ToLower(s)) {
-		return strings.ToLower(s)
+	if s, _ := front.Get("size"); s != "" {
+		if s, ok := widget.NormalSize(s); ok {
+			return s
+		}
 	}
 	if k.Size != nil {
-		return k.Size(content)
+		if s, ok := widget.NormalSize(k.Size(content)); ok {
+			return s
+		}
 	}
-	return widget.SizePage
+	return widget.SizeFull
 }
 
 // Rows returns the height in lines the note asks for, or 0 when it asks for
-// as much as its content takes.
+// as much as its content takes. A user who chose the content height
+// (store.ContentRows) gets it over the front matter and the kind.
 func Rows(v store.View, front doc.Document, k widget.Kind) int {
 	if v.Rows > 0 {
 		return v.Rows
+	}
+	if v.Rows == store.ContentRows {
+		return 0
 	}
 	if s, ok := front.Get("rows"); ok {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -131,10 +147,11 @@ func Change(key, value string) (func(*store.View), bool, error) {
 	case "pin":
 		return flag(func(v *store.View, b *bool) { v.Pin = b })
 	case "size":
-		if value != "" && !ValidSize(value) {
-			return nil, true, fmt.Errorf("unknown size %q: use page, half or card", value)
+		size, ok := widget.NormalSize(value)
+		if value != "" && !ok {
+			return nil, true, fmt.Errorf("unknown size %q: use %s", value, SizeNames)
 		}
-		return func(v *store.View) { v.Size = value }, true, nil
+		return func(v *store.View) { v.Size = size }, true, nil
 	case "rows":
 		n := 0
 		if value != "" {

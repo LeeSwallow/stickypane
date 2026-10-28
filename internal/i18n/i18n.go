@@ -147,7 +147,10 @@ func English() Strings {
   enter            open, then zoom
   z                zoom
   o                open or close
-  + -              bigger, smaller
+  + -              wider, narrower
+  shift+up down    taller, shorter
+  shift+pgup pgdn  five lines at a time
+  0                content height
   { }              move earlier, later
   , .              turn a folder's pages
   m                move to a folder
@@ -205,7 +208,10 @@ Mouse
   click a title    open, focus, close
   click a note     focus; tick, choose
   double click     zoom
-  wheel            scroll that note`,
+  wheel            scroll that note
+  drag right edge  width
+  drag lower edge  height
+  double click it  content height`,
 	}
 }
 

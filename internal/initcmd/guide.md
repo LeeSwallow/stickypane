@@ -15,7 +15,7 @@ note is made, and so is a missing board in a git repository.
     stickypane chart tokens add input 1200       # also: set input 5000
     stickypane log worklog --time "tests passed"
     stickypane say chat "41/41 pass" --as claude # the user answers with n
-    stickypane set plan open=true size=half      # page, half or card; hide <name> folds it
+    stickypane set plan open=true size=1/2       # 1/4 1/3 1/2 2/3 3/4 1; hide <name> folds it
     stickypane mv plan deploy/                   # also: rm, restore, link <path>
 
 An item or a card is named by its text, a part of it, or its position (`#2`).

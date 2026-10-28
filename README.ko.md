@@ -118,7 +118,9 @@ stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 | `tab` `shift+tab` | 다음, 이전 노트 | `h` `l` | 칸 바꾸기 |
 | `enter` | 열기, 그다음 크게 | `j` `k` | 카드·항목 바꾸기 |
 | `o` | 열기 / 닫기 | `H` `L` | 카드를 옆 칸으로 |
-| `+` `-` | 키우기 / 줄이기 | `J` `K` | 카드 순서 |
+| `+` `-` | 넓게 / 좁게 (화면의 1/4 1/3 1/2 2/3 3/4 1) | `J` `K` | 카드 순서 |
+| `shift+up` `shift+down` | 한 줄 높게 / 낮게 (`pgup` `pgdn`은 다섯 줄) | | |
+| `0` | 내용만큼 높이 | | |
 | `{` `}` | 앞으로 / 뒤로 옮기기 | `space` | 체크 |
 | `m` | 폴더로 옮기기 | `n` | 새 카드·항목 |
 | `e` `E` | 여기서 편집(vi 방식), `nvim`로 | **폼** | |
@@ -128,7 +130,8 @@ stickypane env       # 찾은 시스템, 셸, 창 도구, 언어, 편집기
 | `?` `q` | 도움말, 종료 | | |
 
 마우스: 제목 클릭(열기·포커스·닫기), 노트 클릭(포커스, 항목 체크), 더블 클릭(크게),
-휠(그 노트 스크롤). tmux에서는 `set -g mouse on`이 필요합니다.
+휠(그 노트 스크롤), 오른쪽 끝 끌기(너비, 가까운 비율로), 아래 끝 끌기(높이),
+아래 끝 더블 클릭(내용만큼 높이). tmux에서는 `set -g mouse on`이 필요합니다.
 
 ## 에이전트용 명령
 
@@ -139,7 +142,7 @@ stickypane todo plan check 테스트           # plan.md: 1/1
 stickypane card work move 로그인 --to Done  # work.md: 2 cards
 stickypane chart tokens add input 800       # tokens.md: input = 2,000
 stickypane log worklog --time "테스트 통과"
-stickypane set plan open=true size=half
+stickypane set plan open=true size=1/2
 stickypane mv plan docs/   /   rm plan   /   restore plan
 stickypane wait deploy --timeout 10m        # 폼의 버튼이 눌릴 때까지
 ```

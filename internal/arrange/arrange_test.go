@@ -21,8 +21,8 @@ func TestTheUsersChoiceWinsOverTheNoteAndTheKind(t *testing.T) {
 	if open, said := Open(user, agent); open || !said {
 		t.Errorf("Open = %v, %v; sticky.json closes it", open, said)
 	}
-	if got := Size(user, agent, kind, agent); got != "page" {
-		t.Errorf("Size = %q", got)
+	if got := Size(user, agent, kind, agent); got != "1" {
+		t.Errorf("Size = %q; the old name page reads as 1", got)
 	}
 	if got := Rows(user, agent, kind); got != 9 {
 		t.Errorf("Rows = %d", got)
@@ -57,6 +57,13 @@ func TestTheNoteProposesWhenTheUserSaidNothing(t *testing.T) {
 	}
 }
 
+func TestContentRowsWinOverTheNoteAndTheKind(t *testing.T) {
+	kind := widget.Kind{Rows: 10}
+	if got := Rows(store.View{Rows: store.ContentRows}, front("---\nrows: 5\n---\n"), kind); got != 0 {
+		t.Errorf("Rows = %d; the user asked for the content height", got)
+	}
+}
+
 func TestTheKindDecidesLast(t *testing.T) {
 	var none store.View
 	plain := front("just text\n")
@@ -68,7 +75,7 @@ func TestTheKindDecidesLast(t *testing.T) {
 	if got := Size(none, front("---\nsize: huge\n---\n"), kind, plain); got != "card" {
 		t.Errorf("an invalid size falls through to the kind: %q", got)
 	}
-	if got := Size(none, plain, widget.Kind{}, plain); got != widget.SizePage {
+	if got := Size(none, plain, widget.Kind{}, plain); got != widget.SizeFull {
 		t.Errorf("a kind without a size takes the page: %q", got)
 	}
 	if got := Rows(none, front("---\nrows: lots\n---\n"), kind); got != 10 {
@@ -91,8 +98,18 @@ func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
 		}
 		change(&v)
 	}
-	if v.Open == nil || !*v.Open || v.Pin == nil || *v.Pin || v.Size != "half" || v.Rows != 12 || v.Color != "blue" {
-		t.Errorf("view = %+v", v)
+	if v.Open == nil || !*v.Open || v.Pin == nil || *v.Pin || v.Size != "1/2" || v.Rows != 12 || v.Color != "blue" {
+		t.Errorf("view = %+v; size=half is written as 1/2", v)
+	}
+	for in, want := range map[string]string{"1/3": "1/3", "3/4": "3/4", "1": "1", "Page": "1", "card": "card"} {
+		change, ok, err := Change("size", in)
+		if !ok || err != nil {
+			t.Fatalf("Change(size, %q) = %v, %v", in, ok, err)
+		}
+		change(&v)
+		if v.Size != want {
+			t.Errorf("size=%s writes %q, want %q", in, v.Size, want)
+		}
 	}
 	change, _, _ := Change("open", "")
 	change(&v)
@@ -102,9 +119,22 @@ func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
 	if _, ok, _ := Change("title", "x"); ok {
 		t.Error("title is not about the arrangement")
 	}
-	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"rows", "0"}, {"color", "teal"}} {
+	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"size", "2/5"}, {"rows", "0"}, {"color", "teal"}} {
 		if _, ok, err := Change(kv[0], kv[1]); !ok || err == nil {
 			t.Errorf("Change(%q, %q) should be refused", kv[0], kv[1])
+		}
+	}
+}
+
+func TestTheOldSizeNamesReadAsFractions(t *testing.T) {
+	var none store.View
+	plain := front("x\n")
+	for in, want := range map[string]string{"half": "1/2", "page": "1", "card": "card", "1/3": "1/3", "2/3": "2/3"} {
+		if got := Size(store.View{Size: in}, plain, widget.Kind{}, plain); got != want {
+			t.Errorf("sticky.json size %q reads as %q, want %q", in, got, want)
+		}
+		if got := Size(none, front("---\nsize: "+in+"\n---\n"), widget.Kind{}, plain); got != want {
+			t.Errorf("front matter size %q reads as %q, want %q", in, got, want)
 		}
 	}
 }

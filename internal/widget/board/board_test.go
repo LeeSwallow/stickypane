@@ -326,7 +326,7 @@ func TestKind(t *testing.T) {
 	if got != want {
 		t.Errorf("Template = %q", got)
 	}
-	if Kind.Name != "board" || Kind.Size(doc.Document{}) != widget.SizePage {
+	if Kind.Name != "board" || Kind.Size(doc.Document{}) != widget.SizeFull {
 		t.Errorf("Kind = %+v", Kind)
 	}
 	for _, key := range []string{"h", "l", "j", "k", "H", "L", "J", "K", "n", "left", "right", "up", "down"} {

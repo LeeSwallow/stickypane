@@ -16,7 +16,7 @@ var Kind = widget.Kind{
 	Usage:   "Each \"## Heading\" is a column and each top-level \"- item\" a card; indented lines are its details. A card may end with who has it, \"@codex-1\"; the board writes when a card moved (\"@{2026-10-03} @@{14:02}\") and flags one that has not moved for half an hour outside the last column. The user moves cards with keys; `stickypane card work move login --to Done` moves one from your side.",
 	Example: "## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n",
 	Keys:    "h l j k H L J K n left right up down",
-	Size:    func(doc.Document) string { return widget.SizePage },
+	Size:    func(doc.Document) string { return widget.SizeFull },
 	Template: func(title string) []byte {
 		return widget.NewFile("board", title, "## To do\n\n## Doing\n\n## Done\n")
 	},

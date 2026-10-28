@@ -105,7 +105,7 @@ func writeCmd(e env, args []string) error {
 	var opts api.Options
 	fs.StringVar(&opts.Type, "type", "", "note, board, checklist, log, chart or form")
 	fs.StringVar(&opts.Title, "title", "", "the note's title")
-	fs.StringVar(&opts.Size, "size", "", "page, half or card")
+	fs.StringVar(&opts.Size, "size", "", "1/4, 1/3, 1/2, 2/3, 3/4 or 1 of the screen's width")
 	fs.BoolVar(&opts.Open, "open", false, "put the note on the screen now")
 	words, err := parse(fs, "write", args, 1, 1)
 	if err != nil {

@@ -76,7 +76,9 @@ type Cell struct{ Row, X, W int }
 // Rows puts items of the given widths side by side, in order, starting a
 // new row when the next one does not fit. Each row is then stretched to the
 // full width, every item growing in proportion to its width, so no part of
-// the screen is left empty.
+// the screen is left empty. The cells that rounding leaves over go one each
+// to the items that lost the most to it, the first of equals first, so no
+// item takes all of them.
 func Rows(width int, widths []int) []Cell {
 	cells := make([]Cell, 0, len(widths))
 	stretch := func(from int) {
@@ -88,13 +90,26 @@ func Rows(width int, widths []int) []Cell {
 		if len(row) == 0 || sum <= 0 {
 			return
 		}
+		lost := make([]int, len(row)) // what rounding took, in 1/sum of a cell
+		left := width
+		for i := range row {
+			lost[i] = row[i].W * width % sum
+			row[i].W = row[i].W * width / sum
+			left -= row[i].W
+		}
+		for ; left > 0; left-- {
+			most := 0
+			for i := range row {
+				if lost[i] > lost[most] {
+					most = i
+				}
+			}
+			row[most].W++
+			lost[most] = -1
+		}
 		x := 0
 		for i := range row {
 			row[i].X = x
-			row[i].W = row[i].W * width / sum
-			if i == len(row)-1 {
-				row[i].W = width - x
-			}
 			x += row[i].W
 		}
 	}
@@ -122,8 +137,10 @@ type Slot struct{ Screen, Y, H int }
 // rest go to the next screen. A screen's height is then shared out: a row
 // that needs less than an equal share gets what it needs and the others
 // split the rest, and whatever is left when every row has what it needs is
-// split equally. Every screen is filled exactly.
-func Stack(height int, need []int, floor int) []Slot {
+// split equally among the rows that are not fixed (all of them when every
+// row is): a fixed row asked for a height of its own and keeps it. Every
+// screen is filled exactly.
+func Stack(height int, need []int, fixed []bool, floor int) []Slot {
 	slots := make([]Slot, len(need))
 	if height <= 0 {
 		return slots
@@ -147,10 +164,16 @@ func Stack(height int, need []int, floor int) []Slot {
 				}
 			}
 		}
-		// The others split the rest; with none, everyone splits the surplus.
+		// The others split the rest; with none, the rows that are not
+		// fixed split the surplus, or every row when all are.
 		split := make([]int, 0, len(rows))
 		for i := range rows {
-			if got[i] == 0 || open == 0 {
+			if got[i] == 0 || open == 0 && (from+i >= len(fixed) || !fixed[from+i]) {
+				split = append(split, i)
+			}
+		}
+		if len(split) == 0 {
+			for i := range rows {
 				split = append(split, i)
 			}
 		}

@@ -121,7 +121,7 @@ var tools = []tool{
 			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form", "chat"}, "description": "The note's shape. Omit for a plain note."},
 			"title":   str("Shown in the title bar and the note's border."),
 			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
-			"size":    map[string]any{"type": "string", "enum": []string{"page", "half", "card"}, "description": "page is the whole width, half is half of it, card is a small sticky note."},
+			"size":    map[string]any{"type": "string", "enum": []string{"1/4", "1/3", "1/2", "2/3", "3/4", "1", "card"}, "description": "The width as a fraction of the screen: 1 is the whole width, 1/2 half of it; card is the narrowest that fits a small sticky note. The old names half and page are read as 1/2 and 1."},
 		}),
 	},
 	{
@@ -175,7 +175,7 @@ var tools = []tool{
 		Description: "Change front matter keys of an existing note and nothing else: title, open, size, rows, color, pin, view. An empty value removes the key.",
 		InputSchema: object([]string{"name", "keys"}, map[string]any{
 			"name": str("The note's file name."),
-			"keys": map[string]any{"type": "object", "description": `Keys and their new values, such as {"open": true, "size": "half"}.`},
+			"keys": map[string]any{"type": "object", "description": `Keys and their new values, such as {"open": true, "size": "1/2"}.`},
 		}),
 	},
 	{

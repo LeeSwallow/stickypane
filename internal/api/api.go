@@ -211,10 +211,11 @@ func (a *API) shape(d doc.Document, opts Options) (doc.Document, error) {
 		d = d.Set("open", "true")
 	}
 	if opts.Size != "" {
-		if !arrange.ValidSize(opts.Size) {
-			return d, fmt.Errorf("unknown size %q: use page, half or card", opts.Size)
+		size, ok := widget.NormalSize(opts.Size)
+		if !ok {
+			return d, fmt.Errorf("unknown size %q: use %s", opts.Size, arrange.SizeNames)
 		}
-		d = d.Set("size", opts.Size)
+		d = d.Set("size", size)
 	}
 	return d, nil
 }

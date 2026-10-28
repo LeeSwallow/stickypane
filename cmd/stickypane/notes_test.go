@@ -25,7 +25,7 @@ func TestWriteListAndShow(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "release.md") {
 		t.Fatalf("write: code = %d, out = %q, stderr = %q", code, out, errOut)
 	}
-	want := "---\ntype: checklist\ntitle: Release\nopen: true\nsize: half\n---\n- [ ] build\n- [ ] ship\n"
+	want := "---\ntype: checklist\ntitle: Release\nopen: true\nsize: 1/2\n---\n- [ ] build\n- [ ] ship\n"
 	if b, _ := os.ReadFile(filepath.Join(root, ".sticky", "release.md")); plain(string(b)) != want {
 		t.Errorf("file = %q", b)
 	}
@@ -46,7 +46,7 @@ func TestWriteListAndShow(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &notes); code != 0 || err != nil || len(notes) != 2 {
 		t.Fatalf("list --json: code = %d, err = %v, out = %q", code, err, out)
 	}
-	if notes[0]["name"] != "release.md" || notes[0]["type"] != "checklist" || notes[0]["open"] != true || notes[0]["size"] != "half" {
+	if notes[0]["name"] != "release.md" || notes[0]["type"] != "checklist" || notes[0]["open"] != true || notes[0]["size"] != "1/2" {
 		t.Errorf("first note = %v", notes[0])
 	}
 

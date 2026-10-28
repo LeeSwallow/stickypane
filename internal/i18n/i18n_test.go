@@ -44,6 +44,32 @@ func TestEveryTranslationLoadsOverEnglish(t *testing.T) {
 	}
 }
 
+func TestHelpNamesTheResizeKeys(t *testing.T) {
+	for _, code := range Languages() {
+		s, err := Load(code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, k := range []string{"+ -", "shift+up down", "shift+pgup pgdn", "0"} {
+			listed := false
+			for _, line := range strings.Split(s.Help, "\n") {
+				listed = listed || strings.HasPrefix(strings.TrimSpace(line), k+"  ")
+			}
+			if !listed {
+				t.Errorf("%s: the help should list %q", code, k)
+			}
+		}
+		if !strings.Contains(s.Help, "\n  ") || strings.Count(s.Help, "\n") < strings.Count(English().Help, "\n") {
+			t.Errorf("%s: the help should have every line the English one has", code)
+		}
+		for _, phrase := range []string{"width", "content height"} {
+			if code != "en" && s.L(phrase) == phrase {
+				t.Errorf("%s: %q is not translated", code, phrase)
+			}
+		}
+	}
+}
+
 func TestKoreanTranslatesWhatTheUserSees(t *testing.T) {
 	ko, err := Load("ko")
 	if err != nil {

@@ -55,12 +55,23 @@ func TestBridgeArrangeWritesLikeSet(t *testing.T) {
 	}
 }
 
+func TestBridgeArrangeTakesFractionsAndTheOldNames(t *testing.T) {
+	dir := board(t, map[string]string{"plan.md": plan})
+	s := serve(t, dir)
+	for size, want := range map[string]string{"1/3": "1/3", "3/4": "3/4", "1": "1", "half": "1/2", "page": "1", "card": "card"} {
+		s.ok("note.arrange", map[string]any{"note": "plan.md", "size": size}, nil)
+		if v, _ := store.Open(dir).Views(); v["plan.md"].Size != want {
+			t.Errorf("size %q is kept as %q, want %q", size, v["plan.md"].Size, want)
+		}
+	}
+}
+
 func TestBridgeArrangeOfAPageIsItsBooks(t *testing.T) {
 	dir := board(t, map[string]string{"t/docs/a.md": "a\n", "t/docs/b.md": "b\n"})
 	s := serve(t, dir)
 	s.ok("note.arrange", map[string]any{"note": "t/docs/b.md", "size": "half", "title": "Bee"}, nil)
 	v, _ := store.Open(dir).Views()
-	if v["t/docs"].Size != "half" || v["t/docs/b.md"].Size != "" {
+	if v["t/docs"].Size != "1/2" || v["t/docs/b.md"].Size != "" {
 		t.Errorf("a page is arranged by its book: %+v", v)
 	}
 	if got := read(t, dir, "t/docs/b.md"); !strings.Contains(got, "title: Bee") {
@@ -75,6 +86,7 @@ func TestBridgeArrangeRefusesWhatSetRefuses(t *testing.T) {
 	s := serve(t, dir)
 	for name, p := range map[string]map[string]any{
 		"size":    {"note": "plan.md", "size": "huge"},
+		"2/5":     {"note": "plan.md", "size": "2/5"},
 		"rows":    {"note": "plan.md", "rows": -1},
 		"color":   {"note": "plan.md", "color": "mauve"},
 		"title":   {"note": "plan.md", "title": "a\nb"},

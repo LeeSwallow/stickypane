@@ -14,8 +14,8 @@
 | 지금 탭을 `sticky.json` `tab`에 저장, 에이전트의 `show`가 탭을 바꿈 | — | [설계자 판단] overlay의 탭 선택은 **창 상태**로 두고 `tab`을 쓰지 않는다(터미널의 화면을 빼앗지 않으려고). 단 `tab` 값이 바뀌면(에이전트가 `show`) overlay도 그 탭으로 간다 | ↪ | `board.changed.settings.tab` |
 | 노트 이름 줄(열림·닫힘·포커스·`•` 갱신 표시, 넘치면 스크롤) | — | 탭 아래 "메모 꽂이": 닫힌 노트는 접힌 메모지 칩, 열린 노트는 그리드에. 바뀐 노트는 제목 옆 손그림 점 ● | ✅ | `modTime`, 창의 seen 맵 |
 | 열기·닫기 | `o`, `enter`, 칩 클릭 | 칩 클릭으로 열기, 노트 머리의 `×`로 닫기 | ✅ | `note.arrange {open}` |
-| 크기 card/half/page | `+` `=` / `-` | 노트 머리 `▢ ▭ ▬` 버튼, `-` `=` | ✅ | `note.arrange {size}` |
-| 고정 높이 rows | sticky.json·front matter만 | 아래 가장자리 끌기(↗), 더블클릭은 내용만큼 | ↗ | `note.arrange {rows}` |
+| 너비 = 화면의 비율 `1/4` `1/3` `1/2` `2/3` `3/4` `1` (옛 이름 card/half/page도 읽음) | `+` `=` / `-`, 오른쪽 테두리 끌기 | 오른쪽 가장자리 끌기(가까운 비율에 붙음), `-` `=` | ✅ | `note.arrange {size}` |
+| 고정 높이 rows | `shift+↑` `shift+↓` (`shift+pgup` `shift+pgdn` 다섯 줄), `0`, 아래 테두리 끌기, 더블클릭은 내용만큼 | 아래 가장자리 끌기(↗), 더블클릭은 내용만큼 | ↗ | `note.arrange {rows}` |
 | 고정(pin) | `p` | 노트 머리의 압정 버튼. 고정 노트가 먼저 | ✅ | `note.arrange {pin}` |
 | 색 순환 | `c` | 노트 머리의 색 점을 누르면 여섯 색 팔레트 | ↗ | `note.arrange {color}` |
 | 제목 바꾸기 | `R` | 제목을 더블클릭해 그 자리에서 고친다 | ↗ | `note.arrange {title}` (터미널과 같은 규칙: .md는 front matter, 나머지는 sticky.json) |

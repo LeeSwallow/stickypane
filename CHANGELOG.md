@@ -26,6 +26,28 @@ on GitHub are built from pull request labels.
   list your boards. See the README.
 - `view` and `style` keys in `sticky.json`, for the overlay; the terminal
   ignores them.
+- A note's height from the board: `shift+up` and `shift+down` (with `pgup`
+  and `pgdn`, five lines), `0` for the height of its content, and the mouse:
+  drag a note's right edge for its width, its bottom edge for its height,
+  and double-click the bottom edge for the height of its content.
+
+### Changed
+
+- A note's `size` is a share of the screen: `1/4`, `1/3`, `1/2`, `2/3`,
+  `3/4` or `1`, which `+` and `-` step through and the border names for a
+  moment. `card`, `half` and `page` are still read, and written as a
+  fraction the next time the size changes; `stickypane set` and `write
+  --size` take both and write `half` and `page` as `1/2` and `1`.
+- Tiling: a note gets at least six lines (or what it needs) before the next
+  screen, not ten; a row's notes share the cells left by rounding; and a
+  note with a height of its own keeps it while the others share what is
+  left.
+- `0` (or a double click on the bottom edge) on a note whose front matter
+  or kind gives it a height (a log) writes `"rows": -1` to `sticky.json`:
+  as tall as its content, over that height.
+- Older versions of stickypane do not know the fractions or `rows: -1`: a
+  `sticky.json` written by this version shows its notes there at their
+  default size and height.
 
 ## [0.1.1] - 2026-10-10
 

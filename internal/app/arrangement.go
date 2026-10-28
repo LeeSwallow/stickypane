@@ -33,12 +33,18 @@ func (m *Model) isOpen(it item) bool {
 
 // sizeOf returns the note's size.
 func (m *Model) sizeOf(it item) string {
+	if m.drag.name == it.note.Name && m.drag.size != "" {
+		return m.drag.size
+	}
 	return arrange.Size(m.views[it.note.Name], it.note.Doc, it.kind, it.file().Doc)
 }
 
 // rowsOf returns the height in lines the note asks for, or 0 when it asks
 // for as much as its content takes.
 func (m *Model) rowsOf(it item) int {
+	if m.drag.name == it.note.Name && m.drag.rows > 0 {
+		return m.drag.rows
+	}
 	return arrange.Rows(m.views[it.note.Name], it.note.Doc, it.kind)
 }
 
@@ -61,17 +67,9 @@ func (m *Model) setView(name string, change func(*store.View)) {
 	m.reload()
 }
 
-// widthOf turns a size into cells for the current screen.
+// widthOf turns a size, a fraction of the screen, into cells.
 func (m *Model) widthOf(size string) int {
-	switch size {
-	case widget.SizeCard:
-		return m.width / max(m.width/cardWidth, 1)
-	case widget.SizeHalf:
-		if m.width >= 2*cardWidth {
-			return m.width / 2
-		}
-	}
-	return m.width
+	return widget.SizeCells(size, m.width)
 }
 
 // nameOf names a file: its title, or its file name without the folder and
@@ -105,6 +103,9 @@ func (m *Model) heading(it item) string {
 // widget counts and, for a book, which page it is on. A script that is
 // running says so instead.
 func (m *Model) summary(it item) string {
+	if m.mark.name == it.note.Name && m.mark.text != "" {
+		return m.mark.text
+	}
 	if m.running[it.file().Name] {
 		return tr.Running
 	}

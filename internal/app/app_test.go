@@ -83,6 +83,14 @@ func key(k string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
 	case "ctrl+c":
 		return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
+	case "shift+up":
+		return tea.KeyPressMsg{Code: tea.KeyUp, Mod: tea.ModShift}
+	case "shift+down":
+		return tea.KeyPressMsg{Code: tea.KeyDown, Mod: tea.ModShift}
+	case "shift+pgup":
+		return tea.KeyPressMsg{Code: tea.KeyPgUp, Mod: tea.ModShift}
+	case "shift+pgdown":
+		return tea.KeyPressMsg{Code: tea.KeyPgDown, Mod: tea.ModShift}
 	}
 	r := []rune(k)[0]
 	return tea.KeyPressMsg{Code: unicode.ToLower(r), Text: k}
@@ -103,7 +111,7 @@ func typeText(m *Model, s string) {
 func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
-	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-"} {
+	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-", "shift+up", "shift+down", "shift+pgup", "shift+pgdown", "0"} {
 		if got := key(k).String(); got != k {
 			t.Errorf("key(%q).String() = %q", k, got)
 		}
@@ -383,11 +391,50 @@ func TestTheBottomLineAlwaysOffersHelp(t *testing.T) {
 
 func TestSizeKeysWriteTheSize(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
-	steps := []struct{ key, size string }{{"+", "half"}, {"+", "page"}, {"+", "page"}, {"-", "half"}, {"-", "card"}, {"-", "card"}}
+	// A one-line note is a card, which is 1/2 on 80 cells.
+	steps := []struct{ key, size string }{
+		{"+", "2/3"}, {"+", "3/4"}, {"=", "1"}, {"+", "1"},
+		{"-", "3/4"}, {"-", "2/3"}, {"-", "1/2"}, {"-", "1/3"}, {"-", "1/4"}, {"-", "1/4"},
+	}
 	for _, step := range steps {
 		press(m, step.key)
 		if got := viewsOf(t, dir)["a.md"].Size; got != step.size || readFile(t, dir, "a.md") != opened("one\n") {
 			t.Fatalf("after %s: size = %q, want %s (file %q)", step.key, got, step.size, readFile(t, dir, "a.md"))
+		}
+	}
+}
+
+func TestAnOldSizeNameIsRewrittenAsAFractionWhenItChanges(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
+	writeView(t, dir, `{"notes":{"a.md":{"size":"half"},"b.md":{"size":"page"}}}`)
+	m.reload()
+	m.relayout()
+	if p, _ := m.paneOf("a.md"); p.rect.W != 80 {
+		// half and page do not share a row: a is alone, stretched.
+		t.Fatalf("a half note alone in its row takes the row: %+v", p.rect)
+	}
+	press(m, "+")
+	if got := viewsOf(t, dir)["a.md"].Size; got != "2/3" {
+		t.Errorf("+ on half writes %q, want 2/3", got)
+	}
+	press(m, "tab", "-")
+	if got := viewsOf(t, dir)["b.md"].Size; got != "3/4" {
+		t.Errorf("- on page writes %q, want 3/4", got)
+	}
+}
+
+func TestQuarterNotesShareARow(t *testing.T) {
+	files := map[string]string{}
+	for _, n := range []string{"a", "b", "c", "d"} {
+		files[n+".md"] = opened(n + " note\n")
+	}
+	m, dir := newModel(t, files)
+	writeView(t, dir, `{"notes":{"a.md":{"size":"1/4"},"b.md":{"size":"1/4"},"c.md":{"size":"1/4"},"d.md":{"size":"1/4"}}}`)
+	m.reload()
+	m.relayout()
+	for _, n := range []string{"a", "b", "c", "d"} {
+		if p, _ := m.paneOf(n + ".md"); p.rect.W != 20 || p.rect.Y != 0 {
+			t.Errorf("%s: %+v, want a quarter of the first row", n, p.rect)
 		}
 	}
 }
@@ -422,10 +469,10 @@ func TestSizesDecideTheLayout(t *testing.T) {
 	if !boardAlone {
 		t.Errorf("a page-size note should take the whole width:\n%s", screen(m))
 	}
-	m.Update(tea.WindowSizeMsg{Width: 60, Height: 30})
+	m.Update(tea.WindowSizeMsg{Width: 36, Height: 30})
 	for _, line := range strings.Split(screen(m), "\n") {
 		if frameTop(line, "Release", "Second") {
-			t.Errorf("in a narrow pane half-size notes take the full width:\n%s", screen(m))
+			t.Errorf("in a pane too narrow for two, half-size notes take the full width:\n%s", screen(m))
 		}
 	}
 }
