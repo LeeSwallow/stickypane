@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -98,39 +99,14 @@ func (s *server) tabOrder(params json.RawMessage) (any, error) {
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
-	tabs, err := s.api.Store().Tabs()
-	if err != nil {
-		return nil, err
-	}
-	var here map[string]bool
-	for _, t := range tabs {
-		if t.Name == p.Tab {
-			here = map[string]bool{}
-			for _, n := range t.Notes {
-				here[n.Name] = true
-			}
-		}
-	}
-	if here == nil {
-		return nil, notFound(fmt.Sprintf("there is no tab %q", p.Tab))
-	}
 	if len(p.Order) == 0 {
 		return nil, badRequest("params.order is empty")
 	}
-	seen := map[string]bool{}
-	for _, name := range p.Order {
-		switch {
-		case !here[name]:
-			return nil, badRequest(fmt.Sprintf("%q is not a note of tab %q: use the names board.load gave", name, p.Tab))
-		case seen[name]:
-			return nil, badRequest(fmt.Sprintf("%q is twice in the order", name))
-		}
-		seen[name] = true
-	}
-	if err := s.api.Store().SetOrder(p.Tab, p.Order); err != nil {
+	if err := s.api.Order(p.Tab, p.Order); errors.Is(err, api.ErrBadOrder) {
+		return nil, badRequest(err.Error())
+	} else if err != nil {
 		return nil, err
 	}
-	s.derive()
 	return empty{}, nil
 }
 

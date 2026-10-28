@@ -206,7 +206,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 
 // link says whether a note is a symbolic link, and to what.
 func (s *server) link(name string) (bool, string) {
-	st := s.api.Store()
+	st := s.api.Store() // read only: whether the file is a link, and where it is
 	if !st.Linked(name) {
 		return false, ""
 	}
@@ -251,7 +251,7 @@ func data(name string, v any) json.RawMessage {
 }
 
 // settings reads the root settings.
-func (s *server) settings() Settings { return settingsOf(s.api.Store().Settings()) }
+func (s *server) settings() Settings { return settingsOf(s.api.Settings()) }
 
 // settingsOf is what the settings files say, with the defaults.
 func settingsOf(set store.Settings) Settings {

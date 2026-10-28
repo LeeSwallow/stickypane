@@ -65,13 +65,15 @@ func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, o
 	defer cancel()
 	s := &server{ctx: ctx, api: a, reg: reg, out: out, fail: cancel, script: map[*runner.Run]struct{}{}}
 	// The watcher first: a change made while the board is read is then seen
-	// as a change, not lost between the reading and the watching.
+	// as a change, not lost between the reading and the watching. The
+	// store's own signal, not api.Watch: the screen wants every change,
+	// to read the board again, not the events of the notes.
 	changed, err := a.Store().Watch(ctx)
 	if err != nil {
 		return err
 	}
 	trace("watching")
-	before, err := a.Store().Load()
+	before, err := a.Board()
 	if err != nil {
 		return err
 	}
@@ -217,14 +219,14 @@ func decode(params json.RawMessage, v any) error {
 }
 
 // project is the folder the notes folder is in.
-func (s *server) project() string { return filepath.Dir(s.api.Store().Dir) }
+func (s *server) project() string { return filepath.Dir(s.api.Store().Dir) } // read only
 
 func (s *server) hello(json.RawMessage) (any, error) {
 	return map[string]any{"protocol": Protocol, "version": Version, "project": s.project()}, nil
 }
 
 func (s *server) boardLoad(json.RawMessage) (any, error) {
-	b, err := s.api.Store().Load()
+	b, err := s.api.Board()
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +252,7 @@ func (s *server) find(name string) (n, owner store.Note, err error) {
 	if err := checkName(name); err != nil {
 		return n, owner, err
 	}
-	b, err := s.api.Store().Load()
+	b, err := s.api.Board()
 	if err != nil {
 		return n, owner, err
 	}
@@ -470,6 +472,8 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "script" {
 		return nil, badRequest(fmt.Sprintf("%s is not a script", p.Note))
 	}
+	// The runner, below api, is the one way every front end runs a
+	// script and keeps its log; it writes the log into the store itself.
 	r, err := runner.StartGroup(s.api.Store(), n.Name, s.api.Now)
 	if err != nil {
 		return nil, err
@@ -507,7 +511,7 @@ func (s *server) noteOpen(params json.RawMessage) (any, error) {
 	if n.Book() {
 		return nil, badRequest(fmt.Sprintf("%s is a book, a folder: open one of its pages", p.Note))
 	}
-	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name))
+	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name)) // read only: where the file is
 	cmd := env.Detect().OpenCommand(file)
 	if cmd == nil {
 		return nil, &Error{CodeFailed, "this system has no way to open a file without a terminal"}
@@ -575,7 +579,7 @@ func (s *server) follow(ctx context.Context, changed <-chan struct{}, before sto
 			if !ok {
 				return
 			}
-			after, err := s.api.Store().Load()
+			after, err := s.api.Board()
 			if err != nil {
 				continue // a board caught in the middle of a change; the next signal reads it whole
 			}

@@ -82,8 +82,10 @@ func NewWithClock(st *store.Store, reg widget.Registry, now func() time.Time) *A
 // beside what the API writes.
 func (a *API) Now() time.Time { return a.now() }
 
-// Store is the notes folder the API works on, for callers that read or
-// change the board's settings.
+// Store is the notes folder the API works on, for callers that only read
+// it (where a file is, whether it is a link), watch it, or hand it to the
+// runner. A change to a note or a setting goes through the API, so every
+// front end keeps one rule for it.
 func (a *API) Store() *store.Store { return a.st }
 
 // fileName turns a note name into its file name, adding ".md" when it has

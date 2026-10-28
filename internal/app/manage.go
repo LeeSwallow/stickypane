@@ -169,7 +169,7 @@ func (m *Model) move(delta int) {
 		names[k] = it.note.Name
 	}
 	names[i], names[j] = names[j], names[i]
-	if err := m.store.SetOrder(m.tabName, names); err != nil {
+	if err := m.calls().Order(m.tabName, names); err != nil {
 		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
