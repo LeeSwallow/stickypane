@@ -9,10 +9,10 @@
 // changed them, it says so with board.changed. When the session ends,
 // because the app closed the input or the context ended, a script it
 // started is stopped, with the programs it started (on unix, its process
-// group; on Windows only the script itself): the bridge never outlives the app for it. There is no network
-// listener: the files stay the truth,
-// and the bridge is one more reader and writer of them, through the same
-// api and store as the command line.
+// group; on Windows only the script itself): the bridge never outlives
+// the app for it. There is no network listener: the files stay the
+// truth, and the bridge is one more reader and writer of them, through
+// the same api and store as the command line.
 package bridge
 
 import (
@@ -59,9 +59,10 @@ type server struct {
 // change to the board, until in ends or ctx does. A line it cannot make
 // sense of is answered with an error, never the end of the session. It
 // returns once every request is answered; a script it started that still
-// runs when the session ends is stopped together with what that script started (unix), and the input is closed when it
-// can be (a reader nobody reads from would wait for ever). Closing the
-// input is how the goroutine that reads it ends with the session.
+// runs when the session ends is stopped together with what that script
+// started (unix), and the input is closed when it can be (a reader nobody
+// reads from would wait for ever). Closing the input is how the goroutine
+// that reads it ends with the session.
 func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, out io.Writer) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -249,9 +250,6 @@ func checkName(name string) error {
 // find looks a note up by the name board.load gave it: a note, a book or
 // a page. owner is the note itself, or the book a page is in.
 func (s *server) find(name string) (n, owner store.Note, err error) {
-	if strings.TrimSpace(name) == "" {
-		return n, owner, badRequest("which note? params.note is empty")
-	}
 	if err := checkName(name); err != nil {
 		return n, owner, err
 	}

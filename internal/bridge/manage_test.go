@@ -103,7 +103,8 @@ func TestBridgeOrderMatchesTheTerminalSwap(t *testing.T) {
 	viaBridge, viaTerminal := board(t, files), board(t, files)
 	s := serve(t, viaBridge)
 	s.ok("tab.order", map[string]any{"tab": "t", "order": []string{"t/b.md", "t/a.md", "t/c.md"}}, nil)
-	// The terminal swaps the focused note with its neighbour and saves every name.
+	// The terminal swaps the focused note with its neighbour and saves
+	// every name.
 	if err := store.Open(viaTerminal).SetOrder("t", []string{"t/b.md", "t/a.md", "t/c.md"}); err != nil {
 		t.Fatal(err)
 	}

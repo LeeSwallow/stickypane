@@ -84,15 +84,8 @@ func (s *server) noteArrange(params json.RawMessage) (any, error) {
 		if err == nil && owner.Name != n.Name && len(title) > 0 {
 			_, err = s.api.Set(n.Name, title)
 		}
-	case owner.Name == n.Name:
+	default: // a note of its own: only a book has pages
 		_, err = s.api.Set(n.Name, append(view, title...))
-	default:
-		if len(view) > 0 {
-			_, err = s.api.Set(owner.Name, view)
-		}
-		if err == nil && len(title) > 0 {
-			_, err = s.api.Set(n.Name, title)
-		}
 	}
 	if err != nil {
 		return nil, err
