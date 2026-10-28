@@ -5,7 +5,6 @@ package form
 
 import (
 	"strings"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/when"
 
@@ -26,9 +25,6 @@ const (
 	keySubmitted   = "submitted"
 	keySubmittedAt = "submitted_at"
 )
-
-// now is the clock, replaced in tests.
-var now = func() time.Time { return widget.Now() }
 
 // Form is the widget for a form note: the content, how its prose is drawn
 // and where the cursor is.
@@ -85,17 +81,17 @@ func (f *Form) Draw(width int, active bool) (string, widget.Span) {
 			out = append(out, f.text(f.lines[i:end], width, i > 0, end < len(f.lines))...)
 			i = end - 1
 		case option:
-			out = append(out, drawOption(l, width, selected)...)
+			out = append(out, f.drawOption(l, width, selected)...)
 			for i+1 < len(f.lines) && f.lines[i+1].kind == detail {
 				i++
 				for _, d := range widget.Wrap(widget.Clean(f.lines[i].text), max(width-4, 1)) {
-					out = append(out, "    "+widget.Faint.Render(d))
+					out = append(out, "    "+f.env.Styles.Faint.Render(d))
 				}
 			}
 		case detail: // a detail with no option above it cannot happen; show it
 			out = append(out, widget.Wrap(widget.Clean(l.text), max(width, 1))...)
 		case field:
-			out = append(out, drawField(l.text, width, selected)...)
+			out = append(out, f.drawField(l.text, width, selected)...)
 		case buttons:
 			focus := -1
 			if selected {
@@ -183,7 +179,7 @@ func (f *Form) text(lines []line, width int, before, after bool) []string {
 	return out
 }
 
-func drawOption(l line, width int, selected bool) []string {
+func (f *Form) drawOption(l line, width int, selected bool) []string {
 	glyph := "☐ "
 	switch {
 	case l.radio && l.on:
@@ -204,9 +200,9 @@ func drawOption(l line, width int, selected bool) []string {
 		}
 		switch {
 		case selected:
-			out = append(out, widget.Selected.Render(lead+text))
+			out = append(out, f.env.Styles.Selected.Render(lead+text))
 		case l.on:
-			out = append(out, widget.Good.Render(lead)+widget.Bold.Render(text))
+			out = append(out, f.env.Styles.Good.Render(lead)+f.env.Styles.Bold.Render(text))
 		default:
 			out = append(out, lead+text)
 		}
@@ -235,22 +231,22 @@ func boxed(lines []string, inner int, b border, edge, text lipgloss.Style) []str
 }
 
 // drawField draws a line to fill in as a box with the answer inside.
-func drawField(text string, width int, selected bool) []string {
+func (f *Form) drawField(text string, width int, selected bool) []string {
 	inner := min(width, fieldWidth) - 4
 	if inner < 1 {
 		return []string{widget.Truncate("✎ "+widget.Clean(text), width)}
 	}
 	lines, st := widget.Wrap(widget.Clean(text), inner), lipgloss.NewStyle()
 	if text == "" {
-		lines, st = []string{""}, widget.Faint
+		lines, st = []string{""}, f.env.Styles.Faint
 		if selected {
-			lines = []string{widget.Truncate(widget.T(placeholder), inner)}
+			lines = []string{widget.Truncate(f.env.T(placeholder), inner)}
 		}
 	}
 	if selected {
-		return boxed(lines, inner, heavy, widget.Bold, st)
+		return boxed(lines, inner, heavy, f.env.Styles.Bold, st)
 	}
-	return boxed(lines, inner, thin, widget.Faint, st)
+	return boxed(lines, inner, thin, f.env.Styles.Faint, st)
 }
 
 // place is where a button was drawn: its row and its columns.
@@ -269,14 +265,14 @@ func (f *Form) drawButtons(labels []string, width, focus int) (rows [][]string, 
 	}
 	for i, label := range labels {
 		text := widget.Clean(label)
-		edge, body := widget.Faint, lipgloss.NewStyle()
+		edge, body := f.env.Styles.Faint, lipgloss.NewStyle()
 		if label == f.submitted {
-			text, edge, body = "✓ "+text, widget.Good, widget.Good
+			text, edge, body = "✓ "+text, f.env.Styles.Good, f.env.Styles.Good
 		}
 		text = widget.Truncate(text, max(width-4, 1))
 		b := thin
 		if i == focus {
-			b, edge, body = heavy, widget.Bold, widget.Selected
+			b, edge, body = heavy, f.env.Styles.Bold, f.env.Styles.Selected
 		}
 		button := boxed([]string{text}, widget.Width(text), b, edge, body)
 		w := widget.Width(text) + 4
@@ -330,7 +326,7 @@ func (f *Form) Update(key string) (widget.Widget, widget.Result) {
 				Submit:  func(text string) doc.Op { return Fill{Nth: nth, Old: old, Text: text} },
 			}
 		case buttons:
-			f.submitted, f.at = l.labels[c.button], now().Format(when.Moment)
+			f.submitted, f.at = l.labels[c.button], f.env.Now().Format(when.Moment)
 			res.Op = Submit{Label: f.submitted, At: f.at}
 		}
 	}
@@ -365,8 +361,8 @@ func (f *Form) Sync(d doc.Document) widget.Widget {
 func (f *Form) sentRule(width int) string {
 	label := widget.Clean(f.submitted)
 	if t, ok := when.Parse(f.at); ok {
-		label += " · " + widget.T("sent") + " " + f.env.Times.Short(t, now())
+		label += " · " + f.env.T("sent") + " " + f.env.Short(t)
 	}
-	rule := widget.Faint.Render("─ ") + widget.Good.Render("✓ ") + widget.Faint.Render(label+" ")
-	return widget.Truncate(rule+widget.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule), 0))), width)
+	rule := f.env.Styles.Faint.Render("─ ") + f.env.Styles.Good.Render("✓ ") + f.env.Styles.Faint.Render(label+" ")
+	return widget.Truncate(rule+f.env.Styles.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule), 0))), width)
 }

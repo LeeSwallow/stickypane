@@ -36,7 +36,16 @@ title: 배포
 
 var kind = NewKind(note.Plain)
 
-func parseSrc(s string) widget.Widget { return kind.Parse(doc.Parse([]byte(s)), widget.DefaultEnv()) }
+func parseSrc(s string) widget.Widget { return parseIn(widget.DefaultEnv(), s) }
+
+func parseIn(e widget.Env, s string) widget.Widget { return kind.Parse(doc.Parse([]byte(s)), e) }
+
+// envAt is the default Env with its clock stopped at t.
+func envAt(t time.Time) widget.Env {
+	e := widget.DefaultEnv()
+	e.Clock = func() time.Time { return t }
+	return e
+}
 
 func draw(t *testing.T, w widget.Widget, width int) ([]string, widget.Span) {
 	t.Helper()
@@ -68,6 +77,7 @@ func press(t *testing.T, src string, w widget.Widget, keys ...string) (string, w
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	if kind.Name != "form" || widget.Width(kind.Icon) != 1 || kind.Blurb == "" || kind.Example == "" {
 		t.Errorf("Kind = %+v", kind)
 	}
@@ -83,6 +93,7 @@ func TestKind(t *testing.T) {
 }
 
 func TestDrawShowsTheDocumentWithItsControls(t *testing.T) {
+	t.Parallel()
 	lines, at := draw(t, parseSrc(deploy), 44)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{
@@ -106,6 +117,7 @@ func TestDrawShowsTheDocumentWithItsControls(t *testing.T) {
 }
 
 func TestSpacingFollowsTheFileNotTheRenderer(t *testing.T) {
+	t.Parallel()
 	// A renderer such as Glamour pads its output with blank lines.
 	padded := NewKind(func(md string, width int) string { return "\n   \n" + note.Plain(md, width) + "\n   \n\n" })
 	w := padded.Parse(doc.Parse([]byte("intro\n\n## Q\n- ( ) a\n- ( ) b\n\n\n[ Go ]\n\n")), widget.DefaultEnv())
@@ -117,6 +129,7 @@ func TestSpacingFollowsTheFileNotTheRenderer(t *testing.T) {
 }
 
 func TestChoosingOneOptionClearsTheOthersInItsGroup(t *testing.T) {
+	t.Parallel()
 	src, w, _ := press(t, deploy, parseSrc(deploy), "space")
 	if !strings.Contains(src, "- (x) staging") {
 		t.Fatalf("space should choose the option:\n%s", src)
@@ -139,6 +152,7 @@ func TestChoosingOneOptionClearsTheOthersInItsGroup(t *testing.T) {
 }
 
 func TestCheckboxesAreIndependent(t *testing.T) {
+	t.Parallel()
 	src, _, _ := press(t, deploy, parseSrc(deploy), "j", "j", "space", "j", "space")
 	if !strings.Contains(src, "- [x] 마이그레이션") || !strings.Contains(src, "- [ ] 캐시 비우기") {
 		t.Errorf("each box toggles on its own:\n%s", src)
@@ -146,6 +160,7 @@ func TestCheckboxesAreIndependent(t *testing.T) {
 }
 
 func TestATextFieldIsFilledThroughAPrompt(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(deploy)
 	_, w, res := press(t, deploy, w, "j", "j", "j", "j", "enter")
 	if res.Prompt == nil || res.Prompt.Label != "메모" || res.Prompt.Initial != "" || !res.Prompt.Empty {
@@ -175,10 +190,8 @@ func TestATextFieldIsFilledThroughAPrompt(t *testing.T) {
 }
 
 func TestPressingAButtonSubmits(t *testing.T) {
-	now = func() time.Time { return time.Date(2026, 10, 2, 14, 3, 5, 0, time.UTC) }
-	defer func() { now = time.Now }()
-
-	w := parseSrc(deploy)
+	t.Parallel()
+	w := parseIn(envAt(time.Date(2026, 10, 2, 14, 3, 5, 0, time.UTC)), deploy)
 	if got := w.Summary(); got != "1/3" {
 		t.Errorf("Summary = %q, want the answered questions", got)
 	}
@@ -205,6 +218,7 @@ func TestPressingAButtonSubmits(t *testing.T) {
 }
 
 func TestChangingAnAnswerTakesTheSubmissionBack(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(deploy, "title: 배포\n", "title: 배포\nsubmitted: 제출\nsubmitted_at: 2026-10-02T14:03:05Z\n", 1)
 	src, _, _ = press(t, src, parseSrc(src), "space")
 	d := doc.Parse([]byte(src))
@@ -220,6 +234,7 @@ func TestChangingAnAnswerTakesTheSubmissionBack(t *testing.T) {
 }
 
 func TestAFormWithoutButtonsGetsASubmitButton(t *testing.T) {
+	t.Parallel()
 	src := "---\ntype: form\n---\n계속할까요?\n- ( ) 네\n- ( ) 아니요\n"
 	w := parseSrc(src)
 	lines, _ := draw(t, w, 30)
@@ -236,6 +251,7 @@ func TestAFormWithoutButtonsGetsASubmitButton(t *testing.T) {
 }
 
 func TestReadGivesTheAnswers(t *testing.T) {
+	t.Parallel()
 	src := strings.Replace(deploy, "- ( ) production", "- (x) production", 1)
 	src = strings.Replace(src, "> \n", "> 금요일 전에\n", 1)
 	a := Read(doc.Parse([]byte(src)))
@@ -262,6 +278,7 @@ func TestReadGivesTheAnswers(t *testing.T) {
 }
 
 func TestQuestionsWithoutAHeadingAreNamedByTheLineAbove(t *testing.T) {
+	t.Parallel()
 	a := Read(doc.Parse([]byte("계속할까요?\n- (x) 네\n- ( ) 아니요\n\n- [ ] 혼자 있는 상자\n\n> \n")))
 	var names []string
 	for _, q := range a.Answers {
@@ -276,6 +293,7 @@ func TestQuestionsWithoutAHeadingAreNamedByTheLineAbove(t *testing.T) {
 }
 
 func TestABlankLineEndsAQuestion(t *testing.T) {
+	t.Parallel()
 	src := "- ( ) red\n- (x) blue\n\n- ( ) small\n- ( ) large\n"
 	out, _, _ := press(t, src, parseSrc(src), "j", "j", "j", "space")
 	if out != "- ( ) red\n- (x) blue\n\n- ( ) small\n- (x) large\n" {
@@ -287,6 +305,7 @@ func TestABlankLineEndsAQuestion(t *testing.T) {
 }
 
 func TestIndentedControlsAreControls(t *testing.T) {
+	t.Parallel()
 	src := "## Where?\n  - ( ) staging\n  - ( ) production\n  [ Deploy ] [ Cancel ]\n"
 	a := Read(doc.Parse([]byte(src)))
 	if len(a.Answers) != 1 {
@@ -303,6 +322,7 @@ func TestIndentedControlsAreControls(t *testing.T) {
 }
 
 func TestLinesThatOnlyLookLikeControls(t *testing.T) {
+	t.Parallel()
 	src := "- [x](http://example.com/x) a link\n[   ]\n- ( ) real\n"
 	f := parseSrc(src)
 	if a := Read(doc.Parse([]byte(src))); len(a.Answers) != 1 || len(a.Answers[0].Values) != 0 {
@@ -315,6 +335,7 @@ func TestLinesThatOnlyLookLikeControls(t *testing.T) {
 }
 
 func TestFillingAFieldWithTheSameTextKeepsTheSubmission(t *testing.T) {
+	t.Parallel()
 	src := "---\ntype: form\nsubmitted: Go\n---\n> same\n\n[ Go ]\n"
 	d, err := (Fill{Nth: 0, Old: "same", Text: "same"}).Apply(doc.Parse([]byte(src)))
 	if err != nil || string(d.Bytes()) != src {
@@ -323,6 +344,7 @@ func TestFillingAFieldWithTheSameTextKeepsTheSubmission(t *testing.T) {
 }
 
 func TestTextFromTheFileIsCleaned(t *testing.T) {
+	t.Parallel()
 	src := "Hello \x1b[2J\x1b]0;pwned\x07 world\n\n## Name \x1b[2J\n> \n"
 	f := parseSrc(src)
 	out, _ := f.Draw(60, true)
@@ -336,6 +358,7 @@ func TestTextFromTheFileIsCleaned(t *testing.T) {
 }
 
 func TestLongerFencesHideTheirControls(t *testing.T) {
+	t.Parallel()
 	src := "````markdown\n```\n- ( ) example\n```\n- ( ) still an example\n````\n- ( ) real\n"
 	if a := Read(doc.Parse([]byte(src))); len(a.Answers) != 1 {
 		t.Errorf("only the option after the long fence is real: %+v", a.Answers)
@@ -343,6 +366,7 @@ func TestLongerFencesHideTheirControls(t *testing.T) {
 }
 
 func TestCodeBlocksAreNotControls(t *testing.T) {
+	t.Parallel()
 	src := "예시:\n\n```\n- ( ) not an option\n[ Not a button ]\n> not a field\n```\n\n- ( ) 진짜 선택지\n"
 	a := Read(doc.Parse([]byte(src)))
 	if len(a.Answers) != 1 {
@@ -355,6 +379,7 @@ func TestCodeBlocksAreNotControls(t *testing.T) {
 }
 
 func TestOptionsWithTheSameTextAreToldApart(t *testing.T) {
+	t.Parallel()
 	src := "## A\n- ( ) 네\n## B\n- ( ) 네\n"
 	out, _, _ := press(t, src, parseSrc(src), "j", "space")
 	if out != "## A\n- ( ) 네\n## B\n- (x) 네\n" {
@@ -363,6 +388,7 @@ func TestOptionsWithTheSameTextAreToldApart(t *testing.T) {
 }
 
 func TestAStaleChoiceIsAConflict(t *testing.T) {
+	t.Parallel()
 	_, res := parseSrc(deploy).Update("space")
 	changed := strings.Replace(deploy, "- ( ) staging", "- ( ) 스테이징", 1)
 	if _, err := res.Op.Apply(doc.Parse([]byte(changed))); !errors.Is(err, doc.ErrConflict) {
@@ -374,6 +400,7 @@ func TestAStaleChoiceIsAConflict(t *testing.T) {
 }
 
 func TestTheCursorStopsAtBothEnds(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(deploy)
 	_, w, _ = press(t, deploy, w, "k", "k")
 	lines, at := draw(t, w, 44)
@@ -388,6 +415,7 @@ func TestTheCursorStopsAtBothEnds(t *testing.T) {
 }
 
 func TestNarrowAndEmptyFormsDoNotBreak(t *testing.T) {
+	t.Parallel()
 	for _, width := range []int{1, 3, 8, 15, 30} {
 		w := parseSrc(deploy)
 		for i := 0; i < 8; i++ {
@@ -406,6 +434,7 @@ func TestNarrowAndEmptyFormsDoNotBreak(t *testing.T) {
 }
 
 func TestButtonsWrapWhenTheyDoNotFit(t *testing.T) {
+	t.Parallel()
 	src := "[ 승인하고 배포 ] [ 다시 검토 요청 ] [ 취소 ]\n"
 	lines, _ := draw(t, parseSrc(src), 24)
 	text := strings.Join(lines, "\n")

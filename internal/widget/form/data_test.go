@@ -37,6 +37,7 @@ func lineWhere(t *testing.T, p Page, kind, text string) int {
 }
 
 func TestDataOfAForm(t *testing.T) {
+	t.Parallel()
 	p := pageOf(t, doc.Parse([]byte(deploy)))
 	if p.Submitted != "" || p.At != "" {
 		t.Errorf("submitted = %q at %q, want neither", p.Submitted, p.At)
@@ -95,6 +96,7 @@ func idx(i int) map[string]string { return map[string]string{"line": itoa(i)} }
 func itoa(i int) string { b, _ := json.Marshal(i); return string(b) }
 
 func TestActChooseThenSubmit(t *testing.T) {
+	t.Parallel()
 	d := doc.Parse([]byte(deploy))
 
 	p := pageOf(t, d)
@@ -125,6 +127,7 @@ func TestActChooseThenSubmit(t *testing.T) {
 }
 
 func TestActChooseOutOfRange(t *testing.T) {
+	t.Parallel()
 	d := doc.Parse([]byte(deploy))
 	p := pageOf(t, d)
 	for _, bad := range []map[string]string{
@@ -147,6 +150,7 @@ func TestActChooseOutOfRange(t *testing.T) {
 }
 
 func TestActOnASubmittedFormStillWorks(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, doc.Parse([]byte(deploy)), "submit", map[string]string{"label": "제출"})
 	if err != nil {
 		t.Fatal(err)
@@ -162,6 +166,7 @@ func TestActOnASubmittedFormStillWorks(t *testing.T) {
 }
 
 func TestActFillSameTextKeepsSubmission(t *testing.T) {
+	t.Parallel()
 	d, _ := doAct(t, doc.Parse([]byte(deploy)), "submit", map[string]string{"label": "제출"})
 	p := pageOf(t, d)
 	d, err := doAct(t, d, "fill", map[string]string{"line": itoa(lineWhere(t, p, "field", "")), "text": ""})
@@ -174,6 +179,7 @@ func TestActFillSameTextKeepsSubmission(t *testing.T) {
 }
 
 func TestActUnknownAction(t *testing.T) {
+	t.Parallel()
 	_, err := kind.Act(doc.Parse([]byte(deploy)), widget.Action{Name: "dance"}, widget.DefaultEnv())
 	if !errors.Is(err, widget.ErrUnknownAction) {
 		t.Errorf("err = %v", err)
@@ -181,6 +187,7 @@ func TestActUnknownAction(t *testing.T) {
 }
 
 func TestActSubmitTheBuiltInButton(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, doc.Parse([]byte("---\ntype: form\n---\n## Q\n- ( ) a\n")), "submit", map[string]string{"label": defaultButton})
 	if err != nil || !Read(d).Submitted {
 		t.Errorf("err = %v, answers = %+v", err, Read(d))
