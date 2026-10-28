@@ -265,27 +265,12 @@ func settingsOf(set store.Settings) Settings {
 	}
 	return Settings{
 		Theme: th, Style: set.Style(), View: set.ViewMode(),
-		Language: Language{lang, resolve(lang)},
+		Language: Language{lang, i18n.Resolve(lang)},
 		Tab:      set.Tab(),
 		Time:     prefs.Get(set, "time"),
 		Editor:   prefs.Get(set, "editor"),
 		Stale:    prefs.Get(set, "stale"),
 	}
-}
-
-// resolve is the language a choice comes to: the choice when there is a
-// translation for it, else what the environment asks for when there is
-// one for that, else English.
-func resolve(choice string) string {
-	for _, c := range []string{choice, i18n.Detect()} {
-		if c == "en" {
-			return c
-		}
-		if _, err := i18n.Load(c); err == nil && c != "" && c != "auto" {
-			return c
-		}
-	}
-	return "en"
 }
 
 // palette is the colors of the chosen theme. The bridge has no terminal
