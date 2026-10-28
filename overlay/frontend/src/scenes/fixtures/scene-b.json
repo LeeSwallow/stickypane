@@ -1,0 +1,252 @@
+{
+  "answered": {
+    "title": "project",
+    "tabs": [
+      {
+        "name": "",
+        "title": "project",
+        "notes": [
+          {
+            "name": "welcome.md",
+            "tab": "",
+            "title": "Welcome to stickypane",
+            "kind": "note",
+            "icon": "✎",
+            "open": true,
+            "size": "1/2",
+            "rows": 0,
+            "color": "yellow",
+            "pinned": true,
+            "version": "e5abe6ee4ce9dfd1",
+            "summary": "",
+            "data": {
+              "markdown": "Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Settings → Terminal and agents** connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.\n"
+            },
+            "modTime": "2026-10-29T05:03:14.320717463+09:00",
+            "linked": false
+          },
+          {
+            "name": "ship.md",
+            "tab": "",
+            "title": "How should 0.2.0 go out?",
+            "kind": "form",
+            "icon": "◉",
+            "open": false,
+            "size": "1/2",
+            "rows": 0,
+            "color": "blue",
+            "pinned": false,
+            "version": "b3f83be20f4a9c74",
+            "summary": "✓ Ship",
+            "data": {
+              "lines": [
+                {
+                  "kind": "text",
+                  "text": "## Where to?"
+                },
+                {
+                  "kind": "option",
+                  "text": "GitHub release only",
+                  "group": "Where to?",
+                  "radio": true
+                },
+                {
+                  "kind": "option",
+                  "text": "Homebrew too",
+                  "group": "Where to?",
+                  "radio": true,
+                  "checked": true
+                },
+                {
+                  "kind": "text",
+                  "text": ""
+                },
+                {
+                  "kind": "buttons",
+                  "text": "",
+                  "labels": [
+                    "Ship",
+                    "Hold"
+                  ]
+                },
+                {
+                  "kind": "text",
+                  "text": ""
+                }
+              ],
+              "submitted": "Ship",
+              "at": "2026-10-29T05:03:14+09:00"
+            },
+            "modTime": "2026-10-29T05:03:14.402881065+09:00",
+            "linked": false
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "theme": "auto",
+      "style": "doodle",
+      "view": "terminal",
+      "language": {
+        "choice": "auto",
+        "resolved": "en"
+      },
+      "tab": "",
+      "time": "auto",
+      "editor": "auto",
+      "stale": "30m"
+    },
+    "palette": {
+      "name": "stickypane-dark",
+      "dark": true,
+      "base": "#1F2933",
+      "text": "#E6E6E6",
+      "muted": "#8A94A0",
+      "accent": "#7FB3F5",
+      "select": "#2F3B4C",
+      "good": "#8FD694",
+      "warn": "#F5A962",
+      "bad": "#F28FB1",
+      "info": "#B79CF2",
+      "notes": [
+        "#F2D45C",
+        "#F28FB1",
+        "#7FB3F5",
+        "#8FD694",
+        "#B79CF2",
+        "#F5A962"
+      ]
+    }
+  },
+  "wait": {
+    "submitted": true,
+    "button": "Ship",
+    "at": "2026-10-29T05:03:14+09:00",
+    "answers": [
+      {
+        "question": "Where to?",
+        "values": [
+          "Homebrew too"
+        ]
+      }
+    ]
+  },
+  "waiting": {
+    "title": "project",
+    "tabs": [
+      {
+        "name": "",
+        "title": "project",
+        "notes": [
+          {
+            "name": "welcome.md",
+            "tab": "",
+            "title": "Welcome to stickypane",
+            "kind": "note",
+            "icon": "✎",
+            "open": true,
+            "size": "1/2",
+            "rows": 0,
+            "color": "yellow",
+            "pinned": true,
+            "version": "e5abe6ee4ce9dfd1",
+            "summary": "",
+            "data": {
+              "markdown": "Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Settings → Terminal and agents** connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.\n"
+            },
+            "modTime": "2026-10-29T05:03:14.320717463+09:00",
+            "linked": false
+          },
+          {
+            "name": "ship.md",
+            "tab": "",
+            "title": "How should 0.2.0 go out?",
+            "kind": "form",
+            "icon": "◉",
+            "open": false,
+            "size": "1/2",
+            "rows": 0,
+            "color": "blue",
+            "pinned": false,
+            "version": "cfb20ea3d5b693a9",
+            "summary": "0/1",
+            "data": {
+              "lines": [
+                {
+                  "kind": "text",
+                  "text": "## Where to?"
+                },
+                {
+                  "kind": "option",
+                  "text": "GitHub release only",
+                  "group": "Where to?",
+                  "radio": true
+                },
+                {
+                  "kind": "option",
+                  "text": "Homebrew too",
+                  "group": "Where to?",
+                  "radio": true
+                },
+                {
+                  "kind": "text",
+                  "text": ""
+                },
+                {
+                  "kind": "buttons",
+                  "text": "",
+                  "labels": [
+                    "Ship",
+                    "Hold"
+                  ]
+                },
+                {
+                  "kind": "text",
+                  "text": ""
+                }
+              ],
+              "submitted": "",
+              "at": ""
+            },
+            "modTime": "2026-10-29T05:03:14.35937418+09:00",
+            "linked": false
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "theme": "auto",
+      "style": "doodle",
+      "view": "terminal",
+      "language": {
+        "choice": "auto",
+        "resolved": "en"
+      },
+      "tab": "",
+      "time": "auto",
+      "editor": "auto",
+      "stale": "30m"
+    },
+    "palette": {
+      "name": "stickypane-dark",
+      "dark": true,
+      "base": "#1F2933",
+      "text": "#E6E6E6",
+      "muted": "#8A94A0",
+      "accent": "#7FB3F5",
+      "select": "#2F3B4C",
+      "good": "#8FD694",
+      "warn": "#F5A962",
+      "bad": "#F28FB1",
+      "info": "#B79CF2",
+      "notes": [
+        "#F2D45C",
+        "#F28FB1",
+        "#7FB3F5",
+        "#8FD694",
+        "#B79CF2",
+        "#F5A962"
+      ]
+    }
+  }
+}

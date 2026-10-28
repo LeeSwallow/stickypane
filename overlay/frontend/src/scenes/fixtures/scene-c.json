@@ -1,0 +1,123 @@
+{
+  "after": {
+    "title": "project",
+    "tabs": [
+      {
+        "name": "",
+        "title": "project",
+        "notes": [
+          {
+            "name": "welcome.md",
+            "tab": "",
+            "title": "Welcome to stickypane",
+            "kind": "note",
+            "icon": "✎",
+            "open": true,
+            "size": "1/2",
+            "rows": 0,
+            "color": "yellow",
+            "pinned": true,
+            "version": "e5abe6ee4ce9dfd1",
+            "summary": "",
+            "data": {
+              "markdown": "Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Settings → Terminal and agents** connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.\n"
+            },
+            "modTime": "2026-10-29T05:03:14.444352407+09:00",
+            "linked": false
+          }
+        ]
+      },
+      {
+        "name": "03-log",
+        "title": "log",
+        "notes": [
+          {
+            "name": "03-log/bench.html",
+            "tab": "03-log",
+            "title": "bench",
+            "kind": "html",
+            "icon": "⌗",
+            "open": false,
+            "size": "1/2",
+            "rows": 0,
+            "color": "green",
+            "pinned": false,
+            "version": "c8fbd0f1e42da739",
+            "summary": "",
+            "data": {
+              "html": "<!doctype html>\n<title>Bench</title>\n<h1>Bench</h1>\n<p>p50 12 ms</p>\n<script>document.title = 'ran'</script>\n"
+            },
+            "modTime": "2026-10-29T05:03:14.485476791+09:00",
+            "linked": false
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "theme": "auto",
+      "style": "doodle",
+      "view": "terminal",
+      "language": {
+        "choice": "auto",
+        "resolved": "en"
+      },
+      "tab": "",
+      "time": "auto",
+      "editor": "auto",
+      "stale": "30m"
+    },
+    "palette": {
+      "name": "stickypane-dark",
+      "dark": true,
+      "base": "#1F2933",
+      "text": "#E6E6E6",
+      "muted": "#8A94A0",
+      "accent": "#7FB3F5",
+      "select": "#2F3B4C",
+      "good": "#8FD694",
+      "warn": "#F5A962",
+      "bad": "#F28FB1",
+      "info": "#B79CF2",
+      "notes": [
+        "#F2D45C",
+        "#F28FB1",
+        "#7FB3F5",
+        "#8FD694",
+        "#B79CF2",
+        "#F5A962"
+      ]
+    }
+  },
+  "changed": {
+    "notes": [
+      {
+        "name": "03-log/bench.html",
+        "tab": "03-log",
+        "title": "bench",
+        "kind": "html",
+        "icon": "⌗",
+        "open": false,
+        "size": "1/2",
+        "rows": 0,
+        "color": "green",
+        "pinned": false,
+        "version": "c8fbd0f1e42da739",
+        "summary": "",
+        "data": {
+          "html": "<!doctype html>\n<title>Bench</title>\n<h1>Bench</h1>\n<p>p50 12 ms</p>\n<script>document.title = 'ran'</script>\n"
+        },
+        "modTime": "2026-10-29T05:03:14.485476791+09:00",
+        "linked": false
+      }
+    ],
+    "removed": [],
+    "events": [
+      {
+        "time": "2026-10-29T05:03:14.485476791+09:00",
+        "note": "03-log/bench.html",
+        "kind": "html",
+        "type": "note.created"
+      }
+    ]
+  }
+}

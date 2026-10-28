@@ -29,6 +29,9 @@ func TestMain(m *testing.M) {
 	}
 	code := m.Run()
 	os.RemoveAll(dir)
+	if realBin != "" {
+		os.RemoveAll(filepath.Dir(realBin))
+	}
 	os.Exit(code)
 }
 
