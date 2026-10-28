@@ -21,6 +21,9 @@ mkdir -p "$tmp/home" "$tmp/sphome" "$tmp/proj" "$tmp/www"
 (cd "$root" && go build -o "$tmp/stickypane" ./cmd/stickypane)
 sp="$tmp/stickypane"
 export HOME="$tmp/home" STICKYPANE_HOME="$tmp/sphome" STICKYPANE_USER=min
+# the zone the frontend's tests read dates in (frontend/vitest.config.ts):
+# a chat's day is the day where it was said
+export TZ=Asia/Seoul
 
 # a server on this machine for the .http note to send to
 echo '{"ok": true, "user": "min"}' >"$tmp/www/hello.json"
