@@ -53,6 +53,7 @@ func (c *Chart) DrawIn(width, height int, _ bool) (string, widget.Span) {
 			if height > 0 {
 				// The rows the room has left under the text, less the
 				// line of labels under the chart.
+				// At least the default, at most maxSparkRows however tall the screen.
 				rows = max(min(height-len(lines)-1, maxSparkRows), sparkRows)
 			}
 			lines = append(lines, c.spark(width, rows)...)

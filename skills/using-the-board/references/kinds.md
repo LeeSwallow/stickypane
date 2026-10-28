@@ -86,8 +86,8 @@ view: heat
 ```
 
 Each `label: number` line is a value; other lines are text above it.
-`view: bar` (default) draws bars, `spark` a one-line trend, `heat` a
-calendar when the labels are dates.
+`view: bar` (default) draws bars, `spark` a line chart that fills the pane (one line for a single value),
+`heat` a calendar when the labels are dates.
 
 ## Form
 
