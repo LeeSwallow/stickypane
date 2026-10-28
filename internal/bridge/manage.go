@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"strconv"
 	"strings"
 
@@ -254,6 +255,17 @@ func (s *server) kindsList(json.RawMessage) (any, error) {
 		out = append(out, info)
 	}
 	return out, nil
+}
+
+// themesList is every theme's palette, dark ones first, as theme.All
+// orders them: a screen lists them to choose from, and draws the other
+// half of a dark and light pair without a copy of its own.
+func (s *server) themesList(json.RawMessage) (any, error) {
+	out := []Palette{}
+	for _, t := range theme.All() {
+		out = append(out, paletteOf(t))
+	}
+	return map[string]any{"themes": out}, nil
 }
 
 // boardIndex is api.Index: every note in a line, with the notes it links

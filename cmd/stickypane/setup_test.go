@@ -1,7 +1,11 @@
 package main
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"path/filepath"
+
 	"errors"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"os"
 	"slices"
 	"strings"
@@ -13,8 +17,11 @@ import (
 func TestSetupAsksBeforeItRuns(t *testing.T) {
 	project(t)
 	var ran []string
-	oldRun, oldCheck, oldLook, oldHas := setupRun, setupCheck, setupLook, setupHas
-	t.Cleanup(func() { setupRun, setupCheck, setupLook, setupHas = oldRun, oldCheck, oldLook, oldHas })
+	oldRun, oldCheck, oldLook, oldHas, oldMCP := setupRun, setupCheck, setupLook, setupHas, setupMCP
+	t.Cleanup(func() {
+		setupRun, setupCheck, setupLook, setupHas, setupMCP = oldRun, oldCheck, oldLook, oldHas, oldMCP
+	})
+	setupMCP = func(string) (initcmd.MCPServer, bool) { return initcmd.MCPServer{}, false }
 	setupRun = func(cmd []string) error { ran = append(ran, strings.Join(cmd, " ")); return nil }
 	setupCheck = func([]string) error { return errors.New("not registered") }
 	setupLook = func(name string) (string, error) {
@@ -49,8 +56,11 @@ func TestSetupAsksBeforeItRuns(t *testing.T) {
 func stubSetup(t *testing.T, found ...string) *[]string {
 	t.Helper()
 	var ran []string
-	oldRun, oldCheck, oldLook, oldHas := setupRun, setupCheck, setupLook, setupHas
-	t.Cleanup(func() { setupRun, setupCheck, setupLook, setupHas = oldRun, oldCheck, oldLook, oldHas })
+	oldRun, oldCheck, oldLook, oldHas, oldMCP := setupRun, setupCheck, setupLook, setupHas, setupMCP
+	t.Cleanup(func() {
+		setupRun, setupCheck, setupLook, setupHas, setupMCP = oldRun, oldCheck, oldLook, oldHas, oldMCP
+	})
+	setupMCP = func(string) (initcmd.MCPServer, bool) { return initcmd.MCPServer{}, false }
 	setupRun = func(cmd []string) error { ran = append(ran, strings.Join(cmd, " ")); return nil }
 	setupCheck = func([]string) error { return errors.New("not registered") }
 	setupLook = func(name string) (string, error) {
@@ -97,5 +107,65 @@ func TestSetupSaysWhenNoAgentIsFound(t *testing.T) {
 	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return true, true } }
 	if code, out, _ := exec(t, "setup", "--yes"); code != 0 || !strings.Contains(out, "Nothing to do") {
 		t.Errorf("all set up: code %d\n%s", code, out)
+	}
+}
+
+// --command puts a full path in the MCP server's registration; a relative
+// one is a usage error.
+func TestSetupCommandNamesTheMCPServersProgram(t *testing.T) {
+	t.Chdir(t.TempDir())
+	ran := stubSetup(t, "claude")
+	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return true, true } }
+	code, _, errOut := exec(t, "setup", "--mcp", "--command", "/opt/app/stickypane", "--yes")
+	if code != 0 || len(*ran) != 1 || (*ran)[0] != "claude mcp add --scope user stickypane -- /opt/app/stickypane mcp" {
+		t.Fatalf("code %d, ran %q, err %q", code, *ran, errOut)
+	}
+	setupMCP = func(string) (initcmd.MCPServer, bool) {
+		return initcmd.MCPServer{Command: "stickypane", Scope: "user"}, true
+	}
+	*ran = nil
+	code, out, _ := exec(t, "setup", "--mcp", "--command", "/opt/app/stickypane", "--dry-run")
+	if code != 0 || len(*ran) != 0 || !strings.Contains(out, "claude mcp remove --scope user stickypane") {
+		t.Errorf("an old registration is replaced, in the plan first: %d %q\n%s", code, *ran, out)
+	}
+	if code, _, errOut := exec(t, "setup", "--mcp", "--command", "stickypane"); code != exitUsage || !strings.Contains(errOut, "full path") {
+		t.Errorf("a relative --command: %d %q", code, errOut)
+	}
+}
+
+// init refuses the home folder, as the desktop app does: a board there
+// would be found from every project below it.
+func TestInitRefusesTheHomeFolder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Chdir(home)
+	code, _, errOut := exec(t, "init")
+	if code == 0 || !strings.Contains(errOut, "home folder") {
+		t.Errorf("init in home: code %d, %q", code, errOut)
+	}
+	if entries, _ := os.ReadDir(home); len(entries) != 0 {
+		t.Errorf("init wrote into home: %v", entries)
+	}
+}
+
+// init --view and --style write how the board shows to sticky.json; "app"
+// is the desktop app.
+func TestInitSetsTheViewAndStyle(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if code, _, errOut := exec(t, "init", "--no-agent-docs", "--view", "app", "--style", "neat"); code != 0 {
+		t.Fatalf("init: %s", errOut)
+	}
+	st := store.Open(filepath.Join(dir, ".sticky"))
+	if st.ViewMode() != store.ViewOverlay || st.Style() != store.StyleNeat {
+		t.Errorf("view %q style %q", st.ViewMode(), st.Style())
+	}
+	if code, _, _ := exec(t, "init", "--view", "both"); code != 0 || store.Open(filepath.Join(dir, ".sticky")).ViewMode() != store.ViewBoth {
+		t.Errorf("init again with --view both: %d", code)
+	}
+	for _, args := range [][]string{{"init", "--view", "window"}, {"init", "--style", "fancy"}} {
+		if code, _, errOut := exec(t, args...); code != exitUsage {
+			t.Errorf("%q: %d %q", args, code, errOut)
+		}
 	}
 }

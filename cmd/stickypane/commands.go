@@ -7,9 +7,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/registry"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
 // env is what every command gets: the context, which ends when the user
@@ -41,16 +45,16 @@ func init() {
 		{[]string{"init"}, initCmd, helpText{
 			group: "start", brief: "make .sticky/ and tell your agents about it",
 			what:     "Makes .sticky/ in this folder and puts the agent guide where agents read it: CLAUDE.md, AGENTS.md or a .claude skill. Safe to run again.",
-			syntax:   "stickypane init [--skill] [--no-agent-docs]",
-			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only",
-			examples: []string{"stickypane init", "stickypane init --skill", "stickypane init --no-agent-docs"},
+			syntax:   "stickypane init [--skill] [--no-agent-docs] [--view terminal|app|both] [--style doodle|neat]",
+			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only\n--view V         where the board shows: terminal, app (the desktop app) or both\n--style S        the app's look: doodle or neat",
+			examples: []string{"stickypane init", "stickypane init --view app", "stickypane init --skill", "stickypane init --no-agent-docs"},
 			related:  []string{"setup", "guide", "start"},
 		}},
 		{[]string{"setup"}, setupCmd, helpText{
 			group: "agents", brief: "install the board plugin for Claude Code and Codex",
 			what:     "Installs the board plugin through each agent's own commands, and asks first when run in a terminal. It makes no board: run stickypane init in a project, or let the agent's first change make one in a git repository.",
-			syntax:   "stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex] [--undo] [--dry-run] [--yes]",
-			args:     "--scope S    user, project or local (Claude Code)\n--mcp        also register stickypane as an MCP server\n--agents L   claude, codex or both (default: those found)\n--undo       uninstall the plugin (and the MCP server with --mcp)\n--dry-run    print the plan and run nothing\n--yes        run without asking",
+			syntax:   "stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex] [--command PATH] [--undo] [--dry-run] [--yes]",
+			args:     "--scope S    user, project or local (Claude Code)\n--mcp        also register stickypane as an MCP server\n--agents L   claude, codex or both (default: those found)\n--command P  the stickypane the MCP server runs, a full path\n--undo       uninstall the plugin (and the MCP server with --mcp)\n--dry-run    print the plan and run nothing\n--yes        run without asking",
 			examples: []string{"stickypane setup --dry-run", "stickypane setup --mcp --yes", "stickypane setup --undo"},
 			related:  []string{"init", "mcp", "guide"},
 		}},
@@ -306,16 +310,60 @@ func initCmd(e env, args []string) error {
 	fs := newFlags("init")
 	noDocs := fs.Bool("no-agent-docs", false, "leave AGENTS.md and CLAUDE.md alone")
 	skill := fs.Bool("skill", false, "install the guide as a Claude Code skill instead")
+	view := fs.String("view", "", "where the board shows: terminal, app or both")
+	style := fs.String("style", "", "the app's look: doodle or neat")
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
+		return err
+	}
+	// how the board shows, checked before anything is made; written once it is
+	var changes []api.Setting
+	mode, ok := viewOf(*view)
+	if !ok {
+		return usagef("init", "--view is terminal, app or both, not %q", *view)
+	}
+	if mode != "" {
+		changes = append(changes, api.Setting{Key: "view", Value: mode})
+	}
+	if *style != "" {
+		if _, err := prefs.Normal("style", *style); err != nil {
+			return usagef("init", "--style is doodle or neat, not %q", *style)
+		}
+		changes = append(changes, api.Setting{Key: "style", Value: *style})
+	}
+	if err := initcmd.RefuseBoard("."); err != nil {
 		return err
 	}
 	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout); err != nil {
 		return err
 	}
-	if dir, err := store.Resolve("."); err == nil {
-		registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+	dir, err := store.Resolve(".")
+	if err != nil {
+		return nil
 	}
+	if len(changes) > 0 {
+		a := api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), e.now)
+		if err := a.ChangeSettings(changes...); err != nil {
+			return err
+		}
+	}
+	registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
 	return nil
+}
+
+// viewOf reads --view: "app" is the desktop app, which sticky.json calls
+// "overlay"; "" leaves the board's setting as it is.
+func viewOf(v string) (string, bool) {
+	switch v {
+	case "":
+		return "", true
+	case "terminal":
+		return store.ViewTerminal, true
+	case "app", store.ViewOverlay:
+		return store.ViewOverlay, true
+	case "both":
+		return store.ViewBoth, true
+	}
+	return "", false
 }
 
 // changes are the commands that change a board; each one notes its project

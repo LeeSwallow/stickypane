@@ -12,7 +12,7 @@
 
 ## 결정
 
-`hdiutil`로 DMG를 만들고, 배경은 rough.js와 Gaegu로 그린 HTML을 헤드리스 Chrome으로 찍어 만든다. 앱 아이콘에서 Applications로 가는 크레용 화살표와, 공증 전까지는 "우클릭 → 열기" 메모지를 둔다([09 §9.2](../09-distribution.md#92-dmg-설치-화면)).
+`hdiutil`로 DMG를 만들고, 배경은 rough.js와 Gaegu로 그린 HTML을 헤드리스 Chrome으로 찍어 만든다. 앱 아이콘에서 Applications로 가는 크레용 화살표와, 공증 전까지는 "처음 열 때 경고가 뜨면 / 시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'" 메모지를 둔다(macOS 15부터 우클릭 → 열기로는 넘어가지 않는다)([09 §9.2](../09-distribution.md#92-dmg-설치-화면)).
 
 ## 결과
 

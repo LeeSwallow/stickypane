@@ -20,6 +20,58 @@ pull request.
 Markdown and the one-line editor are stickypane's own (`internal/markdown`,
 `internal/lineedit`).
 
+## The desktop app
+
+The desktop app (`overlay/`, shipped as `Stickypane.app` and
+`stickypane-app-<version>-linux-<arch>.tar.gz`) carries the stickypane
+program above and, in addition, these.
+
+| Project | License | Used for |
+| --- | --- | --- |
+| [wailsapp/wails](https://github.com/wailsapp/wails) v3 and `@wailsio/runtime` | MIT | the window, tray and webview |
+| [go-gorm/gorm](https://github.com/go-gorm/gorm), with jinzhu/inflection and jinzhu/now | MIT | the index of boards |
+| [glebarez/sqlite](https://github.com/glebarez/sqlite) | MIT | GORM's SQLite dialect, without cgo |
+| [glebarez/go-sqlite](https://github.com/glebarez/go-sqlite) and [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | BSD-3-Clause | SQLite in pure Go |
+| [sveltejs/svelte](https://github.com/sveltejs/svelte) | MIT | the interface |
+| [rough-stuff/rough](https://github.com/rough-stuff/rough) (roughjs) | MIT | hand-drawn strokes, in the app and the DMG window |
+| [unified](https://github.com/unifiedjs/unified), with remark-parse, remark-gfm, remark-math, remark-rehype, rehype-sanitize, rehype-katex and rehype-stringify | MIT | Markdown in full |
+| [mermaid-js/mermaid](https://github.com/mermaid-js/mermaid) | MIT | Mermaid diagrams |
+| [KaTeX/KaTeX](https://github.com/KaTeX/KaTeX) | MIT | maths |
+| [shikijs/shiki](https://github.com/shikijs/shiki) | MIT | code highlighting |
+| [Gaegu](https://github.com/fontsource/font-files/tree/main/fonts/google/gaegu) | OFL-1.1 | the handwriting font |
+| [Pretendard](https://github.com/orioncactus/pretendard) | OFL-1.1 | the body font |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | the code font |
+
+`overlay/scripts/licenses.sh` checks every Go module and npm package of the
+app against MIT, BSD, Apache-2.0, ISC and OFL-1.1, with a few listed
+exceptions. One of them ships in the app: robust-predicates (pulled in by
+mermaid through d3-delaunay), under the Unlicense, a public-domain
+dedication.
+
+The copyright lines of the projects above, as their licenses state them:
+
+- Wails: Copyright (c) 2018-Present Lea Anthony (MIT)
+- GORM, glebarez/sqlite, jinzhu/inflection, jinzhu/now: Copyright (c) 2013-present Jinzhu (MIT)
+- glebarez/go-sqlite, modernc.org/sqlite: Copyright (c) 2017 The Sqlite Authors (BSD-3-Clause)
+- Svelte: Copyright (c) 2016-2025 Svelte Contributors (MIT)
+- roughjs: Copyright (c) 2019 Preet Shihn (MIT)
+- unified, remark and rehype: Copyright (c) 2014–2016 Titus Wormer (MIT)
+- Mermaid: Copyright (c) 2014 - 2022 Knut Sveidqvist (MIT)
+- KaTeX: Copyright (c) 2013-2020 Khan Academy and other contributors (MIT)
+- Shiki: Copyright (c) 2021 Pine Wu, Copyright (c) 2023 Anthony Fu (MIT)
+- Gaegu: Copyright 2018 The Gaegu Project Authors (OFL-1.1)
+- Pretendard: Copyright (c) 2021, Kil Hyung-jin, with Reserved Font Name
+  Pretendard (OFL-1.1)
+- JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (OFL-1.1)
+
+The full texts travel with the app. `Stickypane.app/Contents/Resources/` and
+the Linux archive hold `LICENSE`, this file and a `licenses/` folder:
+`licenses/stickypane-app.txt` has the license of every Go module linked into
+the app and every npm package bundled in it (the SIL Open Font License 1.1
+with each font's copyright among them), as each package ships it, written by
+`overlay/scripts/licenses.sh --write`; `licenses/stickypane.txt` has those of
+the bundled stickypane program, written by `scripts/licenses.sh`.
+
 ## Color palettes
 
 The built-in themes use the palettes of these editor themes, with the color

@@ -8,7 +8,7 @@ import (
 )
 
 // Draw implements widget.Widget: the text of the page, wrapped, then a line
-// that says the page itself is in the overlay. A page has no cursor.
+// that says the page itself is drawn in the app. A page has no cursor.
 func (p *Page) Draw(width int, _ bool) (string, widget.Span) {
 	var out []string
 	for _, line := range doc.SplitLines(widget.Clean(p.text)) {
@@ -17,7 +17,7 @@ func (p *Page) Draw(width int, _ bool) (string, widget.Span) {
 	if len(out) > 0 {
 		out = append(out, "")
 	}
-	for _, l := range widget.Wrap(p.env.T("open it in the overlay to see it drawn"), width) {
+	for _, l := range widget.Wrap(p.env.T("open it in the app to see it drawn"), width) {
 		out = append(out, p.env.Styles.Faint.Render(l))
 	}
 	return strings.Join(out, "\n"), widget.NoSpan

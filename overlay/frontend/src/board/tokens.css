@@ -1,0 +1,10 @@
+/*
+ * The board window's own measures. Type, space, radii, strokes, layers
+ * and motion come from the design system (lib/theme/scale.ts, 03 §3.11.1)
+ * and colours from the palette (lib/theme/tokens.ts); only what the
+ * board's layout fixes is here, mirrored from layout.ts.
+ */
+:root {
+  --row: 22px; /* one terminal row: layout.ts ROW_PX */
+  --narrow: 720px; /* one grid column below this: layout.ts NARROW */
+}

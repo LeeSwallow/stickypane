@@ -28,7 +28,7 @@
 
 ![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
 
-[What it is](#what-it-is) · [Install](#install) · [Getting started](#getting-started) · [How it works](#how-it-works) · [Note shapes](#note-shapes) · [Agents](#working-with-agents) · [Usage](#usage-reference) · [Configuration](#configuration) · [FAQ](#faq) · [Contributing](#contributing)
+[What it is](#what-it-is) · [Install](#install) · [Getting started](#getting-started) · [Desktop app](#the-desktop-app) · [How it works](#how-it-works) · [Note shapes](#note-shapes) · [Agents](#working-with-agents) · [Usage](#usage-reference) · [Configuration](#configuration) · [FAQ](#faq) · [Contributing](#contributing)
 
 ## What it is
 
@@ -53,7 +53,7 @@ flowchart LR
 > for a day and tell us what you expected the board to do, in a
 > [design feedback issue](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)
 > or in [Discussions](https://github.com/LeeSwallow/stickypane/discussions).
-> A desktop app is in progress ([#10](https://github.com/LeeSwallow/stickypane/issues/10)).
+> A [desktop app](#the-desktop-app) is built but not released yet.
 
 ## Install
 
@@ -131,6 +131,28 @@ Next: stickypane help, then stickypane help <command>.
 ```
 
 </details>
+
+## The desktop app
+
+![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/overlay/assets/app-board.png)
+
+The same board in a window of its own, for those who want one beside the
+terminal. It draws every note in full (tables, Mermaid, maths, `.html`
+pages in a sandbox), and a click is the same change as a key: tick, answer
+a form, drag a card. **+ New note** makes any shape. Notes sit on a grid or
+anywhere on a canvas, and one can be torn off into a small window that
+stays on top. `⌥ Space` shows and hides it.
+
+The app carries its own `stickypane`: from a board's settings,
+**Terminal and agents** installs the command for your terminals and
+connects Claude Code and Codex. `stickypane init --view app` makes a plain
+`stickypane` open the board in the app.
+
+**Status:** built and tested here, for macOS and Linux, but not released
+yet. The DMG and the Linux archive come with its first release
+([#10](https://github.com/LeeSwallow/stickypane/issues/10)); until then
+there is nothing to download. Design and build notes:
+[docs/overlay](docs/overlay/README.md).
 
 ## How it works
 

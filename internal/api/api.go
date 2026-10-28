@@ -326,6 +326,11 @@ func (a *API) Answers(name string) (form.Answers, error) {
 func (a *API) Wait(ctx context.Context, name string, every time.Duration) (form.Answers, error) {
 	tick := time.NewTicker(every)
 	defer tick.Stop()
+	return a.wait(ctx, name, tick.C)
+}
+
+// wait is Wait looking again on every tick, which a test can send one by one.
+func (a *API) wait(ctx context.Context, name string, tick <-chan time.Time) (form.Answers, error) {
 	var last form.Answers
 	for failed, first := 0, true; ; first = false {
 		got, err := a.Answers(name)
@@ -343,7 +348,7 @@ func (a *API) Wait(ctx context.Context, name string, every time.Duration) (form.
 		select {
 		case <-ctx.Done():
 			return got, ctx.Err()
-		case <-tick.C:
+		case <-tick:
 		}
 	}
 }

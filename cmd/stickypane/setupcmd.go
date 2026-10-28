@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	osexec "os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -18,6 +19,7 @@ var (
 	setupCheck = initcmd.QuietCommand
 	setupLook  = osexec.LookPath
 	setupHas   = initcmd.InstalledPlugins
+	setupMCP   = initcmd.RegisteredMCP
 )
 
 // setupCmd installs the board plugin for the agents found on the PATH,
@@ -32,6 +34,7 @@ func setupCmd(e env, args []string) error {
 	yes := fs.Bool("yes", false, "run without asking")
 	undo := fs.Bool("undo", false, "uninstall the plugin (and the MCP server with --mcp)")
 	dry := fs.Bool("dry-run", false, "print the plan and run nothing")
+	command := fs.String("command", "", "the stickypane the MCP server runs (default: stickypane on the PATH)")
 	if _, err := parse(fs, "setup", args, 0, 0); err != nil {
 		return err
 	}
@@ -49,7 +52,13 @@ func setupCmd(e env, args []string) error {
 	if ask && !given["mcp"] {
 		*mcp = choose(e, in, "Also register stickypane as an MCP server, for agents that prefer tools?", []string{"no", "yes"}) == "yes"
 	}
-	opts := initcmd.SetupOptions{Scope: *scope, MCP: *mcp, Undo: *undo}
+	if *command != "" && !filepath.IsAbs(*command) {
+		return usagef("setup", "--command is a full path, not %q", *command)
+	}
+	opts := initcmd.SetupOptions{Scope: *scope, MCP: *mcp, Undo: *undo, Command: *command}
+	if *command != "" && *mcp && !*undo {
+		opts.Registered = setupMCP
+	}
 	if *agents != "" {
 		for _, a := range strings.Split(*agents, ",") {
 			a = strings.TrimSpace(a)

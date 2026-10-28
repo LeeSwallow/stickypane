@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane"
@@ -347,4 +348,36 @@ func inject(content string) string {
 		content = strings.TrimRight(content, "\n") + "\n\n"
 	}
 	return content + block + "\n"
+}
+
+// ErrNoBoardHere: init will not make a board in the home folder or the
+// root, where every project below would find it.
+var ErrNoBoardHere = errors.New("will not make a board here")
+
+// RefuseBoard says why a board may not be made in dir: the root, or the
+// home folder (through symlinks, and in any letter case on macOS, whose
+// volumes ignore it).
+func RefuseBoard(dir string) error {
+	d := realDir(dir)
+	if d == string(filepath.Separator) {
+		return fmt.Errorf("%w: %s is the root folder; run stickypane init in a project", ErrNoBoardHere, dir)
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		h := realDir(home)
+		if d == h || runtime.GOOS == "darwin" && strings.EqualFold(d, h) {
+			return fmt.Errorf("%w: %s is the home folder, and every project below it would find the board; run stickypane init in a project", ErrNoBoardHere, dir)
+		}
+	}
+	return nil
+}
+
+// realDir is dir absolute, clean and through its symlinks when it exists.
+func realDir(dir string) string {
+	if abs, err := filepath.Abs(dir); err == nil {
+		dir = abs
+	}
+	if r, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = r
+	}
+	return filepath.Clean(dir)
 }

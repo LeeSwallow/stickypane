@@ -1,0 +1,65 @@
+# Feel free to remove those if you don't want/need to use them.
+# Make sure to check the documentation at https://nfpm.goreleaser.com
+#
+# The lines below are called `modelines`. See `:help modeline`
+
+name: "stickypane-app"
+arch: ${GOARCH}
+platform: "linux"
+version: "0.1.0"
+section: "default"
+priority: "extra"
+maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
+description: "A second screen for stickypane boards"
+vendor: "stickypane"
+homepage: "https://github.com/LeeSwallow/stickypane"
+license: "MIT"
+release: "1"
+
+contents:
+  - src: "./bin/stickypane-app"
+    dst: "/usr/local/bin/stickypane-app"
+  - src: "./build/appicon.png"
+    dst: "/usr/share/icons/hicolor/128x128/apps/stickypane.png"
+  - src: "./build/linux/stickypane.desktop"
+    dst: "/usr/share/applications/stickypane.desktop"
+
+# Wails v3 builds on GTK4 + WebKitGTK 6.0 unless the gtk3 tag is given
+# (CI installs libgtk-4-dev and libwebkitgtk-6.0-dev).
+depends:
+  - libgtk-4-1
+  - libwebkitgtk-6.0-4
+
+# Distribution-specific overrides for different package formats
+overrides:
+  # RPM packages for Fedora / RHEL / AlmaLinux / Rocky Linux
+  rpm:
+    depends:
+      - gtk4
+      - webkitgtk6.0
+
+  # Arch Linux packages
+  archlinux:
+    depends:
+      - gtk4
+      - webkitgtk-6.0
+
+# scripts section to ensure desktop database is updated after install
+scripts:
+  postinstall: "./build/linux/nfpm/scripts/postinstall.sh"
+  # You can also add preremove, postremove if needed
+  # preremove: "./build/linux/nfpm/scripts/preremove.sh"
+  # postremove: "./build/linux/nfpm/scripts/postremove.sh"
+
+# replaces:
+#   - foobar
+# provides:
+#   - bar
+# recommends:
+#   - whatever
+# suggests:
+#   - something-else
+# conflicts:
+#   - not-foo
+#   - not-bar
+# changelog: "changelog.yaml"

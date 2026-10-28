@@ -14,7 +14,7 @@ quadrantChart
   quadrant-3 "TUI 대시보드"
   quadrant-4 "화이트보드 앱"
   "stickypane TUI": [0.15, 0.85]
-  "stickypane overlay": [0.8, 0.85]
+  "stickypane 앱": [0.8, 0.85]
   "Excalidraw": [0.85, 0.2]
   "sampler / wtfutil": [0.15, 0.35]
   "macOS 스티커": [0.75, 0.1]

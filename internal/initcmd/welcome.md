@@ -4,15 +4,13 @@ pin: true
 open: true
 color: yellow
 ---
-The line at the top lists every note in `.sticky/`. The ones you open share
-the screen below it, each in a pane of its own; the rest stay folded away.
+Your agent sticks notes here by writing files in `.sticky/`. You tick,
+answer and move cards; the agent reads what you did.
 
-- **tab** moves between notes, **enter** opens one and then zooms into it
-- **j** and **k** scroll inside a note, **o** closes it, **+** and **-** make it wider or narrower, **shift+up** and **shift+down** taller or shorter
-- **N** jots a note, **a** adds a board, checklist, log, chart, form or script
-- **e** edits a note here, **m** moves it to a folder, **D** deletes it and
-  **u** takes that back
-- **?** lists every key
+- **In the app:** **+ New note** makes one, **×** folds a note away, and
+  **Settings → Terminal and agents** connects Claude Code and Codex.
+- **In the terminal:** **tab** moves between notes, **enter** opens one and
+  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note
+  away, **?** lists every key.
 
-Your agent can stick notes here by writing files. Press **o** to fold this
-note away when you are done with it.
+Fold this note away when you are done with it.

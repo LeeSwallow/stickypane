@@ -1,0 +1,373 @@
+{
+  "after": {
+    "title": "project",
+    "tabs": [
+      {
+        "name": "",
+        "title": "project",
+        "notes": [
+          {
+            "name": "welcome.md",
+            "tab": "",
+            "title": "Welcome to stickypane",
+            "kind": "note",
+            "icon": "✎",
+            "open": true,
+            "size": "1/2",
+            "rows": 0,
+            "color": "yellow",
+            "pinned": true,
+            "version": "e5abe6ee4ce9dfd1",
+            "summary": "",
+            "data": {
+              "markdown": "Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Settings → Terminal and agents** connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.\n"
+            },
+            "modTime": "2026-10-29T05:03:14.118571294+09:00",
+            "linked": false
+          },
+          {
+            "name": "work.md",
+            "tab": "",
+            "title": "work",
+            "kind": "board",
+            "icon": "▦",
+            "open": false,
+            "size": "1",
+            "rows": 0,
+            "color": "green",
+            "pinned": false,
+            "version": "fdb1fda0d8065bec",
+            "summary": "4 cards",
+            "data": {
+              "desc": [],
+              "columns": [
+                {
+                  "title": "Todo",
+                  "cards": [
+                    {
+                      "text": "docs",
+                      "who": [
+                        "claude-1"
+                      ],
+                      "moved": "2026-10-29T05:03:00+09:00",
+                      "detail": [],
+                      "stalled": false
+                    }
+                  ]
+                },
+                {
+                  "title": "Doing",
+                  "cards": [
+                    {
+                      "text": "schema migration",
+                      "who": [
+                        "codex-2"
+                      ],
+                      "moved": "2026-10-29T04:23:00+09:00",
+                      "detail": [],
+                      "stalled": true
+                    }
+                  ]
+                },
+                {
+                  "title": "Review",
+                  "cards": [
+                    {
+                      "text": "payments",
+                      "who": [
+                        "codex-1"
+                      ],
+                      "moved": "2026-10-29T05:03:00+09:00",
+                      "detail": [],
+                      "stalled": false
+                    }
+                  ]
+                },
+                {
+                  "title": "Done",
+                  "cards": [
+                    {
+                      "text": "login",
+                      "who": [
+                        "claude-1"
+                      ],
+                      "moved": "2026-10-29T05:03:00+09:00",
+                      "detail": [],
+                      "stalled": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "modTime": "2026-10-29T05:03:14.189476143+09:00",
+            "linked": false
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "theme": "auto",
+      "style": "doodle",
+      "view": "terminal",
+      "language": {
+        "choice": "auto",
+        "resolved": "en"
+      },
+      "tab": "",
+      "time": "auto",
+      "editor": "auto",
+      "stale": "30m"
+    },
+    "palette": {
+      "name": "stickypane-dark",
+      "dark": true,
+      "base": "#1F2933",
+      "text": "#E6E6E6",
+      "muted": "#8A94A0",
+      "accent": "#7FB3F5",
+      "select": "#2F3B4C",
+      "good": "#8FD694",
+      "warn": "#F5A962",
+      "bad": "#F28FB1",
+      "info": "#B79CF2",
+      "notes": [
+        "#F2D45C",
+        "#F28FB1",
+        "#7FB3F5",
+        "#8FD694",
+        "#B79CF2",
+        "#F5A962"
+      ]
+    }
+  },
+  "before": {
+    "title": "project",
+    "tabs": [
+      {
+        "name": "",
+        "title": "project",
+        "notes": [
+          {
+            "name": "welcome.md",
+            "tab": "",
+            "title": "Welcome to stickypane",
+            "kind": "note",
+            "icon": "✎",
+            "open": true,
+            "size": "1/2",
+            "rows": 0,
+            "color": "yellow",
+            "pinned": true,
+            "version": "e5abe6ee4ce9dfd1",
+            "summary": "",
+            "data": {
+              "markdown": "Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Settings → Terminal and agents** connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.\n"
+            },
+            "modTime": "2026-10-29T05:03:14.118571294+09:00",
+            "linked": false
+          },
+          {
+            "name": "work.md",
+            "tab": "",
+            "title": "work",
+            "kind": "board",
+            "icon": "▦",
+            "open": false,
+            "size": "1",
+            "rows": 0,
+            "color": "green",
+            "pinned": false,
+            "version": "a3a3496a56a3e2ca",
+            "summary": "4 cards",
+            "data": {
+              "desc": [],
+              "columns": [
+                {
+                  "title": "Todo",
+                  "cards": [
+                    {
+                      "text": "docs",
+                      "who": [
+                        "claude-1"
+                      ],
+                      "detail": [],
+                      "stalled": false
+                    }
+                  ]
+                },
+                {
+                  "title": "Doing",
+                  "cards": [
+                    {
+                      "text": "payments",
+                      "who": [
+                        "codex-1"
+                      ],
+                      "detail": [],
+                      "stalled": false
+                    },
+                    {
+                      "text": "schema migration",
+                      "who": [
+                        "codex-2"
+                      ],
+                      "moved": "2026-10-29T04:23:00+09:00",
+                      "detail": [],
+                      "stalled": true
+                    }
+                  ]
+                },
+                {
+                  "title": "Review",
+                  "cards": []
+                },
+                {
+                  "title": "Done",
+                  "cards": [
+                    {
+                      "text": "login",
+                      "who": [
+                        "claude-1"
+                      ],
+                      "detail": [],
+                      "stalled": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "modTime": "2026-10-29T05:03:14.13795259+09:00",
+            "linked": false
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "theme": "auto",
+      "style": "doodle",
+      "view": "terminal",
+      "language": {
+        "choice": "auto",
+        "resolved": "en"
+      },
+      "tab": "",
+      "time": "auto",
+      "editor": "auto",
+      "stale": "30m"
+    },
+    "palette": {
+      "name": "stickypane-dark",
+      "dark": true,
+      "base": "#1F2933",
+      "text": "#E6E6E6",
+      "muted": "#8A94A0",
+      "accent": "#7FB3F5",
+      "select": "#2F3B4C",
+      "good": "#8FD694",
+      "warn": "#F5A962",
+      "bad": "#F28FB1",
+      "info": "#B79CF2",
+      "notes": [
+        "#F2D45C",
+        "#F28FB1",
+        "#7FB3F5",
+        "#8FD694",
+        "#B79CF2",
+        "#F5A962"
+      ]
+    }
+  },
+  "changed": {
+    "notes": [
+      {
+        "name": "work.md",
+        "tab": "",
+        "title": "work",
+        "kind": "board",
+        "icon": "▦",
+        "open": false,
+        "size": "1",
+        "rows": 0,
+        "color": "green",
+        "pinned": false,
+        "version": "fdb1fda0d8065bec",
+        "summary": "4 cards",
+        "data": {
+          "desc": [],
+          "columns": [
+            {
+              "title": "Todo",
+              "cards": [
+                {
+                  "text": "docs",
+                  "who": [
+                    "claude-1"
+                  ],
+                  "moved": "2026-10-29T05:03:00+09:00",
+                  "detail": [],
+                  "stalled": false
+                }
+              ]
+            },
+            {
+              "title": "Doing",
+              "cards": [
+                {
+                  "text": "schema migration",
+                  "who": [
+                    "codex-2"
+                  ],
+                  "moved": "2026-10-29T04:23:00+09:00",
+                  "detail": [],
+                  "stalled": true
+                }
+              ]
+            },
+            {
+              "title": "Review",
+              "cards": [
+                {
+                  "text": "payments",
+                  "who": [
+                    "codex-1"
+                  ],
+                  "moved": "2026-10-29T05:03:00+09:00",
+                  "detail": [],
+                  "stalled": false
+                }
+              ]
+            },
+            {
+              "title": "Done",
+              "cards": [
+                {
+                  "text": "login",
+                  "who": [
+                    "claude-1"
+                  ],
+                  "moved": "2026-10-29T05:03:00+09:00",
+                  "detail": [],
+                  "stalled": false
+                }
+              ]
+            }
+          ]
+        },
+        "modTime": "2026-10-29T05:03:14.189476143+09:00",
+        "linked": false
+      }
+    ],
+    "removed": [],
+    "events": [
+      {
+        "time": "2026-10-29T05:03:14.189476143+09:00",
+        "note": "work.md",
+        "kind": "board",
+        "type": "card.moved",
+        "item": "payments",
+        "from": "Doing",
+        "to": "Review"
+      }
+    ]
+  }
+}

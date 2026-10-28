@@ -1,0 +1,125 @@
+name: overlay
+
+# A pull request that touches neither the app nor its packing scripts does
+# not run this workflow at all.
+on:
+  push:
+    branches: [main]
+    paths: ['overlay/**', 'scripts/overlay-*.sh', '.github/workflows/overlay.yml']
+  pull_request:
+    paths: ['overlay/**', 'scripts/overlay-*.sh', '.github/workflows/overlay.yml']
+
+permissions:
+  contents: read
+
+env:
+  WAILS_VERSION: v3.0.0
+
+jobs:
+  overlay:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: overlay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: overlay/go.mod
+          cache-dependency-path: overlay/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: overlay/frontend/package-lock.json
+      - name: Linux webview libraries
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev pkg-config
+      - name: Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+      - run: npm ci
+        working-directory: overlay/frontend
+      - run: npm run check
+        working-directory: overlay/frontend
+      - run: npm test
+        working-directory: overlay/frontend
+      # The build generates the bindings and frontend/dist that Go embeds.
+      - run: wails3 build
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go test -race ./...
+      - run: go mod download
+      - run: sh scripts/licenses_test.sh
+      - run: sh scripts/dmg_test.sh
+      - run: sh scripts/linux_test.sh
+      - run: sh scripts/licenses.sh
+
+  package:
+    # The DMG and the Linux archive of a pull request (docs/overlay/09), kept
+    # as workflow artifacts to try out. Nothing is released, tagged or
+    # published to Homebrew here.
+    if: github.event_name == 'pull_request'
+    needs: overlay
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: overlay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: overlay/go.mod
+          cache-dependency-path: |
+            go.sum
+            overlay/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: overlay/frontend/package-lock.json
+      - name: Linux webview libraries
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev pkg-config
+      - name: Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+      - run: npm ci
+        working-directory: overlay/frontend
+      # The license texts in the packages come from the module cache.
+      - run: go mod download
+      - run: go mod download
+        working-directory: .
+      - name: Version
+        run: echo "VERSION=$(sed -n 's/^[[:space:]][[:space:]]*version:[[:space:]]*"\([^"]*\)".*/\1/p' build/config.yml | head -n 1)" >>"$GITHUB_ENV"
+      - name: DMG
+        if: runner.os == 'macOS'
+        run: |
+          wails3 package
+          arch=$(uname -m | sed 's/x86_64/amd64/')
+          sh ../scripts/overlay-dmg.sh bin/stickypane-app.app "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
+          hdiutil verify "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
+      - name: Linux archive
+        if: runner.os == 'Linux'
+        run: |
+          wails3 build
+          sh ../scripts/overlay-linux.sh bin/stickypane-app "$VERSION" "$(go env GOARCH)" "$RUNNER_TEMP/dist"
+          tar -tzf "$RUNNER_TEMP"/dist/*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stickypane-app-${{ runner.os }}
+          path: ${{ runner.temp }}/dist/
+          if-no-files-found: error
+          retention-days: 14

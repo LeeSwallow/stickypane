@@ -1,0 +1,110 @@
+<!doctype html>
+<!--
+  The DMG window's background (docs/overlay/09 §9.2): 660x420 points, light
+  paper with graph lines, a taped title, a red crayon arrow from the app
+  (170,210) to Applications (490,210), and a yellow note on Gatekeeper.
+  Finder draws the two icons (112pt) and their names on top; the space
+  around (170,210) and (490,210) stays empty for them.
+  render.sh turns this page into background.png, background@2x.png and
+  background.tiff with headless Chrome. Only bundled files are loaded.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>stickypane DMG</title>
+<!-- The fonts the app itself imports (frontend/src/fonts.ts). -->
+<link rel="stylesheet" href="../../frontend/node_modules/@fontsource/gaegu/400.css">
+<link rel="stylesheet" href="../../frontend/node_modules/@fontsource/gaegu/700.css">
+<link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable.css">
+<style>
+  :root {
+    --paper: #fffdf7;      /* stickypane-light's paper, as in the app */
+    --grid: rgba(47, 111, 209, 0.10);
+    --ink: #1f2933;        /* stickypane-light text */
+    --muted: #6b7684;
+    --crayon: #ef5f5a;     /* the app icon's red note */
+    --note: #ffe45c;       /* the app icon's yellow note */
+    --tape: rgba(242, 212, 92, 0.55);
+  }
+  html, body { margin: 0; width: 660px; height: 420px; overflow: hidden; }
+  body {
+    position: relative;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+    font-family: 'Gaegu', 'Pretendard Variable', cursive;
+    color: var(--ink);
+  }
+
+  .title {
+    position: absolute; left: 0; right: 0; top: 26px;
+    text-align: center;
+  }
+  .title h1 {
+    position: relative; display: inline-block;
+    margin: 0; padding: 4px 22px 2px;
+    font-size: 46px; font-weight: 700; letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 1px 2px 0 rgba(31, 41, 51, 0.08);
+    transform: rotate(-1.2deg);
+  }
+  .tape {
+    position: absolute; width: 74px; height: 22px;
+    background: var(--tape);
+    border-left: 2px dotted rgba(255, 255, 255, 0.7);
+    border-right: 2px dotted rgba(255, 255, 255, 0.7);
+  }
+  .title .tape.l { left: -34px; top: -6px; transform: rotate(-24deg); }
+  .title .tape.r { right: -32px; bottom: -4px; transform: rotate(-18deg); }
+  .sub {
+    position: absolute; left: 0; right: 0; top: 92px;
+    text-align: center; font-size: 25px; font-weight: 400; color: var(--muted);
+    transform: rotate(-0.6deg);
+  }
+
+  svg.draw { position: absolute; left: 0; top: 0; width: 660px; height: 420px; }
+
+  .note {
+    position: absolute; left: 100px; top: 318px; width: 424px;
+    padding: 10px 18px 9px;
+    background: var(--note);
+    box-shadow: 2px 3px 0 rgba(31, 41, 51, 0.12);
+    transform: rotate(-1.4deg);
+    font-size: 21px; line-height: 1.15; text-align: center; white-space: nowrap;
+  }
+  .note .tape { left: 178px; top: -12px; transform: rotate(3deg); background: rgba(255, 255, 255, 0.6); }
+  .note b { font-weight: 700; font-size: 19px; }
+</style>
+</head>
+<body>
+  <div class="title"><h1><span class="tape l"></span>stickypane<span class="tape r"></span></h1></div>
+  <div class="sub">끌어다 붙이면 끝!</div>
+
+  <svg class="draw" id="draw" viewBox="0 0 660 420" xmlns="http://www.w3.org/2000/svg"></svg>
+
+  <div class="note">
+    <span class="tape"></span>
+    처음 열 때 경고가 뜨면<br>
+    <b>시스템 설정 → 개인정보 보호 및 보안 → '그래도 열기'</b>
+  </div>
+
+  <script src="../../frontend/node_modules/roughjs/bundled/rough.js"></script>
+  <script>
+    // The crayon arrow, from the app icon's right edge to Applications' left.
+    // A fixed seed draws the same strokes every time.
+    const svg = document.getElementById('draw')
+    const rc = rough.svg(svg)
+    const crayon = getComputedStyle(document.documentElement).getPropertyValue('--crayon').trim()
+    const o = { stroke: crayon, strokeWidth: 4.5, roughness: 1.4, bowing: 1.2, seed: 7 }
+    svg.appendChild(rc.curve([[246, 212], [300, 200], [356, 204], [410, 200]], o))
+    svg.appendChild(rc.line(410, 200, 388, 184, o))
+    svg.appendChild(rc.line(410, 200, 390, 218, o))
+    // A crayon doodle under the subtitle.
+    svg.appendChild(rc.curve([[262, 128], [330, 124], [398, 130]],
+      { stroke: crayon, strokeWidth: 2.2, roughness: 1.2, seed: 3 }))
+  </script>
+</body>
+</html>

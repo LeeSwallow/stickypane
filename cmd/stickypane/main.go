@@ -60,9 +60,10 @@ Usage:
                          read it: CLAUDE.md, AGENTS.md or a .claude skill, or
                          nowhere when the board plugin is installed. Safe to run
                          again. --skill: a skill instead of the instruction
-                         files; --no-agent-docs: the folder only
+                         files; --no-agent-docs: the folder only; --view
+                         terminal|app|both and --style doodle|neat: how it shows
   stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
-                         [--undo] [--dry-run] [--yes]
+                         [--command PATH] [--undo] [--dry-run] [--yes]
                          install the board plugin for Claude Code and Codex
                          through their own commands; asks in a terminal
   stickypane config [key [value]]  list the settings with their values, print
@@ -215,6 +216,9 @@ func openBoard(e env, start string) error {
 	// What was set up, without the last line: the next step was this one.
 	lines := strings.Split(strings.TrimRight(setup.String(), "\n"), "\n")
 	done := strings.Join(lines[:len(lines)-1], " ")
+	if !showInApp(dir, e.stderr) {
+		return nil
+	}
 	if err := runBoardLive(e, dir, done); err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ func draw(src string, width int) string {
 func TestHTMLViewShowsTextWithoutTags(t *testing.T) {
 	t.Parallel()
 	out := draw("<h1>Bench</h1><script>x()</script><style>p{color:red}</style><p>a &amp; b</p>", 40)
-	for _, want := range []string{"Bench", "a & b", "open it in the overlay to see it drawn"} {
+	for _, want := range []string{"Bench", "a & b", "open it in the app to see it drawn"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("view lacks %q:\n%s", want, out)
 		}
@@ -30,7 +30,7 @@ func TestHTMLViewShowsTextWithoutTags(t *testing.T) {
 		}
 	}
 	lines := strings.Split(out, "\n")
-	if last := lines[len(lines)-1]; !strings.Contains(last, "overlay") {
+	if last := lines[len(lines)-1]; !strings.Contains(last, "the app") {
 		t.Errorf("last line = %q", last)
 	}
 }

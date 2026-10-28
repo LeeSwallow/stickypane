@@ -24,7 +24,7 @@ flowchart TB
   agent(["🤖 에이전트들<br/>Claude Code · Codex · ..."])
   folder[(".sticky/<br/>노트 파일 + sticky.json")]
   tui["stickypane<br/>터미널 board"]
-  ov["stickypane overlay<br/>데스크톱 창"]
+  ov["stickypane 앱<br/>데스크톱 창"]
 
   agent -->|"파일 쓰기 · stickypane 명령 · MCP"| folder
   tui <-->|"읽기 · doc.Op"| folder
@@ -139,7 +139,8 @@ type Action struct {
 | → | `board.index` | `{entries}`: `api.Index`와 같다. 노트마다 `tab`·`name`·`kind`·`icon`·`title`·`summary`·`gist`·`open`·`modified`·`links`·`backlinks` |
 | → | `kinds.list` | 카탈로그. 모양마다 `{name, icon, label, blurb, example, data, options}`. `example`은 예시 파일 전체, `data`는 그 예시의 `Kind.Data`, `options`는 만들기 폼의 필드 `[{name, type, label, choices?, default}]`(`type`은 `text`·`lines`·`choice`·`number`·`bool`, `label`은 영어 문구이자 번역 키; 없으면 `[]`) |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과 `{version}`. 버전이 다르면 `stale`. chat의 `say`는 `who`가 비면 터미널과 같은 규칙(`$STICKYPANE_USER` → git `user.name` → 로그인)으로 채운다 |
-| → | `note.create` `{tab, kind, title, body}` 또는 `{tab, kind, title, options}` | "+ 생성". `api.Create`: 파일을 배타적으로 만들어, 같은 이름이 생기면 덮어쓰지 않고 `-2`, `-3`을 붙인다. 파일이 따로인 모양(script·html·api)은 카탈로그 `a`처럼 그 확장자(`.sh`, `.html`, `.http`)로, 본문이 없으면 그 모양의 템플릿으로 만든다(front matter 없음). `options`를 주면 앱은 본문을 쓰지 않는다: 모양의 `Kind.Compose`가 `kinds.list`의 옵션으로 파일을 쓴다(값은 문자열·숫자·true/false, `lines`는 문자열 목록도 된다). `body`와 함께 주거나, 모르는 옵션·틀린 값이면 `bad_request`로 옵션 이름을 말한다. 결과 `{note}` |
+| → | `themes.list` | `{themes}`: 모든 테마의 색, `board.load`의 `palette`와 같은 모양. 순서는 터미널과 같다(어두운 것 먼저, 이름순). 앱의 테마 고르기 목록과, 모드가 짝의 다른 쪽을 원할 때 그 색을 여기서 얻는다(앱은 팔레트 사본을 두지 않는다) |
+| → | `note.create` `{tab, kind, title, body}` 또는 `{tab, kind, title, options}` | "+ 새 노트". `api.Create`: 파일을 배타적으로 만들어, 같은 이름이 생기면 덮어쓰지 않고 `-2`, `-3`을 붙인다. 파일이 따로인 모양(script·html·api)은 카탈로그 `a`처럼 그 확장자(`.sh`, `.html`, `.http`)로, 본문이 없으면 그 모양의 템플릿으로 만든다(front matter 없음). `options`를 주면 앱은 본문을 쓰지 않는다: 모양의 `Kind.Compose`가 `kinds.list`의 옵션으로 파일을 쓴다(값은 문자열·숫자·true/false, `lines`는 문자열 목록도 된다). `body`와 함께 주거나, 모르는 옵션·틀린 값이면 `bad_request`로 옵션 이름을 말한다. 결과 `{note}` |
 | → | `note.arrange` `{note, open?, size?, rows?, pin?, color?, title?}` | `stickypane set`과 같은 길(`api.Set`, `arrange.Change`). 빈 `size`·`color`·`title`과 `rows: 0`은 선택을 되돌린다. 책의 페이지는 책의 배치를 따르고 제목만 자기 것이다. `note.view`를 대체했다(제거됨) |
 | → | `tab.order` `{tab, order[]}` | 탭의 노트 순서(전체 이름). 터미널 `{` `}`가 쓰는 `store.SetOrder`. 그 탭의 노트만, 중복 없이 |
 | → | `note.move` `{note, to}` | `api.MoveTo`(= `api.Move`). `to`는 `"."`(최상위), `"폴더/"`(책), 새 이름. 결과 `{note}`는 옮겨진 이름 |
@@ -201,11 +202,11 @@ flowchart TD
   v -- "terminal (기본)" --> tui["TUI"]
   v -- "overlay" --> has{"overlay 앱 설치됨?"}
   has -- 예 --> launch["overlay 앱에 이 프로젝트 창을 연다<br/>TUI는 띄우지 않음"]
-  has -- 아니오 --> tui2["TUI + 한 줄 안내<br/>brew install --cask stickypane-overlay"]
+  has -- 아니오 --> tui2["TUI + 한 줄 안내<br/>brew install --cask LeeSwallow/tap/stickypane"]
   v -- "both" --> both["overlay 창을 열고 TUI도 띄운다"]
 ```
 
-overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(PATH의 `stickypane-overlay`, macOS의 `open -a`)은 `internal/env`가 안다.
+overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/env`가 안다.
 
 ## 2.6 레이어와 모듈
 
@@ -218,7 +219,21 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 | `internal/bridge` | 신규 | 50, `internal/app`·`internal/mcp`와 나란히 |
 | `internal/registry` | 신규 | 5. `internal/when`만 쓰는 잎 패키지에 가깝다. 명령 표(60)와 front end(50)가 부른다 |
 | `bridge` 명령 | `cmd/stickypane` 명령 표에 한 줄 | 60 |
-| overlay 앱 | `overlay/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다 |
+| overlay 앱 | `overlay/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다. 앱 안의 층은 §2.6.1 |
+
+### 2.6.1 앱 모듈의 레이어
+
+앱 모듈(`overlay/`)은 안쪽에서 바깥쪽으로 다섯 층이다([ADR-0018](adr/0018-app-layers.md)). 한 패키지는 자기보다 낮은 층만 import하고, 도메인과 유스케이스는 파일·DB·프로세스·Wails를 import하지 않는다. `overlay/internal/layers`의 테스트가 이 둘을 확인한다.
+
+| 층 | 패키지 | 하는 일 |
+|---|---|---|
+| 도메인 (0) | `internal/index/model`, `internal/install/model`, `internal/prefs`, `internal/canvas` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. 캔버스의 노트 자리와 떼어낸 노트 창의 틀(사라진 노트 잊기, 이름 바꾸기, 겹침 순서). 터미널 명령의 링크 자리, 앱의 사본인지, 앞선 옛 사본을 고치는 법, setup이 돌 수 있는 폴더. I/O 없음 |
+| 포트 (10) | `internal/index/ports`, `internal/install/ports` | 유스케이스가 바깥에 바라는 것: `ProjectRepository`·`DayRepository`·`SessionRepository`·`IngestLog`·`Store`(작업 단위), `Records`, `Boards`, `Clock`, `ProcessChecker`. 설치는 `Runner`(프로그램 실행)·`Files`·`Admin`(관리자 권한) |
+| 유스케이스 (20) | `internal/index/service`, `internal/install/service` | `Ingest`·`Prune`·`Sessions`·`Restore`·`Retitle`. 트랜잭션 경계를 여기서 정하고 포트로만 일한다. 설치는 `Command`·`Install`·`Uninstall`·`Connect`·`Init`([09 §9.4](09-distribution.md#94-첫-실행-연결)) |
+| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridge`, `internal/install/osys`(os/exec, 파일, osascript·pkexec) | 포트의 구현 |
+| 조립 (40) · 화면 (50–60) | `internal/index`, `internal/shell`, `main.go` | 부품을 잇고 창에 낸다 |
+
+색인은 `~/.stickypane`을 읽기만 한다. 지우는 것은 본체(`registry.Prune`)뿐이고, 프로젝트 제목은 `sticky.json`을 직접 읽지 않고 bridge의 `board.load`가 답한 `title`로 셸이 `Retitle`한다.
 
 주의할 점 두 가지(구현자 확인 필요):
 
@@ -238,16 +253,17 @@ flowchart LR
 - `allow-same-origin`이 없으므로 iframe은 불투명 origin이다. 부모의 바인딩·저장소·DOM에 닿지 않는다.
 - CSP를 `<meta>`로 주입해 외부 요청을 막는다. 이미지는 `data:`만.
 - 높이는 iframe 안의 작은 스크립트가 `postMessage`로 알려 줄 수 있지만, **부모는 숫자 하나만 받는다.** 그 외 메시지는 무시한다.
-- 터미널 쪽 `html` shape의 `view.go`는 태그를 걷어낸 텍스트와 "overlay에서 열기" 줄을 그린다(VISION 6: 숨기지 않는다).
+- srcdoc 프레임은 창의 CSP(`index.html`)도 물려받는다. 창은 인라인 스크립트를 허용하지 않고 높이 알림 스크립트 하나만 해시로 허용하므로, **페이지 자신의 스크립트는 앱에서 돌지 않는다**(HTML과 CSS만 그린다). 창의 `frame-src 'none'`은 프레임의 모든 이동(새 srcdoc 포함)을 막으므로 페이지가 바뀌면 프레임을 새로 만든다. 확인: `src/shapes/html.test.ts`, 개발 페이지 `?demo=shapes&probe=<url>`(그 주소의 서버에 요청이 하나도 오지 않아야 한다).
+- 터미널 쪽 `html` shape의 `view.go`는 태그를 걷어낸 텍스트와 "앱에서 열면 그려진 모습을 볼 수 있습니다" 줄을 그린다(VISION 6: 숨기지 않는다).
 
 ## 2.8 배포
 
 | 산출물 | 내용 | 배포 |
 |---|---|---|
 | `stickypane` | 기존 바이너리 + `bridge` 명령 | 기존 (Homebrew formula, GitHub release) |
-| `Stickypane Overlay.app` / `stickypane-overlay` | Wails v3 앱, 글꼴·렌더러 번들 | macOS: 손그림 DMG, `brew install --cask stickypane-overlay`. Linux: tar.gz. Windows는 만들지 않는다([09](09-distribution.md), [ADR-0014](adr/0014-macos-and-linux-only.md)) |
+| `Stickypane.app` / `stickypane-app` | Wails v3 앱, 글꼴·렌더러·`stickypane` 번들 | macOS: 손그림 DMG, Homebrew cask(이름은 [09](09-distribution.md)의 [미결정]). Linux: tar.gz. Windows는 만들지 않는다([09](09-distribution.md), [ADR-0014](adr/0014-macos-and-linux-only.md)) |
 
-overlay 앱은 실행 시 `stickypane` 바이너리를 PATH에서 찾는다. 버전이 맞지 않으면(bridge 프로토콜 버전) 창에 업데이트 안내를 띄운다.
+앱은 실행 시 자기 안에 든 `stickypane`을 먼저 쓰고, 없을 때만 `STICKYPANE_BIN`·PATH 등에서 찾는다([09 §9.1](09-distribution.md#91-산출물)). 버전이 맞지 않으면(bridge 프로토콜 버전) 창에 업데이트 안내를 띄운다.
 
 ## 2.9 교차 관심사
 

@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"encoding/json"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -235,6 +236,28 @@ func TestBridgeSendRunsTheRequest(t *testing.T) {
 	}
 	if r := s.call("note.send", map[string]any{"note": "plan.md", "request": "x"}); r.code != CodeBadRequest {
 		t.Errorf("not an api note: %q", r.code)
+	}
+}
+
+// themes.list is every theme, in the terminal's order, each in the shape
+// of board.load's palette.
+func TestBridgeThemesListsEveryPalette(t *testing.T) {
+	s := serve(t, board(t, nil))
+	var got struct {
+		Themes []Palette `json:"themes"`
+	}
+	s.ok("themes.list", nil, &got)
+	all := theme.All()
+	if len(got.Themes) != len(all) {
+		t.Fatalf("%d themes, the terminal has %d", len(got.Themes), len(all))
+	}
+	for i, p := range got.Themes {
+		if p != paletteOf(all[i]) || p.Notes[5] == "" {
+			t.Errorf("theme %d = %+v", i, p)
+		}
+	}
+	if !got.Themes[0].Dark || got.Themes[len(got.Themes)-1].Dark {
+		t.Errorf("dark themes come first: %+v", got.Themes[0])
 	}
 }
 

@@ -22,19 +22,50 @@ on GitHub are built from pull request labels.
   included (#17).
 - An `html` note: `.html` and `.htm` files in `.sticky/` are shown as text
   in the terminal, and cannot be changed from a screen.
+- The desktop app (#10), built here and not yet released: stickypane in a
+  window, for watching the board and answering it. It comes with
+  `stickypane` inside it, so the app is the one install.
+  - Notes drawn in full: Markdown with tables, code, Mermaid and maths,
+    every shape, and `.html` pages in a sandbox that reaches no network,
+    no storage and nothing of the app (#18, #20).
+  - Clicks become the same changes as the terminal's keys: tick, answer a
+    form, drag a card, run a script or send a request after a question;
+    **+ New note** makes any shape from its options; a note's ⋯ menu
+    moves, archives or deletes it, with undo (#18).
+  - A free canvas beside the grid, and a note torn off into a small window
+    of its own that stays on top. Places are kept per computer in
+    `~/.stickypane/overlay.json`; the notes do not change (#19).
+  - What an agent changed moves once: a card carried to its column, new
+    notes dropping in, a stalled card's wobble. Settings → Motion: system,
+    less or off (#21).
+  - A home window that lists this computer's boards by day, a tray icon,
+    a hotkey (⌥Space) and windows kept on top (#24).
+  - Settings → Terminal and agents installs the app's `stickypane` as the
+    terminal command (`~/.local/bin`, or `/usr/local/bin` with a password)
+    and connects Claude Code and Codex through its `stickypane setup`,
+    showing the plan first. A folder without a board offers 보드 만들기
+    (#22).
+  - `stickypane init --view app` makes a plain `stickypane` open the board
+    in the app, and in the terminal when the app is missing (#22).
+  - Packaged as a DMG drawn on graph paper (drag to Applications) and a
+    Linux tar.gz with a `.desktop` entry and `install.sh` (#23). The DMG
+    comes with the first app release.
 - `stickypane bridge`: serves the board as JSON lines on standard input and
-  output, for the desktop overlay (in progress, #10). It is not for agents.
+  output, for the desktop app. It is not for agents. `themes.list` gives
+  every theme's colours.
+- `stickypane setup --command <path>` registers the MCP server by a full
+  path, and `stickypane init` refuses the home folder and the root (#22).
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
   already exists: `events/YYYY-MM-DD.jsonl` (lines of `{v: 1, at, type, …}`) and
   `run/<pid>.json` record
-  project paths, command names, times and process ids, so the overlay can
-  list your boards. See the README.
+  project paths, command names, times and process ids, so the desktop app
+  can list your boards. See the README.
 - Opening a board, in the terminal or with `stickypane bridge`, prunes
   `~/.stickypane`: run files of sessions whose process has died, events
   older than 90 days, touch markers a day old. stickypane is the only
   program that deletes these files (#32).
-- `view` and `style` keys in `sticky.json`, for the overlay; the terminal
-  ignores them.
+- `view` and `style` keys in `sticky.json`, for the desktop app; the
+  terminal ignores them.
 - A note's height from the board: `shift+up` and `shift+down` (with `pgup`
   and `pgdn`, five lines), `0` for the height of its content, and the mouse:
   drag a note's right edge for its width, its bottom edge for its height,
@@ -60,6 +91,8 @@ on GitHub are built from pull request labels.
 
 ### Fixed
 
+- The welcome note of a new board says how to start in the app as well as
+  in the terminal (#25).
 - The session hook and `/board:status` take only `.sticky/` for a board,
   not `~/.stickypane` (#26).
 - `stickypane setup` makes no board and writes no `AGENTS.md`; it says to

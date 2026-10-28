@@ -25,6 +25,9 @@ func TestMain(m *testing.M) {
 	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)
 	}
+	// Nothing is ever launched: the desktop app is not there, unless a test
+	// puts a fake in its place.
+	openApp = func(string) error { return errNoApp }
 	code := m.Run()
 	os.RemoveAll(tmp)
 	os.Exit(code)
@@ -130,5 +133,61 @@ func TestAWriteOutsideARepositoryAsksForInit(t *testing.T) {
 	code, _, errOut := exec(t, "show", "plan")
 	if code != 1 || !strings.Contains(errOut, "stickypane init") {
 		t.Errorf("code = %d, stderr = %q", code, errOut)
+	}
+}
+
+// fakeApp stands in for the desktop app and records the projects it was
+// asked to show; missing makes it not installed.
+func fakeApp(t *testing.T, missing bool) *[]string {
+	t.Helper()
+	var opened []string
+	old := openApp
+	openApp = func(root string) error {
+		if missing {
+			return errNoApp
+		}
+		opened = append(opened, root)
+		return nil
+	}
+	t.Cleanup(func() { openApp = old })
+	return &opened
+}
+
+// A board whose view is the app opens in the app, and not in the terminal;
+// "both" opens both; without the app the terminal shows it, and says why.
+func TestBoardOpensInTheAppWhenItsViewSaysSo(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	if code, _, errOut := exec(t, "init", "--no-agent-docs", "--view", "app"); code != 0 {
+		t.Fatal(errOut)
+	}
+	real, _ := filepath.EvalSymlinks(root)
+	calls := fakeBoard(t)
+	opened := fakeApp(t, false)
+	code, _, errOut := exec(t)
+	if code != 0 || len(*opened) != 1 || len(*calls) != 0 {
+		t.Fatalf("view app: code %d opened %q board %q err %q", code, *opened, *calls, errOut)
+	}
+	if got, _ := filepath.EvalSymlinks((*opened)[0]); got != real || !filepath.IsAbs((*opened)[0]) {
+		t.Errorf("opened %q, want %s", (*opened)[0], real)
+	}
+
+	fakeApp(t, true)
+	code, _, errOut = exec(t)
+	if code != 0 || len(*calls) != 2 || !strings.Contains(errOut, "not installed") {
+		t.Errorf("no app: code %d board %q err %q", code, *calls, errOut)
+	}
+
+	exec(t, "init", "--view", "both")
+	opened = fakeApp(t, false)
+	*calls = nil
+	if code, _, _ := exec(t); code != 0 || len(*opened) != 1 || len(*calls) != 2 {
+		t.Errorf("view both: opened %q board %q", *opened, *calls)
+	}
+
+	exec(t, "init", "--view", "terminal")
+	opened = fakeApp(t, false)
+	if exec(t); len(*opened) != 0 {
+		t.Errorf("view terminal opened the app: %q", *opened)
 	}
 }

@@ -1,0 +1,124 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setLanguage, t } from '../i18n'
+import type { Settings } from '../board/model'
+import { motion } from '../lib/motion/level.svelte'
+import { setAppPref, type AppPrefs, type SettingsApi } from '../services/settings'
+import SettingsDialog from './SettingsDialog.svelte'
+import { THEMES } from '../demo/themes'
+import { fakeSetup } from './fakeSetup'
+
+const settings: Settings = {
+  theme: 'nord', style: 'doodle', view: 'both', language: { choice: 'en', resolved: 'en' }, tab: '', time: '', editor: '', stale: '2h',
+}
+
+function fakeApi(over: Partial<SettingsApi> = {}) {
+  const board: unknown[] = []
+  let prefs: AppPrefs = { hotkey: 'Option+Space', language: 'ko', mode: '' }
+  const saved: AppPrefs[] = []
+  const api: SettingsApi = {
+    themes: vi.fn(async () => THEMES),
+    settings: vi.fn(async () => settings),
+    setSettings: vi.fn(async (p) => void board.push(p)),
+    appPrefs: vi.fn(async () => prefs),
+    setAppPrefs: vi.fn(async (p) => {
+      saved.push(p)
+      prefs = p
+    }),
+    ...over,
+  }
+  return { api, board, saved }
+}
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  )
+  setLanguage('en')
+})
+afterEach(cleanup)
+
+const show = (api: SettingsApi, over: Record<string, unknown> = {}) => {
+  const onmode = vi.fn()
+  const onchanged = vi.fn()
+  render(SettingsDialog, { props: { open: true, api, setup: fakeSetup().api, settings, mode: 'system', hotkey: 'Option+Space', version: '0.4.0', onmode, onchanged, ...over } })
+  return { onmode, onchanged }
+}
+
+describe('setAppPref', () => {
+  it('changes one of the app\'s settings and keeps the rest', async () => {
+    const { api, saved } = fakeApi()
+    expect(await setAppPref(api, { mode: 'dark' })).toEqual({ hotkey: 'Option+Space', language: 'ko', mode: 'dark' })
+    expect(saved).toEqual([{ hotkey: 'Option+Space', language: 'ko', mode: 'dark' }])
+  })
+})
+
+describe('the settings', () => {
+  it('a board setting goes to the board, through the bridge, and the board is read again', async () => {
+    const { api, board, saved } = fakeApi()
+    const { onchanged } = show(api)
+    await fireEvent.click(screen.getByRole('radio', { name: t('settings.style.neat') }))
+    await waitFor(() => expect(board).toEqual([{ style: 'neat' }]))
+    expect(onchanged).toHaveBeenCalled()
+    await fireEvent.change(screen.getByLabelText(t('settings.theme')), { target: { value: 'dracula' } })
+    await waitFor(() => expect(board).toContainEqual({ theme: 'dracula' }))
+    expect(saved).toEqual([])
+  })
+
+  it('light or dark is the app\'s, shown at once and kept in overlay.json', async () => {
+    const { api, board, saved } = fakeApi()
+    const { onmode } = show(api)
+    const modes = within(screen.getByRole('radiogroup', { name: t('settings.mode') }))
+    await fireEvent.click(modes.getByRole('radio', { name: t('settings.mode.dark') }))
+    expect(onmode).toHaveBeenCalledWith('dark')
+    await waitFor(() => expect(saved).toEqual([{ hotkey: 'Option+Space', language: 'ko', mode: 'dark' }]))
+    await fireEvent.click(modes.getByRole('radio', { name: t('settings.mode.system') }))
+    await waitFor(() => expect(saved.at(-1)?.mode).toBe(''))
+    expect(board).toEqual([])
+  })
+
+  it('motion is the app\'s: less or off at once for every movement, kept in overlay.json (04 §4.6)', async () => {
+    const { api, saved } = fakeApi()
+    show(api)
+    const choices = within(screen.getByRole('radiogroup', { name: t('settings.motion') }))
+    await fireEvent.click(choices.getByRole('radio', { name: t('settings.motion.off') }))
+    expect(motion.setting).toBe('off')
+    await waitFor(() => expect(saved).toEqual([{ hotkey: 'Option+Space', language: 'ko', mode: '', motion: 'off' }]))
+    await fireEvent.click(choices.getByRole('radio', { name: t('settings.motion.system') }))
+    await waitFor(() => expect(saved.at(-1)).toEqual({ hotkey: 'Option+Space', language: 'ko', mode: '' }))
+    expect(motion.setting).toBe('')
+  })
+
+  it('a hotkey the system will not give is said under the field', async () => {
+    const { api } = fakeApi({ setAppPrefs: async () => Promise.reject(new Error('Error: Cmd+Q is taken')) })
+    show(api)
+    const field = screen.getByLabelText(t('settings.hotkey'))
+    await fireEvent.input(field, { target: { value: 'Cmd+Q' } })
+    await fireEvent.click(screen.getByRole('button', { name: t('settings.save') }))
+    await waitFor(() => expect(document.body.textContent).toContain('Cmd+Q is taken'))
+    expect(field.getAttribute('aria-invalid')).toBe('true')
+  })
+
+  it('names the bridge\'s version, and offers the terminal command and the agents', async () => {
+    show(fakeApi().api)
+    expect(document.body.textContent).toContain('stickypane 0.4.0')
+    await waitFor(() => expect(screen.getByRole('button', { name: t('cli.install') })).toBeTruthy())
+    expect((screen.getByRole('button', { name: t('settings.connectAgents') }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('lists the themes the bridge gives, and keeps the chosen one when it gives none', async () => {
+    show(fakeApi().api)
+    const select = screen.getByLabelText(t('settings.theme')) as HTMLSelectElement
+    await waitFor(() => expect(select.options.length).toBe(THEMES.length + 1))
+    cleanup()
+    show(fakeApi({ themes: async () => Promise.reject(new Error('there is no method "themes.list"')) }).api)
+    const old = screen.getByLabelText(t('settings.theme')) as HTMLSelectElement
+    await waitFor(() => expect([...old.options].map((o) => o.value)).toEqual(['auto', 'nord']))
+  })
+})

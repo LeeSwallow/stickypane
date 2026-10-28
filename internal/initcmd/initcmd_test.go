@@ -52,8 +52,8 @@ func TestRunCreatesBoardWelcomeNoteAndAgentsFile(t *testing.T) {
 	if open, _ := welcome.Get("open"); open != "true" {
 		t.Errorf("the welcome note should be open on first run, open = %q", open)
 	}
-	if !welcome.Pinned() || !strings.Contains(welcome.Body, "jots a note") {
-		t.Errorf("the welcome note should be pinned and explain the keys: %q", welcome.Body)
+	if !welcome.Pinned() || !strings.Contains(welcome.Body, "jots a note") || !strings.Contains(welcome.Body, "+ New note") {
+		t.Errorf("the welcome note should be pinned and say how to start in the terminal and in the app: %q", welcome.Body)
 	}
 	if got := read(t, filepath.Join(root, "AGENTS.md")); got != Guide() {
 		t.Errorf("AGENTS.md = %q, want exactly the guide", got)
@@ -165,5 +165,24 @@ func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
 	ignore := read(t, filepath.Join(root, ".sticky", ".gitignore"))
 	if !strings.Contains(ignore, ".trash/") || !strings.Contains(ignore, filelock.Name) {
 		t.Errorf(".sticky/.gitignore = %q", ignore)
+	}
+}
+
+// No board in the home folder or the root: every project below would find
+// it. A symlink to the home folder is the home folder.
+func TestRefuseBoardInHomeAndRoot(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	link := filepath.Join(t.TempDir(), "h")
+	if err := os.Symlink(home, link); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{home, link, "/"} {
+		if err := RefuseBoard(dir); !errors.Is(err, ErrNoBoardHere) {
+			t.Errorf("RefuseBoard(%q) = %v", dir, err)
+		}
+	}
+	if err := RefuseBoard(filepath.Join(home, "project")); err != nil {
+		t.Errorf("a folder under home: %v", err)
 	}
 }

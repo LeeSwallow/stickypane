@@ -39,8 +39,11 @@ stickypane setup --undo                # uninstalls the plugin again
 `--scope` is where Claude Code installs it: `user` (every project, the
 default), `project` (this repository, shared with the team) or `local`
 (this repository, just you). `--mcp` also registers `stickypane mcp` as an
-MCP server, `--agents claude,codex` limits it to some agents, and
-`--dry-run` prints the commands without running them. `--undo`
+MCP server, `--command` gives the full path of the stickypane that server
+runs (the desktop app passes its own copy; a server registered before
+with another command is removed and added again with it), `--agents claude,codex` limits
+it to some agents, and `--dry-run` prints the commands without running
+them. `--undo`
 uninstalls the plugin from each agent found (from Claude Code at the
 `--scope` given, `user` unless you say); with `--mcp` it also removes the
 `stickypane` MCP server. It leaves the marketplace entry, the boards and
@@ -67,7 +70,13 @@ when they exist, a Claude Code skill (`.claude/skills/stickypane/SKILL.md`)
 when the project has a `.claude` folder but no `CLAUDE.md`, and a new
 `AGENTS.md` when there is nothing. An agent with the plugin installed gets
 nothing in its file, since the plugin teaches it. `init` works outside a
-git repository too, and is safe to run again. `--skill` writes the skill
+git repository too, but not in the home folder or the root, where every
+project below would find the board; it is safe to run again. `--view app` (or `both`)
+shows the board in the desktop app, and `--style neat` gives the app its
+neat look; both go to `sticky.json`. With `app`, a plain `stickypane` in
+the project opens the board in the app (or in the terminal, saying how to
+get the app, when it is not installed); with `both`, in the app and the
+terminal. `--skill` writes the skill
 instead of the instruction files and `--no-agent-docs` makes the folder
 only. The guide is the plugin's two rule files under a short head, so it
 says what the plugin says. `stickypane guide` prints it; it stays English.

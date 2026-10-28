@@ -1,13 +1,13 @@
-# stickypane overlay 기술 문서
+# stickypane 앱 기술 문서
 
 | 항목 | 내용 |
 |---|---|
-| 문서 상태 | **Draft** — 설계 승인 전, 구현 전 |
-| 최종 갱신 | 2026-10-28 |
+| 문서 상태 | **구현됨, 미출시** — `feat/10-overlay-app`에 만들어졌고 테스트를 거쳤다. DMG는 첫 앱 릴리스와 함께 나온다 |
+| 최종 갱신 | 2026-10-29 |
 | 대상 독자 | stickypane 기여자, overlay 구현자, 디자인 검토자 |
-| 바뀌는 기존 문서 | [`ROADMAP.md`](../../ROADMAP.md)의 "with no desktop" 목표 ([ADR-0010](adr/0010-terminal-stays-primary.md)) |
+| 바뀐 기존 문서 | [`ROADMAP.md`](../../ROADMAP.md)의 목표 문장과 "Next: the desktop app ships" ([ADR-0010](adr/0010-terminal-stays-primary.md)) |
 
-overlay는 `.sticky/` 폴더를 터미널이 아닌 **화면 위에 떠 있는 전용 데스크톱 창**에 보여 주는 두 번째 화면이다. 같은 폴더를 읽고 같은 `doc.Op`로 쓰므로 에이전트는 아무것도 새로 배우지 않는다. 터미널이 그릴 수 없는 것(제대로 된 Markdown, 코드 하이라이트, 다이어그램, HTML, 여러 에이전트의 움직임)을 webview와 JS 렌더러로 그린다.
+앱(코드와 문서 안의 이름은 overlay)은 `.sticky/` 폴더를 터미널이 아닌 **화면 위에 떠 있는 전용 데스크톱 창**에 보여 주는 두 번째 화면이다. 같은 폴더를 읽고 같은 `doc.Op`로 쓰므로 에이전트는 아무것도 새로 배우지 않는다. 터미널이 그릴 수 없는 것(제대로 된 Markdown, 코드 하이라이트, 다이어그램, HTML, 여러 에이전트의 움직임)을 webview와 JS 렌더러로 그린다.
 
 ## 문서 구성
 
