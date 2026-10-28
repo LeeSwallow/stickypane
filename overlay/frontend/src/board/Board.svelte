@@ -1,6 +1,8 @@
 <script lang="ts">
   // The project window (03 §3.6): title bar, Glance line, tabs and the
-  // grid of notes, or one note zoomed to fill the window. Data comes from
+  // notes — on a free canvas or on the grid (03 §3.6.1) — or one note
+  // zoomed to fill the window. Notes torn off into windows of their own
+  // are on a shelf above, to be put back. Data comes from
   // the shell's ProjectService; every change goes back through the
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
@@ -25,6 +27,8 @@
   import type { Manage, ManageDeps } from './manage'
   import { act, arrange } from './actions'
   import { events, type Status } from '../services/board'
+  import { layoutOf, type Layout, type LayoutMode, type Place } from '../services/canvas'
+  import Canvas from './Canvas.svelte'
   import { projectService, type ProjectApi } from '../services/project'
   import { boardContext, type BoardCtx } from './context'
   import Glance from './Glance.svelte'
@@ -73,6 +77,11 @@
   let creating = $state(false)
   // ⌘, and ⋯ → 설정…
   let configuring = $state(false)
+  // where notes sit on this computer: canvas or grid, places, torn-off notes
+  let layout = $state<Layout>(layoutOf(null))
+  let layoutRead = $state(false)
+  let stopLayout: (() => void) | null = null
+  let scale = $state(1)
   // a short word at the bottom (made, archived, deleted with 되돌리기)
   let notice = $state<{ message: string; action?: { label: string; run: () => void } } | null>(null)
 
@@ -102,7 +111,10 @@
   })
 
   const tab: Tab | null = $derived(board ? (board.tabs.find((t) => t.name === view.tab) ?? board.tabs[0] ?? null) : null)
-  const open = $derived(tab ? tab.notes.filter((n) => n.open) : [])
+  const torn = $derived(new Set(Object.keys(layout.torn)))
+  // a torn-off note is in its own window, not here
+  const open = $derived(tab ? tab.notes.filter((n) => n.open && !torn.has(n.name)) : [])
+  const tornHere = $derived(tab ? tab.notes.filter((n) => torn.has(n.name)) : [])
   const closed = $derived(tab ? tab.notes.filter((n) => !n.open) : [])
   const zoomed: Note | null = $derived(board && view.zoom ? findNote(board.tabs, view.zoom) : null)
   const columns = $derived(columnsFor(width))
@@ -130,12 +142,14 @@
         again = false
         try {
           status = await api.status()
+          if (!stopLayout && status.window) stopLayout = api.onLayout(status.window, (l) => (layout = l))
           if (status.state !== 'ready') continue
           const b = await api.load()
           const before = board?.settings.tab ?? null
           board = b
           view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
           seen = seeAll(seen, allNotes(b.tabs))
+          if (!layoutRead) await readLayout()
           failed = ''
         } catch (e) {
           failed = String(e)
@@ -144,6 +158,49 @@
       loading = null
     })()
     return loading
+  }
+
+  /** readLayout asks the shell where the notes sit; without an answer the canvas starts empty. */
+  async function readLayout() {
+    try {
+      layout = await api.layout()
+    } catch (e) {
+      failed = errorText(e)
+    }
+    layoutRead = true
+  }
+
+  function setMode(m: LayoutMode) {
+    layout = { ...layout, mode: m }
+    api.setMode(m).catch((e) => (failed = errorText(e)))
+  }
+
+  function setSnap(on: boolean) {
+    layout = { ...layout, snap: on }
+    api.setSnap(on).catch((e) => (failed = errorText(e)))
+  }
+
+  function place(places: Record<string, Place>) {
+    layout = { ...layout, places: { ...layout.places, ...places } }
+    api.place(places).catch((e) => (failed = errorText(e)))
+  }
+
+  async function tear(name: string) {
+    try {
+      await api.tearOff(name)
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
+  }
+
+  async function putBack(name: string) {
+    try {
+      await api.putBack(name)
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
   }
 
   const tabLabel = (x: Tab) => x.title || x.name.replace(/^\d+[-_. ]*/, '') || t('board.tabRoot')
@@ -268,6 +325,7 @@
     now: () => now,
     edit: (name) => void api.open(name).catch((err) => (failed = String(err))),
     manage: manageNote,
+    tear: (name) => void tear(name),
   }
   setContext(boardContext, ctx)
 
@@ -310,7 +368,7 @@
         break
       case 'focus': {
         if (zoomed) return
-        const frames = [...document.querySelectorAll<HTMLElement>('.notes [data-frame]')]
+        const frames = [...document.querySelectorAll<HTMLElement>('.notes [data-frame], [data-canvas] [data-frame]')]
         const i = frames.findIndex((f) => f.dataset.frame === name)
         frames[Math.max(0, Math.min(frames.length - 1, i < 0 ? 0 : i + a.delta))]?.focus()
         break
@@ -392,6 +450,7 @@
     // elapsed times are words ("4m ago"): a new minute rewrites them
     const tick = setInterval(() => (now = new Date()), 60_000)
     offs.push(() => clearInterval(tick))
+    offs.push(() => stopLayout?.())
     return () => offs.forEach((off) => off())
   })
 
@@ -413,6 +472,10 @@
     onedit={() => editTarget && ctx.edit?.(editTarget)}
     oncreate={status?.state === 'ready' && board ? () => (creating = true) : undefined}
     onsettings={status?.state === 'ready' && board ? () => (configuring = true) : undefined}
+    mode={layout.mode}
+    onmode={status?.state === 'ready' && board ? setMode : undefined}
+    snap={layout.snap}
+    onsnap={status?.state === 'ready' && board ? setSnap : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -440,12 +503,26 @@
             <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} />
           {/key}
         </main>
-      {:else if open.length}
-        <main class="notes" onfocusin={(e) => (focused = frameOf(e.target as Element))}>
-          <div bind:clientWidth={gridWidth}>
-            <Grid notes={open} width={gridWidth} />
+      {:else if open.length || tornHere.length}
+        {#if tornHere.length}
+          <div class="shelf" role="group" aria-label={$tr('canvas.torn')}>
+            <span class="shelf-label">{$tr('canvas.torn')}</span>
+            {#each tornHere as n (n.name)}
+              <Button size="sm" variant="secondary" icon="restore" title={$tr('note.putBack')} onclick={() => putBack(n.name)}>{n.title || n.name}</Button>
+            {/each}
           </div>
-        </main>
+        {/if}
+        {#if layout.mode === 'canvas' && layoutRead}
+          <main class="free" onfocusin={(e) => (focused = frameOf(e.target as Element))}>
+            <Canvas notes={open} places={layout.places} snap={layout.snap} bind:scale onplace={place} />
+          </main>
+        {:else}
+          <main class="notes" onfocusin={(e) => (focused = frameOf(e.target as Element))}>
+            <div bind:clientWidth={gridWidth}>
+              <Grid notes={open} width={gridWidth} />
+            </div>
+          </main>
+        {/if}
       {:else}
         <div class="state">
           <EmptyState title={$tr(tab && tab.notes.length ? 'board.noneOpen' : 'board.emptyTitle')} body={tab && tab.notes.length ? undefined : $tr('board.emptyHint')} />
@@ -545,6 +622,23 @@
   }
   .notes {
     padding: var(--space-6) var(--space-5) var(--space-10);
+  }
+  .free {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .shelf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5) 0;
+  }
+  .shelf-label {
+    color: var(--ink-3);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
   .zoom {
     flex: 1;

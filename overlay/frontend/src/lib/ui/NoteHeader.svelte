@@ -29,6 +29,7 @@
     book,
     linked,
     editable = true,
+    sizable = true,
     lead,
     menu = [],
     menuOpen = $bindable(false),
@@ -52,6 +53,8 @@
     linked?: string
     /** false: a note that cannot be read; it can only be closed */
     editable?: boolean
+    /** false: something else sizes the note (the canvas); no width steps */
+    sizable?: boolean
     lead?: Snippet
     menu?: MenuItem[]
     menuOpen?: boolean
@@ -147,7 +150,7 @@
     {/if}
     <span class="tools">
       <Toolbar label={$tr('ui.noteActions')}>
-        {#if editable}
+        {#if editable && sizable}
           <span class="size" role="group" aria-label={$tr('ui.size')}>
             <span class="step"><IconButton icon="narrower" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
             <span class="frac" role="status" aria-label={$tr('ui.size.now', { size })} title={$tr('ui.size.now', { size })}>
@@ -155,6 +158,8 @@
             </span>
             <span class="step"><IconButton icon="wider" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
           </span>
+        {/if}
+        {#if editable}
           <IconButton
             icon="pin"
             size="sm"

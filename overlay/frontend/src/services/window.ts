@@ -11,7 +11,7 @@ const runtime = () => import('@wailsio/runtime')
  * hides it (the shell does that). Quit ends the app.
  */
 export function windowActions(kind: WindowKind): WindowActions {
-  const svc = kind === 'project' ? project : home
+  const svc = kind === 'home' ? home : project
   return {
     close: () => void runtime().then((r) => r.Window.Close()),
     minimise: () => void runtime().then((r) => r.Window.Minimise()),

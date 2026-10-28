@@ -22,7 +22,6 @@
   "board.emptyTitle": "No notes yet",
   "board.emptyHint": "Make one with + Create, or ask an agent to pin one.",
   "board.tabs": "Tabs",
-  "ui.view.canvasSoon": "Canvas comes in a later version",
   "ui.searchSoon": "Search comes in a later version",
   "board.refresh": "Refresh",
   "board.cannotWatch": "Cannot watch for file changes · Refresh",
@@ -246,5 +245,13 @@
   "settings.version": "stickypane {version}",
   "settings.open": "Settings…",
   "checklist.add": "New item",
-  "kanban.add": "New card"
+  "kanban.add": "New card",
+  "canvas.move": "Drag to move",
+  "canvas.resize": "Drag to resize",
+  "canvas.zoomReset": "Back to 100%",
+  "canvas.torn": "In their own windows",
+  "note.putBack": "Put back on the board",
+  "torn.gone": "This note is no longer on the board",
+  "canvas.snapOn": "Snap to the grid: on",
+  "canvas.snapOff": "Snap to the grid: off"
 }
