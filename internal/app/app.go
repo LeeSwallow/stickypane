@@ -150,6 +150,9 @@ type notes struct {
 	peek    map[string]bool      // notes shown open for this run without an "open" key
 	views   store.Views          // how the user arranged the notes, from sticky.json
 	anchors map[string]anchor    // where the view is in each book, by the book's name
+
+	embedFiles map[string]store.Note // reload.go: every note, for a ![[name]] line
+	embedNames []string
 }
 
 // tabState is the tabs and which one is shown.
@@ -248,7 +251,7 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 	m.offsets, m.reveal = map[string]int{}, revealNote
 	m.tabFocus = map[string]string{}
 	widget.Now = func() time.Time { return m.now() }
-	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter}
+	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter, Embed: m.embed}
 
 	m.language = st.Language()
 	UseLanguage(m.language)

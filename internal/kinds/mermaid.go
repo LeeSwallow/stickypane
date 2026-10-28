@@ -62,12 +62,12 @@ func WithMermaid(next note.Renderer) note.Renderer {
 		cache[k] = drawn{out, err}
 		return out, err
 	}
-	return func(markdown string, width int) string {
+	return func(markdown string, width int, e widget.Env) string {
 		var out []string
 		var prose strings.Builder
 		flush := func() {
 			if strings.TrimSpace(prose.String()) != "" {
-				out = append(out, strings.Trim(next(prose.String(), width), "\n"))
+				out = append(out, strings.Trim(next(prose.String(), width, e), "\n"))
 			}
 			prose.Reset()
 		}

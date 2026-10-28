@@ -25,6 +25,7 @@ func numbered(n int) string {
 }
 
 func TestDrawShowsTheWholeNote(t *testing.T) {
+	t.Parallel()
 	out, at := parse(numbered(40)).Draw(60, true)
 	lines := strings.Split(out, "\n")
 	if len(lines) != 40 || lines[39] != "l"+strings.Repeat("i", 40) {
@@ -36,24 +37,28 @@ func TestDrawShowsTheWholeNote(t *testing.T) {
 }
 
 func TestDrawHidesFrontMatter(t *testing.T) {
+	t.Parallel()
 	if got, _ := parse("---\ntitle: T\n---\nhello\n").Draw(30, false); got != "hello" {
 		t.Errorf("Draw = %q", got)
 	}
 }
 
 func TestDrawOfEmptyNote(t *testing.T) {
+	t.Parallel()
 	if got, _ := parse("").Draw(30, false); ansi.Strip(got) != "(empty)" {
 		t.Errorf("Draw = %q", got)
 	}
 }
 
 func TestDrawDropsControlCharacters(t *testing.T) {
+	t.Parallel()
 	if got, _ := parse("a\tb\x1b[31m red\x1b[0m\x07\n").Draw(30, false); got != "a    b red" {
 		t.Errorf("Draw = %q", got)
 	}
 }
 
 func TestDrawWrapsToWidth(t *testing.T) {
+	t.Parallel()
 	out, _ := parse("토큰은 세션 쿠키로 보관한다 and some more words here\n").Draw(12, false)
 	for _, line := range strings.Split(out, "\n") {
 		if w := widget.Width(line); w > 12 {
@@ -66,6 +71,7 @@ func TestDrawWrapsToWidth(t *testing.T) {
 }
 
 func TestSyncReplacesContent(t *testing.T) {
+	t.Parallel()
 	w := parse("old\n").Sync(doc.Parse([]byte("new\n")))
 	if got, _ := w.Draw(30, false); got != "new" {
 		t.Errorf("Draw after Sync = %q", got)
@@ -73,6 +79,7 @@ func TestSyncReplacesContent(t *testing.T) {
 }
 
 func TestSizeFollowsLength(t *testing.T) {
+	t.Parallel()
 	k := NewKind(Plain)
 	cases := []struct {
 		body string
@@ -92,6 +99,7 @@ func TestSizeFollowsLength(t *testing.T) {
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	k := NewKind(Plain)
 	if k.Name != "note" || k.Keys != "" || k.Tail || k.Rows != 0 {
 		t.Errorf("kind = %+v", k)
@@ -102,6 +110,7 @@ func TestKind(t *testing.T) {
 }
 
 func TestSummaryIsEmptyAndKindDescribesItself(t *testing.T) {
+	t.Parallel()
 	if got := parse("hello\n").Summary(); got != "" {
 		t.Errorf("Summary = %q, want none for a plain note", got)
 	}

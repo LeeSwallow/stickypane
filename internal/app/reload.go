@@ -9,7 +9,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -284,8 +283,8 @@ func (m *Model) shownDocs() map[string]doc.Document {
 	return docs
 }
 
-// setEmbeds tells the Markdown renderer how to find the note a ![[name]]
-// line shows: among every note of every tab, drawn by its own kind.
+// setEmbeds keeps every note of every tab, for embed to find the note a
+// ![[name]] line shows.
 func (m *Model) setEmbeds(b store.Board) {
 	files := map[string]store.Note{}
 	var names []string
@@ -299,12 +298,15 @@ func (m *Model) setEmbeds(b store.Board) {
 			}
 		}
 	}
-	reg, env := m.reg, m.env
-	kinds.Embeds = func(name string) (string, widget.Widget, bool) {
-		f, ok := files[api.Resolve(name, names)]
-		if !ok {
-			return "", nil, false
-		}
-		return arrange.Title(store.View{}, f.Doc, f.Name), reg.For(f.Name, f.Doc).Parse(f.Doc, env), true
+	m.embedFiles, m.embedNames = files, names
+}
+
+// embed is the Env's Embed: the note a ![[name]] line shows, among the
+// notes of the last reload, drawn by its own kind.
+func (m *Model) embed(name string) (string, widget.Widget, bool) {
+	f, ok := m.embedFiles[api.Resolve(name, m.embedNames)]
+	if !ok {
+		return "", nil, false
 	}
+	return arrange.Title(store.View{}, f.Doc, f.Name), m.reg.For(f.Name, f.Doc).Parse(f.Doc, m.env), true
 }

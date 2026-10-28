@@ -16,11 +16,13 @@ const (
 	halfLines = 12 // up to this many, it takes half the width; longer notes get the page
 )
 
-// Renderer turns Markdown into terminal text no wider than width.
-type Renderer func(markdown string, width int) string
+// Renderer turns Markdown into terminal text no wider than width, with
+// the Env of the widget that draws it: its styles, and the notes its
+// ![[name]] lines show.
+type Renderer func(markdown string, width int, e widget.Env) string
 
 // Plain wraps text without styling it.
-func Plain(markdown string, width int) string {
+func Plain(markdown string, width int, _ widget.Env) string {
 	if width <= 0 {
 		return markdown
 	}
@@ -87,7 +89,7 @@ func (n *Note) lines(width int) []string {
 	if l, ok := n.cache[width]; ok {
 		return l
 	}
-	l := strings.Split(n.render(widget.Clean(n.body), width), "\n")
+	l := strings.Split(n.render(widget.Clean(n.body), width, n.env), "\n")
 	blank := func(s string) bool { return strings.TrimSpace(ansi.Strip(s)) == "" }
 	for len(l) > 0 && blank(l[0]) {
 		l = l[1:]
@@ -103,7 +105,7 @@ func (n *Note) lines(width int) []string {
 func (n *Note) Draw(width int, _ bool) (string, widget.Span) {
 	l := n.lines(width)
 	if len(l) == 0 {
-		return widget.Faint.Render("(empty)"), widget.NoSpan
+		return n.env.Styles.Faint.Render("(empty)"), widget.NoSpan
 	}
 	return strings.Join(l, "\n"), widget.NoSpan
 }

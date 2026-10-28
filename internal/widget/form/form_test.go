@@ -119,7 +119,9 @@ func TestDrawShowsTheDocumentWithItsControls(t *testing.T) {
 func TestSpacingFollowsTheFileNotTheRenderer(t *testing.T) {
 	t.Parallel()
 	// A renderer such as Glamour pads its output with blank lines.
-	padded := NewKind(func(md string, width int) string { return "\n   \n" + note.Plain(md, width) + "\n   \n\n" })
+	padded := NewKind(func(md string, width int, e widget.Env) string {
+		return "\n   \n" + note.Plain(md, width, e) + "\n   \n\n"
+	})
 	w := padded.Parse(doc.Parse([]byte("intro\n\n## Q\n- ( ) a\n- ( ) b\n\n\n[ Go ]\n\n")), widget.DefaultEnv())
 	lines, _ := draw(t, w, 30)
 	want := "intro\n\n## Q\n› ○ a\n  ○ b\n\n╭────╮\n│ Go │\n╰────╯"

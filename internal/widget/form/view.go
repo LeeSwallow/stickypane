@@ -160,7 +160,7 @@ func (f *Form) text(lines []line, width int, before, after bool) []string {
 	for _, l := range lines[first:last] {
 		raw = append(raw, widget.Clean(l.text))
 	}
-	drawn := strings.Split(f.render(strings.Join(raw, "\n")+"\n", width), "\n")
+	drawn := strings.Split(f.render(strings.Join(raw, "\n")+"\n", width, f.env), "\n")
 	blank := func(s string) bool { return strings.TrimSpace(ansi.Strip(s)) == "" }
 	for len(drawn) > 0 && blank(drawn[0]) {
 		drawn = drawn[1:]

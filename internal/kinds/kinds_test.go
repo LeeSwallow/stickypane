@@ -36,9 +36,9 @@ func TestDefaultRegistry(t *testing.T) {
 func TestMarkdownFollowsTheTheme(t *testing.T) {
 	th := theme.NewHolder(theme.Pick("auto", true))
 	render := Markdown(th)
-	dark := render("## Heading\n\ntext\n", 30)
+	dark := render("## Heading\n\ntext\n", 30, widget.Env{})
 	th.Set(theme.Pick("auto", false))
-	light := render("## Heading\n\ntext\n", 30)
+	light := render("## Heading\n\ntext\n", 30, widget.Env{})
 	if dark == light {
 		t.Error("flipping the theme should change the colors of later renders")
 	}
@@ -49,7 +49,7 @@ func TestMarkdownFollowsTheTheme(t *testing.T) {
 
 func TestMarkdownRendersWithinWidth(t *testing.T) {
 	for _, dark := range []bool{true, false} {
-		out := Markdown(theme.NewHolder(theme.Pick("auto", dark)))("## 결정 사항\n\n토큰은 세션 쿠키로 보관한다. **Important** item.\n\n- a\n- b\n", 30)
+		out := Markdown(theme.NewHolder(theme.Pick("auto", dark)))("## 결정 사항\n\n토큰은 세션 쿠키로 보관한다. **Important** item.\n\n- a\n- b\n", 30, widget.Env{})
 		plain := ansi.Strip(out)
 		if !strings.Contains(plain, "결정 사항") || !strings.Contains(plain, "Important") {
 			t.Errorf("rendered text lost content: %q", plain)
@@ -66,7 +66,7 @@ func TestMarkdownRendersWithinWidth(t *testing.T) {
 // drawn as a line of its own at the left edge.
 func TestAListItemOverTwoLinesStaysOneItem(t *testing.T) {
 	r := Markdown(theme.NewHolder(theme.Pick("stickypane-dark", true)))
-	out := ansi.Strip(r("- **e** edits a note, **D** deletes it and\n  **u** takes that back\n- next\n\n```\n- code\n  stays\n```\n", 60))
+	out := ansi.Strip(r("- **e** edits a note, **D** deletes it and\n  **u** takes that back\n- next\n\n```\n- code\n  stays\n```\n", 60, widget.Env{}))
 	if !strings.Contains(out, "deletes it and u takes that back") {
 		t.Errorf("the second line should continue the item:\n%s", out)
 	}

@@ -28,6 +28,9 @@ type Env struct {
 	Styles     theme.Styles               // the text styles of the theme in use
 	StaleAfter time.Duration              // how long a card may stay put; zero never flags
 	Times      when.Formatter             // how the screen writes a time: the user's country's way
+	// Embed finds the note a ![[name]] line shows: its title and its
+	// widget, drawn read only. Nil draws an embed as a link.
+	Embed func(name string) (title string, w Widget, ok bool)
 }
 
 // DefaultEnv is the Env of a screen that has not been told otherwise: the

@@ -8,31 +8,27 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
-// Embeds finds the note a ![[name]] line shows: its title and its widget,
-// drawn read only. The screen sets it on every reload; without it an embed
-// is drawn as a link.
-var Embeds func(name string) (title string, w widget.Widget, ok bool)
-
 // embedRe is a line that is only an embed: ![[name]], ![[name#part]] or
 // ![[name|alias]].
 var embedRe = regexp.MustCompile(`^\s*!\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]\s*$`)
 
 // WithEmbeds draws each line that is only ![[name]] as that note, in its own
 // shape and read only, under a line with its title; the rest goes to next.
+// The Env's Embed finds the note; without it an embed is drawn as a link.
 // Embeds go one level deep: a note drawn inside another shows its own
 // embeds as links, so a note that embeds itself cannot loop.
 func WithEmbeds(next note.Renderer) note.Renderer {
 	depth := 0
-	return func(src string, width int) string {
-		if Embeds == nil || depth > 0 || !strings.Contains(src, "![[") {
-			return next(src, width)
+	return func(src string, width int, e widget.Env) string {
+		if e.Embed == nil || depth > 0 || !strings.Contains(src, "![[") {
+			return next(src, width, e)
 		}
 		var out []string
 		var prose []string
 		fence := ""
 		flush := func() {
 			if text := strings.Join(prose, "\n"); strings.TrimSpace(text) != "" {
-				out = append(out, strings.Trim(next(text+"\n", width), "\n"))
+				out = append(out, strings.Trim(next(text+"\n", width, e), "\n"))
 			}
 			prose = prose[:0]
 		}
@@ -56,16 +52,16 @@ func WithEmbeds(next note.Renderer) note.Renderer {
 				continue
 			}
 			depth++
-			title, w, ok := Embeds(strings.TrimSpace(m[1]))
+			title, w, ok := e.Embed(strings.TrimSpace(m[1]))
 			if ok {
 				if alias := strings.TrimSpace(m[2]); alias != "" {
 					title = alias
 				}
 				flush()
 				drawn, _ := w.Draw(max(width-2, 1), false)
-				block := []string{widget.Faint.Render(widget.Truncate("↳ "+widget.Clean(title), width))}
+				block := []string{e.Styles.Faint.Render(widget.Truncate("↳ "+widget.Clean(title), width))}
 				for _, l := range strings.Split(drawn, "\n") {
-					block = append(block, widget.Faint.Render("│ ")+l)
+					block = append(block, e.Styles.Faint.Render("│ ")+l)
 				}
 				out = append(out, strings.Join(block, "\n"))
 			} else {
