@@ -435,7 +435,7 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "script" {
 		return nil, badRequest(fmt.Sprintf("%s is not a script", p.Note))
 	}
-	r, err := runner.Start(s.api.Store(), n.Name, time.Now)
+	r, err := runner.StartGroup(s.api.Store(), n.Name, time.Now)
 	if err != nil {
 		return nil, err
 	}

@@ -25,6 +25,7 @@ type Run struct {
 	started time.Time
 	err     error // why it could not be run at all
 	inLog   bool  // whether err is to be written into the log too
+	group   bool  // whether it leads a process group of its own
 }
 
 // LogOf names the log a script writes to: the same name with ".log", next
@@ -38,7 +39,21 @@ func LogOf(name string) string {
 // under the script. An error means the log could not be written; a script
 // that cannot be run is reported by Wait. Opening the script's pane is the
 // caller's to do.
+//
+// The script stays in the caller's process group, as a program started
+// from a terminal does: it hangs up with the terminal and may read it.
 func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
+	return start(st, name, now, false)
+}
+
+// StartGroup is Start for a front end with no terminal, the desktop
+// overlay: on unix the script leads a process group of its own, so that
+// Kill stops what it started too (a server, a sleep).
+func StartGroup(st *store.Store, name string, now func() time.Time) (*Run, error) {
+	return start(st, name, now, true)
+}
+
+func start(st *store.Store, name string, now func() time.Time, group bool) (*Run, error) {
 	script := filepath.Join(st.Dir, filepath.FromSlash(name))
 	log := LogOf(name)
 	started := now()
@@ -51,7 +66,7 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 		return nil, err
 	}
 
-	r := &Run{started: started}
+	r := &Run{started: started, group: group}
 	// Not O_APPEND: on Windows that opens a handle that may only
 	// append, and the sh of Git for Windows cannot write to it, so the
 	// script's output would be lost. The log is the script's alone
@@ -70,7 +85,9 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	prog, args, err := env.Detect().Script(script)
 	if err == nil {
 		r.cmd = exec.Command(prog, args...)
-		inOwnGroup(r.cmd)
+		if group {
+			inOwnGroup(r.cmd)
+		}
 		r.cmd.Dir, r.cmd.Stdout, r.cmd.Stderr = filepath.Dir(st.Dir), f, f
 		err = r.cmd.Start()
 	}
@@ -80,14 +97,19 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	return r, nil
 }
 
-// Kill stops the script's process and, on unix, everything it started (it
-// runs in its own process group; on Windows only the process itself), for a front end that is ending while the
-// script still runs. It is harmless on a script that has ended or that
-// could not be run, and on a second call.
+// Kill stops the script, for a front end that is ending while it still
+// runs. A script begun by StartGroup is stopped with everything it started
+// (on unix; on Windows only its own process). It is harmless on a script
+// that has ended or that could not be run, and on a second call.
 func (r *Run) Kill() {
-	if r.cmd != nil && r.cmd.Process != nil {
-		killAll(r.cmd.Process)
+	if r.cmd == nil || r.cmd.Process == nil {
+		return
 	}
+	if r.group {
+		killAll(r.cmd.Process)
+		return
+	}
+	_ = r.cmd.Process.Kill()
 }
 
 // Wait waits for the script to end and writes how it ended as the last
