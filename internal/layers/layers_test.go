@@ -40,6 +40,8 @@ var rank = map[string]int{
 	"internal/rpc/rpctest":     2, // a gRPC server for tests
 	// The notes folder.
 	"internal/store": 10,
+	// Running a script and keeping its log, for every front end.
+	"internal/runner": 12,
 	// What a user may change, each with a default.
 	"internal/prefs": 15,
 	// What a note is and how it is drawn: the contract, then the shapes.

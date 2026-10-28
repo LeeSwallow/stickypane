@@ -1,11 +1,6 @@
 package app
 
 import (
-	"errors"
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -15,7 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/LeeSwallow/stickypane/internal/env"
+	"github.com/LeeSwallow/stickypane/internal/runner"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
@@ -41,25 +36,13 @@ func (m *Model) askRun(name string) {
 	})
 }
 
-// logOf names the log a script writes to: the same name with ".log", next
-// to it. In a book that makes the log another page of the book.
-func logOf(name string) string {
-	return strings.TrimSuffix(name, path.Ext(name)) + ".log"
-}
-
 // run starts a script in the project folder and returns the command that
 // waits for it. The script's output goes to its log, which starts again on
 // every run and is shown in the script's own pane, under the script.
 func (m *Model) run(name string) tea.Cmd {
-	script := filepath.Join(m.store.Dir, filepath.FromSlash(name))
-	log := logOf(name)
-	started := m.now()
-	prog := "sh"
-	if p, _, err := env.Detect().Script(script); err == nil {
-		prog = p
-	}
-	head := fmt.Sprintf("$ %s %s   (%s)\n", prog, name, started.Format("2006-01-02 15:04:05"))
-	if err := m.store.Write(log, []byte(head)); err != nil {
+	log := runner.LogOf(name)
+	r, err := runner.Start(m.store, name, m.now)
+	if err != nil {
 		m.status = say(tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
@@ -75,42 +58,9 @@ func (m *Model) run(name string) tea.Cmd {
 	m.running[name] = true
 	m.reload()
 
-	root := filepath.Dir(m.store.Dir)
-	out := filepath.Join(m.store.Dir, filepath.FromSlash(log))
 	return func() tea.Msg {
-		done := scriptDoneMsg{name: name}
-		// Not O_APPEND: on Windows that opens a handle that may only
-		// append, and the sh of Git for Windows cannot write to it, so the
-		// script's output would be lost. The log is the script's alone
-		// while it runs, so writing on from its end is the same.
-		f, err := os.OpenFile(out, os.O_WRONLY, 0o644)
-		if err != nil {
-			done.err = err
-			return done
-		}
-		defer f.Close()
-		if _, err := f.Seek(0, io.SeekEnd); err != nil {
-			done.err = err
-			return done
-		}
-		prog, args, err := env.Detect().Script(script)
-		if err == nil {
-			cmd := exec.Command(prog, args...)
-			cmd.Dir, cmd.Stdout, cmd.Stderr = root, f, f
-			err = cmd.Run()
-		}
-		done.took = time.Since(started)
-		var exit *exec.ExitError
-		switch {
-		case errors.As(err, &exit):
-			done.code = exit.ExitCode()
-		case err != nil:
-			done.err = err
-			fmt.Fprintf(f, "%v\n", err)
-			return done
-		}
-		fmt.Fprintf(f, "[exit %d · %s]\n", done.code, when.Duration(done.took))
-		return done
+		code, took, err := r.Wait()
+		return scriptDoneMsg{name: name, code: code, err: err, took: took}
 	}
 }
 
@@ -121,7 +71,7 @@ func (m *Model) finished(msg scriptDoneMsg) {
 	case msg.err != nil:
 		m.status = say(tr.CouldNotRun, map[string]any{"Name": base, "Err": msg.err.Error()})
 	default:
-		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": when.Duration(msg.took), "Log": path.Base(logOf(msg.name))})
+		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": when.Duration(msg.took), "Log": path.Base(runner.LogOf(msg.name))})
 	}
 	m.reload()
 }

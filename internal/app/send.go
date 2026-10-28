@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
+	"github.com/LeeSwallow/stickypane/internal/runner"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
@@ -79,7 +80,7 @@ func (m *Model) send(name string, part int) tea.Cmd {
 func (m *Model) sent(msg sentMsg) {
 	delete(m.running, msg.name)
 	if msg.err != nil {
-		m.status = say(tr.CannotWriteLog, map[string]any{"Log": path.Base(logOf(msg.name)), "Err": msg.err.Error()})
+		m.status = say(tr.CannotWriteLog, map[string]any{"Log": path.Base(runner.LogOf(msg.name)), "Err": msg.err.Error()})
 	} else {
 		m.status = msg.end
 	}

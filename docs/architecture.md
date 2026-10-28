@@ -17,6 +17,7 @@ layer, fails the build.
 | 40 | `internal/api`, `internal/initcmd` | what the command line and agents call; setting a project up |
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
+| 12 | `internal/runner` | running a script and keeping its log, for every front end |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
