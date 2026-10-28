@@ -42,6 +42,12 @@ on GitHub are built from pull request labels.
   short "꾸물꾸물" of the icon's three notes, skipped by any key or click.
   Settings → Motion: system, less (fades only) or off; reduced motion in
   the system is followed (#21).
+- The desktop app (in progress, #10) installs by dragging Stickypane.app to
+  Applications in a DMG drawn on graph paper, with the `stickypane` command
+  inside the app; on Linux a tar.gz with a `.desktop` entry and `install.sh`.
+  Its tray icon is the app icon's three notes in crayon, a template image
+  that follows the macOS menu bar. Pull requests that touch the app build
+  both and keep them as workflow artifacts (#23).
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
