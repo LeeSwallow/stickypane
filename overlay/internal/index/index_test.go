@@ -501,3 +501,41 @@ func TestTitleIsTheFolderUntilTheBoardNamesIt(t *testing.T) {
 		t.Fatalf("projects = %+v", ps)
 	}
 }
+
+// 08 §8.4.4, a project folder moved: the old path goes as a folder that
+// went, and the next record from the new path is a project of its own.
+// (Offering to join the two is a later step.) The other rows of the table
+// are TestPruneMarksAMissingFolderAndRestoresItWhenBack (gone, and back),
+// TestDeadPidsEndTheirSessions, TestIngestWaitsForAPartialLastLine,
+// TestIngestSkipsBrokenLines, TestDeletedEventFileForgetsItsOffset (a
+// deleted events file, and old records stickypane pruned),
+// TestRebuildFromEventsWhenTheDBIsCorrupt and, in gormstore,
+// TestALaterSchemaVersionIsSetAside.
+func TestAMovedProjectIsTheOldGoneAndTheNewAdded(t *testing.T) {
+	home, old := newHome(t), board(t, "app")
+	now := time.Now()
+	writeEvents(t, home, date(now), ev(now, "project.init", old, ""))
+	ix := openIdx(t, home)
+	ix.Ingest()
+	moved := filepath.Join(t.TempDir(), "app")
+	if err := os.Rename(old, moved); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := ix.Prune(now)
+	if err != nil || len(removed) != 1 || removed[0].Path != old {
+		t.Fatalf("removed=%v err=%v", removed, err)
+	}
+	writeEvents(t, home, date(now), ev(now, "project.init", old, ""), ev(now.Add(time.Second), "project.touch", moved, `,"cmd":"card"`))
+	ix.Ingest()
+	g, err := ix.Sessions(now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var paths []string
+	for _, r := range g.Active {
+		paths = append(paths, r.Path)
+	}
+	if len(paths) != 1 || paths[0] != moved || len(g.Removed) != 1 || g.Removed[0].Path != old {
+		t.Fatalf("active %v, removed %+v; want the new path live and the old one gone", paths, g.Removed)
+	}
+}
