@@ -49,13 +49,13 @@ asks for what the flags did not say.
 
 The plugin is in layers. The way in, `using-the-board`, says which of four
 skills fits a job: `tracking-progress`, `asking-the-user`,
-`talking-in-chat` and `connecting-notes`. The commands `/board:show`,
-`/board:status`, `/board:index`, `/board:track`, `/board:ask`,
-`/board:say`, `/board:kinds` and `/board:setup` each start one. A session
-hook tells the agent what is on the board when a session starts in a
-project that has one. In a git repository the agent's first
-`stickypane show` or `stickypane todo` makes the board, so no setup step
-is needed.
+`talking-in-chat` and `connecting-notes`. The rules they share are in
+`rules/`, written once. The commands `/board:status` (what is on the board,
+or the notes that match), `/board:track`, `/board:ask`, `/board:say` and
+`/board:setup` each start one. A session hook tells the agent what is on
+the board when a session starts in a project that has one. In a git
+repository the agent's first `stickypane show` or `stickypane todo` makes
+the board, so no setup step is needed.
 
 [plugin.md](plugin.md) is for changing the plugin itself.
 
@@ -69,7 +69,8 @@ when the project has a `.claude` folder but no `CLAUDE.md`, and a new
 nothing in its file, since the plugin teaches it. `init` works outside a
 git repository too, and is safe to run again. `--skill` writes the skill
 instead of the instruction files and `--no-agent-docs` makes the folder
-only. `stickypane guide` prints the guide; it stays English.
+only. The guide is the plugin's two rule files under a short head, so it
+says what the plugin says. `stickypane guide` prints it; it stays English.
 
 ## Commands for agents
 
@@ -117,7 +118,7 @@ stickypane card work move login --to Done    # work.md: 2 cards
 stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
-stickypane say chat "41/41 pass" --as claude # chat.md: 3 messages
+stickypane say chat "41/41 pass"             # chat.md: 3 messages, signed agent (--as <name>)
 stickypane set plan open=true size=1/2       # to sticky.json
 stickypane set plan title="The plan"         # to the note's front matter
 ```

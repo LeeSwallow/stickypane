@@ -85,8 +85,9 @@ func Lookup(name string) (Skill, bool) {
 }
 
 // Read is a skill to follow away from the plugin: its body, then each
-// file it points to (its references and the shared rules), so nothing is
-// a path the reader cannot open.
+// shared rule it points to, so no rule is a path the reader cannot open.
+// A skill's references are not carried: they are read when needed, as
+// the skill says.
 func Read(s Skill) string {
 	var b strings.Builder
 	b.WriteString(s.Body)
@@ -106,16 +107,12 @@ func Read(s Skill) string {
 	return b.String()
 }
 
-// pointsTo is the files a skill names: references/... in its own folder,
-// and the plugin's rules/....
+// pointsTo is the plugin's rules/... a skill names.
 func pointsTo(s Skill) []string {
 	var out []string
 	for _, field := range strings.FieldsFunc(s.Body, func(r rune) bool { return r == '`' || r == ' ' || r == '\n' || r == '(' || r == ')' }) {
 		field = strings.TrimRight(field, ".,:;")
-		switch {
-		case strings.HasPrefix(field, "references/") && strings.HasSuffix(field, ".md"):
-			out = append(out, path.Join("skills", s.Name, field))
-		case strings.HasPrefix(field, "${CLAUDE_PLUGIN_ROOT}/rules/"):
+		if strings.HasPrefix(field, "${CLAUDE_PLUGIN_ROOT}/rules/") {
 			out = append(out, strings.TrimPrefix(field, "${CLAUDE_PLUGIN_ROOT}/"))
 		}
 	}

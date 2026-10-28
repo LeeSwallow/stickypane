@@ -126,8 +126,9 @@ may only import a lower layer; `internal/layers` fails the tests otherwise.
   gets `Refs: #12`.
 - **Tests** come with the change. When a test and the README disagree, say
   so in the pull request.
-- **Docs**: a change in behaviour updates the README, and the agent guide
-  (`internal/initcmd/guide.md`) or a skill when agents need to know.
+- **Docs**: a change in behaviour updates the README, and the rules
+  (`rules/`, which are also the agent guide) or a skill when agents need to
+  know. Each rule is written once there; the rest points to it.
 - Go, standard library first. A new dependency needs a reason in the pull
   request, and a license `scripts/licenses.sh` accepts.
 

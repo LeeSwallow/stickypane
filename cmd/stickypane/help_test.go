@@ -102,7 +102,7 @@ func TestHelpStart(t *testing.T) {
 		t.Fatalf("code = %d", code)
 	}
 	last := -1
-	for _, step := range []string{"stickypane init", "stickypane write", "stickypane\n", "stickypane setup", "desktop app"} {
+	for _, step := range []string{"stickypane setup", "stickypane init", "stickypane\n", "stickypane write"} {
 		i := strings.Index(start, step)
 		if i < 0 || i < last {
 			t.Errorf("%q should come in order in:\n%s", step, start)

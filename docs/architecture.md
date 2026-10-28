@@ -145,7 +145,8 @@ To add a shape:
 5. If the command line should change one thing in it, add a function to
    `internal/api/edit.go` that applies one of its ops, and a command to the
    table in `cmd/stickypane/commands.go`.
-6. Describe it in `skills/using-the-board/references/kinds.md`.
+6. Describe it in `skills/using-the-board/references/kinds.md`, and in a
+   line of `rules/writing-notes.md` if agents write it by hand.
 
 `TestEveryKindKeepsTheContract` in `internal/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
@@ -161,14 +162,15 @@ each pointing only at the one below:
 
 | Layer | Folder | Is |
 | --- | --- | --- |
-| commands | `commands/` | `/board:track`, `/board:ask`, `/board:say`...: a line that names a skill |
+| commands | `commands/` | `/board:status`, `/board:track`, `/board:ask`, `/board:say`, `/board:setup`: a line that names a skill |
 | skills | `skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
 | references | `skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
-| rules | `rules/` | what every skill keeps to: what the board writes itself, how a note is worded |
+| rules | `rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
 
 The program embeds `skills/`, `rules/` and `commands/` (`harness.go` at the
 module root), and `internal/harness` hands the skills to the MCP server, as
-prompts and as topics of the `guide` tool, and to `stickypane guide`. The
+prompts and as topics of the `guide` tool, and to `stickypane guide`;
+`internal/initcmd` builds the agent guide from `rules/`. The
 tests in `internal/initcmd` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 

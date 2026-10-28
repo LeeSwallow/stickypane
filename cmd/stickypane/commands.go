@@ -195,7 +195,7 @@ func init() {
 			what:     "Adds a message to a chat note, said by agent unless --as names someone else.",
 			syntax:   "stickypane say <name> [--as <who>] <text>",
 			args:     "--as W  who says it (default: agent)",
-			examples: []string{"stickypane say chat \"41/41 pass\" --as claude", "stickypane say chat \"thanks\""},
+			examples: []string{"stickypane say chat \"41/41 pass\"", "stickypane say chat \"deploy is green\" --as ci"},
 			related:  []string{"log", "watch"},
 		}},
 		{[]string{"set"}, editCmd("set"), helpText{

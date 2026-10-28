@@ -29,7 +29,9 @@ func TestPluginManifestsParse(t *testing.T) {
 			t.Errorf("%s: %v", f, err)
 		}
 	}
-	for _, f := range []string{"commands/show.md", "commands/status.md", "commands/ask.md", "commands/setup.md", "commands/kinds.md", "commands/track.md", "commands/say.md", "commands/index.md"} {
+	// /board:status also lists the notes, as /board:index did; showing a
+	// note and the shapes are a command away (stickypane show, help <shape>).
+	for _, f := range []string{"commands/status.md", "commands/ask.md", "commands/setup.md", "commands/track.md", "commands/say.md"} {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
 		if err != nil || !strings.HasPrefix(string(b), "---\ndescription: ") {
 			t.Errorf("%s should start with a description: %v", f, err)
@@ -164,7 +166,7 @@ func TestEveryShapeHasAShortEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"## Note", "mermaid", "## Board", "type: board", "## Checklist", "type: checklist", "## Log", "type: log", ".log", "## Chart", "type: chart", "## Form", "type: form", "stickypane wait", "## Script", ".sh", "## Tab", "## Book", "stickypane kinds"} {
+	for _, want := range []string{"## Note", "mermaid", "## Board", "type: board", "## Checklist", "type: checklist", "## Log", "type: log", ".log", "## Chart", "type: chart", "## Form", "type: form", "stickypane wait", "## Script", ".sh", "## Tab", "## Book", "stickypane help"} {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("references/kinds.md should cover %q", want)
 		}

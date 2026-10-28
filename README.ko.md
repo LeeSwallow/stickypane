@@ -79,16 +79,25 @@ flowchart LR
 
 **1. 설치합니다.** 위의 방법 가운데 하나로.
 
-**2. 프로젝트에 보드를 만듭니다.** 프로젝트 폴더에서:
+**2. 에이전트를 연결합니다.** 한 번이면 됩니다.
+
+```sh
+stickypane setup
+```
+
+Claude Code와 Codex에 보드 플러그인을 설치합니다. 어느 폴더에서 해도 됩니다.
+`stickypane setup --mcp`는 MCP 서버도 등록합니다.
+
+**3. 프로젝트에 보드를 만듭니다.** 프로젝트 폴더에서:
 
 ```sh
 stickypane init
 ```
 
-`.sticky/`를 만들고 `CLAUDE.md`나 `AGENTS.md`에 짧은 안내문을 남겨, 에이전트가
-보드가 있다는 것을 알게 합니다.
+`.sticky/`를 만듭니다. 플러그인이 없는 에이전트에게는 `CLAUDE.md`나 `AGENTS.md`에
+짧은 안내문을 남겨, 보드가 있다는 것을 알게 합니다.
 
-**3. 에이전트 옆에 보드를 띄웁니다.** 창을 나눠 새 창에서 `stickypane`을 실행합니다.
+**4. 에이전트 옆에 보드를 띄웁니다.** 창을 나눠 새 창에서 `stickypane`을 실행합니다.
 `stickypane env`가 지금 터미널에 맞는 명령을 알려 줍니다.
 
 | 터미널 | 명령 |
@@ -99,15 +108,8 @@ stickypane init
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
 | 그 밖의 터미널 | 같은 폴더에서 창이나 탭을 하나 더 열고 `stickypane` |
 
-**4. 에이전트를 연결합니다.** 한 번이면 됩니다.
-
-```sh
-stickypane setup
-```
-
-Claude Code와 Codex에 보드 플러그인을 설치합니다. `stickypane setup --mcp`는 MCP
-서버도 등록합니다. 그다음 시키면 됩니다. "이 리팩터 체크리스트를 보드에 띄워 줘."
-"배포 전에 보드에서 물어봐." 화면을 한국어로 하려면 `stickypane language ko`.
+그다음 시키면 됩니다. "이 리팩터 체크리스트를 보드에 띄워 줘." "배포 전에 보드에서
+물어봐." 화면을 한국어로 하려면 `stickypane language ko`.
 
 <details>
 <summary>같은 순서를 <code>stickypane help start</code>로 보면</summary>
@@ -115,19 +117,19 @@ Claude Code와 Codex에 보드 플러그인을 설치합니다. `stickypane setu
 ```text
 처음 시작하기
 
-1. 프로젝트에 보드를 만들고, 에이전트에게도 알려 둡니다.
+1. 에이전트를 연결합니다. 한 번이면 됩니다.
+     stickypane setup
+   (Claude Code와 Codex에 보드 플러그인을 설치합니다. setup --mcp는 MCP도 등록)
+2. 프로젝트에 보드를 만듭니다.
      stickypane init
-2. 첫 메모를 붙입니다. 에이전트나 스크립트가 파일을 쓰면 되고, 직접 써도 됩니다.
-     echo "- [ ] 보드 써 보기" | stickypane write plan --type checklist --open
-   (어떤 모양이 있는지는 stickypane kinds에서)
+   (플러그인이 없는 에이전트에게는 CLAUDE.md나 AGENTS.md에 짧은 안내문을 남깁니다)
 3. 에이전트 옆 창에 보드를 띄웁니다.
      stickypane
    (내 터미널에서 띄우는 법은 stickypane env가 압니다)
-4. 에이전트를 연결합니다. 한 번이면 됩니다.
-     stickypane setup
-   (또는 setup --mcp, 아니면 init이 CLAUDE.md / AGENTS.md에 남긴 줄)
-5. 데스크톱에서 보고 싶다면 앱을 여세요. 같은 보드를 보여 주고
-   stickypane bridge도 알아서 띄웁니다.
+
+이제 에이전트에게 보드에 띄워 달라고 하거나, 직접 메모를 붙여 보세요.
+     echo "- [ ] 보드 써 보기" | stickypane write plan --type checklist --open
+(어떤 모양이 있는지는 stickypane kinds에서)
 
 다음: stickypane help, 그다음 stickypane help <명령>.
 ```
@@ -235,7 +237,7 @@ sequenceDiagram
 | board | 칸에 놓인 카드(칸반) | `stickypane card work add "로그인 API" --to Doing` |
 | checklist | 체크해 나가는 단계와 진행 막대 | `stickypane todo plan add "테스트 작성"` |
 | log | 한 줄에 하나, 최신 줄이 보이게 | `stickypane log worklog --time "테스트 통과"` |
-| chat | 누가 언제 무슨 말을 했는지 | `stickypane say chat "41/41 통과" --as claude` |
+| chat | 누가 언제 무슨 말을 했는지 | `stickypane say chat "41/41 통과"` |
 | chart | 막대, 추세선, 날짜 달력 | `stickypane chart tokens add input 1200` |
 | form | 고를 것, 채울 줄, 버튼 | `stickypane wait deploy --timeout 10m` |
 | script | 실행 버튼이 달린 셸 스크립트 | `stickypane show deploy.sh` |
