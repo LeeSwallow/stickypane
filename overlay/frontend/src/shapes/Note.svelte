@@ -1,0 +1,200 @@
+<script lang="ts">
+  // A Markdown note (03 §3.8): body in Pretendard, headings by hand, code
+  // in colour, diagrams and math drawn. [[links]] go to their note; a line
+  // that is only ![[name]] draws that note, one level deep (10 §10.2).
+  import 'katex/dist/katex.min.css'
+  import { useBoard } from '../board/context'
+  import { splitEmbeds, type Note as NoteT, type NoteData } from '../board/model'
+  import { tr } from '../i18n'
+  import { look } from '../lib/doodle/look.svelte'
+  import { mermaidRenderer, render } from './markdown'
+  import Shape from './Shape.svelte'
+
+  let { note, depth = 0 }: { note: NoteT; depth?: number } = $props()
+  const board = useBoard()
+
+  const markdown = $derived((note.data as NoteData | null)?.markdown ?? '')
+  const segments = $derived(splitEmbeds(markdown))
+  let html: string[] = $state([])
+
+  $effect(() => {
+    const segs = segments
+    const style = look.style
+    const mermaid = look.palette ? mermaidRenderer(look.palette, style) : undefined
+    let live = true
+    Promise.all(segs.map((s) => ('md' in s ? render(s.md, { mermaid }) : Promise.resolve(''))))
+      .then((out) => live && (html = out))
+      .catch(() => {})
+    return () => (live = false)
+  })
+
+  function click(e: MouseEvent) {
+    const a = (e.target as HTMLElement).closest('a')
+    if (!a) return
+    const link = a.dataset.note
+    if (link !== undefined) {
+      e.preventDefault()
+      board.navigate(link)
+    } else if (!a.getAttribute('href')?.startsWith('#')) {
+      e.preventDefault() // nothing leaves the board window
+    }
+  }
+</script>
+
+<!-- links are followed by the click on them; keys reach them as links -->
+<div class="md" role="presentation" onclick={click}>
+  {#if !markdown.trim()}
+    <p class="empty">{$tr('note.empty')}</p>
+  {/if}
+  {#each segments as seg, i (i)}
+    {#if 'md' in seg}
+      {#if html[i] !== undefined}
+        {@html html[i]}
+      {:else}
+        <pre class="raw">{seg.md}</pre>
+      {/if}
+    {:else}
+      {@const target = board.find(seg.embed)}
+      {#if !target}
+        <p class="missing">{$tr('note.embedMissing', { name: seg.embed })}</p>
+      {:else if depth >= 1}
+        <p><a class="wikilink" data-note={seg.embed} href="#{seg.embed}">{target.title}</a></p>
+      {:else}
+        <figure class="embed">
+          <figcaption><a class="wikilink" data-note={seg.embed} href="#{seg.embed}">{target.icon} {target.title}</a></figcaption>
+          <Shape note={target} depth={depth + 1} />
+        </figure>
+      {/if}
+    {/if}
+  {/each}
+</div>
+
+<style>
+  .md {
+    font: 13px/1.55 var(--font-body);
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .md :global(h1),
+  .md :global(h2),
+  .md :global(h3),
+  .md :global(h4) {
+    font-family: var(--font-hand);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0.7em 0 0.3em;
+  }
+  .md :global(h1) {
+    font-size: 24px;
+  }
+  .md :global(h2) {
+    font-size: 21px;
+  }
+  .md :global(h3) {
+    font-size: 18px;
+  }
+  .md :global(p),
+  .md :global(ul),
+  .md :global(ol),
+  .md :global(table),
+  .md :global(blockquote) {
+    margin: 0.4em 0;
+  }
+  .md :global(:first-child) {
+    margin-top: 0;
+  }
+  .md :global(ul),
+  .md :global(ol) {
+    padding-left: 1.4em;
+  }
+  .md :global(li.task-list-item) {
+    list-style: none;
+    margin-left: -1.3em;
+  }
+  .md :global(a) {
+    color: var(--accent);
+  }
+  .md :global(a.wikilink) {
+    text-decoration: underline dashed;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .md :global(code) {
+    font: 12px var(--font-mono);
+    background: var(--select);
+    padding: 1px 4px;
+    border-radius: 4px;
+  }
+  .md :global(pre) {
+    background: var(--select);
+    padding: 8px 10px;
+    border-radius: 6px;
+    overflow: auto;
+  }
+  .md :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+  .md :global(pre.shiki span) {
+    color: var(--shiki-light);
+  }
+  :global([data-mode='dark']) .md :global(pre.shiki span) {
+    color: var(--shiki-dark);
+  }
+  .md :global(table) {
+    border-collapse: collapse;
+  }
+  .md :global(th),
+  .md :global(td) {
+    border: 1px solid var(--grid-major);
+    padding: 3px 8px;
+  }
+  .md :global(blockquote) {
+    border-left: 3px solid var(--pencil);
+    padding-left: 10px;
+    color: var(--pencil);
+  }
+  .md :global(.mermaid svg) {
+    max-width: 100%;
+    height: auto;
+  }
+  .md :global(.mermaid-error .why) {
+    color: var(--bad);
+  }
+  .md :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .md :global(.footnotes) {
+    font-size: 12px;
+    color: var(--pencil);
+  }
+  .md :global(.sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .raw {
+    white-space: pre-wrap;
+    font: inherit;
+    margin: 0;
+    background: none;
+  }
+  .empty,
+  .missing {
+    color: var(--pencil);
+    margin: 0;
+  }
+  .embed {
+    margin: 8px 0;
+    padding: 8px 10px;
+    border: 1.5px dashed var(--grid-major);
+    border-radius: 8px;
+  }
+  .embed figcaption {
+    font: 700 16px var(--font-hand);
+    margin-bottom: 6px;
+  }
+</style>

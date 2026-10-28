@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { THEMES } from '../../demo/fixtures'
+import { THEMES } from './palettes'
 import { agentColor, cardColors, contrast, deriveTokens, mix, noteColors, seedOf } from './tokens'
 import { resolveDark, resolveThemeName } from './mode'
 import { normalizePalette } from './palette'

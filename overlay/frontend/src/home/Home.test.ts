@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage } from '../i18n'
-import { THEMES } from '../demo/fixtures'
+import { THEMES } from '../lib/theme/palettes'
 import { STICKYPANE_DARK, STICKYPANE_LIGHT } from '../lib/theme/fallback'
 import type { Groups, HomeApi, Row } from './api'
 import Home from './Home.svelte'

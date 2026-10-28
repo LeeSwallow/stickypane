@@ -1,7 +1,10 @@
-// Mirror of internal/theme/palettes.go, for tests and the demo page only.
-// At run time the palette comes from the bridge.
-import type { Palette } from '../lib/theme/palette'
-import { STICKYPANE_DARK, STICKYPANE_LIGHT } from '../lib/theme/fallback'
+// Mirror of internal/theme/palettes.go. At run time the palette comes from
+// the bridge; this table only supplies the paired theme when the overlay's
+// mode (03 §3.4) asks for the other half of a pair than the one chosen
+// (the bridge sends the chosen theme's colours alone). Keep it in step
+// with palettes.go.
+import type { Palette } from './palette'
+import { STICKYPANE_DARK, STICKYPANE_LIGHT } from './fallback'
 
 export const THEMES: Palette[] = [
   STICKYPANE_DARK,

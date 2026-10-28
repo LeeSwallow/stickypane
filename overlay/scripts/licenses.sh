@@ -58,6 +58,7 @@ ALLOWED_EXTRA = {
     "MIT-0",          # @csstools/*, test-time dependencies of vitest
     "CC0-1.0",        # mdn-data, a data set used by css-tree at test time
     "BlueOak-1.0.0",  # lru-cache, a dependency of the test tools
+    "Unlicense",      # robust-predicates (mermaid -> d3 -> d3-delaunay): a public-domain dedication
 }
 OK = ALLOWED | ALLOWED_EXTRA
 # Packages that may carry MPL-2.0: file-level copyleft, fine for a build tool
@@ -198,6 +199,14 @@ for line in open(npm_list):
         lic = " OR ".join(l.get("type", "") if isinstance(l, dict) else str(l) for l in meta["licenses"])
     if isinstance(lic, dict):
         lic = lic.get("type", "")
+    if not lic:
+        # No license field (khroma, a dependency of mermaid): read the
+        # package's license file, as for a Go module.
+        for n in sorted(os.listdir(d)):
+            if re.match(r"(?i)^(licen[cs]e|copying)([._-].*)?$", n) and os.path.isfile(os.path.join(d, n)):
+                with open(os.path.join(d, n), errors="replace") as f:
+                    lic = go_license(f.read())
+                break
     checked_npm += 1
     only = BUILD_ONLY.get(str(lic), ())
     if lic and any(meta.get("name", "").startswith(p) for p in only):
