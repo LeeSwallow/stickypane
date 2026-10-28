@@ -21,7 +21,7 @@ layer, fails the build.
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
-| 5 | `internal/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it |
+| 5 | `internal/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it: written, read and pruned only here |
 | 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
@@ -99,6 +99,15 @@ was ticked or a card moved), and say when they next change as time passes
 title come from three places, in order: the user's choice in `sticky.json`,
 the note's front matter, the note's kind. `internal/arrange` is the only
 code that decides; the screen and `stickypane list` and `set` ask it.
+
+**The registry.** `~/.stickypane` has one writer, `internal/registry`:
+`registry.Event` is a line of `events/<date>.jsonl`, `registry.Run` the
+file `run/<pid>.json`, and a `registry.Writer` writes them on its own
+clock, through `internal/when`. `registry.Read` reads them back for the
+desktop app, and `registry.Prune`, run when the board or the bridge
+opens, is the only code that deletes them. `internal/registry/testdata/home`
+is a home written with a fixed clock; a test keeps the writer to it, and
+the app's tests read it rather than copy the format.
 
 ## A shape of note
 
