@@ -17,10 +17,18 @@
   import Toast from '../lib/ui/Toast.svelte'
   import { homeService, type Groups, type HomeApi, type Notice, type Prefs, type StickypaneState } from '../services/home'
   import Empty from './Empty.svelte'
+  import Dialog from '../lib/ui/Dialog.svelte'
+  import type { MenuItem } from '../lib/ui/menu'
+  import { setupService, type SetupApi } from '../services/install'
+  import Terminal from '../settings/Terminal.svelte'
   import Sessions from './Sessions.svelte'
   import Install from './Install.svelte'
 
-  let { api = homeService, now = () => new Date() }: { api?: HomeApi; now?: () => Date } = $props()
+  let { api = homeService, setup: setupApi = setupService, now = () => new Date() }: { api?: HomeApi; setup?: SetupApi; now?: () => Date } = $props()
+
+  // ⋯ → 터미널과 에이전트…: the terminal command and the agents, as in a board's settings
+  let terminal = $state(false)
+  const menu: MenuItem[] = $derived([{ id: 'terminal', label: $tr('settings.terminal') + '…', icon: 'settings' }])
 
   const KEY = 'stickypane.home.dismissed'
   let groups = $state<Groups | null>(null)
@@ -181,7 +189,7 @@
 </script>
 
 <div class="window">
-  <TitleBar name={$tr('home.title')} {chrome} window={win}>
+  <TitleBar name={$tr('home.title')} {chrome} window={win} {menu} onmenu={(id) => id === 'terminal' && (terminal = true)}>
     {#snippet actions()}
       {#if count > 0}
         <Button variant="primary" size="sm" icon="plus" onclick={pick} disabled={busy || status?.found !== true}>{$tr('home.addProject')}</Button>
@@ -231,6 +239,15 @@
     </div>
   {/if}
 
+  {#if terminal}
+    <Dialog bind:open={terminal} title={$tr('settings.terminal')} width={520}>
+      <div class="terminal"><Terminal setup={setupApi} open={terminal} /></div>
+      {#snippet actions()}
+        <Button variant="primary" onclick={() => (terminal = false)}>{$tr('ui.close')}</Button>
+      {/snippet}
+    </Dialog>
+  {/if}
+
   <Confirm
     open={confirming !== ''}
     title={$tr('home.confirmInit')}
@@ -271,6 +288,13 @@
   }
   .notices > :global(*) {
     width: min(100%, 440px);
+  }
+  .terminal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    max-height: min(64vh, 560px);
+    overflow: auto;
   }
   .setup {
     margin-bottom: var(--space-6);

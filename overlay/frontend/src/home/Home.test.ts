@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setLanguage } from '../i18n'
+import { setLanguage, t } from '../i18n'
 import type { Groups, HomeApi, Row } from '../services/home'
+import { fakeSetup } from '../settings/fakeSetup'
 import Home from './Home.svelte'
 
 const NOW = new Date(2026, 9, 28, 15, 0, 0)
@@ -62,6 +63,17 @@ afterEach(cleanup)
 const mount = (api: HomeApi) => render(Home, { api, now: () => NOW })
 
 describe('home', () => {
+  it('the ⋯ menu reaches the terminal command and the agents', async () => {
+    const f = fakeSetup()
+    render(Home, { api: fakeApi(empty), setup: f.api, now: () => NOW })
+    await fireEvent.click(screen.getByRole('button', { name: t('ui.more') }))
+    await fireEvent.click(await screen.findByRole('menuitem', { name: t('settings.terminal') + '…' }))
+    await fireEvent.click(await screen.findByRole('button', { name: t('cli.install') }))
+    expect(f.api.install).toHaveBeenCalledWith('user', false)
+    expect(screen.getByRole('button', { name: t('settings.connectAgents') })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: t('agents.init') })).toBeNull()
+  })
+
   it('home opens straight to the list', async () => {
     const api = fakeApi({
       Active: [row(1, 'stickypane', at(0, 14, 58), { Live: [{ PID: 1, Kind: 'tui', Started: iso(at(0, 14)) }] })],
