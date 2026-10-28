@@ -54,12 +54,14 @@ interface Placeable {
 
 /**
  * firstPlaces are places for the notes the canvas has not seen: where the
- * grid would draw them on a board width px wide, in the board's order. On
- * a canvas that already has notes, they start below them, so nothing new
- * lands on top of what was placed by hand.
+ * grid would draw them alone on a board width px wide, in the board's
+ * order. On a canvas that already has notes, they start below them at the
+ * left edge, so nothing new lands on top of what was placed by hand, nor
+ * off to the side where a note it no longer shares a row with would be.
  */
-export function firstPlaces(notes: Placeable[], places: Record<string, Place>, width: number): Record<string, Place> {
-  if (!notes.some((n) => !places[n.name])) return {}
+export function firstPlaces(all: Placeable[], places: Record<string, Place>, width: number): Record<string, Place> {
+  const notes = all.filter((n) => !places[n.name])
+  if (!notes.length) return {}
   const inner = Math.max(width - 2 * PAD, 2 * MIN_W)
   const grid = gridPlace(notes, inner)
   const heightOf = (n: Placeable) => heightOfRows(n.rows) ?? NEW_H

@@ -44,6 +44,16 @@ describe('a note new to the canvas', () => {
     expect(p['b.md'].z).toBe(8)
     expect(firstPlaces(notes, { ...known, ...p }, 1048)).toEqual({})
   })
+  it('a new note on a canvas that has notes starts at the left edge, below them', () => {
+    const notes = [
+      { name: 'a.md', size: '1/2', rows: 0 },
+      { name: 'b.md', size: '1/2', rows: 0 },
+    ]
+    const known = { 'a.md': { x: PAD, y: PAD, w: 900, h: 300, tilt: 0, z: 1 } }
+    const p = firstPlaces(notes, known, 1048)
+    expect(p['b.md'].x).toBe(PAD)
+    expect(p['b.md'].y).toBeGreaterThanOrEqual(PAD + 300)
+  })
   it('leans a little, the same every time', () => {
     expect(tiltOf('a.md')).toBe(tiltOf('a.md'))
     for (const n of ['a', 'b', 'release.md', '한글.md']) expect(Math.abs(tiltOf(n))).toBeLessThanOrEqual(1.5)
