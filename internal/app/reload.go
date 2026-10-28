@@ -48,7 +48,7 @@ func (m *Model) reload() {
 	// What a note's kind fills in by itself, the board writes, so that an
 	// agent editing the file never has to; then it reads the board again.
 	// Charts computed from other notes (from:) are computed too.
-	derived, _ := api.New(m.store, m.reg).Derive()
+	derived, _ := api.NewWithClock(m.store, m.reg, m.now).Derive()
 	if m.tend(board.Tabs, m.shownDocs()) || derived > 0 {
 		if board, err = m.store.Load(); err != nil {
 			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
