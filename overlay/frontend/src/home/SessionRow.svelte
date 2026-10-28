@@ -10,7 +10,7 @@
   import { agentColor, noteIndexOf } from '../lib/theme/tokens'
   import Badge from '../lib/ui/Badge.svelte'
   import Chip from '../lib/ui/Chip.svelte'
-  import type { Row } from './api'
+  import type { Row } from '../services/home'
 
   let { row, now, active = false, open }: { row: Row; now: Date; active?: boolean; open: (path: string) => void } = $props()
 

@@ -1,0 +1,381 @@
+[
+ {
+  "name": "note",
+  "icon": "✎",
+  "label": "Note",
+  "blurb": "Anything in Markdown, from one line to a full page.",
+  "example": "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
+  "data": {
+   "markdown": "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n"
+  },
+  "options": [
+   {
+    "name": "text",
+    "type": "lines",
+    "label": "Text",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "board",
+  "icon": "▦",
+  "label": "Board (kanban)",
+  "blurb": "Cards in columns. Move a card as the work moves.",
+  "example": "---\ntype: board\n---\n## To do\n- payments\n## Doing\n- login API\n## Done\n- schema\n",
+  "data": {
+   "desc": [],
+   "columns": [
+    {
+     "title": "To do",
+     "cards": [
+      {
+       "text": "payments",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    },
+    {
+     "title": "Doing",
+     "cards": [
+      {
+       "text": "login API",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    },
+    {
+     "title": "Done",
+     "cards": [
+      {
+       "text": "schema",
+       "who": [],
+       "detail": [],
+       "stalled": false
+      }
+     ]
+    }
+   ]
+  },
+  "options": [
+   {
+    "name": "columns",
+    "type": "lines",
+    "label": "Columns",
+    "default": "To do\nDoing\nDone"
+   },
+   {
+    "name": "cards",
+    "type": "lines",
+    "label": "First cards",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "checklist",
+  "icon": "☑",
+  "label": "Checklist",
+  "blurb": "Steps to tick off, with a progress bar.",
+  "example": "---\ntype: checklist\n---\n- [x] Add endpoint\n- [x] Validate input\n- [ ] Write tests\n",
+  "data": {
+   "items": [
+    {
+     "text": "Add endpoint",
+     "checked": true
+    },
+    {
+     "text": "Validate input",
+     "checked": true
+    },
+    {
+     "text": "Write tests",
+     "checked": false
+    }
+   ],
+   "prose": [],
+   "done": 2,
+   "total": 3
+  },
+  "options": [
+   {
+    "name": "items",
+    "type": "lines",
+    "label": "Items",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "log",
+  "icon": "≣",
+  "label": "Log",
+  "blurb": "One entry per line. The newest entries stay in sight.",
+  "example": "---\ntype: log\n---\n14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
+  "data": {
+   "lines": [
+    "14:02 tests passed",
+    "14:10 started on review feedback",
+    "14:31 pushed the fix"
+   ]
+  },
+  "options": [
+   {
+    "name": "entries",
+    "type": "lines",
+    "label": "First entries",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "chat",
+  "icon": "✉",
+  "label": "Chat",
+  "blurb": "A conversation in a note: who said what and when, the newest in sight.",
+  "example": "---\ntype: chat\n---\n## 2026-10-03\n@min 14:02 can you rerun the tests?\n@claude 14:03 41/41 pass\n",
+  "data": {
+   "messages": [
+    {
+     "day": "2026-10-03",
+     "who": "min",
+     "clock": "14:02",
+     "text": "can you rerun the tests?"
+    },
+    {
+     "day": "2026-10-03",
+     "who": "claude",
+     "clock": "14:03",
+     "text": "41/41 pass"
+    }
+   ]
+  },
+  "options": []
+ },
+ {
+  "name": "chart",
+  "icon": "▤",
+  "label": "Chart",
+  "blurb": "Numbers as bars, a trend line, or a calendar of days.",
+  "example": "---\ntype: chart\n---\napp: 61\nboard: 31\nchecklist: 21\nstore: 16\n",
+  "data": {
+   "view": "bar",
+   "prose": [],
+   "points": [
+    {
+     "label": "app",
+     "text": "61",
+     "value": 61
+    },
+    {
+     "label": "board",
+     "text": "31",
+     "value": 31
+    },
+    {
+     "label": "checklist",
+     "text": "21",
+     "value": 21
+    },
+    {
+     "label": "store",
+     "text": "16",
+     "value": 16
+    }
+   ]
+  },
+  "options": [
+   {
+    "name": "view",
+    "type": "choice",
+    "label": "View",
+    "choices": [
+     "bar",
+     "spark",
+     "heat"
+    ],
+    "default": "bar"
+   },
+   {
+    "name": "values",
+    "type": "lines",
+    "label": "Values",
+    "default": ""
+   },
+   {
+    "name": "from",
+    "type": "text",
+    "label": "Count from note",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "form",
+  "icon": "◉",
+  "label": "Form",
+  "blurb": "A document that asks: options to choose, lines to fill in, buttons to press. The answers land in the file.",
+  "example": "---\ntype: form\n---\n## Where to deploy?\n- (x) staging\n- ( ) production\n\n## Note\n> after lunch\n\n[ Deploy ] [ Cancel ]\n",
+  "data": {
+   "lines": [
+    {
+     "kind": "text",
+     "text": "## Where to deploy?"
+    },
+    {
+     "kind": "option",
+     "text": "staging",
+     "group": "Where to deploy?",
+     "radio": true,
+     "checked": true
+    },
+    {
+     "kind": "option",
+     "text": "production",
+     "group": "Where to deploy?",
+     "radio": true
+    },
+    {
+     "kind": "text",
+     "text": ""
+    },
+    {
+     "kind": "text",
+     "text": "## Note"
+    },
+    {
+     "kind": "field",
+     "text": "after lunch",
+     "group": "Note"
+    },
+    {
+     "kind": "text",
+     "text": ""
+    },
+    {
+     "kind": "buttons",
+     "text": "",
+     "labels": [
+      "Deploy",
+      "Cancel"
+     ]
+    },
+    {
+     "kind": "text",
+     "text": ""
+    }
+   ],
+   "submitted": "",
+   "at": ""
+  },
+  "options": [
+   {
+    "name": "question",
+    "type": "text",
+    "label": "Question",
+    "default": "Question"
+   },
+   {
+    "name": "answer",
+    "type": "choice",
+    "label": "Answer",
+    "choices": [
+     "one",
+     "many",
+     "text"
+    ],
+    "default": "one"
+   },
+   {
+    "name": "choices",
+    "type": "lines",
+    "label": "Choices",
+    "default": "Yes\nNo"
+   },
+   {
+    "name": "buttons",
+    "type": "lines",
+    "label": "Buttons",
+    "default": "Submit"
+   }
+  ]
+ },
+ {
+  "name": "script",
+  "icon": "▶",
+  "label": "Script",
+  "blurb": "A shell script with a Run button. It runs in the project folder and its output is a log next to it.",
+  "example": "#!/bin/sh\ngo test ./...\n",
+  "data": {
+   "lang": "sh",
+   "source": "#!/bin/sh\ngo test ./...\n"
+  },
+  "options": [
+   {
+    "name": "commands",
+    "type": "lines",
+    "label": "Commands",
+    "default": ""
+   }
+  ]
+ },
+ {
+  "name": "api",
+  "icon": "⇄",
+  "label": "API requests (exp)",
+  "blurb": "Experimental. REST, WebSocket and gRPC requests in a .http file, sent with enter; the response, its checks and what it captured show under them.",
+  "example": "@base = https://httpbin.org\n\n### Echo\nPOST {{base}}/anything\nContent-Type: application/json\n\n{\"user\": \"min\"}\n# @assert response.statusCode == 200\n# @assert response.json(\"json.user\") == \"min\"\n",
+  "data": {
+   "source": "@base = https://httpbin.org\n\n### Echo\nPOST {{base}}/anything\nContent-Type: application/json\n\n{\"user\": \"min\"}\n# @assert response.statusCode == 200\n# @assert response.json(\"json.user\") == \"min\"\n"
+  },
+  "options": [
+   {
+    "name": "method",
+    "type": "choice",
+    "label": "Method",
+    "choices": [
+     "GET",
+     "POST",
+     "PUT",
+     "PATCH",
+     "DELETE"
+    ],
+    "default": "GET"
+   },
+   {
+    "name": "url",
+    "type": "text",
+    "label": "URL",
+    "default": "https://httpbin.org/get"
+   },
+   {
+    "name": "status",
+    "type": "number",
+    "label": "Expected status",
+    "default": "200"
+   }
+  ]
+ },
+ {
+  "name": "html",
+  "icon": "⌗",
+  "label": "HTML (view only)",
+  "blurb": "A web page. The terminal shows its text; the overlay draws it.",
+  "example": "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n",
+  "data": {
+   "html": "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n"
+  },
+  "options": [
+   {
+    "name": "text",
+    "type": "lines",
+    "label": "Text",
+    "default": ""
+   }
+  ]
+ }
+]

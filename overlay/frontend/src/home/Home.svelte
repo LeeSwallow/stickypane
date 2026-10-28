@@ -10,16 +10,17 @@
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { applyTheme } from '../lib/theme/tokens'
   import Button from '../lib/ui/Button.svelte'
-  import { chromeOf, windowActions } from '../lib/ui/chrome'
+  import { chromeOf } from '../lib/ui/chrome'
+  import { windowActions } from '../services/window'
   import Confirm from '../lib/ui/Confirm.svelte'
   import TitleBar from '../lib/ui/TitleBar.svelte'
   import Toast from '../lib/ui/Toast.svelte'
-  import { realApi, type Groups, type HomeApi, type Notice, type Prefs, type StickypaneState } from './api'
+  import { homeService, type Groups, type HomeApi, type Notice, type Prefs, type StickypaneState } from '../services/home'
   import Empty from './Empty.svelte'
   import Sessions from './Sessions.svelte'
   import Install from './Install.svelte'
 
-  let { api = realApi, now = () => new Date() }: { api?: HomeApi; now?: () => Date } = $props()
+  let { api = homeService, now = () => new Date() }: { api?: HomeApi; now?: () => Date } = $props()
 
   const KEY = 'stickypane.home.dismissed'
   let groups = $state<Groups | null>(null)

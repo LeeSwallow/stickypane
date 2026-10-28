@@ -3,10 +3,10 @@
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. Nothing here ships.
   import Board from '../board/Board.svelte'
-  import type { BoardApi } from '../board/actions'
+  import { fakeProject } from './fakeProject'
   import type { Board as BoardData, Note } from '../board/model'
   import Home from '../home/Home.svelte'
-  import type { Groups, HomeApi, Row } from '../home/api'
+  import type { Groups, HomeApi, Row } from '../services/home'
   import { THEMES } from '../lib/theme/palettes'
 
   const q = new URLSearchParams(location.search)
@@ -104,16 +104,7 @@
     settings: { theme: palette?.name ?? '', style, view: 'overlay', language: { choice: lang, resolved: lang }, tab: 'work', time: '', editor: '', stale: '2h' },
     palette,
   }
-  const boardApi: BoardApi = {
-    status: async () => ({ window: 1, path: '/Users/min/Projects/Personal/stickypane', state: 'ready', pinned: true }),
-    load: async () => board,
-    act: async () => {},
-    arrange: async () => {},
-    order: async () => {},
-    open: async () => {},
-    pin: async () => {},
-    prefs: async () => ({ hotkey: 'alt+space', mode }),
-  }
+  const boardApi = fakeProject(board, mode, lang)
 </script>
 
 {#if screen === 'board' || screen === 'zoom'}

@@ -4,7 +4,6 @@
   // the shell's ProjectService; every change goes back through the
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
-  import { Events } from '@wailsio/runtime'
   import { onMount, setContext } from 'svelte'
   import { setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
@@ -12,10 +11,13 @@
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { applyTheme } from '../lib/theme/tokens'
-  import { chromeOf, windowActions } from '../lib/ui/chrome'
+  import { chromeOf } from '../lib/ui/chrome'
+  import { windowActions } from '../services/window'
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
-  import { act, arrange, shellApi, type BoardApi, type Status } from './actions'
+  import { act, arrange } from './actions'
+  import { events, type Status } from '../services/board'
+  import { projectService, type ProjectApi } from '../services/project'
   import { boardContext, type BoardCtx } from './context'
   import Glance from './Glance.svelte'
   import { glance, stalledCount } from './glance'
@@ -34,7 +36,7 @@
   } from './view'
 
   // zoom: a note to open zoomed on the first load (the dev screens page)
-  let { api = shellApi, zoom: startZoom }: { api?: BoardApi; zoom?: string } = $props()
+  let { api = projectService, zoom: startZoom }: { api?: ProjectApi; zoom?: string } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -266,7 +268,7 @@
     offs.push(
       connect({
         status: () => api.status(),
-        bus: { on: (name, fn) => Events.On(name, fn) },
+        bus: events,
         onChanged(data) {
           // A10's motion listens for this and picks a movement from the events.
           window.dispatchEvent(new CustomEvent('stickypane:board-changed', { detail: data }))

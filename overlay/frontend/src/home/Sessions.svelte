@@ -1,7 +1,7 @@
 <script lang="ts">
   // The list: what is moving now, then today, yesterday and the earlier days.
   import { dayLabel, language, tr } from '../i18n'
-  import type { Groups } from './api'
+  import type { Groups } from '../services/home'
   import SessionRow from './SessionRow.svelte'
 
   let { groups, now, open }: { groups: Groups; now: Date; open: (path: string) => void } = $props()

@@ -6,9 +6,8 @@
 
 import { changedEvent, restartedEvent, statusEvent } from '../lib/shell'
 
-export interface Bus {
-  on(name: string, fn: (e: { data?: unknown }) => void): () => void
-}
+import type { Bus } from '../services/board'
+export type { Bus }
 
 export interface Session {
   status: () => Promise<{ window: number }>

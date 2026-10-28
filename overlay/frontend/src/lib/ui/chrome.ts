@@ -3,7 +3,6 @@
 // traffic lights over our title bar (hidden-inset), so the bar leaves room
 // for them; "own" (Linux) has no native buttons, so the bar draws close and
 // minimise itself. In a browser (the dev pages) it is "none".
-import { home, project, type WindowKind } from '../shell'
 import { SPACE } from '../theme/scale'
 import type { MenuItem } from './menu'
 
@@ -32,22 +31,6 @@ export interface WindowActions {
   minimise: () => void
   /** ends the app (not just this window): the shell's Quit */
   quit: () => void
-}
-
-const runtime = () => import('@wailsio/runtime')
-
-/**
- * windowActions are the real ones, for a window of a kind. Closing a
- * project window closes it (the app stays in the tray); closing the home
- * hides it (the shell does that). Quit ends the app.
- */
-export function windowActions(kind: WindowKind): WindowActions {
-  const svc = kind === 'project' ? project : home
-  return {
-    close: () => void runtime().then((r) => r.Window.Close()),
-    minimise: () => void runtime().then((r) => r.Window.Minimise()),
-    quit: () => void runtime().then((r) => r.Call.ByName(svc('Quit'))),
-  }
 }
 
 /** quitShortcut is what quits from the keyboard: Cmd+Q from the macOS app menu; none elsewhere. */

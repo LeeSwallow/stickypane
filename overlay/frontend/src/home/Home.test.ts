@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage } from '../i18n'
 import { THEMES } from '../lib/theme/palettes'
 import { STICKYPANE_DARK, STICKYPANE_LIGHT } from '../lib/theme/fallback'
-import type { Groups, HomeApi, Row } from './api'
+import type { Groups, HomeApi, Row } from '../services/home'
 import Home from './Home.svelte'
 
 const NOW = new Date(2026, 9, 28, 15, 0, 0)

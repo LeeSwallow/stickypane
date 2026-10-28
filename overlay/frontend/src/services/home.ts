@@ -1,4 +1,5 @@
-// What the home window asks of the shell (HomeService, overlay/internal/shell).
+// The home service: what the home window asks of the shell (HomeService,
+// overlay/internal/shell). Components call this, never the runtime (RA13).
 // The Go structs carry no json tags, so the index's fields arrive as written
 // in Go; nil slices arrive as null.
 import { Call, Events } from '@wailsio/runtime'
@@ -77,7 +78,7 @@ export interface HomeApi {
 
 const call = <T>(method: string, ...args: unknown[]) => Call.ByName(home(method), ...args) as Promise<T>
 
-export const realApi: HomeApi = {
+export const homeService: HomeApi = {
   ensure: () => call('Ensure'),
   sessions: () => call('Sessions'),
   restore: (id) => call('Restore', id),
