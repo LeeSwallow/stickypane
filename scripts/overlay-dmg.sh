@@ -123,14 +123,16 @@ end run
 EOF
 
 # Wait for Finder to write .DS_Store, then mark the volume icon and ask
-# Finder to open the window when the image is mounted.
+# Finder to open the window when the image is mounted. bless --openfolder
+# is not supported on Apple Silicon, so a failure there is only a warning.
 i=0
 while [ ! -f "$mnt/.DS_Store" ] && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done
 [ -f "$mnt/.DS_Store" ] || die "Finder wrote no .DS_Store"
 # hdiutil -srcfolder leaves .VolumeIcon.icns out, so it goes in here.
 cp "$icns" "$mnt/.VolumeIcon.icns"
 SetFile -a C "$mnt" 2>/dev/null || echo "overlay-dmg: SetFile missing; no volume icon" >&2
-bless --folder "$mnt" --openfolder "$mnt" 2>/dev/null || true
+bless --folder "$mnt" --openfolder "$mnt" ||
+	echo "overlay-dmg: warning: bless --openfolder failed; the window will not open on mount" >&2
 chmod -Rf go-w "$mnt" 2>/dev/null || true
 rm -rf "$mnt/.fseventsd" 2>/dev/null || true
 sync

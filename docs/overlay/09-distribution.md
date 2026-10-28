@@ -66,7 +66,7 @@
 2. 임시 폴더에 `Stickypane.app`으로 복사하고, `stickypane` CLI를 빌드해 `Contents/Helpers/`에 넣고(Apple 규칙상 `Resources`에는 실행 코드를 두지 않는다), 안쪽부터 ad-hoc 서명한다(CLI → 앱). `/Applications` 심볼릭 링크와 `.background/background.tiff`를 둔다.
 3. `hdiutil create -format UDRW` → `hdiutil attach`(Finder가 볼 수 있게 `-nobrowse` 없이).
 4. AppleScript로 그 디스크 이미지의 Finder 창만 정리한다: 아이콘 보기, 도구 막대·상태 막대 숨김, 창 경계, 아이콘 크기·위치, 배경. Finder가 `.DS_Store`를 쓸 때까지 기다린다.
-5. `.VolumeIcon.icns`와 사용자 정의 아이콘 속성, `bless --openfolder`(마운트하면 창이 열린다).
+5. `.VolumeIcon.icns`와 사용자 정의 아이콘 속성, `bless --openfolder`. Apple Silicon에서는 `bless --openfolder`가 지원되지 않아 실패할 수 있고, 그러면 경고만 내고 계속한다. 마운트하면 창이 저절로 열리는지는 [미검증]이다.
 6. 분리 → `hdiutil convert -format UDZO`. `trap`이 어떤 경우에도 분리하고 임시 파일을 지운다.
 
 ## 9.3 서명과 공증
