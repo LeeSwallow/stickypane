@@ -46,9 +46,9 @@ func init() {
 		}},
 		{[]string{"setup"}, setupCmd, helpText{
 			group: "agents", brief: "install the board plugin for Claude Code and Codex",
-			what:     "Installs the board plugin through each agent's own commands, and asks first when run in a terminal.",
+			what:     "Installs the board plugin through each agent's own commands, and asks first when run in a terminal. It makes no board: run stickypane init in a project, or let the agent's first change make one in a git repository.",
 			syntax:   "stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex] [--undo] [--dry-run] [--yes]",
-			args:     "--scope S    user, project or local (Claude Code)\n--mcp        also register stickypane as an MCP server\n--agents L   claude, codex or both (default: those found)\n--undo       remove what setup adds\n--dry-run    print the plan and run nothing\n--yes        run without asking",
+			args:     "--scope S    user, project or local (Claude Code)\n--mcp        also register stickypane as an MCP server\n--agents L   claude, codex or both (default: those found)\n--undo       uninstall the plugin (and the MCP server with --mcp)\n--dry-run    print the plan and run nothing\n--yes        run without asking",
 			examples: []string{"stickypane setup --dry-run", "stickypane setup --mcp --yes", "stickypane setup --undo"},
 			related:  []string{"init", "mcp", "guide"},
 		}},

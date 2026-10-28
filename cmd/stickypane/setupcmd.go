@@ -30,7 +30,7 @@ func setupCmd(e env, args []string) error {
 	mcp := fs.Bool("mcp", false, "also register stickypane as an MCP server")
 	agents := fs.String("agents", "", "claude, codex or both, comma-separated (default: those found)")
 	yes := fs.Bool("yes", false, "run without asking")
-	undo := fs.Bool("undo", false, "remove what setup adds")
+	undo := fs.Bool("undo", false, "uninstall the plugin (and the MCP server with --mcp)")
 	dry := fs.Bool("dry-run", false, "print the plan and run nothing")
 	if _, err := parse(fs, "setup", args, 0, 0); err != nil {
 		return err
