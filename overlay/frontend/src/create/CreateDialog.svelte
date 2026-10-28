@@ -4,6 +4,7 @@
   // values with note.create and the shape's Go code writes the file
   // (RA12). Nothing is checked here: a value the shape refuses comes back
   // as the bridge's words, next to its field.
+  import { tick } from 'svelte'
   import { tr } from '../i18n'
   import Button from '../lib/ui/Button.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -47,6 +48,7 @@
   let errors = $state<Record<string, string>>({})
   let failed = $state('')
   let busy = $state(false)
+  let formEl: HTMLFormElement | undefined = $state()
 
   const shape = $derived(shapes?.find((s) => s.name === picked) ?? null)
 
@@ -62,6 +64,8 @@
       (list) => {
         shapes = list
         pick(list.find((s) => s.name === start)?.name ?? list[0]?.name ?? '')
+        // the title is the first thing to write, once there is a form
+        tick().then(() => formEl?.querySelector<HTMLInputElement>('.form input')?.focus())
       },
       (e) => (loadError = errorText(e)),
     )
@@ -108,7 +112,7 @@
   {:else if !shapes}
     <p class="quiet">{$tr('ui.loading')}</p>
   {:else}
-    <form class="create" onsubmit={(e) => (e.preventDefault(), create())}>
+    <form class="create" bind:this={formEl} onsubmit={(e) => (e.preventDefault(), create())}>
       <div class="shapes" role="radiogroup" aria-label={$tr('create.shapes')}>
         {#each shapes as s (s.name)}
           <button
@@ -169,11 +173,13 @@
   .create {
     display: grid;
     grid-template-columns: minmax(140px, 180px) 1fr;
+    grid-template-rows: minmax(0, 1fr);
     gap: var(--space-5);
     max-height: min(68vh, 640px);
     min-height: 0;
   }
   .shapes {
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -211,6 +217,7 @@
     font-family: var(--font-mono);
   }
   .form {
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
@@ -239,6 +246,10 @@
     max-height: 200px;
     overflow: hidden;
     color: var(--ink);
+  }
+  /* the example is to look at: its add lines are not there */
+  .sample :global(.add) {
+    display: none;
   }
   .quiet {
     margin: 0;
