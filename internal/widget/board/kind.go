@@ -22,5 +22,7 @@ var Kind = widget.Kind{
 	},
 	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
 	Events: events,
+	Data:   data,
+	Act:    act,
 	Tend:   tend,
 }
