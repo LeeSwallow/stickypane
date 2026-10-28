@@ -88,3 +88,18 @@ func TestAPowerShellScriptIsAScript(t *testing.T) {
 		t.Error("the board shows .ps1 files")
 	}
 }
+
+// A file a kind claims by its extension, or makes as a new note, must be a
+// note to the store, or the board never lists it.
+func TestEveryKindExtensionIsANote(t *testing.T) {
+	for _, k := range Default(note.Plain) {
+		for _, e := range k.Exts {
+			if !store.IsNote("x" + e) {
+				t.Errorf("kind %s claims %s, but the store does not list it", k.Name, e)
+			}
+		}
+		if k.New != "" && !store.IsNote("x"+k.New) {
+			t.Errorf("kind %s makes %s files, but the store does not list them", k.Name, k.New)
+		}
+	}
+}

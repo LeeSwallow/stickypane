@@ -595,3 +595,18 @@ func TestOpenPrefersAGUIEditorAndFallsBackToTheSystem(t *testing.T) {
 		t.Errorf("fallback: %q, want %q", ran[1], want)
 	}
 }
+
+// An html page is a note: the board lists it, as an html kind with its source.
+func TestBridgeLoadsAnHTMLNote(t *testing.T) {
+	dir := board(t, map[string]string{"report.html": "<h1>Bench</h1>\n", "old.htm": "<p>old</p>\n"})
+	s := serve(t, dir)
+	var b loadedBoard
+	s.ok("board.load", nil, &b)
+	for name, src := range map[string]string{"report.html": "<h1>Bench</h1>\n", "old.htm": "<p>old</p>\n"} {
+		n := b.note(t, name)
+		var d struct{ HTML string }
+		if err := json.Unmarshal(n.Data, &d); err != nil || n.Kind != "html" || d.HTML != src {
+			t.Errorf("%s: kind %q, data %s", name, n.Kind, n.Data)
+		}
+	}
+}
