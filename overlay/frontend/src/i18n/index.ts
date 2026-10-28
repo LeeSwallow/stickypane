@@ -57,14 +57,25 @@ export function applyChoice(l: BridgeLanguage): void {
  * window writes ~/.stickypane/overlay.json through the shell.
  */
 export type LanguageHost =
-  | { kind: 'project'; settingsSet: (key: 'language', value: Choice) => Promise<BridgeLanguage | void> }
+  | {
+      kind: 'project'
+      settingsSet: (key: 'language', value: Choice) => Promise<unknown>
+      // settings.get: its language.resolved is what the bridge made of the choice
+      settingsGet: () => Promise<{ language?: Partial<BridgeLanguage> } | null | undefined>
+    }
   | { kind: 'home'; save: (choice: Choice) => Promise<void>; systemLanguage?: string }
 
 /** chooseLanguage stores the choice and re-renders at once. */
 export async function chooseLanguage(choice: Choice, host: LanguageHost): Promise<void> {
   if (host.kind === 'project') {
-    const got = await host.settingsSet('language', choice)
-    setLanguage(got ? got.resolved : choice === 'auto' ? resolveAuto() : choice)
+    // settings.set answers {}; the resolved value comes from settings.get,
+    // because the bridge resolves "auto" in the terminal's order
+    // (STICKYPANE_LANG, LC_ALL, ..., system). navigator.language is only the
+    // fallback when the bridge gives nothing.
+    await host.settingsSet('language', choice)
+    const got = await host.settingsGet().catch(() => null)
+    const r = got?.language?.resolved
+    setLanguage(r === 'ko' || r === 'en' ? r : choice === 'auto' ? resolveAuto() : choice)
     return
   }
   await host.save(choice)
@@ -79,6 +90,7 @@ const ymd = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 export function dayLabel(date: string, today: Date, lang: Lang): string {
   const [y, m, d] = date.split('-').map(Number)
   const day = new Date(y, m - 1, d)
+  if (!Number.isFinite(day.getTime())) return date
   const diff = Math.round((ymd(today).getTime() - day.getTime()) / 86_400_000)
   if (diff === 0) return translate(catalogs, lang, 'sessions.today')
   if (diff === 1) return translate(catalogs, lang, 'sessions.yesterday')
@@ -99,6 +111,10 @@ export function relativeTime(d: Date, now: Date, lang: Lang): string {
   let pick = units[0]
   for (const u of units) if (sec >= u[1]) pick = u
   const n = Math.max(1, Math.floor(sec / pick[1]))
-  if (lang === 'en') return `${n}${pick[2]} ago`
+  if (lang === 'en') {
+    // en-US "narrow" gives "2m ago" / "3h ago" / "1d ago" where ICU has it
+    const s = new Intl.RelativeTimeFormat('en-US', { numeric: 'always', style: 'narrow' }).format(-n, pick[0])
+    return /^\d+[mhd] ago$/.test(s) ? s : `${n}${pick[2]} ago`
+  }
   return new Intl.RelativeTimeFormat('ko-KR', { numeric: 'always', style: 'long' }).format(-n, pick[0])
 }

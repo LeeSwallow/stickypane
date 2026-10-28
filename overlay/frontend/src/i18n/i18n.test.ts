@@ -13,6 +13,15 @@ describe('catalogs', () => {
   it('every ko key exists in en, and the reverse', () => {
     expect(Object.keys(ko).sort()).toEqual(Object.keys(en).sort())
   })
+  it('placeholders match between ko and en', () => {
+    const ph = (v: string) => (v.match(/\{\w+\}/g) ?? []).sort()
+    for (const k of Object.keys(en) as (keyof typeof en)[]) expect(ph(ko[k])).toEqual(ph(en[k]))
+  })
+  it('uses the terminal terms: 삭제 and 되돌리기', () => {
+    expect(ko['note.trash']).toBe('삭제')
+    expect(ko['home.undo']).toBe('되돌리기')
+    expect(ko['note.restore']).toBe('되돌리기')
+  })
   it('no value is empty', () => {
     for (const v of [...Object.values(ko), ...Object.values(en)]) expect(v.length).toBeGreaterThan(0)
   })
@@ -78,10 +87,18 @@ describe('choice', () => {
   })
   it('changing language in a project window calls settings.set language', async () => {
     setLanguage('en')
-    const set = vi.fn().mockResolvedValue({ choice: 'ko', resolved: 'ko' })
-    await chooseLanguage('ko', { kind: 'project', settingsSet: set })
+    const set = vi.fn().mockResolvedValue({})
+    const get = vi.fn().mockResolvedValue({ language: { choice: 'ko', resolved: 'ko' } })
+    await chooseLanguage('ko', { kind: 'project', settingsSet: set, settingsGet: get })
     expect(set).toHaveBeenCalledWith('language', 'ko')
     expect(now()).toBe('ko')
+    // auto: the bridge's resolved value wins over the browser's
+    get.mockResolvedValue({ language: { choice: 'auto', resolved: 'en' } })
+    await chooseLanguage('auto', { kind: 'project', settingsSet: set, settingsGet: get })
+    expect(now()).toBe('en')
+  })
+  it('invalid day strings come back as they are', () => {
+    expect(dayLabel('nope', new Date(2026, 9, 28), 'en')).toBe('nope')
   })
   it('in the home window it saves to overlay.json instead', async () => {
     const save = vi.fn().mockResolvedValue(undefined)

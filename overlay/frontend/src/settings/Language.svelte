@@ -11,9 +11,18 @@
 
   const options: Choice[] = ['ko', 'en', 'auto']
 
+  let failed = $state(false)
+
   async function pick(c: Choice) {
+    const before = chosen
     chosen = c
-    await chooseLanguage(c, host)
+    failed = false
+    try {
+      await chooseLanguage(c, host)
+    } catch {
+      chosen = before
+      failed = true
+    }
   }
 </script>
 
@@ -23,12 +32,17 @@
       {$tr('settings.language.' + c)}
     </button>
   {/each}
+  {#if failed}<span class="err" role="alert">{$tr('settings.language.failed')}</span>{/if}
 </div>
 
 <style>
   .language {
     display: flex;
     gap: 8px;
+  }
+  .err {
+    font-family: var(--font-hand);
+    align-self: center;
   }
   button {
     font-family: var(--font-hand);
