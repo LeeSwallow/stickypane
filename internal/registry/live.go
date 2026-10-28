@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
@@ -40,7 +41,8 @@ func (w Writer) Live(project, kind string) (end func()) {
 			Started: w.now().Format(when.Moment),
 		})
 		if err == nil {
-			writeAtomic(file, b)
+			// The app reads run/: it never sees half a file.
+			_ = atomicfile.WriteFile(file, b, 0o644)
 		}
 	}
 	w.Append(Event{Type: "session.start", Project: project, PID: w.PID, Kind: kind})
@@ -76,19 +78,3 @@ func (w Writer) Touch(project, cmd string) {
 
 // touchPrefix begins the name of a touch marker in run/.
 const touchPrefix = "touch-"
-
-// writeAtomic writes b to path through a temporary file in the same folder
-// and a rename, so that the app, which reads run/, never sees half a file.
-func writeAtomic(path string, b []byte) {
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".tmp-*")
-	if err != nil {
-		return
-	}
-	_, werr := tmp.Write(b)
-	cerr := tmp.Close()
-	if werr != nil || cerr != nil || os.Rename(tmp.Name(), path) != nil {
-		os.Remove(tmp.Name())
-		return
-	}
-	os.Chmod(path, 0o644)
-}

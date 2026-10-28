@@ -17,6 +17,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/when"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
@@ -36,7 +37,6 @@ const (
 	// ViewFile holds how the notes are arranged on the screen.
 	ViewFile  = "sticky.json"
 	slugRunes = 40
-	tmpPrefix = ".stickypane-tmp-"
 )
 
 var (
@@ -432,65 +432,12 @@ func (s *Store) WriteNew(name string, content []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	// Written whole to a temporary file, then linked to its name: the link
-	// fails if the name is taken, and the name never shows half a note.
-	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	_, werr := tmp.Write(content)
-	if cerr := tmp.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		return werr
-	}
-	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
-		return err
-	}
-	err = os.Link(tmp.Name(), path)
-	if err == nil || errors.Is(err, fs.ErrExist) {
-		return err
-	}
-	// No hard links here (some file systems): create exclusively and write.
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if err != nil {
-		return err
-	}
-	_, werr = f.Write(content)
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(path)
-	}
-	return werr
+	return atomicfile.Create(path, content, 0o644)
 }
 
-func writeAtomic(path string, data []byte) error {
-	mode := fs.FileMode(0o644)
-	if fi, err := os.Stat(path); err == nil {
-		mode = fi.Mode().Perm()
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name()) // a no-op once the rename succeeded
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Chmod(mode); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
-}
+// writeAtomic replaces the file at path in one step. A new file is 0644; a
+// file that is there keeps its mode.
+func writeAtomic(path string, data []byte) error { return atomicfile.WriteFile(path, data, 0o644) }
 
 // Create writes a new note named after text, with the extension ext, and
 // returns the file name. It never overwrites: a taken name gets "-2", "-3"
@@ -502,18 +449,14 @@ func (s *Store) Create(text, ext string, content []byte, now time.Time) (string,
 		if i > 1 {
 			name = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		f, err := os.OpenFile(filepath.Join(s.Dir, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+		err := atomicfile.Create(filepath.Join(s.Dir, name), content, 0o644)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
 		if err != nil {
 			return "", err
 		}
-		_, werr := f.Write(content)
-		if cerr := f.Close(); werr == nil {
-			werr = cerr
-		}
-		return name, werr
+		return name, nil
 	}
 }
 
