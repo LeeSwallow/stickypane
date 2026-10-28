@@ -83,12 +83,12 @@ func (m *Model) pull(e tea.Mouse) {
 		// pointer's width is turned back into the width the size asks for.
 		asks := (e.X - m.drag.x + 1) * max(m.drag.row, 1) / max(m.width, 1)
 		m.drag.size = widget.SnapSize(m.drag.from, asks, m.width)
-		m.mark = mark{name: p.name, text: tr.L("width") + " " + m.drag.size}
+		m.mark = mark{name: p.name, text: m.tr.L("width") + " " + m.drag.size}
 		return
 	}
 	h := e.Y - min(len(m.bar), m.height-1) - p.rect.Y + 1
 	m.drag.rows = max(min(h-2, m.bodyHeight()-2), 1)
-	m.mark = mark{name: p.name, text: fmt.Sprintf(tr.L("%d lines"), m.drag.rows)}
+	m.mark = mark{name: p.name, text: fmt.Sprintf(m.tr.L("%d lines"), m.drag.rows)}
 }
 
 // drop writes what a dragged border was let go at.

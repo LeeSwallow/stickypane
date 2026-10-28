@@ -8,14 +8,16 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func draw(src string, width int) string {
-	out, _ := Kind.Parse(doc.Document{Body: src}).Draw(width, false)
+	out, _ := Kind.Parse(doc.Document{Body: src}, widget.DefaultEnv()).Draw(width, false)
 	return ansi.Strip(out)
 }
 
 func TestHTMLViewShowsTextWithoutTags(t *testing.T) {
+	t.Parallel()
 	out := draw("<h1>Bench</h1><script>x()</script><style>p{color:red}</style><p>a &amp; b</p>", 40)
 	for _, want := range []string{"Bench", "a & b", "open it in the overlay to see it drawn"} {
 		if !strings.Contains(out, want) {
@@ -34,6 +36,7 @@ func TestHTMLViewShowsTextWithoutTags(t *testing.T) {
 }
 
 func TestHTMLViewKeepsBlocksApart(t *testing.T) {
+	t.Parallel()
 	out := draw("<p>one</p><p>two</p><!-- hidden --><SCRIPT type=x>no</SCRIPT>", 40)
 	if !strings.Contains(out, "one\ntwo") || strings.Contains(out, "hidden") || strings.Contains(out, "no\n") {
 		t.Errorf("view = %q", out)
@@ -41,6 +44,7 @@ func TestHTMLViewKeepsBlocksApart(t *testing.T) {
 }
 
 func TestHTMLViewFitsTheWidth(t *testing.T) {
+	t.Parallel()
 	for _, w := range []int{1, 7, 20} {
 		for _, l := range strings.Split(draw("<p>a long line of words that must wrap</p>", w), "\n") {
 			if len(l) > w && ansi.StringWidth(l) > w {
@@ -51,8 +55,9 @@ func TestHTMLViewFitsTheWidth(t *testing.T) {
 }
 
 func TestHTMLDataIsTheSource(t *testing.T) {
+	t.Parallel()
 	src := "<h1>Bench</h1>\n"
-	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}))
+	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,12 +67,14 @@ func TestHTMLDataIsTheSource(t *testing.T) {
 }
 
 func TestHTMLIsViewOnly(t *testing.T) {
+	t.Parallel()
 	if Kind.Act != nil || Kind.Events != nil {
 		t.Error("an html note has no Act and no Events")
 	}
 }
 
 func TestHTMLTextSurvivesOddSource(t *testing.T) {
+	t.Parallel()
 	for name, tc := range map[string]struct{ src, want string }{
 		"unclosed script":     {"<script>İİİ", ""},
 		"unclosed script 2":   {"hi<SCRIPT>İ alert(1)", "hi"},
@@ -88,6 +95,7 @@ func TestHTMLTextSurvivesOddSource(t *testing.T) {
 // attribute shows as text. A text preview may leak it; the overlay draws the
 // page properly.
 func TestHTMLQuotedGreaterThanMayLeak(t *testing.T) {
+	t.Parallel()
 	if got := text(`<a title="x>y">z</a>`); got != `y">z` {
 		t.Errorf("text = %q", got)
 	}

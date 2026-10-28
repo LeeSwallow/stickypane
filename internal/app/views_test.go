@@ -9,11 +9,10 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-
-	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
+	t.Parallel()
 	const note = "---\ntitle: Plan\n---\nthe plan\n"
 	m, dir := newModel(t, map[string]string{"a.md": note})
 	press(m, "o", "+", "p", "c")
@@ -34,6 +33,7 @@ func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
 }
 
 func TestStickyJSONWinsOverFrontMatter(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{
 		"a.md": "---\nopen: true\nsize: page\npin: true\ncolor: blue\n---\nnote a\n",
 		"b.md": "---\nopen: true\n---\nnote b\n",
@@ -49,6 +49,7 @@ func TestStickyJSONWinsOverFrontMatter(t *testing.T) {
 }
 
 func TestStickyJSONIsReadAgainWhenItChanges(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
 	if s := screen(m); strings.Contains(s, "note a") {
 		t.Fatalf("the note starts closed:\n%s", s)
@@ -61,6 +62,7 @@ func TestStickyJSONIsReadAgainWhenItChanges(t *testing.T) {
 }
 
 func TestABrokenStickyJSONIsSaidAndNotOverwritten(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
 	writeView(t, dir, "{ broken")
 	press(m, "r")
@@ -77,6 +79,7 @@ func TestABrokenStickyJSONIsSaidAndNotOverwritten(t *testing.T) {
 }
 
 func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n"), "c.md": opened("note c\n")})
 	order := func() string {
 		var names []string
@@ -114,6 +117,7 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 }
 
 func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"build.log": "compiled\n"})
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/a.md", "page a\n")
@@ -142,6 +146,7 @@ func TestANoteWithoutFrontMatterIsNamedInStickyJSON(t *testing.T) {
 }
 
 func TestRenamingALinkedNoteLeavesItsFileAlone(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	outside := filepath.Join(filepath.Dir(dir), "README.md")
 	if err := os.WriteFile(outside, []byte("# Readme\n"), 0o644); err != nil {
@@ -162,6 +167,7 @@ func TestRenamingALinkedNoteLeavesItsFileAlone(t *testing.T) {
 }
 
 func TestTCyclesThemesAndKeepsTheChoice(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
 	first := m.theme.Get().Name
 	before := m.render()
@@ -190,7 +196,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 		t.Fatalf("English by default:\n%s", s)
 	}
 	writeView(t, dir, `{"language":"ko"}`)
-	UseLanguage(m.store.Language())
+	m.useLanguage(m.store.Language())
 	m.reload()
 	s := screen(m)
 	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
@@ -201,7 +207,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 		t.Errorf("messages with names are filled in Korean:\n%s", s)
 	}
 	press(m, "n")
-	UseLanguage("en")
+	m.useLanguage("en")
 	if s := screen(m); strings.Contains(s, "도움말") {
 		t.Errorf("back to English:\n%s", s)
 	}
@@ -211,7 +217,6 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 // the change to sticky.json is enough, as it is for the tab.
 func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
 	t.Setenv("STICKYPANE_LANG", "en")
-	t.Cleanup(func() { UseLanguage("en") })
 	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
 	writeView(t, dir, `{"language":"ko"}`)
 	m.Update(changedMsg{})
@@ -228,6 +233,7 @@ func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
 // A log's border says when it last grew, so a build that stopped writing
 // shows it.
 func TestALogSaysWhenItLastGrew(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"build.log": "one\ntwo\n"})
 	writeView(t, dir, `{"notes":{"build.log":{"open":true}}}`)
 	at := time.Now().Add(-time.Minute).Truncate(time.Minute)
@@ -235,7 +241,7 @@ func TestALogSaysWhenItLastGrew(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.Update(changedMsg{})
-	if s := screen(m); !strings.Contains(s, "2 lines · "+when.Short(at, time.Now())) {
+	if s := screen(m); !strings.Contains(s, "2 lines · "+m.env.Short(at)) {
 		t.Errorf("the border should say when the log last grew:\n%s", s)
 	}
 }
@@ -243,6 +249,7 @@ func TestALogSaysWhenItLastGrew(t *testing.T) {
 // An agent that ticks an item by editing the file does not write the time;
 // the board does, from when the file changed.
 func TestTheBoardStampsAnItemAnAgentTicked(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"plan.md": "---\ntype: checklist\nopen: true\n---\n- [ ] tests\n"})
 	writeFile(t, dir, "plan.md", "---\ntype: checklist\nopen: true\n---\n- [x] tests\n")
 	at := time.Now().Add(-2 * time.Minute).Truncate(time.Minute)

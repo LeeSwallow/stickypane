@@ -302,7 +302,7 @@ func (o MoveCardAt) Apply(d doc.Document) (doc.Document, error) {
 // a number or is past the column), and "add" with col and text. Columns count
 // from zero, in the order of the Data. When a card moved is not written
 // here; tend writes it.
-func act(d doc.Document, a widget.Action) (doc.Op, error) {
+func act(d doc.Document, a widget.Action, _ widget.Env) (doc.Op, error) {
 	cols := scan(doc.Lines(d.Body))
 	index := func(verb, name string, n int) (int, error) {
 		v, err := strconv.Atoi(a.Args[name])

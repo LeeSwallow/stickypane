@@ -15,6 +15,7 @@ import (
 )
 
 func TestPinToggles(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	press(m, "tab", "p")
 	if v := viewsOf(t, dir)["b.md"].Pin; v == nil || !*v || readFile(t, dir, "b.md") != "two\n" {
@@ -30,6 +31,7 @@ func TestPinToggles(t *testing.T) {
 }
 
 func TestColorCycles(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	first := palette[(arrange.ColorIndex("a.md", "")+1)%len(palette)]
 	second := palette[(arrange.ColorIndex("a.md", "")+2)%len(palette)]
@@ -44,6 +46,7 @@ func TestColorCycles(t *testing.T) {
 }
 
 func TestRenameEditsTheTitle(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "---\ntitle: Old\n---\nx\n"})
 	press(m, "R")
 	typeText(m, "er")
@@ -57,6 +60,7 @@ func TestRenameEditsTheTitle(t *testing.T) {
 }
 
 func TestArchiveMovesTheNoteAway(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	press(m, "x")
 	if got := readFile(t, dir, "archive/a.md"); got != "one\n" {
@@ -71,6 +75,7 @@ func TestArchiveMovesTheNoteAway(t *testing.T) {
 }
 
 func TestDeleteAsksFirst(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "---\ntitle: Plan\n---\nx\n"})
 	path := filepath.Join(dir, "a.md")
 	press(m, "D")
@@ -91,6 +96,7 @@ func TestDeleteAsksFirst(t *testing.T) {
 }
 
 func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, nil)
 	press(m, "p", "c", "R", "x", "D", "e", "enter", "o", "+", "-", "tab", "j", "G")
 	if m.mode != modeBoard {
@@ -101,26 +107,27 @@ func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
 func TestEditorCommand(t *testing.T) {
 	t.Setenv("VISUAL", "")
 	t.Setenv("EDITOR", "code --wait")
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "code --wait /tmp/a.md" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "code --wait /tmp/a.md" {
 		t.Errorf("Args = %q", got)
 	}
 	t.Setenv("EDITOR", "")
 	// Without one, the first terminal editor found (env tests the order).
-	if got := editorCommand("/tmp/a.md").Args; len(got) != 2 || got[1] != "/tmp/a.md" || !slices.Contains([]string{"nvim", "vim", "vi", "nano", "notepad"}, got[0]) {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; len(got) != 2 || got[1] != "/tmp/a.md" || !slices.Contains([]string{"nvim", "vim", "vi", "nano", "notepad"}, got[0]) {
 		t.Errorf("Args without EDITOR = %q", got)
 	}
 	t.Setenv("EDITOR", "zed")
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "zed --wait /tmp/a.md" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "zed --wait /tmp/a.md" {
 		t.Errorf("a GUI editor is told to wait: %q", got)
 	}
 	t.Setenv("EDITOR", "")
 	t.Setenv("VISUAL", "nvim")
-	if got := editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
 		t.Errorf("VISUAL comes first, as git reads it: %q", got)
 	}
 }
 
 func TestEditorFailureIsReported(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(reloadMsg{what: "Editor failed", err: errors.New("exit status 1")})
 	if s := screen(m); !strings.Contains(s, "Editor failed: exit status 1") {
@@ -129,9 +136,10 @@ func TestEditorFailureIsReported(t *testing.T) {
 }
 
 func TestHelpOpensScrollsAndCloses(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
-	for _, line := range strings.Split(tr.Help, "\n") {
+	for _, line := range strings.Split(m.tr.Help, "\n") {
 		if w := widget.Width(line); w > 40 {
 			t.Errorf("help line %q is %d cells wide, want at most 40", line, w)
 		}
@@ -160,6 +168,7 @@ func TestHelpOpensScrollsAndCloses(t *testing.T) {
 }
 
 func TestHelpFromAZoomedNoteReturnsToIt(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "enter")
 	if s := screen(m); !strings.Contains(s, "? keys") {

@@ -10,6 +10,7 @@ import (
 )
 
 func TestComposeWritesColumnsAndFirstCards(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Sprint", map[string]string{
 		"columns": "Backlog\nDoing\nShipped",
 		"cards":   "payments @min\nDoing: login API @codex-1\nshipped: schema",
@@ -41,6 +42,7 @@ func TestComposeWritesColumnsAndFirstCards(t *testing.T) {
 }
 
 func TestComposeDefaultsToTheTemplateColumns(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Work", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -55,6 +57,7 @@ func TestComposeDefaultsToTheTemplateColumns(t *testing.T) {
 }
 
 func TestComposeRefusesABoardWithoutColumns(t *testing.T) {
+	t.Parallel()
 	_, err := Kind.Make("x", map[string]string{"columns": " \n "})
 	if !errors.Is(err, widget.ErrBadOption) || !strings.Contains(err.Error(), "column") {
 		t.Errorf("err = %v", err)

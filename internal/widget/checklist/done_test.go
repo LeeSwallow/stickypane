@@ -25,6 +25,7 @@ func applyOp(t *testing.T, src string, op doc.Op) string {
 
 // Ticking an item writes when it was done; unticking takes it back out.
 func TestTickingAnItemWritesWhenItWasDone(t *testing.T) {
+	t.Parallel()
 	src := "- [ ] a\n- [ ] b\r\n"
 	got := applyOp(t, src, Toggle{Text: "b", Checked: true, At: at})
 	if got != "- [ ] a\n- [x] b ✅ 2026-10-03 14:02\r\n" {
@@ -46,7 +47,8 @@ func TestTickingAnItemWritesWhenItWasDone(t *testing.T) {
 
 // The time is not part of the item's name: an item is found by its text.
 func TestTheTimeIsNotPartOfTheName(t *testing.T) {
-	c := parse(doc.Parse([]byte("- [x] write tests ✅ 2026-10-02\n")))
+	t.Parallel()
+	c := parse(doc.Parse([]byte("- [x] write tests ✅ 2026-10-02\n")), widget.DefaultEnv())
 	if e := c.entries[c.items[0]]; e.text != "write tests" || e.done.Format("2006-01-02") != "2026-10-02" {
 		t.Errorf("entry = %+v", e)
 	}
@@ -58,10 +60,10 @@ func TestTheTimeIsNotPartOfTheName(t *testing.T) {
 // The screen shows what is left first, then what is done, the most recent
 // first, with when.
 func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
-	now = func() time.Time { return time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
+	t.Parallel()
+	e := envAt(time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local))
 	src := "- [x] old ✅ 2026-09-30 10:00\n- [ ] first\n- [x] recent ✅ 2026-10-03 14:02\n- [ ] second\n- [x] undated\n"
-	c := parse(doc.Parse([]byte(src)))
+	c := parse(doc.Parse([]byte(src)), e)
 	out, _ := c.Draw(50, false)
 	lines := strings.Split(ansi.Strip(out), "\n")
 	var order []string
@@ -87,15 +89,15 @@ func TestOpenAndDoneItemsAreShownApart(t *testing.T) {
 
 // The cursor walks the screen's order, and ticking stamps the time.
 func TestTheCursorFollowsTheScreenAndTickingStampsNow(t *testing.T) {
-	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	c := parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")))
+	t.Parallel()
+	e := envAt(time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local))
+	c := parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")), e)
 	_, res := c.Update("space") // the first on the screen is the open one
 	op, ok := res.Op.(Toggle)
 	if !ok || op.Text != "todo" || !op.Checked || op.At != at {
 		t.Fatalf("op = %#v", res.Op)
 	}
-	c = parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")))
+	c = parse(doc.Parse([]byte("- [x] done ✅ 2026-10-01 09:00\n- [ ] todo\n")), e)
 	c.Update("j")
 	if _, res := c.Update("space"); res.Op.(Toggle).Text != "done" || res.Op.(Toggle).Checked {
 		t.Errorf("j moves into the done items: %#v", res.Op)
@@ -105,6 +107,7 @@ func TestTheCursorFollowsTheScreenAndTickingStampsNow(t *testing.T) {
 // An item ticked by editing the file, without a time, gets one from
 // stickypane: the time the file changed. Items that have one keep it.
 func TestTendStampsItemsTickedWithoutATime(t *testing.T) {
+	t.Parallel()
 	changed := time.Date(2026, 10, 3, 9, 30, 0, 0, time.Local)
 	d := doc.Parse([]byte("- [x] a\n- [ ] b\n- [x] c ✅ 2026-10-01 08:00\r\n"))
 	op := Kind.Tend(doc.Document{}, d, changed)

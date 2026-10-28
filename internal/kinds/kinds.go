@@ -43,7 +43,7 @@ func Markdown(th *theme.Holder) note.Renderer { return WithEmbeds(WithMermaid(st
 
 // styled renders Markdown in the colors of the theme in use at each call.
 func styled(th *theme.Holder) note.Renderer {
-	return func(src string, width int) string {
+	return func(src string, width int, _ widget.Env) string {
 		if width <= 0 {
 			return src
 		}

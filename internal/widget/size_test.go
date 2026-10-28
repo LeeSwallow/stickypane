@@ -3,6 +3,7 @@ package widget
 import "testing"
 
 func TestSizesAreFractionsAndTheOldNamesStayReadable(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		in, want string
 		ok       bool
@@ -21,6 +22,7 @@ func TestSizesAreFractionsAndTheOldNamesStayReadable(t *testing.T) {
 }
 
 func TestASizeIsAShareOfTheScreen(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		size  string
 		width int
@@ -42,6 +44,7 @@ func TestASizeIsAShareOfTheScreen(t *testing.T) {
 }
 
 func TestPlusAndMinusStepThroughTheFractions(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		size  string
 		delta int
@@ -60,6 +63,7 @@ func TestPlusAndMinusStepThroughTheFractions(t *testing.T) {
 }
 
 func TestADraggedWidthChangesOnlyPastTheMiddleOfTwoSteps(t *testing.T) {
+	t.Parallel()
 	// On 80 cells the steps are 20 26 40 53 60 80.
 	cases := []struct {
 		from  string

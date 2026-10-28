@@ -62,7 +62,7 @@ func (a *API) Index() ([]Entry, error) {
 			e.Kind, e.Icon = k.Name, k.Icon
 			e.Title = arrange.Title(v, n.Doc, n.Name)
 			if n.Err == nil {
-				e.Summary = k.Parse(n.Doc).Summary()
+				e.Summary = k.Parse(n.Doc, a.env).Summary()
 				e.Gist = gist(k, n.Doc)
 			}
 			e.body = n.Doc.Body // its links are resolved once every name is known

@@ -10,6 +10,7 @@ import (
 // change by themselves (a card that stalls) and wakes then, once, not on a
 // timer; and at midnight, when "14:02" becomes a day.
 func TestTheBoardWakesWhenACardWillStall(t *testing.T) {
+	t.Parallel()
 	clock := time.Date(2026, 10, 3, 15, 0, 0, 0, time.Local)
 	board := "---\ntype: board\nopen: true\n---\n## Doing\n- slow @codex-1 @{2026-10-03} @@{14:50}\n## Done\n"
 	m, dir := newModel(t, map[string]string{"b.md": board})

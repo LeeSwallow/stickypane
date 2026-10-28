@@ -10,6 +10,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -37,5 +38,33 @@ func TestTheBridgeWritesTheTimeOfItsClock(t *testing.T) {
 	}, &v)
 	if b, _ := os.ReadFile(filepath.Join(dir, "plan.md")); !strings.Contains(string(b), "- [x] one ✅ 2026-10-03 14:02") {
 		t.Errorf("ticked:\n%s", b)
+	}
+}
+
+// What a widget writes for an action from the desktop app, a message said
+// in a chat or the time a form was sent, is on the API's clock too.
+func TestActionsFromTheAppAreStampedByTheAPIClock(t *testing.T) {
+	at := time.Date(2026, 10, 3, 14, 2, 5, 0, time.Local)
+	dir := board(t, map[string]string{
+		"talk.md": "---\ntype: chat\n---\n",
+		"ask.md":  "---\ntype: form\n---\n- ( ) yes\n\n[ Send ]\n",
+	})
+	s := serveAPI(t, api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), func() time.Time { return at }))
+
+	var v struct{ Version string }
+	s.ok("note.act", map[string]any{
+		"note": "talk.md", "version": versionOf(t, dir, "talk.md"),
+		"action": widget.Action{Name: "say", Args: map[string]string{"text": "hello", "who": "min"}},
+	}, &v)
+	if b, _ := os.ReadFile(filepath.Join(dir, "talk.md")); !strings.Contains(string(b), "## 2026-10-03\n@min 14:02 hello\n") {
+		t.Errorf("said:\n%s", b)
+	}
+
+	s.ok("note.act", map[string]any{
+		"note": "ask.md", "version": versionOf(t, dir, "ask.md"),
+		"action": widget.Action{Name: "submit", Args: map[string]string{"label": "Send"}},
+	}, &v)
+	if b, _ := os.ReadFile(filepath.Join(dir, "ask.md")); !strings.Contains(string(b), "submitted_at: "+at.Format(when.Moment)) {
+		t.Errorf("sent:\n%s", b)
 	}
 }

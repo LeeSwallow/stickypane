@@ -15,6 +15,7 @@ func bodyLines(m *Model) []string {
 }
 
 func TestOpenNotesFillTheScreen(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"a.md": "---\nopen: true\nsize: page\n---\nfirst\n",
 		"b.md": "---\nopen: true\nsize: page\n---\nsecond\n",
@@ -34,6 +35,7 @@ func TestOpenNotesFillTheScreen(t *testing.T) {
 }
 
 func TestANoteAloneInItsRowTakesTheWholeWidth(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "---\nopen: true\nsize: card\n---\nsmall\n"})
 	if body := bodyLines(m); !strings.HasSuffix(body[0], "╗") || len([]rune(body[0])) != 80 {
 		t.Errorf("no part of the screen should be empty:\n%s", screen(m))
@@ -41,6 +43,7 @@ func TestANoteAloneInItsRowTakesTheWholeWidth(t *testing.T) {
 }
 
 func TestALongNoteScrollsInsideItsPane(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"a.md": "---\nopen: true\nsize: page\n---\n" + numbered(60),
 		"b.md": "---\nopen: true\nsize: page\n---\nthe other note\n",
@@ -68,6 +71,7 @@ func TestALongNoteScrollsInsideItsPane(t *testing.T) {
 }
 
 func TestTheWheelScrollsTheNoteUnderThePointer(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"a.md": "---\nopen: true\nsize: page\n---\nfocused note\n",
 		"b.md": "---\nopen: true\nsize: page\n---\n" + numbered(60),
@@ -90,6 +94,7 @@ func TestTheWheelScrollsTheNoteUnderThePointer(t *testing.T) {
 }
 
 func TestNotesThatDoNotFitGoToTheNextScreen(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{}
 	for i := 1; i <= 5; i++ {
 		files[fmt.Sprintf("n%d.md", i)] = fmt.Sprintf("---\nopen: true\nsize: page\n---\nnote %d\n%s", i, numbered(30))
@@ -124,6 +129,7 @@ func TestNotesThatDoNotFitGoToTheNextScreen(t *testing.T) {
 }
 
 func TestTheCursorStaysInViewInsideAPane(t *testing.T) {
+	t.Parallel()
 	var items strings.Builder
 	for i := 1; i <= 40; i++ {
 		fmt.Fprintf(&items, "- [ ] item %02d\n", i)
@@ -144,6 +150,7 @@ func TestTheCursorStaysInViewInsideAPane(t *testing.T) {
 }
 
 func TestALogFollowsItsEndUntilItIsScrolled(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{
 		"l.md": "---\ntype: log\nopen: true\n---\n" + numbered(40),
 		"z.md": "---\nopen: true\nsize: page\n---\n" + numbered(40),
@@ -171,6 +178,7 @@ func TestALogFollowsItsEndUntilItIsScrolled(t *testing.T) {
 }
 
 func TestTinyScreensStillDraw(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(30)), "c.md": checklistFile})
 	for _, size := range [][2]int{{1, 1}, {8, 3}, {20, 5}, {40, 9}, {200, 60}} {
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})

@@ -15,6 +15,7 @@ import (
 )
 
 func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "N")
 	if s := screen(m); !strings.Contains(s, "Jot:") {
@@ -41,6 +42,7 @@ func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
 }
 
 func TestLowercaseNJotsUnlessTheNoteTakesIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("plain\n")})
 	press(m, "n")
 	typeText(m, "배포 전에 확인")
@@ -62,6 +64,7 @@ func TestLowercaseNJotsUnlessTheNoteTakesIt(t *testing.T) {
 }
 
 func TestEmptyJotCreatesNothing(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "N", "enter")
 	press(m, "N", "esc")
@@ -107,6 +110,7 @@ func TestTheScreenMakesNotesAsTheAPIDoes(t *testing.T) {
 }
 
 func TestCatalogCreatesTheChosenShape(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "a")
 	s := screen(m)
@@ -141,6 +145,7 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 }
 
 func TestCatalogCanBeCancelled(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "a", "j", "esc")
 	if m.mode != modeBoard {

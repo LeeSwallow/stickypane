@@ -12,9 +12,10 @@ import (
 
 const deploy = "#!/bin/sh\n# ship it\ngo test ./... && ./deploy.sh\n"
 
-func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+func parseSrc(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, widget.DefaultEnv()) }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	if Kind.Name != "script" || Kind.New != ".sh" || strings.Join(Kind.Exts, " ") != ".sh .ps1" {
 		t.Errorf("Kind = %+v", Kind)
 	}
@@ -27,6 +28,7 @@ func TestKind(t *testing.T) {
 }
 
 func TestDrawShowsTheButtonAndTheScript(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(deploy)
 	for _, width := range []int{1, 6, 20, 60} {
 		out, at := w.Draw(width, true)
@@ -52,6 +54,7 @@ func TestDrawShowsTheButtonAndTheScript(t *testing.T) {
 }
 
 func TestEnterAsksToRun(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(deploy)
 	for _, key := range []string{"enter", "space"} {
 		if _, res := w.Update(key); !res.Run || res.Op != nil || res.Prompt != nil {
@@ -75,6 +78,7 @@ func TestEnterAsksToRun(t *testing.T) {
 }
 
 func TestAnEmptyScriptSaysSo(t *testing.T) {
+	t.Parallel()
 	out, _ := parseSrc("").Draw(40, true)
 	if !strings.Contains(ansi.Strip(out), "empty") {
 		t.Errorf("Draw = %q", ansi.Strip(out))

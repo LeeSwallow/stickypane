@@ -5,7 +5,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -17,7 +16,7 @@ func init() {
 		if i := m.index(m.zoomName); i >= 0 {
 			pairs = append(pairs, m.items[i].kind.Hint...)
 		}
-		return hintsThen(m.width, "?", "keys", append(pairs, "g G", "top, end", "e", "edit")...)
+		return m.hintsThen(m.width, "?", "keys", append(pairs, "g G", "top, end", "e", "edit")...)
 	}
 }
 
@@ -111,7 +110,7 @@ func zoomBody(m *Model, h int) []string {
 	for len(visible) < rows {
 		visible = append(visible, "")
 	}
-	return strings.Split(frame(box{
+	return strings.Split(frame(box{styles: m.env.Styles,
 		title: title, icon: it.kind.Icon, summary: m.zoomSummary(it),
 		body: strings.Join(visible, "\n"), width: m.width, color: m.color(it), focused: true,
 		offset: m.zoomScroll, total: len(m.zoomLines),
@@ -124,7 +123,7 @@ func zoomBody(m *Model, h int) []string {
 func (m *Model) zoomSummary(it item) string {
 	s := m.summary(it)
 	f := it.file()
-	made, changed := when.Short(f.Created, m.now()), when.Short(f.ModTime, m.now())
+	made, changed := m.env.Short(f.Created), m.env.Short(f.ModTime)
 	span := changed
 	if made != "" && made != changed {
 		span = made + " → " + changed

@@ -147,7 +147,7 @@ func (m *Model) relayout() {
 			body = append(body, "")
 		}
 		rects = append(rects, p.rect)
-		boxes = append(boxes, frame(box{
+		boxes = append(boxes, frame(box{styles: m.env.Styles,
 			title: m.heading(it), icon: it.kind.Icon, summary: m.summary(it),
 			body: strings.Join(body, "\n"), width: p.rect.W, color: m.color(it), focused: focused,
 			offset: p.offset, total: p.total,

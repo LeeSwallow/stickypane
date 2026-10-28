@@ -59,14 +59,10 @@ var (
 	boardKeys = map[string]func(*Model) tea.Cmd{}
 )
 
-// tr is what the screen says, in the language in use. One board runs per
-// process, so the strings are the package's.
-var tr = i18n.English()
-
 // Message returns a message of the screen's language by its field name,
 // for callers outside the package. An unknown name gives "".
-func Message(field string) string {
-	v := reflect.ValueOf(tr).FieldByName(field)
+func (m *Model) Message(field string) string {
+	v := reflect.ValueOf(m.tr).FieldByName(field)
 	if v.IsValid() && v.Kind() == reflect.String {
 		return v.String()
 	}
@@ -76,11 +72,12 @@ func Message(field string) string {
 // say fills a message's placeholders.
 func say(s string, values map[string]any) string { return i18n.Fill(s, values) }
 
-// UseLanguage makes the screen speak the language of a choice ("ko",
-// "auto") from now on. Widgets are told too.
-func UseLanguage(choice string) {
-	tr = i18n.Pick(choice)
-	widget.Translate = tr.L
+// useLanguage makes the screen speak the language of a choice ("ko",
+// "auto") from now on. Widgets are told through the Env; the caller makes
+// them again.
+func (m *Model) useLanguage(choice string) {
+	m.tr = i18n.Pick(choice)
+	m.env.Translate = m.tr.L
 }
 
 // item is a note with the widget that draws it. A book, which is a folder,
@@ -116,6 +113,10 @@ type Model struct {
 	reg   widget.Registry
 	watch <-chan struct{}
 	now   func() time.Time
+	env   widget.Env   // what every widget is parsed with: the clock, words and styles
+	tr    i18n.Strings // what the screen says, in the language in use
+
+	editor string // settings.go: the editor the settings chose for E; "auto" leaves it to the environment
 
 	theme       *theme.Holder // the theme in use, shared with the Markdown renderer
 	dark        bool          // what the terminal said about its background
@@ -149,6 +150,9 @@ type notes struct {
 	peek    map[string]bool      // notes shown open for this run without an "open" key
 	views   store.Views          // how the user arranged the notes, from sticky.json
 	anchors map[string]anchor    // where the view is in each book, by the book's name
+
+	embedFiles map[string]store.Note // reload.go: every note, for a ![[name]] line
+	embedNames []string
 }
 
 // tabState is the tabs and which one is shown.
@@ -242,16 +246,17 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, theme: th, dark: true}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, theme: th, dark: true, editor: "auto"}
 	m.peek, m.anchors = map[string]bool{}, map[string]anchor{}
 	m.offsets, m.reveal = map[string]int{}, revealNote
 	m.tabFocus = map[string]string{}
-	widget.Now = func() time.Time { return m.now() }
+	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter, Embed: m.embed}
+
 	m.language = st.Language()
-	UseLanguage(m.language)
+	m.useLanguage(m.language)
 	// Times are written the way the user's country does, whatever language
 	// the screen speaks.
-	when.UseLocale(env.Detect().Locale)
+	m.env.Times = when.Locale(env.Detect().Locale)
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m
@@ -261,7 +266,7 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 // rebuilt, so nothing drawn with the old colors is kept.
 func (m *Model) useTheme(t theme.Theme) {
 	m.theme.Set(t)
-	widget.Apply(t.Styles())
+	m.env.Styles = t.Styles()
 	m.items = nil
 	m.drawn = nil
 }
@@ -270,11 +275,11 @@ func (m *Model) useTheme(t theme.Theme) {
 // in sticky.json and says which theme that is.
 func (m *Model) chooseTheme(name string) {
 	if err := m.calls().ChangeSettings(api.Setting{Key: "theme", Value: name}); err != nil {
-		m.status = say(tr.ThemeNotSaved, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ThemeNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.useTheme(theme.Pick(name, m.dark))
 	m.reload()
-	m.status = say(tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
+	m.status = say(m.tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
 }
 
 // SetStatus shows a message on the bottom line until the next key.
@@ -388,7 +393,7 @@ func (m *Model) switchTab(i int) {
 		return
 	}
 	if err := m.store.SetTab(m.tabList[i].Name); err != nil {
-		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 		return
 	}
 	m.focus = ""

@@ -38,7 +38,7 @@ func (c *Chart) Draw(width int, active bool) (string, widget.Span) {
 func (c *Chart) DrawIn(width, height int, _ bool) (string, widget.Span) {
 	var lines []string
 	if len(c.points) == 0 {
-		lines = append(lines, widget.Faint.Render(widget.Truncate(widget.T(formatHint), width)))
+		lines = append(lines, c.env.Styles.Faint.Render(widget.Truncate(c.env.T(formatHint), width)))
 	}
 	for _, p := range c.prose {
 		lines = append(lines, widget.Wrap(widget.Clean(p), max(width, 1))...)
@@ -58,7 +58,7 @@ func (c *Chart) DrawIn(width, height int, _ bool) (string, widget.Span) {
 			}
 			lines = append(lines, c.spark(width, rows)...)
 		case c.view == "heat" && len(days) > 0:
-			lines = append(lines, heat(days, width)...)
+			lines = append(lines, c.heat(days, width)...)
 		default:
 			lines = append(lines, c.bars(width)...)
 		}
@@ -93,7 +93,7 @@ func (c *Chart) bars(width int) []string {
 			units = int(math.Round(p.value / top * float64(barW*8)))
 		}
 		bar := strings.Repeat("█", units/8) + eighths[units%8]
-		lines = append(lines, label+" "+widget.Good.Render(bar)+strings.Repeat(" ", barW-widget.Width(bar))+" "+value)
+		lines = append(lines, label+" "+c.env.Styles.Good.Render(bar)+strings.Repeat(" ", barW-widget.Width(bar))+" "+value)
 	}
 	return lines
 }
@@ -161,11 +161,11 @@ func (c *Chart) spark(width, rows int) []string {
 			k := level - row*8
 			switch {
 			case x == plotW-1 && row == top:
-				cells.WriteString(widget.Accent.Render("●"))
+				cells.WriteString(c.env.Styles.Accent.Render("●"))
 			case k >= 8:
-				cells.WriteString(widget.Good.Render("█"))
+				cells.WriteString(c.env.Styles.Good.Render("█"))
 			case k > 0:
-				cells.WriteString(widget.Good.Render(string(sparks[k-1])))
+				cells.WriteString(c.env.Styles.Good.Render(string(sparks[k-1])))
 			default:
 				cells.WriteString(" ")
 			}
@@ -179,17 +179,17 @@ func (c *Chart) spark(width, rows int) []string {
 		}
 		tail := ""
 		if row == top {
-			tail = " " + widget.Accent.Render(widget.Truncate(last.text, valueW))
+			tail = " " + c.env.Styles.Accent.Render(widget.Truncate(last.text, valueW))
 		}
 		label = strings.Repeat(" ", axisW-min(widget.Width(label), axisW)) + widget.Truncate(label, axisW)
-		lines = append(lines, widget.Faint.Render(label+mark)+cells.String()+tail)
+		lines = append(lines, c.env.Styles.Faint.Render(label+mark)+cells.String()+tail)
 	}
 	first, end := widget.Clean(points[0].label), widget.Clean(last.label)
 	if widget.Width(first)+widget.Width(end)+1 > plotW {
 		first, end = widget.Truncate(first, (plotW-1)/2), widget.Truncate(end, (plotW-1)/2)
 	}
 	gap := max(plotW-widget.Width(first)-widget.Width(end), 1)
-	return append(lines, widget.Faint.Render(strings.Repeat(" ", axisW+1)+first+strings.Repeat(" ", gap)+end))
+	return append(lines, c.env.Styles.Faint.Render(strings.Repeat(" ", axisW+1)+first+strings.Repeat(" ", gap)+end))
 }
 
 // oneLine draws the values as one line, the latest that fit, and names the
@@ -215,7 +215,7 @@ func (c *Chart) oneLine(width int) []string {
 	}
 	legend := fmt.Sprintf("%s → %s  low %s  peak %s (%s)",
 		widget.Clean(points[0].label), widget.Clean(points[len(points)-1].label), low.text, high.text, widget.Clean(high.label))
-	return append([]string{widget.Good.Render(line.String())}, faintLines(legend, width)...)
+	return append([]string{c.env.Styles.Good.Render(line.String())}, c.faintLines(legend, width)...)
 }
 
 // shades are the four levels of a calendar cell, from light to full.
@@ -228,7 +228,7 @@ var shades = []string{"░", "▒", "▓", "█"}
 // A day's shade is its rank among the days with a value, not its share of
 // the peak: one day far above the others would otherwise leave every other
 // day at the lightest shade.
-func heat(days []day, width int) []string {
+func (c *Chart) heat(days []day, width int) []string {
 	values := map[string]point{}
 	var ranked []float64
 	first, last, peak := days[0].date, days[0].date, days[0]
@@ -276,7 +276,7 @@ func heat(days []day, width int) []string {
 		}
 		head += cell
 	}
-	lines := []string{widget.Faint.Render(strings.TrimRight(head, " "))}
+	lines := []string{c.env.Styles.Faint.Render(strings.TrimRight(head, " "))}
 	names := []string{"Mon", "", "Wed", "", "Fri", "", ""}
 	for row := 0; row < 7; row++ {
 		var cells strings.Builder
@@ -286,7 +286,7 @@ func heat(days []day, width int) []string {
 			case !ok:
 				cells.WriteString(strings.Repeat(" ", cw))
 			case p.value <= 0:
-				cells.WriteString(widget.Faint.Render("·") + strings.Repeat(" ", cw-1))
+				cells.WriteString(c.env.Styles.Faint.Render("·") + strings.Repeat(" ", cw-1))
 			default:
 				atOrBelow := sort.SearchFloat64s(ranked, math.Nextafter(p.value, math.Inf(1)))
 				level := (atOrBelow*len(shades)+len(ranked)-1)/len(ranked) - 1
@@ -294,33 +294,33 @@ func heat(days []day, width int) []string {
 				// blocks that touch, so the shades can be told apart.
 				block := shades[max(min(level, len(shades)-1), 0)]
 				if width >= heatMinW {
-					cells.WriteString(widget.Good.Render(strings.Repeat(block, cw)))
+					cells.WriteString(c.env.Styles.Good.Render(strings.Repeat(block, cw)))
 				} else {
-					cells.WriteString(widget.Good.Render(block) + " ")
+					cells.WriteString(c.env.Styles.Good.Render(block) + " ")
 				}
 			}
 		}
-		line := widget.Faint.Render(widget.Pad(names[row], gutterDays)) + cells.String()
+		line := c.env.Styles.Faint.Render(widget.Pad(names[row], gutterDays)) + cells.String()
 		lines = append(lines, strings.TrimRight(line, " "))
 	}
 	legend := fmt.Sprintf("total %s · peak %s (%s)", trim(total), peak.p.text, peak.date.Format(when.Date))
 	lines = append(lines, "")
 	if width < heatMinW {
-		return append(lines, faintLines(legend, width)...)
+		return append(lines, c.faintLines(legend, width)...)
 	}
 	// The scale sits next to the legend when both fit on a line.
-	scale := widget.T("less") + " " + strings.Join(shades, "") + " " + widget.T("more")
+	scale := c.env.T("less") + " " + strings.Join(shades, "") + " " + c.env.T("more")
 	if widget.Width(legend)+2+widget.Width(scale) > width {
-		return append(append(lines, faintLines(legend, width)...), widget.Faint.Render(widget.Truncate(scale, width)))
+		return append(append(lines, c.faintLines(legend, width)...), c.env.Styles.Faint.Render(widget.Truncate(scale, width)))
 	}
-	return append(lines, widget.Faint.Render(legend+"  "+scale))
+	return append(lines, c.env.Styles.Faint.Render(legend+"  "+scale))
 }
 
 // faintLines wraps a legend to width and dims it.
-func faintLines(text string, width int) []string {
+func (c *Chart) faintLines(text string, width int) []string {
 	lines := widget.Wrap(text, max(width, 1))
 	for i, l := range lines {
-		lines[i] = widget.Faint.Render(l)
+		lines[i] = c.env.Styles.Faint.Render(l)
 	}
 	return lines
 }
@@ -345,4 +345,4 @@ func trim(v float64) string {
 func (c *Chart) Update(string) (widget.Widget, widget.Result) { return c, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (c *Chart) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (c *Chart) Sync(d doc.Document) widget.Widget { return parse(d, c.env) }

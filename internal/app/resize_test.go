@@ -32,6 +32,7 @@ func edges(t *testing.T, m *Model, name string) (right, bottom [2]int) {
 }
 
 func TestSixShortNotesFitOneScreen(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{}
 	for i := 1; i <= 6; i++ {
 		files[fmt.Sprintf("n%d.md", i)] = opened(fmt.Sprintf("note %d\n", i) + numbered(5))
@@ -49,6 +50,7 @@ func TestSixShortNotesFitOneScreen(t *testing.T) {
 }
 
 func TestTheRowsLeftoverWidthIsSharedByFraction(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("a\n"), "b.md": opened("b\n"), "c.md": opened("c\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1/3"},"b.md":{"size":"1/3"},"c.md":{"size":"1/3"}}}`)
 	m.reload()
@@ -64,6 +66,7 @@ func TestTheRowsLeftoverWidthIsSharedByFraction(t *testing.T) {
 }
 
 func TestDraggingTheRightBorderSnapsTheWidthToAFraction(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/2"}}}`)
 	m.reload()
@@ -92,6 +95,7 @@ func TestDraggingTheRightBorderSnapsTheWidthToAFraction(t *testing.T) {
 }
 
 func TestDraggingTheBottomBorderSetsRows(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened(numbered(40)), "b.md": opened(numbered(40))})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1"},"b.md":{"size":"1"}}}`)
 	m.reload()
@@ -112,6 +116,7 @@ func TestDraggingTheBottomBorderSetsRows(t *testing.T) {
 }
 
 func TestADoubleClickOnTheBottomBorderGoesBackToTheContent(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1","rows":5},"b.md":{"size":"1"}}}`)
 	m.reload()
@@ -128,6 +133,7 @@ func TestADoubleClickOnTheBottomBorderGoesBackToTheContent(t *testing.T) {
 }
 
 func TestHeightKeysWriteRows(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"rows":5}}}`)
 	m.reload()
@@ -151,6 +157,7 @@ func TestHeightKeysWriteRows(t *testing.T) {
 }
 
 func TestHeightKeysStartFromWhatTheNoteShows(t *testing.T) {
+	t.Parallel()
 	// A note that asks for nothing starts from its content; a note squeezed
 	// by the others starts from what its pane shows.
 	m, dir := newModel(t, map[string]string{
@@ -178,6 +185,7 @@ func TestHeightKeysStartFromWhatTheNoteShows(t *testing.T) {
 }
 
 func TestHeightKeysDoNothingOnAClosedNote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "closed\n"})
 	press(m, "shift+up", "shift+down", "0")
 	if v, ok := viewsOf(t, dir)["a.md"]; ok && v.Rows != 0 {
@@ -186,6 +194,7 @@ func TestHeightKeysDoNothingOnAClosedNote(t *testing.T) {
 }
 
 func TestTheBorderShowsTheNewSizeForAMoment(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("one\n")})
 	press(m, "+")
 	if top := bodyLines(m)[0]; !strings.Contains(top, "width 2/3") {

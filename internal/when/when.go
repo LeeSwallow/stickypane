@@ -46,15 +46,14 @@ func Milli(t time.Time) string { return t.Format(milli) }
 // "20261003-140205".
 func Slug(t time.Time) string { return t.Format(compact) }
 
-// How the screen writes a time of day, a day of this year and a day of
-// another year. UseLocale sets them for the user's country; they are Go
-// layouts. What is written into files stays in the layouts above, which
-// every tool reads the same.
-var (
-	TimeLayout = Clock
-	DayLayout  = "Jan 2"
-	YearLayout = Date
-)
+// Formatter writes times on the screen the way a country does: a time of
+// day, a day of this year and a day of another year, as Go layouts. What is
+// written into files stays in the layouts above, which every tool reads the
+// same. The zero Formatter writes a neutral form: 14:02, Jan 2, 2025-12-31.
+type Formatter struct{ clock, day, year string }
+
+// neutralDay is how the zero Formatter writes a day of this year.
+const neutralDay = "Jan 2"
 
 // countries are the ways of writing times, by language and country. The
 // first entry whose language and, when it names one, country match the
@@ -80,21 +79,27 @@ var countries = []struct {
 	{"nl", "", Clock, "02-01", "02-01-2006"},
 }
 
-// UseLocale makes the screen write times the way the country of locale
-// does ("ko_KR.UTF-8", "en-GB"). An empty locale, "C" or "POSIX", or one
-// not known, keeps a neutral form: 14:02, Sep 30, 2025-12-31.
-func UseLocale(locale string) {
-	TimeLayout, DayLayout, YearLayout = Clock, "Jan 2", Date
+// Locale returns the Formatter that writes times the way the country of
+// locale does ("ko_KR.UTF-8", "en-GB"). An empty locale, "C" or "POSIX", or
+// one not known, gives the zero Formatter: 14:02, Jan 2, 2025-12-31.
+func Locale(locale string) Formatter {
 	lang, country := splitLocale(locale)
 	if lang == "" {
-		return
+		return Formatter{}
 	}
 	for _, c := range countries {
 		if c.lang == lang && (c.country == "" || c.country == country) {
-			TimeLayout, DayLayout, YearLayout = c.clock, c.day, c.yearDay
-			return
+			return Formatter{c.clock, c.day, c.yearDay}
 		}
 	}
+	return Formatter{}
+}
+
+func (f Formatter) layouts() (clock, day, year string) {
+	if f == (Formatter{}) {
+		return Clock, neutralDay, Date
+	}
+	return f.clock, f.day, f.year
 }
 
 // splitLocale turns "en_US.UTF-8" or "en-US" into "en" and "US". An
@@ -117,18 +122,19 @@ func splitLocale(locale string) (lang, country string) {
 // Short says when t was in as few characters as the day allows: the time of
 // day for today, the day for this year, the date before that. The zero time
 // says nothing.
-func Short(t, now time.Time) string {
+func (f Formatter) Short(t, now time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
+	clock, day, year := f.layouts()
 	t, now = t.Local(), now.Local()
 	switch {
 	case t.Year() == now.Year() && t.YearDay() == now.YearDay():
-		return t.Format(TimeLayout)
+		return t.Format(clock)
 	case t.Year() == now.Year():
-		return t.Format(DayLayout)
+		return t.Format(day)
 	}
-	return t.Format(YearLayout)
+	return t.Format(year)
 }
 
 // Duration says how long something took, to the precision that matters at

@@ -54,7 +54,7 @@ func (m *Model) bodyMode() mode {
 func (m *Model) footer() string {
 	asking := m.mode == modeInput || m.mode == modeConfirm
 	if m.status != "" && !asking {
-		return widget.Warn.Render(m.status)
+		return m.env.Styles.Warn.Render(m.status)
 	}
 	if f, ok := footers[m.mode]; ok {
 		return f(m)

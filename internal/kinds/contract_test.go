@@ -15,6 +15,7 @@ import (
 // Every registered shape keeps the widget contract, so a new shape only has
 // to pass this to work on the board, in the catalog and in `kinds`.
 func TestEveryKindKeepsTheContract(t *testing.T) {
+	t.Parallel()
 	for _, k := range Default(note.Plain) {
 		t.Run(k.Name, func(t *testing.T) {
 			for field, v := range map[string]string{"Icon": k.Icon, "Label": k.Label, "Blurb": k.Blurb, "Example": k.Example, "Command": k.Command, "Usage": k.Usage} {
@@ -29,7 +30,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 			if k.New != "" {
 				d = doc.Document{Body: k.Example}
 			}
-			w := k.Parse(d)
+			w := k.Parse(d, widget.DefaultEnv())
 			for _, width := range []int{1, 7, 20, 80} {
 				for _, active := range []bool{false, true} {
 					out, at := w.Draw(width, active)
@@ -53,7 +54,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 			if w.Sync(d) == nil {
 				t.Error("Sync returned no widget")
 			}
-			if empty := k.Parse(doc.Document{}); empty == nil {
+			if empty := k.Parse(doc.Document{}, widget.DefaultEnv()); empty == nil {
 				t.Error("an empty file must still give a widget")
 			} else {
 				empty.Draw(20, true)
@@ -65,6 +66,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 // Every shape says what it holds, for a screen that is not a terminal, and
 // a shape that takes actions refuses the ones it does not know.
 func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
+	t.Parallel()
 	for _, k := range Default(note.Plain) {
 		t.Run(k.Name, func(t *testing.T) {
 			if k.Data == nil {
@@ -74,12 +76,12 @@ func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
 			if k.New != "" {
 				d = doc.Document{Body: k.Example}
 			}
-			b, err := json.Marshal(k.Data(d))
+			b, err := json.Marshal(k.Data(d, widget.DefaultEnv()))
 			if err != nil || string(b) == "null" {
 				t.Errorf("Data of the example = %s, %v", b, err)
 			}
 			if k.Act != nil {
-				if _, err := k.Act(d, widget.Action{Name: "no-such"}); !errors.Is(err, widget.ErrUnknownAction) {
+				if _, err := k.Act(d, widget.Action{Name: "no-such"}, widget.DefaultEnv()); !errors.Is(err, widget.ErrUnknownAction) {
 					t.Errorf("Act(no-such) = %v, want ErrUnknownAction", err)
 				}
 			}
@@ -91,6 +93,7 @@ func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
 // formed and translated, and what it makes with no option given is a note
 // of the same shape.
 func TestEveryKindComposesFromItsOptions(t *testing.T) {
+	t.Parallel()
 	ko, err := i18n.Load("ko")
 	if err != nil {
 		t.Fatal(err)

@@ -100,9 +100,9 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func mainBody(m *Model, h int) []string {
 	switch {
 	case len(m.items) == 0:
-		return dialog("", append([]string{tr.NoNotes, ""}, strings.Split(tr.NoNotesHint, "\n")...), 46, m.width, h, m.accent())
+		return m.dialog("", append([]string{m.tr.NoNotes, ""}, strings.Split(m.tr.NoNotesHint, "\n")...), 46, m.width, h, m.accent())
 	case len(m.canvas) == 0:
-		return dialog("", append([]string{tr.NothingOpen, ""}, strings.Split(tr.NothingOpenHint, "\n")...), 46, m.width, h, m.accent())
+		return m.dialog("", append([]string{m.tr.NothingOpen, ""}, strings.Split(m.tr.NothingOpenHint, "\n")...), 46, m.width, h, m.accent())
 	}
 	return widget.Window(m.canvas, 0, h)
 }
@@ -114,17 +114,17 @@ func mainFooter(m *Model) string {
 	i := m.index(m.focus)
 	switch {
 	case i < 0:
-		return hintsThen(m.width, "?", "help", "N", "jot", "a", "add", "q", "quit")
+		return m.hintsThen(m.width, "?", "help", "N", "jot", "a", "add", "q", "quit")
 	case !m.isOpen(m.items[i]):
-		return hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
+		return m.hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
 	case len(m.items[i].kind.Hint) > 0:
 		zoom := "enter"
 		if m.items[i].kind.Handles("enter") {
 			zoom = "z"
 		}
-		return hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
+		return m.hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
 	}
-	return hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
+	return m.hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
 }
 
 // titleBar is one line of tabs, like the tab strips of yazi and zellij:
@@ -168,7 +168,7 @@ func (m *Model) titleBar() []string {
 			open++
 			t.st = lipgloss.NewStyle().Background(lipgloss.Color(th.Select)).Foreground(m.color(it))
 		default:
-			t.st = widget.Faint
+			t.st = m.env.Styles.Faint
 		}
 		tabs[i] = t
 	}
@@ -215,7 +215,7 @@ func (m *Model) titleBar() []string {
 	var line strings.Builder
 	x := 0
 	if left := marker(lo, true); left != "" {
-		line.WriteString(widget.Faint.Render(left))
+		line.WriteString(m.env.Styles.Faint.Render(left))
 		x += widget.Width(left)
 	}
 	for i := lo; i < hi; i++ {
@@ -228,14 +228,14 @@ func (m *Model) titleBar() []string {
 		x += tabs[i].w
 	}
 	if rightMarker := marker(len(tabs)-hi, false); rightMarker != "" {
-		line.WriteString(widget.Faint.Render(rightMarker))
+		line.WriteString(m.env.Styles.Faint.Render(rightMarker))
 		x += widget.Width(rightMarker)
 	}
 	if gap := m.width - x - widget.Width(right); gap > 0 {
 		line.WriteString(strings.Repeat(" ", gap))
 	}
 	if right != "" {
-		line.WriteString(widget.Faint.Render(right))
+		line.WriteString(m.env.Styles.Faint.Render(right))
 	}
 	return append(lines, line.String())
 }
@@ -256,7 +256,7 @@ func (m *Model) tabStrip() string {
 		if x+widget.Width(text) > m.width {
 			break
 		}
-		st := widget.Faint
+		st := m.env.Styles.Faint
 		if i == m.tab {
 			st = lipgloss.NewStyle().Background(lipgloss.Color(th.Accent)).Foreground(lipgloss.Color(th.Base)).Bold(true)
 		}
@@ -284,7 +284,7 @@ func (m *Model) stepFocus(delta int) {
 // explain why; rewriting its file would do no good.
 func (m *Model) editable(it item) bool {
 	if err := it.file().Err; err != nil {
-		m.status = say(tr.CannotChange, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.CannotChange, map[string]any{"Err": err.Error()})
 		return false
 	}
 	return true

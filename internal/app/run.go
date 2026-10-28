@@ -27,11 +27,11 @@ type scriptDoneMsg struct {
 // saying so, each time.
 func (m *Model) askRun(name string) {
 	if m.running[name] {
-		m.status = say(tr.AlreadyRunning, map[string]any{"Name": path.Base(name)})
+		m.status = say(m.tr.AlreadyRunning, map[string]any{"Name": path.Base(name)})
 		return
 	}
 	root := filepath.Dir(m.store.Dir)
-	m.confirm(say(tr.ConfirmRun, map[string]any{"Name": path.Base(name), "Dir": filepath.Base(root)}), func() {
+	m.confirm(say(m.tr.ConfirmRun, map[string]any{"Name": path.Base(name), "Dir": filepath.Base(root)}), func() {
 		m.pending = m.run(name)
 	})
 }
@@ -45,7 +45,7 @@ func (m *Model) run(name string) tea.Cmd {
 	log := runner.LogOf(name)
 	r, err := runner.Prepare(m.store, name, m.now)
 	if err != nil {
-		m.status = say(tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
+		m.status = say(m.tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
 	// The script is opened, and its log shows in its pane. A page of a book
@@ -71,9 +71,9 @@ func (m *Model) finished(msg scriptDoneMsg) {
 	delete(m.running, msg.name)
 	switch base := path.Base(msg.name); {
 	case msg.err != nil:
-		m.status = say(tr.CouldNotRun, map[string]any{"Name": base, "Err": msg.err.Error()})
+		m.status = say(m.tr.CouldNotRun, map[string]any{"Name": base, "Err": msg.err.Error()})
 	default:
-		m.status = say(tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": when.Duration(msg.took), "Log": path.Base(runner.LogOf(msg.name))})
+		m.status = say(m.tr.RunEnded, map[string]any{"Name": base, "Code": msg.code, "Took": when.Duration(msg.took), "Log": path.Base(runner.LogOf(msg.name))})
 	}
 	m.reload()
 }

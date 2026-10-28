@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
-
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -25,6 +23,7 @@ type Board struct {
 	content
 	col, row int    // cursor
 	drawn    []area // where each card was in the last Draw
+	env      widget.Env
 }
 
 func (b *Board) clamp() {
@@ -73,10 +72,10 @@ func wrapped(s string, width int, style func(...string) string) []string {
 func (b *Board) Draw(width int, active bool) (string, widget.Span) {
 	var out []string
 	for _, d := range b.desc {
-		out = append(out, wrapped(d, width, widget.Faint.Render)...)
+		out = append(out, wrapped(d, width, b.env.Styles.Faint.Render)...)
 	}
 	if len(b.cols) == 0 {
-		hint := widget.Faint.Render(widget.Truncate(widget.T(formatHint), width))
+		hint := b.env.Styles.Faint.Render(widget.Truncate(b.env.T(formatHint), width))
 		lines := []string{hint}
 		for _, d := range b.desc {
 			lines = append(lines, wrapped(d, width, nil)...)
@@ -154,14 +153,14 @@ const boxWidth = 12
 
 // mark is the sign before a column's title: how far along its cards are,
 // read from where the column stands, first to last.
-func mark(i, n int) string {
+func (b *Board) mark(i, n int) string {
 	switch {
 	case n > 1 && i == n-1:
-		return widget.Good.Render("●")
+		return b.env.Styles.Good.Render("●")
 	case i == 0:
-		return widget.Faint.Render("○")
+		return b.env.Styles.Faint.Render("○")
 	}
-	return widget.Info.Render("◐")
+	return b.env.Styles.Info.Render("◐")
 }
 
 // column draws one column at width: its heading, then every card. Cards
@@ -179,21 +178,21 @@ func (b *Board) column(i, width int, active bool) (lines []string, at widget.Spa
 		at = widget.Span{Start: 0, End: 2}
 	}
 	here := active && i == b.col
-	count := widget.Faint.Render(fmt.Sprintf("(%d)", len(c.cards)))
+	count := b.env.Styles.Faint.Render(fmt.Sprintf("(%d)", len(c.cards)))
 	title := widget.Truncate(widget.Clean(c.title), max(width-3-widget.Width(count), 1))
 	if here {
-		title = widget.Bold.Underline(true).Render(title)
+		title = b.env.Styles.Bold.Underline(true).Render(title)
 	} else {
-		title = widget.Bold.Render(title)
+		title = b.env.Styles.Bold.Render(title)
 	}
-	lines = append(lines, mark(i, len(b.cols))+" "+title+" "+count)
-	rule := widget.Faint
+	lines = append(lines, b.mark(i, len(b.cols))+" "+title+" "+count)
+	rule := b.env.Styles.Faint
 	if here {
-		rule = widget.Accent
+		rule = b.env.Styles.Accent
 	}
 	lines = append(lines, rule.Render(strings.Repeat("─", max(width, 1))))
 	if len(c.cards) == 0 {
-		lines = append(lines, widget.Faint.Render(widget.Truncate(widget.T("empty"), width)))
+		lines = append(lines, b.env.Styles.Faint.Render(widget.Truncate(b.env.T("empty"), width)))
 	}
 	last := len(b.cols) > 1 && i == len(b.cols)-1
 	for r, cd := range c.cards {
@@ -221,12 +220,12 @@ func (b *Board) column(i, width int, active bool) (lines []string, at widget.Spa
 // last column is drawn faint.
 func (b *Board) box(cd card, width int, selected, last bool) []string {
 	inner := width - 4
-	edge, text := widget.Faint, func(s string) string { return s }
+	edge, text := b.env.Styles.Faint, func(s string) string { return s }
 	if last {
-		text = func(s string) string { return widget.Faint.Render(s) }
+		text = func(s string) string { return b.env.Styles.Faint.Render(s) }
 	}
 	if selected {
-		edge, text = widget.Accent, func(s string) string { return widget.Bold.Render(s) }
+		edge, text = b.env.Styles.Accent, func(s string) string { return b.env.Styles.Bold.Render(s) }
 	}
 	row := func(s string) string {
 		return edge.Render("│") + " " + s + strings.Repeat(" ", max(inner-widget.Width(s), 0)) + " " + edge.Render("│")
@@ -255,7 +254,7 @@ func (b *Board) box(cd card, width int, selected, last bool) []string {
 		out = append(out, row("  "+meta))
 	}
 	for _, d := range cd.detail {
-		for _, l := range wrapped(d, inner-2, widget.Faint.Render) {
+		for _, l := range wrapped(d, inner-2, b.env.Styles.Faint.Render) {
 			out = append(out, row("  "+l))
 		}
 	}
@@ -269,15 +268,15 @@ func (b *Board) bar(cd card, width int, selected bool, last bool) []string {
 	for j, l := range wrapped(widget.Unlink(cd.text), width-2, nil) {
 		switch {
 		case selected && j == 0:
-			out = append(out, widget.Selected.Render("› "+l))
+			out = append(out, b.env.Styles.Selected.Render("› "+l))
 		case selected:
-			out = append(out, widget.Selected.Render("  "+l))
+			out = append(out, b.env.Styles.Selected.Render("  "+l))
 		default:
-			out = append(out, widget.Faint.Render("▎")+" "+l)
+			out = append(out, b.env.Styles.Faint.Render("▎")+" "+l)
 		}
 	}
 	if meta := b.meta(cd, last, max(width-2, 1)); meta != "" {
-		lead := widget.Faint.Render("▎") + " "
+		lead := b.env.Styles.Faint.Render("▎") + " "
 		if selected {
 			lead = "  "
 		}
@@ -285,7 +284,7 @@ func (b *Board) bar(cd card, width int, selected bool, last bool) []string {
 	}
 	if selected {
 		for _, d := range cd.detail {
-			for _, l := range wrapped(d, width-4, widget.Faint.Render) {
+			for _, l := range wrapped(d, width-4, b.env.Styles.Faint.Render) {
 				out = append(out, "    "+l)
 			}
 		}
@@ -361,23 +360,11 @@ func (b *Board) Update(key string) (widget.Widget, widget.Result) {
 
 // Sync implements widget.Widget.
 func (b *Board) Sync(d doc.Document) widget.Widget {
-	nb := parse(d)
+	nb := parse(d, b.env)
+
 	nb.col, nb.row = b.col, b.row
 	nb.clamp()
 	return nb
-}
-
-// now is the clock that says how long a card has not moved, replaced in
-// tests.
-var now = func() time.Time { return widget.Now() }
-
-// StaleAfter is how long a card may stay where it is, outside the last
-// column, before the board flags it; zero never flags. The settings set it.
-var StaleAfter = 30 * time.Minute
-
-// stalled reports whether a card has not moved for staleAfter.
-func stalled(cd card, last bool, t time.Time) bool {
-	return StaleAfter > 0 && !last && !cd.moved.IsZero() && t.Sub(cd.moved) >= StaleAfter
 }
 
 // meta is the line under a card: who has it, each name in a color of its
@@ -387,17 +374,17 @@ func stalled(cd card, last bool, t time.Time) bool {
 // The line fits width: when it is too long the names are cut, never the
 // time or the flag, which say whether to look.
 func (b *Board) meta(cd card, last bool, width int) string {
-	t := now()
+	t := b.env.Now()
 	tail := ""
-	if s := when.Short(cd.moved, t); s != "" {
-		tail = widget.Faint.Render(s)
+	if s := b.env.Times.Short(cd.moved, t); s != "" {
+		tail = b.env.Styles.Faint.Render(s)
 	}
-	if stalled(cd, last, t) {
-		tail += " " + widget.Warn.Render("⚠")
+	if stalled(cd, last, t, b.env.StaleAfter) {
+		tail += " " + b.env.Styles.Warn.Render("⚠")
 	}
 	var names []string
 	for _, w := range cd.who {
-		names = append(names, widget.NameStyle(w).Render("@"+widget.Clean(w)))
+		names = append(names, b.env.NameStyle(w).Render("@"+widget.Clean(w)))
 	}
 	head := strings.Join(names, " ")
 	switch {
@@ -406,7 +393,7 @@ func (b *Board) meta(cd card, last bool, width int) string {
 	case tail == "":
 		return widget.Truncate(head, width)
 	}
-	sep := widget.Faint.Render(" · ")
+	sep := b.env.Styles.Faint.Render(" · ")
 	room := width - widget.Width(tail) - widget.Width(sep)
 	if room < 4 {
 		return widget.Truncate(tail, width)
@@ -420,10 +407,10 @@ func (b *Board) NextChange(t time.Time) time.Time {
 	for i, c := range b.cols {
 		last := len(b.cols) > 1 && i == len(b.cols)-1
 		for _, cd := range c.cards {
-			if last || cd.moved.IsZero() || StaleAfter <= 0 {
+			if last || cd.moved.IsZero() || b.env.StaleAfter <= 0 {
 				continue
 			}
-			if at := cd.moved.Add(StaleAfter); at.After(t) && (next.IsZero() || at.Before(next)) {
+			if at := cd.moved.Add(b.env.StaleAfter); at.After(t) && (next.IsZero() || at.Before(next)) {
 				next = at
 			}
 		}

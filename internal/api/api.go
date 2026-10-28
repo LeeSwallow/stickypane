@@ -62,6 +62,7 @@ type API struct {
 	st  *store.Store
 	reg widget.Registry
 	now func() time.Time // the clock every time the API writes is read from
+	env widget.Env       // what widgets read and act with: the same clock
 }
 
 // New returns the API for a notes folder. reg decides which types exist and
@@ -75,12 +76,23 @@ func NewWithClock(st *store.Store, reg widget.Registry, now func() time.Time) *A
 	if now == nil {
 		now = time.Now
 	}
-	return &API{st: st, reg: reg, now: now}
+	return NewWithEnv(st, reg, widget.Env{Clock: now, StaleAfter: widget.StaleAfter})
+}
+
+// NewWithEnv is New with the Env the API hands the widgets it reads and
+// acts through: a summary in the user's words, the time an action writes.
+// The API's clock is the Env's.
+func NewWithEnv(st *store.Store, reg widget.Registry, e widget.Env) *API {
+	return &API{st: st, reg: reg, now: e.Now, env: e}
 }
 
 // Now is the time on the API's clock, for callers that write a time
 // beside what the API writes.
 func (a *API) Now() time.Time { return a.now() }
+
+// Env is what the API hands widgets: its clock, and the words and settings
+// it was made with. A screen that draws a note's data reads it with this.
+func (a *API) Env() widget.Env { return a.env }
 
 // Store is the notes folder the API works on, for callers that only read
 // it (where a file is, whether it is a link), watch it, or hand it to the

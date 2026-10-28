@@ -111,6 +111,7 @@ func typeText(m *Model, s string) {
 func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
+	t.Parallel()
 	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-", "shift+up", "shift+down", "shift+pgup", "shift+pgdown", "0"} {
 		if got := key(k).String(); got != k {
 			t.Errorf("key(%q).String() = %q", k, got)
@@ -119,6 +120,7 @@ func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
 }
 
 func TestTitleBarListsEveryNoteAndOnlyOpenOnesAreDrawn(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "closed note body\n", "b.md": boardFile})
 	s := screen(m)
 	bar := strings.Split(s, "\n")[0]
@@ -137,6 +139,7 @@ func TestTitleBarListsEveryNoteAndOnlyOpenOnesAreDrawn(t *testing.T) {
 }
 
 func TestTheScreenHasVisualStructure(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": boardFile})
 	press(m, "tab")
 	lines := strings.Split(screen(m), "\n")
@@ -157,6 +160,7 @@ func TestTheScreenHasVisualStructure(t *testing.T) {
 }
 
 func TestEmptyStatesExplainWhatToDo(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, nil)
 	if s := screen(m); !strings.Contains(s, "No notes yet") {
 		t.Errorf("screen = %q", s)
@@ -168,6 +172,7 @@ func TestEmptyStatesExplainWhatToDo(t *testing.T) {
 }
 
 func TestOpenNotesAreNotCut(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: checklist\ntitle: Many\nopen: true\n---\n")
 	for i := 1; i <= 12; i++ {
@@ -182,6 +187,7 @@ func TestOpenNotesAreNotCut(t *testing.T) {
 }
 
 func TestFocusCyclesThroughEveryNote(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "b.md": boardFile})
 	if m.focus != "a.md" {
 		t.Fatalf("focus = %q, want a.md", m.focus)
@@ -217,6 +223,7 @@ func isOpenIn(t *testing.T, dir, name string) string {
 }
 
 func TestOTogglesOpen(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "o")
 	if got := isOpenIn(t, dir, "a.md"); got != "true" || readFile(t, dir, "a.md") != "one\n" {
@@ -235,6 +242,7 @@ func TestOTogglesOpen(t *testing.T) {
 }
 
 func TestEnterOpensAClosedNoteThenZooms(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "enter")
 	if got := isOpenIn(t, dir, "a.md"); got != "true" || m.mode != modeBoard {
@@ -251,6 +259,7 @@ func TestEnterOpensAClosedNoteThenZooms(t *testing.T) {
 }
 
 func TestNotesFromTheAgentOpenWithoutTouchingTheFile(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	writeFile(t, dir, "explain.md", "written by the agent\n")
 	m.Update(changedMsg{})
@@ -271,6 +280,7 @@ func TestNotesFromTheAgentOpenWithoutTouchingTheFile(t *testing.T) {
 }
 
 func TestBackgroundReportDoesNotReopenNotes(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "closed body\n", "b.md": opened("open body\n")})
 	press(m, "tab")
 	before := m.items[0].w
@@ -288,6 +298,7 @@ func TestBackgroundReportDoesNotReopenNotes(t *testing.T) {
 }
 
 func TestARewriteThatDropsOpenDoesNotCloseTheNote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	writeFile(t, dir, "c.md", "---\ntype: checklist\ntitle: Release\n---\n- [x] build\n- [x] ship\n") // the agent rewrote it
 	m.Update(changedMsg{})
@@ -302,6 +313,7 @@ func TestARewriteThatDropsOpenDoesNotCloseTheNote(t *testing.T) {
 }
 
 func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{}
 	for i := 0; i < 30; i++ {
 		files[fmt.Sprintf("%02d-long-note-%02d.md", i, i)] = "body\n"
@@ -325,6 +337,7 @@ func TestATitleBarWithManyNotesLeavesRoomAndFollowsTheFocus(t *testing.T) {
 }
 
 func TestTheSelectedCardsDetailsStayInView(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: board\ntitle: Tall\nopen: true\n---\n## A\n")
 	for i := 1; i <= 12; i++ {
@@ -349,6 +362,7 @@ func TestTheSelectedCardsDetailsStayInView(t *testing.T) {
 }
 
 func TestAnEmptyColumnStaysInViewWhenSelected(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: board\ntitle: Narrow\nopen: true\n---\n## A\n")
 	for i := 1; i <= 20; i++ {
@@ -367,6 +381,7 @@ func TestAnEmptyColumnStaysInViewWhenSelected(t *testing.T) {
 }
 
 func TestSizeKeysDoNothingWhereTheyCannotShow(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "closed\n", "b.md": boardFile})
 	press(m, "+", "-")
 	if got := readFile(t, dir, "a.md"); got != "closed\n" {
@@ -379,6 +394,7 @@ func TestSizeKeysDoNothingWhereTheyCannotShow(t *testing.T) {
 }
 
 func TestTheBottomLineAlwaysOffersHelp(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"b.md": boardFile})
 	for _, width := range []int{80, 40, 24} {
 		m.Update(tea.WindowSizeMsg{Width: width, Height: 20})
@@ -390,6 +406,7 @@ func TestTheBottomLineAlwaysOffersHelp(t *testing.T) {
 }
 
 func TestSizeKeysWriteTheSize(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
 	// A one-line note is a card, which is 1/2 on 80 cells.
 	steps := []struct{ key, size string }{
@@ -405,6 +422,7 @@ func TestSizeKeysWriteTheSize(t *testing.T) {
 }
 
 func TestAnOldSizeNameIsRewrittenAsAFractionWhenItChanges(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"half"},"b.md":{"size":"page"}}}`)
 	m.reload()
@@ -424,6 +442,7 @@ func TestAnOldSizeNameIsRewrittenAsAFractionWhenItChanges(t *testing.T) {
 }
 
 func TestQuarterNotesShareARow(t *testing.T) {
+	t.Parallel()
 	files := map[string]string{}
 	for _, n := range []string{"a", "b", "c", "d"} {
 		files[n+".md"] = opened(n + " note\n")
@@ -440,6 +459,7 @@ func TestQuarterNotesShareARow(t *testing.T) {
 }
 
 func TestSizesDecideTheLayout(t *testing.T) {
+	t.Parallel()
 	second := strings.Replace(checklistFile, "Release", "Second", 1)
 	m, _ := newModel(t, map[string]string{"1.md": checklistFile, "2.md": second, "3.md": boardFile})
 	// frameTop reports whether line is the top border of a frame naming every title.
@@ -478,6 +498,7 @@ func TestSizesDecideTheLayout(t *testing.T) {
 }
 
 func TestKeysReachTheFocusedOpenNote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "L")
 	want := "---\ntype: board\ntitle: Auth\nopen: true\n---\n## To do\n## Doing\n- login API\n- payments\n## Done\n- schema\n"
@@ -490,6 +511,7 @@ func TestKeysReachTheFocusedOpenNote(t *testing.T) {
 }
 
 func TestSpaceTogglesAChecklistItemInPlace(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	press(m, "space") // the open item is first on the screen
 	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(plain(got), "- [x] build\n- [x] ship\n") || !strings.Contains(got, "ship ✅ ") {
@@ -501,6 +523,7 @@ func TestSpaceTogglesAChecklistItemInPlace(t *testing.T) {
 }
 
 func TestClosedNotesDoNotTakeWidgetKeys(t *testing.T) {
+	t.Parallel()
 	closed := strings.Replace(boardFile, "open: true\n", "", 1)
 	m, dir := newModel(t, map[string]string{"b.md": closed})
 	press(m, "L", "J", "space")
@@ -510,6 +533,7 @@ func TestClosedNotesDoNotTakeWidgetKeys(t *testing.T) {
 }
 
 func TestPinnedNotesComeFirst(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n", "z.md": "---\npin: true\n---\npinned\n"})
 	bar := strings.Split(screen(m), "\n")[0]
 	if m.items[0].note.Name != "z.md" || strings.Index(bar, "z") > strings.Index(bar, "✎ a") {
@@ -518,6 +542,7 @@ func TestPinnedNotesComeFirst(t *testing.T) {
 }
 
 func TestChangedNotesAreMarkedUntilFocused(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	if strings.Contains(screen(m), "•") {
 		t.Fatal("nothing changed yet")
@@ -538,6 +563,7 @@ func TestChangedNotesAreMarkedUntilFocused(t *testing.T) {
 }
 
 func TestFocusSurvivesWhenFocusedNoteDisappears(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n", "c.md": "three\n"})
 	press(m, "tab")
 	os.Remove(filepath.Join(dir, "b.md"))
@@ -548,6 +574,7 @@ func TestFocusSurvivesWhenFocusedNoteDisappears(t *testing.T) {
 }
 
 func TestUnreadableNoteShowsWhy(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"big.md": strings.Repeat("x", store.MaxSize+1)})
 	s := screen(m)
 	if !strings.Contains(s, "Cannot show this note") || !strings.Contains(s, "big") {
@@ -556,6 +583,7 @@ func TestUnreadableNoteShowsWhy(t *testing.T) {
 }
 
 func TestScrollFollowsTheCursorInATallNote(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: checklist\ntitle: Long\nopen: true\n---\n")
 	for i := 1; i <= 60; i++ {
@@ -575,6 +603,7 @@ func TestScrollFollowsTheCursorInATallNote(t *testing.T) {
 }
 
 func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"long.md": opened(numbered(40))})
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 12})
 	if s := screen(m); !strings.Contains(s, "line 01") || strings.Contains(s, "line 40") {
@@ -594,6 +623,7 @@ func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
 var longNote = "---\nopen: true\nsize: page\n---\n" + strings.Repeat("filler\n", 80)
 
 func TestALogAsksForTenLines(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"log.md": "---\ntype: log\ntitle: Work log\nopen: true\nsize: page\n---\n" + numbered(30),
 		"z.md":   longNote,
@@ -606,6 +636,7 @@ func TestALogAsksForTenLines(t *testing.T) {
 }
 
 func TestRowsSetTheHeightANoteAsksFor(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: checklist\ntitle: Fixed\nopen: true\nsize: page\nrows: 6\n---\n")
 	for i := 1; i <= 20; i++ {
@@ -625,6 +656,7 @@ func TestRowsSetTheHeightANoteAsksFor(t *testing.T) {
 }
 
 func TestTinyTerminalDoesNotPanic(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("한글 메모입니다\n"), "b.md": boardFile, "c.md": checklistFile})
 	for _, size := range [][2]int{{0, 0}, {1, 1}, {5, 1}, {5, 3}, {10, 3}, {35, 2}, {200, 2}} {
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
@@ -646,6 +678,7 @@ func TestTinyTerminalDoesNotPanic(t *testing.T) {
 }
 
 func TestStatusShowsUntilNextKey(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.SetStatus("File watching is unavailable.")
 	if !strings.Contains(screen(m), "File watching is unavailable.") {
@@ -658,6 +691,7 @@ func TestStatusShowsUntilNextKey(t *testing.T) {
 }
 
 func TestQuitKeys(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, nil)
 	for _, k := range []string{"q", "ctrl+c"} {
 		if _, cmd := m.Update(key(k)); cmd == nil {

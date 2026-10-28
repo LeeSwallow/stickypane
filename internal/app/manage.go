@@ -54,13 +54,13 @@ func init() {
 		file := it.file()
 		if len(it.pages) > 0 || !strings.EqualFold(path.Ext(file.Name), ".md") || m.store.Linked(file.Name) {
 			name := it.note.Name
-			m.ask(tr.Name, m.views[name].Title, func(title string) {
+			m.ask(m.tr.Name, m.views[name].Title, func(title string) {
 				m.setView(name, func(v *store.View) { v.Title = title })
 			})
 			return nil
 		}
 		current, _ := file.Doc.Get("title")
-		m.ask(tr.Title, current, func(title string) {
+		m.ask(m.tr.Title, current, func(title string) {
 			m.apply(file.Name, doc.SetKey{Key: "title", Value: title})
 		})
 		return nil
@@ -71,31 +71,31 @@ func init() {
 		file := it.file()
 		moved, err := m.calls().Archive(file.Name)
 		if err != nil {
-			m.status = say(tr.CannotArchive, map[string]any{"Err": err.Error()})
+			m.status = say(m.tr.CannotArchive, map[string]any{"Err": err.Error()})
 		} else {
 			m.undo = &undo{moved: moved, label: nameOf(file)}
-			m.status = say(tr.Archived, map[string]any{"Name": nameOf(file)})
+			m.status = say(m.tr.Archived, map[string]any{"Name": nameOf(file)})
 		}
 		m.reload()
 		return nil
 	})
 	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
-		m.confirm(say(tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
+		m.confirm(say(m.tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
 			moved, err := m.calls().Remove(file.Name)
 			if err != nil {
-				m.status = say(tr.CannotDelete, map[string]any{"Err": err.Error()})
+				m.status = say(m.tr.CannotDelete, map[string]any{"Err": err.Error()})
 			} else {
 				m.undo = &undo{moved: moved, label: nameOf(file)}
-				m.status = say(tr.Deleted, map[string]any{"Name": nameOf(file)})
+				m.status = say(m.tr.Deleted, map[string]any{"Name": nameOf(file)})
 			}
 			m.reload()
 		})
 		return nil
 	})
-	boardKeys["E"] = onFocused(func(_ *Model, it item) tea.Cmd {
-		return tea.ExecProcess(editorCommand(it.file().Path), func(err error) tea.Msg {
-			return reloadMsg{what: tr.EditorFailed, err: err}
+	boardKeys["E"] = onFocused(func(m *Model, it item) tea.Cmd {
+		return tea.ExecProcess(m.editorCommand(it.file().Path), func(err error) tea.Msg {
+			return reloadMsg{what: m.tr.EditorFailed, err: err}
 		})
 	})
 }
@@ -115,7 +115,7 @@ func (m *Model) resize(it item, delta int) {
 	}
 	m.setView(it.note.Name, func(v *store.View) { v.Size = next })
 	m.reveal = revealNote
-	m.mark = mark{name: it.note.Name, text: tr.L("width") + " " + next}
+	m.mark = mark{name: it.note.Name, text: m.tr.L("width") + " " + next}
 }
 
 // stretch makes an open note delta lines taller or shorter, from the
@@ -148,9 +148,9 @@ func (m *Model) setRows(it item, rows int) {
 	}
 	m.setView(it.note.Name, func(v *store.View) { v.Rows = rows })
 	m.reveal = revealNote
-	text := tr.L("content height")
+	text := m.tr.L("content height")
 	if rows > 0 { // else 0 or store.ContentRows
-		text = fmt.Sprintf(tr.L("%d lines"), rows)
+		text = fmt.Sprintf(m.tr.L("%d lines"), rows)
 	}
 	m.mark = mark{name: it.note.Name, text: text}
 }
@@ -170,7 +170,7 @@ func (m *Model) move(delta int) {
 	}
 	names[i], names[j] = names[j], names[i]
 	if err := m.calls().Order(m.tabName, names); err != nil {
-		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 	m.reveal = revealNote
@@ -196,8 +196,8 @@ func confirmUpdate(m *Model, msg tea.Msg) tea.Cmd {
 
 // editorCommand opens path in the user's editor, any of them: a GUI editor
 // is told to wait until the file is closed (see env.EditorCommand).
-func editorCommand(path string) *exec.Cmd {
-	cmd := env.Detect().WithEditor(editorChoice).EditorCommand(path)
+func (m *Model) editorCommand(path string) *exec.Cmd {
+	cmd := env.Detect().WithEditor(m.editor).EditorCommand(path)
 	return exec.Command(cmd[0], cmd[1:]...)
 }
 
@@ -205,11 +205,11 @@ func editorCommand(path string) *exec.Cmd {
 // question can be answered with the mouse as well as with y and n. It
 // keeps where the buttons are for click.
 func confirmFooter(m *Model) string {
-	q := widget.Warn.Bold(true).Render(m.confirmMsg) + "  "
-	yes, no := "[ "+widget.T("Yes")+" ]", "[ "+widget.T("No")+" ]"
+	q := m.env.Styles.Warn.Bold(true).Render(m.confirmMsg) + "  "
+	yes, no := "[ "+m.env.T("Yes")+" ]", "[ "+m.env.T("No")+" ]"
 	x := widget.Width(q)
 	m.confirmYes = [2]int{x, x + widget.Width(yes)}
 	x += widget.Width(yes) + 1
 	m.confirmNo = [2]int{x, x + widget.Width(no)}
-	return q + widget.Accent.Bold(true).Render(yes) + " " + widget.Faint.Render(no)
+	return q + m.env.Styles.Accent.Bold(true).Render(yes) + " " + m.env.Styles.Faint.Render(no)
 }

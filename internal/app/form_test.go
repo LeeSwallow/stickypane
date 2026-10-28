@@ -10,6 +10,7 @@ import (
 const formFile = "---\ntype: form\ntitle: Deploy\nopen: true\n---\n## Where?\n- ( ) staging\n- ( ) production\n\n## Note\n> \n\n[ Go ] [ Cancel ]\n"
 
 func TestAFormIsAnsweredOnTheMainScreen(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"f.md": formFile})
 	press(m, "j", "enter")
 	if got := readFile(t, dir, "f.md"); !strings.Contains(got, "- (x) production") || m.mode != modeBoard {
@@ -37,6 +38,7 @@ func TestAFormIsAnsweredOnTheMainScreen(t *testing.T) {
 }
 
 func TestAFieldCanBeEditedAndCleared(t *testing.T) {
+	t.Parallel()
 	filled := strings.Replace(formFile, "> \n", "> after lunch\n", 1)
 	m, dir := newModel(t, map[string]string{"f.md": filled})
 	press(m, "j", "j", "enter")
@@ -53,6 +55,7 @@ func TestAFieldCanBeEditedAndCleared(t *testing.T) {
 }
 
 func TestZZoomsANoteThatTakesEnter(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"f.md": formFile})
 	if s := screen(m); !strings.Contains(s, "z zoom") || strings.Contains(s, "enter zoom") {
 		t.Errorf("a form uses enter itself, so the footer should offer z:\n%s", s)
@@ -74,6 +77,7 @@ func TestZZoomsANoteThatTakesEnter(t *testing.T) {
 }
 
 func TestZDoesNotZoomAClosedNote(t *testing.T) {
+	t.Parallel()
 	closed := strings.Replace(formFile, "open: true\n", "", 1)
 	m, _ := newModel(t, map[string]string{"f.md": closed})
 	// A note that appears at startup without "open" is folded away.
@@ -84,6 +88,7 @@ func TestZDoesNotZoomAClosedNote(t *testing.T) {
 }
 
 func TestAFrontMatterChangeReachesTheWidget(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"f.md": formFile})
 	pressed := strings.Replace(formFile, "open: true\n", "open: true\nsubmitted: Go\n", 1)
 	writeFile(t, dir, "f.md", pressed)
@@ -99,6 +104,7 @@ func TestAFrontMatterChangeReachesTheWidget(t *testing.T) {
 }
 
 func TestALongQuestionLeavesRoomToType(t *testing.T) {
+	t.Parallel()
 	long := strings.Replace(formFile, "## Note\n", strings.Repeat("a very long question ", 8)+"\n", 1)
 	m, _ := newModel(t, map[string]string{"f.md": long})
 	press(m, "j", "j", "enter")

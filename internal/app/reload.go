@@ -9,7 +9,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -22,7 +21,7 @@ func (m *Model) widgetFor(n store.Note, old page, had bool) (kind widget.Kind, w
 	kind = m.reg.For(n.Name, n.Doc)
 	switch {
 	case !had || old.kind.Name != kind.Name:
-		return kind, kind.Parse(n.Doc), false
+		return kind, kind.Parse(n.Doc, m.env), false
 	case old.note.Err == nil && n.Err == nil && old.note.ModTime.Equal(n.ModTime) && old.note.Path == n.Path:
 		// The file was not touched: the store handed back what it read.
 		return kind, old.w, true
@@ -42,7 +41,7 @@ func (m *Model) reload() {
 	// every widget is rebuilt so nothing keeps the old words.
 	board, err := m.store.Load()
 	if err != nil {
-		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
 	// What a note's kind fills in by itself, the board writes, so that an
@@ -52,7 +51,7 @@ func (m *Model) reload() {
 	derived, _ := calls.Derive()
 	if calls.TendAll(board.Tabs, m.shownDocs()) || derived > 0 {
 		if board, err = m.store.Load(); err != nil {
-			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+			m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 			return
 		}
 	}
@@ -60,7 +59,7 @@ func (m *Model) reload() {
 	m.applyPrefs(set)
 	if l := set.Language(); l != m.language {
 		m.language = l
-		UseLanguage(l)
+		m.useLanguage(l)
 		m.items = nil
 		m.drawn = nil
 	}
@@ -92,13 +91,13 @@ func (m *Model) reload() {
 
 	views := set.Views()
 	if err := set.Err(); err != nil {
-		m.status = say(tr.ViewsBroken, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ViewsBroken, map[string]any{"Err": err.Error()})
 	}
 	m.views = views
 
 	unreadable := func(n store.Note) store.Note {
 		if n.Err != nil {
-			n.Doc = doc.Document{Body: say(tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
+			n.Doc = doc.Document{Body: say(m.tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
 		}
 		return n
 	}
@@ -127,7 +126,7 @@ func (m *Model) reload() {
 					it.page = i
 				}
 			}
-			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page}
+			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, env: m.env}
 		} else {
 			o, had := old[n.Name]
 			var oldLog store.Note
@@ -140,7 +139,7 @@ func (m *Model) reload() {
 			if l, ok := logs[n.Name]; ok {
 				l = unreadable(l)
 				kept = kept && l.Path == oldLog.Path && l.ModTime.Equal(oldLog.ModTime)
-				it.w = &withLog{owner: path.Ext(n.Name), script: it.w, log: l, now: m.now}
+				it.w = &withLog{owner: path.Ext(n.Name), script: it.w, log: l, env: m.env}
 			}
 			if !kept {
 				m.forget(n.Name)
@@ -168,7 +167,7 @@ func (m *Model) reload() {
 	if changedAny {
 		for i := range items {
 			if it := &items[i]; len(it.pages) == 0 && strings.Contains(it.note.Doc.Body, "![[") {
-				it.w = it.kind.Parse(it.note.Doc)
+				it.w = it.kind.Parse(it.note.Doc, m.env)
 				m.forget(it.note.Name)
 			}
 		}
@@ -220,7 +219,7 @@ func (m *Model) reload() {
 	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
 		m.mode = modeBoard
-		m.status = tr.NoteRemoved
+		m.status = m.tr.NoteRemoved
 	}
 }
 
@@ -284,8 +283,8 @@ func (m *Model) shownDocs() map[string]doc.Document {
 	return docs
 }
 
-// setEmbeds tells the Markdown renderer how to find the note a ![[name]]
-// line shows: among every note of every tab, drawn by its own kind.
+// setEmbeds keeps every note of every tab, for embed to find the note a
+// ![[name]] line shows.
 func (m *Model) setEmbeds(b store.Board) {
 	files := map[string]store.Note{}
 	var names []string
@@ -299,12 +298,15 @@ func (m *Model) setEmbeds(b store.Board) {
 			}
 		}
 	}
-	reg := m.reg
-	kinds.Embeds = func(name string) (string, widget.Widget, bool) {
-		f, ok := files[api.Resolve(name, names)]
-		if !ok {
-			return "", nil, false
-		}
-		return arrange.Title(store.View{}, f.Doc, f.Name), reg.For(f.Name, f.Doc).Parse(f.Doc), true
+	m.embedFiles, m.embedNames = files, names
+}
+
+// embed is the Env's Embed: the note a ![[name]] line shows, among the
+// notes of the last reload, drawn by its own kind.
+func (m *Model) embed(name string) (string, widget.Widget, bool) {
+	f, ok := m.embedFiles[api.Resolve(name, m.embedNames)]
+	if !ok {
+		return "", nil, false
 	}
+	return arrange.Title(store.View{}, f.Doc, f.Name), m.reg.For(f.Name, f.Doc).Parse(f.Doc, m.env), true
 }

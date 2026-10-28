@@ -310,7 +310,7 @@ func (s *server) noteAct(params json.RawMessage) (any, error) {
 		act.Args = args
 		p.Action = &act
 	}
-	if _, err := k.Act(n.Doc, *p.Action); err != nil {
+	if _, err := k.Act(n.Doc, *p.Action, s.api.Env()); err != nil {
 		return nil, badRequest(err.Error())
 	}
 	v, err := s.api.Apply(n.Name, p.Version, *p.Action)

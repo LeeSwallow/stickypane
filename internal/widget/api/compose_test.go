@@ -9,6 +9,7 @@ import (
 )
 
 func TestComposeWritesOneRequest(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Log in", map[string]string{"method": "post", "url": "http://localhost:8080/login", "status": "201"})
 	if err != nil {
 		t.Fatal(err)

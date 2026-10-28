@@ -7,6 +7,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/when"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 type entry struct {
@@ -23,7 +24,7 @@ type list struct {
 	items   []int // indexes of the checkbox entries
 }
 
-func parse(d doc.Document) *Checklist { return &Checklist{list: read(d)} }
+func parse(d doc.Document, e widget.Env) *Checklist { return &Checklist{list: read(d), env: e} }
 
 // read reads a checklist note.
 func read(d doc.Document) list {
@@ -71,7 +72,7 @@ type thing struct {
 
 // data is the items and the lines between them, from the same read the
 // board draws.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	c := read(d)
 	out := struct {
 		Items []thing  `json:"items"`

@@ -30,7 +30,7 @@ var Kind = widget.Kind{
 		}
 		return widget.NewFile("checklist", title, b.String()), nil
 	},
-	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:  func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Events: events,
 	Data:   data,
 	Act:    act,

@@ -250,7 +250,7 @@ func board(ctx context.Context, dir, status string) error {
 		m.SetStatus(status)
 	}
 	if watchErr != nil {
-		m.SetStatus(app.Message("WatchUnavailable"))
+		m.SetStatus(m.Message("WatchUnavailable"))
 	}
 	_, err := tea.NewProgram(m, tea.WithContext(ctx)).Run()
 	if errors.Is(err, tea.ErrProgramKilled) && ctx.Err() != nil {

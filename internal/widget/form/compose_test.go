@@ -30,6 +30,7 @@ func readBack(t *testing.T, b []byte) (questions, options []string, radio bool, 
 }
 
 func TestComposeWritesOneChoice(t *testing.T) {
+	t.Parallel()
 	b, err := NewKind(nil).Make("Deploy", map[string]string{"question": "Where to?", "answer": "one", "choices": "staging\nproduction", "buttons": "Deploy\nCancel"})
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +42,7 @@ func TestComposeWritesOneChoice(t *testing.T) {
 }
 
 func TestComposeWritesManyChoicesAndText(t *testing.T) {
+	t.Parallel()
 	b, err := NewKind(nil).Make("Pick", map[string]string{"answer": "many", "choices": "a\nb\nc"})
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +62,7 @@ func TestComposeWritesManyChoicesAndText(t *testing.T) {
 }
 
 func TestComposeRefusesWhatAFormCannotHold(t *testing.T) {
+	t.Parallel()
 	for _, opts := range []map[string]string{
 		{"answer": "one", "choices": ""},
 		{"buttons": "[ x ]"},

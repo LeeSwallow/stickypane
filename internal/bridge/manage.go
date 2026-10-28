@@ -249,7 +249,7 @@ func (s *server) kindsList(json.RawMessage) (any, error) {
 		info := kindInfo{Name: k.Name, Icon: k.Icon, Label: k.Label, Blurb: k.Blurb, Example: example, Data: json.RawMessage("null"), Options: []widget.Option{}}
 		info.Options = append(info.Options, k.Options...)
 		if k.Data != nil {
-			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example))))
+			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example)), s.api.Env()))
 		}
 		out = append(out, info)
 	}

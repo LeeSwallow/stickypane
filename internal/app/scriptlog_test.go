@@ -11,6 +11,7 @@ const deployLog = "$ sh deploy.sh   (2026-10-03 14:02:00)\nhello\n[exit 0 · 1.0
 // A script and its log are one pane: the script with its Run button, and
 // under it the log of its last run, with how it ended.
 func TestAScriptShowsItsLogInItsOwnPane(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"deploy.sh": "echo hello\n", "deploy.log": deployLog})
 	writeView(t, dir, `{"notes":{"deploy.sh":{"open":true}}}`)
 	m.Update(changedMsg{})
@@ -28,6 +29,7 @@ func TestAScriptShowsItsLogInItsOwnPane(t *testing.T) {
 
 // A log with no script of the same name stays a note of its own.
 func TestALogWithoutItsScriptIsANoteOfItsOwn(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"other.log": "x\n", "deploy.sh": "echo\n"})
 	if bar := strings.SplitN(screen(m), "\n", 2)[0]; !strings.Contains(bar, "≣ other") {
 		t.Errorf("other.log is its own note:\n%s", bar)
@@ -36,6 +38,7 @@ func TestALogWithoutItsScriptIsANoteOfItsOwn(t *testing.T) {
 
 // The pane shows the end of a long log; zoomed in, all of it.
 func TestAZoomedScriptShowsItsWholeLog(t *testing.T) {
+	t.Parallel()
 	var log strings.Builder
 	for i := 1; i <= 40; i++ {
 		fmt.Fprintf(&log, "output %02d\n", i)
@@ -57,6 +60,7 @@ func TestAZoomedScriptShowsItsWholeLog(t *testing.T) {
 // A form with a log of the same name shows it under the form: what the
 // agent did with the answers.
 func TestAFormShowsWhatTheAgentDidWithIt(t *testing.T) {
+	t.Parallel()
 	form := "---\ntype: form\ntitle: Deploy now?\nopen: true\n---\n- ( ) staging\n- ( ) production\n"
 	m, _ := newModel(t, map[string]string{"deploy.md": form, "deploy.log": "14:05 deployed to production\n"})
 	s := screen(m)
@@ -71,6 +75,7 @@ func TestAFormShowsWhatTheAgentDidWithIt(t *testing.T) {
 // A .http note shows, under its requests, the response of the one the
 // cursor is on.
 func TestARequestsNoteShowsTheResponseOfThePickedRequest(t *testing.T) {
+	t.Parallel()
 	file := "### Health\nGET http://x/health\n\n### Chat\nGET ws://x/chat\n"
 	log := "### Health\n$ curl -sS 'http://x/health'\n{\"ok\": true}\n[200 OK · 3ms · Health]\n\n" +
 		"### Chat\n$ websocat 'ws://x/chat'\n← 14:02:01.120  {\"type\":\"welcome\"}\n[101 Switching Protocols · 9ms · Chat · 0↑ 1↓]\n"
