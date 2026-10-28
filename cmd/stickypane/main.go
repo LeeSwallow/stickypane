@@ -216,6 +216,9 @@ func openBoard(e env, start string) error {
 	// What was set up, without the last line: the next step was this one.
 	lines := strings.Split(strings.TrimRight(setup.String(), "\n"), "\n")
 	done := strings.Join(lines[:len(lines)-1], " ")
+	if !showInApp(dir, e.stderr) {
+		return nil
+	}
 	if err := runBoardLive(e, dir, done); err != nil {
 		return err
 	}

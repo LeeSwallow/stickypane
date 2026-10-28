@@ -72,7 +72,10 @@ nothing in its file, since the plugin teaches it. `init` works outside a
 git repository too, but not in the home folder or the root, where every
 project below would find the board; it is safe to run again. `--view app` (or `both`)
 shows the board in the desktop app, and `--style neat` gives the app its
-neat look; both go to `sticky.json`. `--skill` writes the skill
+neat look; both go to `sticky.json`. With `app`, a plain `stickypane` in
+the project opens the board in the app (or in the terminal, saying how to
+get the app, when it is not installed); with `both`, in the app and the
+terminal. `--skill` writes the skill
 instead of the instruction files and `--no-agent-docs` makes the folder
 only. `stickypane guide` prints the guide; it stays English.
 
