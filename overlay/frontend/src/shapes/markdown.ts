@@ -232,3 +232,19 @@ export function mermaidRenderer(p: Palette, style: Style, load: () => Promise<{ 
     return run
   }
 }
+
+/**
+ * highlightCode is source coloured as Shiki colours a code block of a
+ * note (both themes as CSS variables), as HTML; null for a language it
+ * does not know, which stays plain.
+ */
+export async function highlightCode(source: string, lang: string): Promise<string | null> {
+  try {
+    const h = await highlighter()
+    const id = await loadLanguage(h, lang.toLowerCase())
+    if (!id) return null
+    return h.codeToHtml(source.replace(/\n$/, ''), { lang: id, themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false })
+  } catch {
+    return null
+  }
+}
