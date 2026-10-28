@@ -12,7 +12,6 @@
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
-  import { fractionGlyph } from '../lib/sizes'
   import IconButton from '../lib/ui/IconButton.svelte'
   import NoteHeader from '../lib/ui/NoteHeader.svelte'
   import type { MenuItem } from '../lib/ui/menu'
@@ -29,6 +28,7 @@
     small = false,
     narrow = false,
     free = false,
+    titled = true,
     width = 1200,
   }: {
     note: Note
@@ -37,6 +37,8 @@
     narrow?: boolean
     /** sized from outside (the canvas, a torn-off window): fills its box */
     free?: boolean
+    /** false: the window names the note (torn off), so its head does not */
+    titled?: boolean
     /** the board's width in px: what a fraction is a fraction of */
     width?: number
   } = $props()
@@ -184,6 +186,7 @@
         : undefined}
       {menu}
       sizable={!free}
+      {titled}
       onsize={(s) => board.arrange(note.name, { size: s })}
       onpin={(on) => board.arrange(note.name, { pin: on })}
       ontearoff={board.tear && readable && !zoomed ? () => board.tear?.(note.name) : undefined}
@@ -230,7 +233,7 @@
       {/if}
     {/if}
   </NoteFrame>
-  {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing })}>{fractionGlyph(landing)}</span>{/if}
+  {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing === '1' ? $tr('ui.size.whole') : $tr('ui.size.share', { size: landing }) })}>{landing === '1' ? $tr('ui.size.full') : landing}</span>{/if}
 </div>
 
 <style>

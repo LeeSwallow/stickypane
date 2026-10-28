@@ -52,6 +52,19 @@ export function applyChoice(l: BridgeLanguage): void {
 }
 
 /**
+ * boardLanguage is what a board's window speaks (08 §8.2.1): the board's
+ * own language when it has one (ko or en in its sticky.json); otherwise
+ * the app's, which the home window sets for this computer; and when the
+ * app has none either, what the bridge made of the system's.
+ */
+export function boardLanguage(board: { choice?: string; resolved?: string } | null | undefined, app: string | undefined): Lang {
+  const c = board?.choice
+  if (c === 'ko' || c === 'en') return c
+  if (app === 'ko' || app === 'en') return app
+  return board?.resolved === 'ko' ? 'ko' : 'en'
+}
+
+/**
  * Where a language choice is kept. A project window writes the board's
  * sticky.json through the bridge (shared with the terminal); the home
  * window writes ~/.stickypane/overlay.json through the shell.
@@ -62,6 +75,8 @@ export type LanguageHost =
       settingsSet: (key: 'language', value: Choice) => Promise<unknown>
       // settings.get: its language.resolved is what the bridge made of the choice
       settingsGet: () => Promise<{ language?: Partial<BridgeLanguage> } | null | undefined>
+      /** the app's language (overlay.json): what a board with none follows */
+      app?: string
     }
   | { kind: 'home'; save: (choice: Choice) => Promise<void>; systemLanguage?: string }
 
@@ -73,6 +88,11 @@ export async function chooseLanguage(choice: Choice, host: LanguageHost): Promis
     // (STICKYPANE_LANG, LC_ALL, ..., system). navigator.language is only the
     // fallback when the bridge gives nothing.
     await host.settingsSet('language', choice)
+    if (choice === 'auto' && (host.app === 'ko' || host.app === 'en')) {
+      // a board with no language of its own follows the app's
+      setLanguage(host.app)
+      return
+    }
     const got = await host.settingsGet().catch(() => null)
     const r = got?.language?.resolved
     setLanguage(r === 'ko' || r === 'en' ? r : choice === 'auto' ? resolveAuto() : choice)

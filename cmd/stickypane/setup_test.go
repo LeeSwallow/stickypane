@@ -169,3 +169,24 @@ func TestInitSetsTheViewAndStyle(t *testing.T) {
 		}
 	}
 }
+
+// init --language is the board's language: it writes it to sticky.json,
+// and the welcome note is written in it.
+func TestInitSetsTheLanguageAndWritesTheWelcomeInIt(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if code, _, errOut := exec(t, "init", "--no-agent-docs", "--language", "ko"); code != 0 {
+		t.Fatalf("init: %s", errOut)
+	}
+	if got := store.Open(filepath.Join(dir, ".sticky")).Settings().Language(); got != "ko" {
+		t.Errorf("the board's language = %q, want ko", got)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, ".sticky", "welcome.md"))
+	if err != nil || !strings.Contains(string(b), "환영") {
+		t.Errorf("the welcome note should be Korean: %q %v", b, err)
+	}
+	if code, _, errOut := exec(t, "init", "--language", "xx"); code != exitUsage || !strings.Contains(errOut, "ko") {
+		t.Errorf("--language xx: %d %q", code, errOut)
+	}
+}

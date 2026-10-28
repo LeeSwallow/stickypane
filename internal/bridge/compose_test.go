@@ -45,6 +45,55 @@ func TestBridgeKindsListsEachShapesOptions(t *testing.T) {
 	}
 }
 
+// kinds.list gives the examples in the language asked for, else in the
+// board's; what an example holds (data) is read from that example.
+func TestBridgeKindsListsExamplesInALanguage(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	type kind struct {
+		Name    string `json:"name"`
+		Example string `json:"example"`
+		Data    struct {
+			Items []struct {
+				Text string `json:"text"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+	checklist := func(kinds []kind) kind {
+		for _, k := range kinds {
+			if k.Name == "checklist" {
+				return k
+			}
+		}
+		t.Fatal("no checklist in kinds.list")
+		return kind{}
+	}
+
+	s := serve(t, board(t, nil))
+	var kinds []kind
+	s.ok("kinds.list", nil, &kinds)
+	if c := checklist(kinds); !strings.Contains(c.Example, "Write tests") {
+		t.Errorf("an English board's example is English: %q", c.Example)
+	}
+	s.ok("kinds.list", map[string]any{"language": "ko"}, &kinds)
+	c := checklist(kinds)
+	if !strings.Contains(c.Example, "테스트 작성") || !strings.HasPrefix(c.Example, "---\ntype: checklist\n") {
+		t.Errorf("language ko: the example is Korean, a whole file: %q", c.Example)
+	}
+	if len(c.Data.Items) != 3 || c.Data.Items[2].Text != "테스트 작성" {
+		t.Errorf("language ko: the data is the Korean example's: %+v", c.Data)
+	}
+
+	s = serve(t, board(t, map[string]string{"sticky.json": `{"language": "ko"}`}))
+	s.ok("kinds.list", nil, &kinds)
+	if c := checklist(kinds); !strings.Contains(c.Example, "테스트 작성") {
+		t.Errorf("a Korean board's examples are Korean: %q", c.Example)
+	}
+	s.ok("kinds.list", map[string]any{"language": "en"}, &kinds)
+	if c := checklist(kinds); !strings.Contains(c.Example, "Write tests") {
+		t.Errorf("language en on a Korean board: English: %q", c.Example)
+	}
+}
+
 // note.create with options has the shape's own code write the file; the
 // screen never writes a note's format itself.
 func TestBridgeCreatesANoteFromOptions(t *testing.T) {

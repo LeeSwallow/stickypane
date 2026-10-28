@@ -6,7 +6,7 @@ import en from './en.json'
 import core from '../../../../internal/i18n/translations/ko.json'
 import {
   t, setLanguage, language, translate, dayLabel, relativeTime, resolveAuto,
-  chooseLanguage, applyChoice,
+  chooseLanguage, applyChoice, boardLanguage,
 } from './index'
 
 const now = () => get(language)
@@ -107,6 +107,23 @@ describe('choice', () => {
     get.mockResolvedValue({ language: { choice: 'auto', resolved: 'en' } })
     await chooseLanguage('auto', { kind: 'project', settingsSet: set, settingsGet: get })
     expect(now()).toBe('en')
+  })
+  it('a board with no language of its own follows the app: choosing auto there draws in the app language', async () => {
+    setLanguage('en')
+    const set = vi.fn().mockResolvedValue({})
+    const get = vi.fn().mockResolvedValue({ language: { choice: 'auto', resolved: 'en' } })
+    await chooseLanguage('auto', { kind: 'project', settingsSet: set, settingsGet: get, app: 'ko' })
+    expect(set).toHaveBeenCalledWith('language', 'auto')
+    expect(now()).toBe('ko')
+  })
+  it('boardLanguage: the board own, else the app, else what the bridge resolved', () => {
+    expect(boardLanguage({ choice: 'en', resolved: 'en' }, 'ko')).toBe('en')
+    expect(boardLanguage({ choice: 'ko', resolved: 'ko' }, 'en')).toBe('ko')
+    expect(boardLanguage({ choice: 'auto', resolved: 'en' }, 'ko')).toBe('ko')
+    expect(boardLanguage({ choice: 'auto', resolved: 'ko' }, '')).toBe('ko')
+    expect(boardLanguage({ choice: 'auto', resolved: 'en' }, undefined)).toBe('en')
+    expect(boardLanguage(undefined, 'ko')).toBe('ko')
+    expect(boardLanguage(null, '')).toBe('en')
   })
   it('invalid day strings come back as they are', () => {
     expect(dayLabel('nope', new Date(2026, 9, 28), 'en')).toBe('nope')

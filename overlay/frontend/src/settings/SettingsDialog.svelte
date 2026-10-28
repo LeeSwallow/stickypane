@@ -2,7 +2,9 @@
   // The settings (⌘, or ⋯ → 설정…, 10 §10.5). What belongs to the board —
   // theme, style, language — is the board's sticky.json, through the
   // bridge, and the terminal sees it too. What belongs to this computer's
-  // app — light or dark, the hotkey — is overlay.json, through the shell.
+  // app — its language, light or dark, the hotkey — is overlay.json,
+  // through the shell. They are four tabs (this board, this computer,
+  // terminal and agents, about), each its own panel.
   // Every change shows at once.
   import { tr, type Choice, type LanguageHost } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
@@ -16,6 +18,7 @@
   import { errorText } from '../services/errors'
   import { setupService, type SetupApi } from '../services/install'
   import { setAppPref, type BoardSettingsPatch, type SettingsApi } from '../services/settings'
+  import Tabs from '../lib/ui/Tabs.svelte'
   import Language from './Language.svelte'
   import Terminal from './Terminal.svelte'
 
@@ -26,9 +29,11 @@
     settings,
     mode,
     hotkey = '',
+    appLanguage = '',
     version = '',
     onmode,
     onchanged,
+    onapplanguage,
   }: {
     open?: boolean
     api: SettingsApi
@@ -38,12 +43,35 @@
     settings: Settings
     mode: Mode
     hotkey?: string
+    /** the app's language, overlay.json's: "", "ko" or "en" */
+    appLanguage?: string
     /** the bridge's stickypane */
     version?: string
     onmode: (m: Mode) => void
     /** a board setting was saved: read the board again */
     onchanged: () => void
+    /** the app's language was saved */
+    onapplanguage?: (l: string) => void
   } = $props()
+
+  // the settings in four tabs, so none is far down a long page; arrows
+  // move between the tabs (Tabs), Tab goes into the one shown
+  type Section = 'board' | 'app' | 'cli' | 'about'
+  let section = $state<Section>('board')
+  const id = $props.id()
+  const sections = $derived([
+    { id: 'board', label: $tr('settings.board') },
+    { id: 'app', label: $tr('settings.app') },
+    { id: 'cli', label: $tr('settings.terminal') },
+    { id: 'about', label: $tr('settings.about') },
+  ])
+  const panel = (s: Section) => ({
+    role: 'tabpanel',
+    id: `${id}-panel-${s}`,
+    'aria-labelledby': `${id}-tab-${s}`,
+    tabindex: 0,
+    class: 'panel',
+  })
 
   let failed = $state('')
   let keys = $state('')
@@ -120,13 +148,24 @@
     kind: 'project',
     settingsSet: (_, v) => api.setSettings({ language: v }),
     settingsGet: () => api.settings() as ReturnType<Extract<LanguageHost, { kind: 'project' }>['settingsGet']>,
+    app: appLanguage,
   })
+
+  // the app's language is this computer's (overlay.json), as the home
+  // window's is; this window keeps drawing in the board's when it has one
+  const appChoice = $derived<Choice>(appLanguage === 'ko' || appLanguage === 'en' ? appLanguage : 'auto')
+  async function setAppLanguage(c: Choice) {
+    const value = c === 'auto' ? '' : c
+    await setAppPref(api, { language: value })
+    onapplanguage?.(value)
+  }
 </script>
 
-<Dialog bind:open title={$tr('settings.title')} width={520}>
-  <div class="settings">
-    <section aria-labelledby="s-board">
-      <h3 id="s-board" class:neat={look.style === 'neat'}>{$tr('settings.board')}</h3>
+<Dialog bind:open title={$tr('settings.title')} width={560}>
+  <div class="settings" class:doodle={look.style === 'doodle'}>
+    <Tabs label={$tr('settings.sections')} tabs={sections} bind:value={section} controls={id} />
+    {#if section === 'board'}
+    <section {...panel('board')}>
       <p class="scope">{$tr('settings.boardScope')}</p>
       <label class="row">
         <span class="label">{$tr('settings.theme')}</span>
@@ -153,13 +192,26 @@
         />
       </div>
       <div class="row">
-        <Language {host} current={(settings.language?.choice as Choice) ?? 'auto'} />
+        <Language
+          {host}
+          current={(settings.language?.choice as Choice) ?? 'auto'}
+          label={$tr('settings.boardLanguage')}
+          autoLabel={$tr('settings.boardLanguage.auto')}
+          hint={$tr('settings.boardLanguage.hint')}
+        />
       </div>
     </section>
-
-    <section aria-labelledby="s-app">
-      <h3 id="s-app" class:neat={look.style === 'neat'}>{$tr('settings.app')}</h3>
+    {:else if section === 'app'}
+    <section {...panel('app')}>
       <p class="scope">{$tr('settings.appScope')}</p>
+      <div class="row">
+        <Language
+          current={appChoice}
+          label={$tr('settings.appLanguage')}
+          hint={$tr('settings.appLanguage.hint')}
+          pick={setAppLanguage}
+        />
+      </div>
       <div class="row">
         <span class="label">{$tr('settings.mode')}</span>
         <SegmentedControl
@@ -193,16 +245,15 @@
         <Button size="sm" variant="secondary" type="submit" disabled={!keys.trim() || keys.trim() === hotkey}>{$tr('settings.save')}</Button>
       </form>
     </section>
-
-    <section aria-labelledby="s-cli">
-      <h3 id="s-cli" class:neat={look.style === 'neat'}>{$tr('settings.terminal')}</h3>
+    {:else if section === 'cli'}
+    <section {...panel('cli')}>
       <Terminal {setup} {open} project />
     </section>
-
-    <section aria-labelledby="s-about">
-      <h3 id="s-about" class:neat={look.style === 'neat'}>{$tr('settings.about')}</h3>
-      <p class="scope">{version ? $tr('settings.version', { version }) : 'stickypane'}</p>
+    {:else}
+    <section {...panel('about')}>
+      <p class="version">{version ? $tr('settings.version', { version }) : 'stickypane'}</p>
     </section>
+    {/if}
 
     {#if failed}<p class="err" role="alert">{failed}</p>{/if}
   </div>
@@ -213,28 +264,45 @@
 
 <style>
   .settings {
+    --ground: var(--surface);
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
-    max-height: min(64vh, 560px);
-    overflow: auto;
-    padding-right: var(--space-1);
+    gap: var(--space-4);
   }
+  .settings.doodle {
+    --ground: var(--paper);
+  }
+  .settings > :global(.tabs) {
+    flex-wrap: wrap;
+    border-bottom: var(--stroke-hairline) solid var(--line);
+    padding-bottom: var(--space-1);
+  }
+  /* a tab that is still too long for the window scrolls, and its edge
+     fades so there is plainly more below */
   section {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    min-height: 220px;
+    max-height: min(56vh, 460px);
+    overflow: auto;
+    padding: var(--space-1) var(--space-1) var(--space-2) 0;
+    background:
+      linear-gradient(transparent, var(--ground) 60%) center bottom / 100% 40px no-repeat local,
+      linear-gradient(transparent, color-mix(in srgb, var(--ink) 14%, transparent)) center bottom / 100% 12px no-repeat scroll;
   }
-  h3 {
+  section:focus-visible {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+    border-radius: var(--radius-sm);
+  }
+  .version {
     margin: 0;
-    color: var(--ink);
-    font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
-  }
-  h3.neat {
-    font: 600 var(--text-body-md) / var(--leading-body-md) var(--font-body);
+    color: var(--ink-2);
+    font: var(--weight-mono-sm) var(--text-mono-sm) / var(--leading-body-sm) var(--font-mono);
   }
   .scope {
-    margin: calc(-1 * var(--space-2)) 0 0;
+    margin: 0;
     color: var(--pencil);
     font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }

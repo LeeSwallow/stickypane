@@ -1,5 +1,6 @@
 // Dev only: a project service over made-up data, for the screens page. Its
-// shapes are a kinds.list answer saved from a real bridge (kinds.json);
+// shapes are kinds.list answers saved from a real bridge (kinds.json, and
+// kinds-ko.json for {"language": "ko"});
 // note.create refuses a few values the way the bridge does, so the create
 // form's errors can be seen.
 import type { Board } from '../board/model'
@@ -8,6 +9,7 @@ import { layoutOf, type Layout } from '../services/canvas'
 import type { Shape } from '../services/create'
 import type { ProjectApi } from '../services/project'
 import kinds from './kinds.json'
+import kindsKo from './kinds-ko.json'
 import { THEMES } from './themes'
 
 // The layout is kept in memory: a note torn off here shows on the shelf;
@@ -32,7 +34,7 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     move: async (note) => ({ note }),
     run: async () => ({ code: 0, took: 120 }),
     send: async () => ({}),
-    kinds: async () => kinds as unknown as Shape[],
+    kinds: async (l) => (l === 'ko' ? kindsKo : kinds) as unknown as Shape[],
     async create(r) {
       const v = r.options.view
       if (r.kind === 'chart' && typeof v === 'string' && !['bar', 'spark', 'heat'].includes(v))

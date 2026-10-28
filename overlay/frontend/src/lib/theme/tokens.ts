@@ -89,18 +89,22 @@ function darkenTo(ink: string, grounds: string[], ratio: number): string {
 }
 
 const washOf = (color: string, dark: boolean) => mix(color, '#ffffff', dark ? 0.35 : 0.78)
-const hatchOf = (color: string, dark: boolean) => (dark ? color : mix(color, '#ffffff', 0.25))
+// in light mode the crayon is lighter (#47): text sits right on its lines,
+// and a mid-tone line under dark letters fell short of 4.5:1
+const hatchOf = (color: string, dark: boolean) => (dark ? color : mix(color, '#ffffff', 0.45))
 
 /**
  * cardInk is the text colour on every card of a palette (the --card-ink
  * token): dark themes use Base darkened 40%, light themes use Text; either is
  * darkened toward black just enough to reach 4.5:1 on the wash and on the
- * 50% wash/hatch mix of all six note colours.
+ * 50% wash/hatch mix of all six note colours, and in light mode on the
+ * hatch line itself.
  */
 export function cardInk(p: Palette, dark: boolean): string {
   const grounds = p.notes.slice(0, 6).flatMap((c) => {
     const wash = washOf(c, dark)
-    return [wash, hatched(wash, hatchOf(c, dark))]
+    const hatch = hatchOf(c, dark)
+    return dark ? [wash, hatched(wash, hatch)] : [wash, hatched(wash, hatch), hatch]
   })
   return darkenTo(dark ? mix(p.base, '#000000', 0.4) : p.text, grounds, MIN_CONTRAST)
 }

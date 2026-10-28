@@ -29,7 +29,7 @@ func open(e env, create bool) (*api.API, error) {
 	dir, err := store.Resolve(".")
 	if errors.Is(err, store.ErrNotFound) && create {
 		if root := initcmd.ProjectRoot("."); root != "" {
-			if dir, _, err = initcmd.MakeBoard(root); err == nil {
+			if dir, _, err = initcmd.MakeBoard(root, ""); err == nil {
 				fmt.Fprintf(e.stderr, "stickypane: made %s for this project\n", dir)
 			}
 		}

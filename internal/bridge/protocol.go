@@ -120,6 +120,11 @@ type (
 		Note    string          `json:"note"`
 		Request json.RawMessage `json:"request"` // its title or part, or its number from 1
 	}
+	kindsParams struct {
+		// Language is the language of the examples: a code such as
+		// "ko", or "auto". Empty is the board's.
+		Language string `json:"language"`
+	}
 	settingsParams struct {
 		Theme    *string `json:"theme"`
 		Style    *string `json:"style"`

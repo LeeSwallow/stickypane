@@ -234,14 +234,14 @@ func TestProjectRoot(t *testing.T) {
 
 func TestMakeBoard(t *testing.T) {
 	root := t.TempDir()
-	dir, made, err := MakeBoard(root)
+	dir, made, err := MakeBoard(root, "")
 	if err != nil || !made || dir != filepath.Join(root, ".sticky") {
 		t.Fatalf("MakeBoard = %q, %v, %v", dir, made, err)
 	}
 	if !exists(filepath.Join(dir, "welcome.md")) || !exists(filepath.Join(dir, ".gitignore")) {
 		t.Error("a new board has a welcome note and keeps its trash out of git")
 	}
-	if _, made, err := MakeBoard(root); made || err != nil {
+	if _, made, err := MakeBoard(root, ""); made || err != nil {
 		t.Errorf("a second MakeBoard should find the board: %v, %v", made, err)
 	}
 }

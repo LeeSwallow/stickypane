@@ -5,7 +5,7 @@ package initcmd
 import (
 	"github.com/LeeSwallow/stickypane/internal/env"
 
-	_ "embed"
+	"embed"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +19,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/filelock"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
@@ -44,8 +45,35 @@ func rule(name string) string {
 	return "\n" + strings.TrimLeft(text, "\n")
 }
 
-//go:embed welcome.md
-var welcome string
+// welcomes are the welcome note, one file a language: welcome/ko.md.
+//
+//go:embed welcome/*.md
+var welcomes embed.FS
+
+// Welcome is the welcome note in a language such as "ko", or in English
+// when there is none in that language.
+func Welcome(lang string) string {
+	if b, err := welcomes.ReadFile("welcome/" + lang + ".md"); err == nil {
+		return string(b)
+	}
+	b, _ := welcomes.ReadFile("welcome/en.md")
+	return string(b)
+}
+
+// Language is the language a new board's welcome note is written in, as a
+// code such as "ko": the choice given (init --language) when it is not
+// "auto", else the language the board's settings name when the notes
+// folder dir is there, else what the environment asks for. i18n.Resolve
+// turns each into a language there is a translation for.
+func Language(dir, choice string) string {
+	if c := strings.TrimSpace(choice); c != "" && !strings.EqualFold(c, "auto") {
+		return i18n.Resolve(c)
+	}
+	if _, err := os.Stat(dir); err == nil {
+		return i18n.Resolve(store.Open(dir).Settings().Language())
+	}
+	return i18n.Resolve("")
+}
 
 // The guide lives between these markers so that a later run can replace it.
 const (
@@ -60,6 +88,10 @@ type Options struct {
 	// to the instruction files. A skill is read only when a task calls for
 	// it, so the guide does not take up room in every conversation.
 	Skill bool
+	// Language is the language chosen for the board (init --language):
+	// the welcome note is written in it. Empty or "auto" leaves it to
+	// Language.
+	Language string
 }
 
 // skillPath is where a project's Claude Code skill for stickypane lives.
@@ -112,9 +144,11 @@ func ProjectRoot(start string) string {
 }
 
 // MakeBoard makes the notes folder of the project at root, with a welcome
-// note, unless it is there. It returns the folder and whether it was made.
-func MakeBoard(root string) (string, bool, error) {
+// note in the language Language picks for lang, unless the folder is
+// there. It returns the folder and whether it was made.
+func MakeBoard(root, lang string) (string, bool, error) {
 	dir := filepath.Join(root, store.DirName)
+	welcome := Welcome(Language(dir, lang))
 	switch _, err := os.Stat(dir); {
 	case err == nil:
 		return dir, false, nil
@@ -149,7 +183,7 @@ func MakeBoard(root string) (string, bool, error) {
 // project has a .claude folder but no CLAUDE.md; Codex and other agents get
 // it in AGENTS.md. When no file and no plugin is there, AGENTS.md is made.
 func Run(root string, opts Options, out io.Writer) error {
-	dir, made, err := MakeBoard(root)
+	dir, made, err := MakeBoard(root, opts.Language)
 	if err != nil {
 		return err
 	}

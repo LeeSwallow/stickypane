@@ -27,7 +27,16 @@
     label,
     changedLabel = '',
     onchange,
-  }: { tabs: Tab[]; value: string; label: string; changedLabel?: string; onchange?: (id: string) => void } = $props()
+    controls = '',
+  }: {
+    tabs: Tab[]
+    value: string
+    label: string
+    changedLabel?: string
+    onchange?: (id: string) => void
+    /** the id the panels are named by: a tab is `${controls}-tab-${id}` and controls `${controls}-panel-${id}` */
+    controls?: string
+  } = $props()
 
   let list: HTMLElement | undefined = $state()
 
@@ -52,6 +61,8 @@
     <button
       type="button"
       role="tab"
+      id={controls ? `${controls}-tab-${tab.id}` : undefined}
+      aria-controls={controls ? `${controls}-panel-${tab.id}` : undefined}
       title={tab.hint}
       class="tab"
       class:on

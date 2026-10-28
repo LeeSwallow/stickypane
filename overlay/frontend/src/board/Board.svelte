@@ -7,7 +7,7 @@
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
   import { onMount, setContext, tick } from 'svelte'
-  import { resolveAuto, setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, resolveAuto, setLanguage, t, tr } from '../i18n'
   import { fallbackPalette } from '../lib/theme/fallback'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
@@ -144,8 +144,8 @@
   $effect(() => {
     if (!board) return
     look.style = board.settings.style === 'neat' ? 'neat' : 'doodle'
-    const lang = board.settings.language?.resolved
-    setLanguage(lang === 'ko' ? 'ko' : 'en')
+    // the board's language, or the app's when the board has none
+    setLanguage(boardLanguage(board.settings.language, appLanguage))
   })
 
   const tab: Tab | null = $derived(board ? (board.tabs.find((t) => t.name === view.tab) ?? board.tabs[0] ?? null) : null)
@@ -641,6 +641,8 @@
       settings={board.settings}
       {mode}
       {hotkey}
+      {appLanguage}
+      onapplanguage={(l) => (appLanguage = l)}
       version={status?.version ?? ''}
       onmode={(m) => (mode = m)}
       onchanged={refresh}

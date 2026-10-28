@@ -3,6 +3,7 @@ package kinds
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -132,5 +133,42 @@ func TestEveryKindComposesFromItsOptions(t *testing.T) {
 				t.Errorf("made %q, which reads as a %s", b, got.Name)
 			}
 		})
+	}
+}
+
+// A shape's example in another language is the same example in other
+// words: it names a real shape, and its note reads to the same summary
+// (as many items, cards, points or lines) as the English one.
+func TestEveryTranslatedExampleHasTheEnglishShape(t *testing.T) {
+	t.Parallel()
+	reg := Default(note.Plain)
+	for _, code := range i18n.Languages()[1:] {
+		words, err := i18n.Load(code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(words.Examples) == 0 {
+			t.Errorf("%s: no shape examples", code)
+		}
+		for name, example := range words.Examples {
+			i := slices.IndexFunc(reg, func(k widget.Kind) bool { return k.Name == name })
+			if i < 0 {
+				t.Errorf("%s: examples.%s names no shape", code, name)
+				continue
+			}
+			k := reg[i]
+			if k.Name == "note" || k.Name == "html" {
+				continue // prose: its summary is its first words
+			}
+			parse := func(text string) widget.Widget {
+				return k.Parse(doc.Parse([]byte(k.ExampleFileIn(i18n.Strings{Examples: map[string]string{k.Name: text}}))), widget.DefaultEnv())
+			}
+			if got, want := parse(example).Summary(), parse(k.Example).Summary(); got != want {
+				t.Errorf("%s: the %s example sums up as %q, the English as %q", code, name, got, want)
+			}
+		}
+		if k := reg.Lookup("checklist"); k.ExampleIn(words) == k.Example || k.ExampleIn(i18n.English()) != k.Example {
+			t.Errorf("%s: ExampleIn should give the translated example, and English the English one", code)
+		}
 	}
 }

@@ -2,15 +2,15 @@
   // The head of a note: what comes before the title (a way back, the kind's
   // icon), the title (hand-written, in the note's colour, one line; a
   // double-click renames it), a changed dot, a link mark, the summary
-  // (3/6, 6 cards), a book's pager, and the note's controls — its width as
-  // a fraction of the board stepped narrower and wider, pin, tear-off (where
+  // (3/6, 6 cards), a book's pager, and the note's controls — its width,
+  // written as a fraction ("1/2", Full) with a tooltip in words, stepped by
+  // buttons named for the width they go to, pin, tear-off (where
   // the window can tear it off), more ⋯ and close. It holds controls, so it
   // never leans; the controls stay quiet until the note is hovered.
   import type { Snippet } from 'svelte'
   import { tr } from '../../i18n'
   import { look } from '../doodle/look.svelte'
-  import { FRACTIONS, fractionGlyph, nextFraction, shareOf, type Fraction } from '../sizes'
-  import WidthGlyph from './icons/WidthGlyph.svelte'
+  import { FRACTIONS, isFraction, nextFraction, type Fraction } from '../sizes'
   import { noteTitleColor } from '../theme/tokens'
   import IconButton from './IconButton.svelte'
   import Icon from './icons/Icon.svelte'
@@ -30,6 +30,7 @@
     linked,
     editable = true,
     sizable = true,
+    titled = true,
     lead,
     menu = [],
     menuOpen = $bindable(false),
@@ -55,6 +56,8 @@
     editable?: boolean
     /** false: something else sizes the note (the canvas); no width steps */
     sizable?: boolean
+    /** false: the window around it names the note (a torn-off note): no title, way back or close here */
+    titled?: boolean
     lead?: Snippet
     menu?: MenuItem[]
     menuOpen?: boolean
@@ -69,6 +72,10 @@
   const ink = $derived(look.palette ? noteTitleColor(color, look.palette, look.dark) : color)
   const at = $derived(FRACTIONS.indexOf(size as Fraction))
   const step = (dir: -1 | 1) => onsize?.(nextFraction(size, dir))
+  // the width as it is read: "1/2", or "Full" for the whole board; and in
+  // words for the tooltip and the ear: "1/2 of the board"
+  const fraction = (f: string) => (f === '1' || !isFraction(f) ? $tr('ui.size.full') : f)
+  const words = (f: string) => (f === '1' || !isFraction(f) ? $tr('ui.size.whole') : $tr('ui.size.share', { size: f }))
 
   const renamable = $derived(editable && !!onrename)
   let editing = $state(false)
@@ -88,7 +95,7 @@
 
 <div class="wrap">
   <header class="head">
-    {@render lead?.()}
+    {#if titled}{@render lead?.()}{/if}
     {#if editing}
       <!-- svelte-ignore a11y_autofocus -->
       <input
@@ -106,7 +113,7 @@
         }}
         onblur={commit}
       />
-    {:else}
+    {:else if titled}
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <!-- svelte-ignore a11y_no_noninteractive_tabindex: a renamable title takes the focus so F2 or Enter renames it -->
       <h3
@@ -152,11 +159,29 @@
       <Toolbar label={$tr('ui.noteActions')}>
         {#if editable && sizable}
           <span class="size" role="group" aria-label={$tr('ui.size')}>
-            <span class="step"><IconButton icon="narrower" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
-            <span class="frac" role="status" aria-label={$tr('ui.size.now', { size })} title={$tr('ui.size.now', { size })}>
-              <WidthGlyph share={shareOf(size)} size={14} /><span class="fig" aria-hidden="true">{fractionGlyph(size)}</span>
+            <span class="step">
+              <IconButton
+                icon="narrower"
+                size="sm"
+                label={at === 0 ? $tr('ui.size.narrower') : $tr('ui.size.narrowerTo', { size: words(nextFraction(size, -1)) })}
+                shortcut="-"
+                disabled={at === 0}
+                onclick={() => step(-1)}
+              />
             </span>
-            <span class="step"><IconButton icon="wider" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
+            <Tooltip text={$tr('ui.size.now', { size: words(size) })} describe={false}>
+              <span class="frac" role="status" aria-label={$tr('ui.size.now', { size: words(size) })}>{fraction(size)}</span>
+            </Tooltip>
+            <span class="step">
+              <IconButton
+                icon="wider"
+                size="sm"
+                label={at === FRACTIONS.length - 1 ? $tr('ui.size.wider') : $tr('ui.size.widerTo', { size: words(nextFraction(size, 1)) })}
+                shortcut="="
+                disabled={at === FRACTIONS.length - 1}
+                onclick={() => step(1)}
+              />
+            </span>
           </span>
         {/if}
         {#if editable}
@@ -178,7 +203,7 @@
             <Menu items={menu} bind:open={menuOpen} label={$tr('ui.noteActions')} onselect={onmenu} />
           </span>
         {/if}
-        {#if onclose}
+        {#if onclose && titled}
           <IconButton icon="close" size="sm" label={$tr('ui.close')} align="end" onclick={onclose} />
         {/if}
       </Toolbar>
@@ -211,9 +236,6 @@
     outline: var(--focus-width) solid var(--focus);
     outline-offset: var(--focus-offset);
     border-radius: var(--radius-sm);
-  }
-  .fig {
-    font: 600 var(--text-body-md) / 1 var(--font-body);
   }
   .title.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
@@ -284,9 +306,10 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    min-width: 28px;
+    min-width: 32px;
+    padding: 0 var(--space-1);
     justify-content: center;
-    color: var(--ink-2);
+    color: var(--ink);
     font: var(--weight-mono-sm) var(--text-mono-sm) / 1 var(--font-mono);
     font-variant-numeric: tabular-nums;
   }

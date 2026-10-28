@@ -14,11 +14,6 @@ export function shareOf(f: string): number {
   return n / d
 }
 
-const GLYPHS: Record<Fraction, string> = { '1/4': '¼', '1/3': '⅓', '1/2': '½', '2/3': '⅔', '3/4': '¾', '1': '1' }
-
-/** fractionGlyph is how the header writes a fraction: one vulgar-fraction character (½), or 1. */
-export const fractionGlyph = (f: string): string => (isFraction(f) ? GLYPHS[f] : '1')
-
 /** nextFraction is the step one narrower (-1) or wider (+1), stopping at the ends; anything else is the whole width. */
 export function nextFraction(f: string, dir: -1 | 1): Fraction {
   const i = isFraction(f) ? FRACTIONS.indexOf(f) : FRACTIONS.length - 1

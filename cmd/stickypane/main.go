@@ -61,7 +61,9 @@ Usage:
                          nowhere when the board plugin is installed. Safe to run
                          again. --skill: a skill instead of the instruction
                          files; --no-agent-docs: the folder only; --view
-                         terminal|app|both and --style doodle|neat: how it shows
+                         terminal|app|both and --style doodle|neat: how it shows;
+                         --language code: the board's language and the welcome
+                         note's
   stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
                          [--command PATH] [--undo] [--dry-run] [--yes]
                          install the board plugin for Claude Code and Codex

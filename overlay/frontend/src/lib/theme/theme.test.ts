@@ -124,6 +124,9 @@ describe('contrast is at least 4.5:1 for every theme x mode x card colour', () =
           const c = cardColors(q, i, q.dark)
           const worst = Math.min(contrast(c.ink, c.wash), contrast(c.ink, c.hatchSeen))
           expect(worst, `${q.name} note ${i}`).toBeGreaterThanOrEqual(4.5)
+          // in light mode a letter can sit right on a crayon line: the
+          // line itself is a ground too, not only its average with the wash
+          if (!q.dark) expect(contrast(c.ink, c.hatch), `${q.name} note ${i} on its hatching`).toBeGreaterThanOrEqual(4.5)
         }
       })
     }

@@ -42,14 +42,15 @@ export interface CreateRequest {
 }
 
 export interface CreateApi {
-  kinds(): Promise<Shape[]>
+  /** the shapes, with their examples in lang (the window's language); none: the board's */
+  kinds(lang?: string): Promise<Shape[]>
   /** note.create; it answers the new note's name */
   create(r: CreateRequest): Promise<{ note: string }>
 }
 
 export const createService: CreateApi = {
-  async kinds() {
-    const list = (await Call.ByName(project('Kinds'))) as Shape[] | null
+  async kinds(lang) {
+    const list = (await Call.ByName(project('Kinds'), lang ?? '')) as Shape[] | null
     return (list ?? []).map((k) => ({ ...k, options: k.options ?? [] }))
   },
   create: (r) => Call.ByName(project('Create'), r) as Promise<{ note: string }>,

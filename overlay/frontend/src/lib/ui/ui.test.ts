@@ -262,25 +262,25 @@ test('a hotkey is written as macOS writes it', () => {
 describe('the note header steps the size through the fractions', () => {
   const head = (size: string) => html(NoteHeader, { title: 'Plan', color: '#8FD694', size })
   const button = (out: string, label: string) => out.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0] ?? ''
-  test('it shows the width as a glyph, between narrower and wider buttons, in words for the ear', () => {
+  test('it writes the width as a plain fraction, says it in words, and names each step by where it goes', () => {
     const out = head('1/2')
-    const value = out.match(/<span[^>]*role="status"[^>]*aria-label="Width 1\/2"[^>]*>[\s\S]*?<\/span>/)?.[0] ?? ''
-    expect(value).toContain('½') // the glyph, not the digits
-    expect(value).not.toContain('>1/2<')
-    expect(value).toMatch(/<svg[^>]*aria-hidden="true"/) // the bar filled to the share
-    expect(value).toContain('H10V13.25') // half the inside (5.25 + 9.5 / 2 = 10) is filled
-    expect(out).toMatch(/title="Width 1\/2"/) // and the same words as its tooltip
-    expect(button(out, 'Narrower')).not.toContain('disabled')
-    expect(button(out, 'Wider')).not.toContain('disabled')
-    expect(head('1/3')).toContain('⅓')
-    expect(head('1')).toMatch(/aria-label="Width 1"/)
+    const value = out.match(/<span[^>]*role="status"[^>]*aria-label="Width: 1\/2 of the board"[^>]*>[\s\S]*?<\/span>/)?.[0] ?? ''
+    expect(value).toContain('>1/2<') // the digits, not a vulgar-fraction glyph or a picture
+    expect(value).not.toContain('½')
+    expect(value).not.toContain('<svg')
+    expect(button(out, 'Narrower: 1/3 of the board')).not.toContain('disabled')
+    expect(button(out, 'Wider: 2/3 of the board')).not.toContain('disabled')
+    expect(head('1/3')).toContain('>1/3<')
+    // the whole board is a word, not a lone "1"
+    expect(head('1')).toMatch(/aria-label="Width: the whole board"[^>]*>Full</)
+    expect(button(head('3/4'), 'Wider: the whole board')).not.toContain('disabled')
   })
   test('narrower is not the window minimise glyph', () => {
     const out = head('1/2')
-    const narrower = out.match(/<button[^>]*aria-label="Narrower"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
+    const narrower = out.match(/<button[^>]*aria-label="Narrower: 1\/3 of the board"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
     expect(narrower).not.toContain(iconPaths('minimise', look.style).d[0])
     expect(narrower).toContain(iconPaths('narrower', look.style).d[0])
-    const wider = out.match(/<button[^>]*aria-label="Wider"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
+    const wider = out.match(/<button[^>]*aria-label="Wider: 2\/3 of the board"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? ''
     expect(wider).toContain(iconPaths('wider', look.style).d[0])
   })
   test('the ends cannot be stepped past', () => {

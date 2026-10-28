@@ -181,7 +181,8 @@ To add a shape:
    `Kind.Make` checks the answers and fills in the defaults; the bridge's
    `kinds.list` and `note.create` and `stickypane write --opt` use it, so
    no screen writes a shape's format itself. An option's label is a key
-   of the "labels" in `internal/i18n/translations`.
+   of the "labels" in `internal/i18n/translations`; its `Example` in
+   another language is under that file's "examples", by the shape's name.
 4. Add one line to `internal/kinds.Default`.
 5. If the command line should change one thing in it, add a function to
    `internal/api/edit.go` that applies one of its ops and answers an

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
@@ -45,9 +47,9 @@ func init() {
 		{[]string{"init"}, initCmd, helpText{
 			group: "start", brief: "make .sticky/ and tell your agents about it",
 			what:     "Makes .sticky/ in this folder and puts the agent guide where agents read it: CLAUDE.md, AGENTS.md or a .claude skill. Safe to run again.",
-			syntax:   "stickypane init [--skill] [--no-agent-docs] [--view terminal|app|both] [--style doodle|neat]",
-			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only\n--view V         where the board shows: terminal, app (the desktop app) or both\n--style S        the app's look: doodle or neat",
-			examples: []string{"stickypane init", "stickypane init --view app", "stickypane init --skill", "stickypane init --no-agent-docs"},
+			syntax:   "stickypane init [--skill] [--no-agent-docs] [--view terminal|app|both] [--style doodle|neat] [--language code]",
+			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only\n--view V         where the board shows: terminal, app (the desktop app) or both\n--style S        the app's look: doodle or neat\n--language L     the board's language, and the welcome note's: ko, en or auto",
+			examples: []string{"stickypane init", "stickypane init --view app", "stickypane init --language ko", "stickypane init --skill", "stickypane init --no-agent-docs"},
 			related:  []string{"setup", "guide", "start"},
 		}},
 		{[]string{"setup"}, setupCmd, helpText{
@@ -312,6 +314,7 @@ func initCmd(e env, args []string) error {
 	skill := fs.Bool("skill", false, "install the guide as a Claude Code skill instead")
 	view := fs.String("view", "", "where the board shows: terminal, app or both")
 	style := fs.String("style", "", "the app's look: doodle or neat")
+	lang := fs.String("language", "", "the board's language and the welcome note's: ko, en or auto")
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
 		return err
 	}
@@ -330,10 +333,16 @@ func initCmd(e env, args []string) error {
 		}
 		changes = append(changes, api.Setting{Key: "style", Value: *style})
 	}
+	if *lang != "" {
+		if _, err := prefs.Normal("language", *lang); err != nil {
+			return usagef("init", "--language is %s or auto, not %q", strings.Join(i18n.Languages(), ", "), *lang)
+		}
+		changes = append(changes, api.Setting{Key: "language", Value: *lang})
+	}
 	if err := initcmd.RefuseBoard("."); err != nil {
 		return err
 	}
-	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout); err != nil {
+	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill, Language: *lang}, e.stdout); err != nil {
 		return err
 	}
 	dir, err := store.Resolve(".")

@@ -95,6 +95,12 @@ type Strings struct {
 	// English text lives next to each command in cmd/stickypane; a key
 	// missing here keeps it (see T).
 	CLI map[string]string `json:"cli"`
+
+	// Examples maps a shape's name ("checklist") to its catalog example in
+	// this language: the same lines as the English Kind.Example, in the
+	// language's words. A shape that is not here, or whose example is code
+	// (a script), keeps the English one (see ExampleOf).
+	Examples map[string]string `json:"examples"`
 }
 
 // English is the base every language starts from.
@@ -336,6 +342,15 @@ func (s Strings) L(phrase string) string {
 // english when the language has none.
 func (s Strings) T(key, english string) string {
 	if t, ok := s.CLI[key]; ok && t != "" {
+		return t
+	}
+	return english
+}
+
+// ExampleOf returns the catalog example of the shape called kind in this
+// language, or english when the language has none.
+func (s Strings) ExampleOf(kind, english string) string {
+	if t, ok := s.Examples[kind]; ok && t != "" {
 		return t
 	}
 	return english

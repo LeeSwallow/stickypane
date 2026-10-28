@@ -104,7 +104,7 @@ type Installer interface {
 	Install(ctx context.Context, t model.Target, replace bool) (installsvc.CommandState, error)
 	Uninstall(ctx context.Context) (installsvc.CommandState, error)
 	Connect(ctx context.Context, dry, mcp bool) (installsvc.Result, error)
-	Init(ctx context.Context, dir string) (installsvc.Result, error)
+	Init(ctx context.Context, dir, lang string) (installsvc.Result, error)
 }
 
 // Notice is a line for the home window. Code is translated there; Detail
@@ -520,7 +520,7 @@ func (s *Shell) InitProject(dir string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	_, err := s.cfg.Install.Init(ctx, dir)
+	_, err := s.cfg.Install.Init(ctx, dir, s.Prefs().Language)
 	return err
 }
 
@@ -558,7 +558,7 @@ func (s *Shell) InitHere(window uint) (installsvc.Result, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	return s.cfg.Install.Init(ctx, p.path)
+	return s.cfg.Install.Init(ctx, p.path, s.Prefs().Language)
 }
 
 // PickFolder asks for a folder.
