@@ -27,6 +27,11 @@ type SetupOptions struct {
 	Agents []string
 	// Undo removes what setup adds.
 	Undo bool
+	// Command is the stickypane the MCP server runs: "stickypane" (found
+	// on the PATH) when empty. The desktop app gives its own copy's
+	// absolute path, so an older stickypane earlier on the PATH is not the
+	// one an agent starts.
+	Command string
 }
 
 // Step is one command setup runs, through the agent's own command line,
@@ -43,6 +48,10 @@ func PlanSetup(o SetupOptions, look func(string) (string, error), has func() (cl
 	scope := o.Scope
 	if scope == "" {
 		scope = "user"
+	}
+	command := o.Command
+	if command == "" {
+		command = "stickypane"
 	}
 	hasClaude, hasCodex := has()
 	want := func(agent string) bool {
@@ -69,7 +78,7 @@ func PlanSetup(o SetupOptions, look func(string) (string, error), has func() (cl
 				add("claude", nil, "claude", "plugin", "install", pluginName, "--scope", scope)
 			}
 			if o.MCP {
-				add("claude", []string{"claude", "mcp", "get", "stickypane"}, "claude", "mcp", "add", "--scope", scope, "stickypane", "--", "stickypane", "mcp")
+				add("claude", []string{"claude", "mcp", "get", "stickypane"}, "claude", "mcp", "add", "--scope", scope, "stickypane", "--", command, "mcp")
 			}
 		}
 	}
@@ -86,7 +95,7 @@ func PlanSetup(o SetupOptions, look func(string) (string, error), has func() (cl
 				add("codex", nil, "codex", "plugin", "add", pluginName)
 			}
 			if o.MCP {
-				add("codex", []string{"codex", "mcp", "get", "stickypane"}, "codex", "mcp", "add", "stickypane", "--", "stickypane", "mcp")
+				add("codex", []string{"codex", "mcp", "get", "stickypane"}, "codex", "mcp", "add", "stickypane", "--", command, "mcp")
 			}
 		}
 	}

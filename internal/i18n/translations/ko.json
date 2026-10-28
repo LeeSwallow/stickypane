@@ -177,7 +177,7 @@
     "init.args": "--skill          안내문 파일 대신 Claude Code 스킬로\n--no-agent-docs  폴더만 만듭니다",
     "setup.brief": "Claude Code와 Codex에 보드 플러그인을 설치합니다",
     "setup.what": "각 에이전트 자체 명령으로 보드 플러그인을 설치합니다. 터미널에서는 먼저 묻습니다. 보드는 만들지 않습니다. 프로젝트에서 stickypane init을 실행하거나, git 저장소라면 에이전트가 처음 바꿀 때 만들어집니다.",
-    "setup.args": "--scope S    user, project, local (Claude Code)\n--mcp        MCP 서버로도 등록합니다\n--agents L   claude, codex 또는 둘 다 (기본: 찾은 것)\n--undo       플러그인을 지웁니다 (--mcp를 붙이면 MCP 서버도)\n--dry-run    계획만 출력하고 아무것도 실행하지 않습니다\n--yes        묻지 않고 실행합니다",
+    "setup.args": "--scope S    user, project, local (Claude Code)\n--mcp        MCP 서버로도 등록합니다\n--agents L   claude, codex 또는 둘 다 (기본: 찾은 것)\n--command P  MCP 서버가 실행할 stickypane의 전체 경로\n--undo       플러그인을 지웁니다 (--mcp를 붙이면 MCP 서버도)\n--dry-run    계획만 출력하고 아무것도 실행하지 않습니다\n--yes        묻지 않고 실행합니다",
     "theme.brief": "테마 목록을 보거나 하나를 고릅니다",
     "theme.what": "테마 목록에 현재 테마를 표시해 보여 주거나 하나를 고릅니다. \"auto\"는 터미널 배경을 따릅니다.",
     "language.brief": "화면의 언어 목록을 보거나 하나를 고릅니다",

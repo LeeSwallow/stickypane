@@ -39,8 +39,10 @@ stickypane setup --undo                # uninstalls the plugin again
 `--scope` is where Claude Code installs it: `user` (every project, the
 default), `project` (this repository, shared with the team) or `local`
 (this repository, just you). `--mcp` also registers `stickypane mcp` as an
-MCP server, `--agents claude,codex` limits it to some agents, and
-`--dry-run` prints the commands without running them. `--undo`
+MCP server, `--command` gives the full path of the stickypane that server
+runs (the desktop app passes its own copy), `--agents claude,codex` limits
+it to some agents, and `--dry-run` prints the commands without running
+them. `--undo`
 uninstalls the plugin from each agent found (from Claude Code at the
 `--scope` given, `user` unless you say); with `--mcp` it also removes the
 `stickypane` MCP server. It leaves the marketplace entry, the boards and

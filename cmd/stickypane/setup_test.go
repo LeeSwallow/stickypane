@@ -99,3 +99,18 @@ func TestSetupSaysWhenNoAgentIsFound(t *testing.T) {
 		t.Errorf("all set up: code %d\n%s", code, out)
 	}
 }
+
+// --command puts a full path in the MCP server's registration; a relative
+// one is a usage error.
+func TestSetupCommandNamesTheMCPServersProgram(t *testing.T) {
+	t.Chdir(t.TempDir())
+	ran := stubSetup(t, "claude")
+	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return true, true } }
+	code, _, errOut := exec(t, "setup", "--mcp", "--command", "/opt/app/stickypane", "--yes")
+	if code != 0 || len(*ran) != 1 || (*ran)[0] != "claude mcp add --scope user stickypane -- /opt/app/stickypane mcp" {
+		t.Fatalf("code %d, ran %q, err %q", code, *ran, errOut)
+	}
+	if code, _, errOut := exec(t, "setup", "--mcp", "--command", "stickypane"); code != exitUsage || !strings.Contains(errOut, "full path") {
+		t.Errorf("a relative --command: %d %q", code, errOut)
+	}
+}

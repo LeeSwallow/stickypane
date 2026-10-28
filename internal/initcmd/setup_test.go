@@ -60,6 +60,19 @@ func TestSetupSkipsWhatIsThereAndWhatIsMissing(t *testing.T) {
 	}
 }
 
+// Command names the stickypane the MCP server runs, by its full path.
+func TestSetupMCPRunsTheCommandGiven(t *testing.T) {
+	const app = "/Applications/Stickypane.app/Contents/Helpers/stickypane"
+	got := cmds(PlanSetup(SetupOptions{MCP: true, Command: app}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
+	want := []string{
+		"claude mcp add --scope user stickypane -- " + app + " mcp",
+		"codex mcp add stickypane -- " + app + " mcp",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("mcp with a command =\n%s", strings.Join(got, "\n"))
+	}
+}
+
 func TestSetupUndoRemovesWhatItAdded(t *testing.T) {
 	got := cmds(PlanSetup(SetupOptions{Undo: true, Scope: "user", MCP: true}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
 	want := []string{

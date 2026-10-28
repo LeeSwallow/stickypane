@@ -62,7 +62,7 @@ Usage:
                          again. --skill: a skill instead of the instruction
                          files; --no-agent-docs: the folder only
   stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
-                         [--undo] [--dry-run] [--yes]
+                         [--command PATH] [--undo] [--dry-run] [--yes]
                          install the board plugin for Claude Code and Codex
                          through their own commands; asks in a terminal
   stickypane config [key [value]]  list the settings with their values, print
