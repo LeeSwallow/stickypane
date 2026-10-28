@@ -38,7 +38,13 @@ type toolResult struct {
 // response per line of output.
 func serve(t *testing.T, requests ...string) ([]response, string) {
 	t.Helper()
-	dir := filepath.Join(t.TempDir(), store.DirName)
+	return serveIn(t, t.TempDir(), requests...)
+}
+
+// serveIn is serve with the board in the project folder root.
+func serveIn(t *testing.T, root string, requests ...string) ([]response, string) {
+	t.Helper()
+	dir := filepath.Join(root, store.DirName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

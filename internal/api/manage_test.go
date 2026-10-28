@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -76,8 +77,8 @@ func TestABookInATabIsTakenByItsFolder(t *testing.T) {
 	if _, err := a.Restore("v9.9"); !errors.Is(err, fs.ErrNotExist) || !strings.Contains(err.Error(), "there is no v9.9 in the trash") {
 		t.Errorf("a book that was never trashed: %v", err)
 	}
-	if got, err := a.Set("deploy/v1.2", []string{"color=blue", "title=Release"}); err != nil || got != "deploy/v1.2: set color, title" {
-		t.Errorf("Set on a book in a tab = %q, %v", got, err)
+	if got, err := a.Set("deploy/v1.2", []string{"color=blue", "title=Release"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "deploy/v1.2", Set: []string{"color", "title"}}) {
+		t.Errorf("Set on a book in a tab = %+v, %v", got, err)
 	}
 }
 
@@ -152,8 +153,8 @@ func TestLinkShowsAFileOfTheProjectWithoutCopyingIt(t *testing.T) {
 	if err != nil {
 		t.Skip("symlinks are not available:", err)
 	}
-	if got != "linked README.md to ../README.md" || read(t, dir, "README.md") != "# Readme\n" {
-		t.Errorf("Link = %q", got)
+	if got != (Linked{Note: "README.md", Target: "../README.md"}) || read(t, dir, "README.md") != "# Readme\n" {
+		t.Errorf("Link = %+v", got)
 	}
 	if target, _ := os.Readlink(filepath.Join(dir, "README.md")); target != filepath.Join("..", "README.md") {
 		t.Errorf("the link should be relative so the project can be moved: %q", target)
@@ -162,8 +163,8 @@ func TestLinkShowsAFileOfTheProjectWithoutCopyingIt(t *testing.T) {
 	if n := v["README.md"]; n.Open == nil || !*n.Open {
 		t.Errorf("a linked note is opened: %+v", v)
 	}
-	if got, err := a.Link(filepath.Join(root, "docs"), "handbook"); err != nil || got != "linked handbook to ../docs" || read(t, dir, "handbook/guide.md") != "guide\n" {
-		t.Errorf("a folder is linked as a book, under a name of its own if one is given: %q, %v", got, err)
+	if got, err := a.Link(filepath.Join(root, "docs"), "handbook"); err != nil || got != (Linked{Note: "handbook", Target: "../docs"}) || read(t, dir, "handbook/guide.md") != "guide\n" {
+		t.Errorf("a folder is linked as a book, under a name of its own if one is given: %+v, %v", got, err)
 	}
 	if infos, _ := a.List(); len(infos) != 2 || infos[1].Name != "handbook/guide.md" {
 		t.Errorf("List = %+v", infos)
@@ -191,8 +192,8 @@ func TestALinkedNoteIsNamedWithoutTouchingItsFile(t *testing.T) {
 	if _, err := a.Link(filepath.Join(root, "README.md"), ""); err != nil {
 		t.Skip("symlinks are not available:", err)
 	}
-	if got, err := a.Set("README.md", []string{"title=Read me", "size=half"}); err != nil || got != "README.md: set title, size" {
-		t.Fatalf("Set = %q, %v", got, err)
+	if got, err := a.Set("README.md", []string{"title=Read me", "size=half"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "README.md", Set: []string{"title", "size"}}) {
+		t.Fatalf("Set = %+v, %v", got, err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(root, "README.md")); string(b) != "# Readme\n" {
 		t.Errorf("the project's file must not get front matter: %q", b)
@@ -209,18 +210,18 @@ func TestShowAndHide(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Readme\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Show("plan"); err != nil || got != "showing plan.md" {
-		t.Fatalf("Show = %q, %v", got, err)
+	if got, err := a.Show("plan"); err != nil || got != (Shown{Note: "plan.md", Open: true}) {
+		t.Fatalf("Show = %+v, %v", got, err)
 	}
-	if got, err := a.Show("build.log"); err != nil || got != "showing build.log" {
-		t.Fatalf("Show of a log = %q, %v", got, err)
+	if got, err := a.Show("build.log"); err != nil || got != (Shown{Note: "build.log", Open: true}) {
+		t.Fatalf("Show of a log = %+v, %v", got, err)
 	}
 	v, _ := store.Open(dir).Views()
 	if v["plan.md"].Open == nil || !*v["plan.md"].Open || v["build.log"].Open == nil || !*v["build.log"].Open {
 		t.Errorf("Show opens the note on the screen: %+v", v)
 	}
-	if got, err := a.Hide("plan"); err != nil || got != "hidden plan.md" {
-		t.Fatalf("Hide = %q, %v", got, err)
+	if got, err := a.Hide("plan"); err != nil || got != (Shown{Note: "plan.md"}) {
+		t.Fatalf("Hide = %+v, %v", got, err)
 	}
 	if v, _ := store.Open(dir).Views(); v["plan.md"].Open == nil || *v["plan.md"].Open {
 		t.Errorf("Hide folds the note away: %+v", v)
@@ -230,11 +231,11 @@ func TestShowAndHide(t *testing.T) {
 	if err != nil {
 		t.Skip("symlinks are not available:", err)
 	}
-	if got != "showing README.md (linked to ../README.md)" || !has(dir, "README.md") {
-		t.Errorf("Show of a path = %q", got)
+	if got != (Shown{Note: "README.md", Open: true, Linked: "../README.md"}) || !has(dir, "README.md") {
+		t.Errorf("Show of a path = %+v", got)
 	}
-	if got, err := a.Show(filepath.Join(root, "README.md")); err != nil || got != "showing README.md" {
-		t.Errorf("showing a linked file again just opens it: %q, %v", got, err)
+	if got, err := a.Show(filepath.Join(root, "README.md")); err != nil || got != (Shown{Note: "README.md", Open: true}) {
+		t.Errorf("showing a linked file again just opens it: %+v, %v", got, err)
 	}
 	if _, err := a.Show("missing"); err == nil {
 		t.Error("a note that is not there cannot be shown")
@@ -283,11 +284,11 @@ func TestShowABareFileNameOfTheProject(t *testing.T) {
 		}
 		t.Fatalf("Show(README.md) = %v", err)
 	}
-	if got != "showing README.md (linked to ../README.md)" || !has(dir, "README.md") {
-		t.Errorf("Show(README.md) = %q", got)
+	if got != (Shown{Note: "README.md", Open: true, Linked: "../README.md"}) || !has(dir, "README.md") {
+		t.Errorf("Show(README.md) = %+v", got)
 	}
-	if got, err := a.Show("plan"); err != nil || got != "showing plan.md" {
-		t.Errorf("a note wins over a file of the same name: %q, %v", got, err)
+	if got, err := a.Show("plan"); err != nil || got != (Shown{Note: "plan.md", Open: true}) {
+		t.Errorf("a note wins over a file of the same name: %+v, %v", got, err)
 	}
 	if _, err := a.Show("missing.md"); err == nil {
 		t.Error("a name that is neither a note nor a file cannot be shown")

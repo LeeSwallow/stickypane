@@ -3,6 +3,7 @@ package api
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -17,11 +18,11 @@ func TestNamesMayPointIntoABook(t *testing.T) {
 	if b, err := a.Cat("docs/guide"); err != nil || plain(string(b)) != "---\ntitle: Guide\n---\nhow to\n" {
 		t.Errorf("Show = %q, %v", b, err)
 	}
-	if got, err := a.Todo("docs/todo", "add", "first"); err != nil || got != "docs/todo.md: 0/1" {
-		t.Errorf("Todo in a book = %q, %v", got, err)
+	if got, err := a.Todo("docs/todo", "add", "first"); err != nil || got.Note != "docs/todo.md" || got.Summary != "0/1" {
+		t.Errorf("Todo in a book = %+v, %v", got, err)
 	}
-	if got, err := a.Log("build.log", "compiled"); err != nil || got != "build.log: 1 line" || read(t, dir, "build.log") != "compiled\n" {
-		t.Errorf("Log to a .log file = %q, %v, %q", got, err, read(t, dir, "build.log"))
+	if got, err := a.Log("build.log", "compiled"); err != nil || got.Note != "build.log" || got.Summary != "1 line" || read(t, dir, "build.log") != "compiled\n" {
+		t.Errorf("Log to a .log file = %+v, %v, %q", got, err, read(t, dir, "build.log"))
 	}
 	for _, bad := range []string{"../x", "a/b/c/d", "/abs", "docs/.hidden", "docs/", "/x", "a\\b", "x.png", "docs/x.png", ".x/y"} {
 		if _, err := a.Cat(bad); err != ErrBadName {
@@ -67,8 +68,8 @@ func TestSetPutsTheArrangementInStickyJSON(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "docs", "p.md"), []byte("p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Set("a", []string{"open=true", "size=half", "rows=8", "pin=true", "color=blue", "title=New"}); err != nil || got != "a.md: set open, size, rows, pin, color, title" {
-		t.Fatalf("Set = %q, %v", got, err)
+	if got, err := a.Set("a", []string{"open=true", "size=half", "rows=8", "pin=true", "color=blue", "title=New"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "a.md", Set: []string{"open", "size", "rows", "pin", "color", "title"}}) {
+		t.Fatalf("Set = %+v, %v", got, err)
 	}
 	if got := read(t, dir, "a.md"); got != "---\ntitle: New\n---\nbody\n" {
 		t.Errorf("only keys about the content go into the note: %q", got)
@@ -89,8 +90,8 @@ func TestSetPutsTheArrangementInStickyJSON(t *testing.T) {
 	if _, err := a.Set("build.log", []string{"type=board"}); err == nil || !strings.Contains(err.Error(), "Markdown") {
 		t.Errorf("a log has no front matter to put a type in: %v", err)
 	}
-	if got, err := a.Set("docs", []string{"open=true"}); err != nil || got != "docs: set open" {
-		t.Errorf("a book is arranged by its folder's name: %q, %v", got, err)
+	if got, err := a.Set("docs", []string{"open=true"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "docs", Set: []string{"open"}}) {
+		t.Errorf("a book is arranged by its folder's name: %+v, %v", got, err)
 	}
 	for _, bad := range [][]string{{"size=huge"}, {"open=maybe"}, {"rows=many"}, {"rows=-1"}, {"color=mauve"}} {
 		if _, err := a.Set("a", bad); err == nil {
@@ -104,11 +105,11 @@ func TestSetNamesANoteThatHasNoFrontMatter(t *testing.T) {
 	if _, err := a.Write("docs/p", Options{}, []byte("p\n")); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Set("build.log", []string{"title=CI build"}); err != nil || got != "build.log: set title" {
-		t.Fatalf("Set = %q, %v", got, err)
+	if got, err := a.Set("build.log", []string{"title=CI build"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "build.log", Set: []string{"title"}}) {
+		t.Fatalf("Set = %+v, %v", got, err)
 	}
-	if got, err := a.Set("docs", []string{"title=Handbook"}); err != nil || got != "docs: set title" {
-		t.Fatalf("Set on a book = %q, %v", got, err)
+	if got, err := a.Set("docs", []string{"title=Handbook"}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "docs", Set: []string{"title"}}) {
+		t.Fatalf("Set on a book = %+v, %v", got, err)
 	}
 	v, _ := store.Open(dir).Views()
 	if v["build.log"].Title != "CI build" || v["docs"].Title != "Handbook" || read(t, dir, "build.log") != "x\n" {

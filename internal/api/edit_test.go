@@ -1,6 +1,7 @@
 package api
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -8,8 +9,8 @@ import (
 
 func TestTodoMakesAndUpdatesAChecklist(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	if got, err := a.Todo("plan", "add", "write tests"); err != nil || got != "plan.md: 0/1" {
-		t.Fatalf("Todo add = %q, %v", got, err)
+	if got, err := a.Todo("plan", "add", "write tests"); err != nil || got != (Edited{Note: "plan.md", Action: "add", Item: "write tests", Summary: "0/1"}) {
+		t.Fatalf("Todo add = %+v, %v", got, err)
 	}
 	if got := read(t, dir, "plan.md"); got != "---\ntype: checklist\ntitle: plan\nopen: true\n---\n- [ ] write tests\n" {
 		t.Fatalf("a note that is not there yet is made, open: %q", got)
@@ -17,11 +18,11 @@ func TestTodoMakesAndUpdatesAChecklist(t *testing.T) {
 	if _, err := a.Todo("plan", "add", "ship it"); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Todo("plan", "check", "tests"); err != nil || got != "plan.md: 1/2" {
-		t.Errorf("Todo check = %q, %v", got, err)
+	if got, err := a.Todo("plan", "check", "tests"); err != nil || got != (Edited{Note: "plan.md", Action: "check", Item: "tests", Summary: "1/2"}) {
+		t.Errorf("Todo check = %+v, %v", got, err)
 	}
-	if got, err := a.Todo("plan", "uncheck", "#1"); err != nil || got != "plan.md: 0/2" {
-		t.Errorf("Todo uncheck = %q, %v", got, err)
+	if got, err := a.Todo("plan", "uncheck", "#1"); err != nil || got != (Edited{Note: "plan.md", Action: "uncheck", Item: "#1", Summary: "0/2"}) {
+		t.Errorf("Todo uncheck = %+v, %v", got, err)
 	}
 	if _, err := a.Todo("plan", "check", "deploy"); err == nil || !strings.Contains(err.Error(), "ship it") {
 		t.Errorf("an unknown item should list the items: %v", err)
@@ -52,14 +53,14 @@ func TestEditsRefuseANoteOfAnotherShape(t *testing.T) {
 
 func TestCardAddsAndMoves(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	if got, err := a.Card("work", "add", "login API", "Doing"); err != nil || got != "work.md: 1 card" {
-		t.Fatalf("Card add = %q, %v", got, err)
+	if got, err := a.Card("work", "add", "login API", "Doing"); err != nil || got != (Edited{Note: "work.md", Action: "add", Item: "login API", To: "Doing", Summary: "1 card"}) {
+		t.Fatalf("Card add = %+v, %v", got, err)
 	}
 	if _, err := a.Card("work", "add", "payments", "To do"); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Card("work", "move", "login", "to do"); err != nil || got != "work.md: 2 cards" {
-		t.Errorf("Card move = %q, %v", got, err)
+	if got, err := a.Card("work", "move", "login", "to do"); err != nil || got != (Edited{Note: "work.md", Action: "move", Item: "login", To: "to do", Summary: "2 cards"}) {
+		t.Errorf("Card move = %+v, %v", got, err)
 	}
 	// A new board starts with the usual three columns.
 	want := "---\ntype: board\ntitle: work\nopen: true\n---\n## To do\n- payments\n- login API\n\n## Doing\n\n## Done\n"
@@ -73,14 +74,14 @@ func TestCardAddsAndMoves(t *testing.T) {
 
 func TestChartSetsAndCounts(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	if got, err := a.Chart("tests", "set", "app", "67"); err != nil || got != "tests.md: app = 67" {
-		t.Fatalf("Chart set = %q, %v", got, err)
+	if got, err := a.Chart("tests", "set", "app", "67"); err != nil || got != (Edited{Note: "tests.md", Action: "set", Item: "app", Value: "67", Summary: "1 value"}) {
+		t.Fatalf("Chart set = %+v, %v", got, err)
 	}
-	if got, err := a.Chart("tests", "add", "app", "3"); err != nil || got != "tests.md: app = 70" {
-		t.Errorf("Chart add = %q, %v", got, err)
+	if got, err := a.Chart("tests", "add", "app", "3"); err != nil || got != (Edited{Note: "tests.md", Action: "add", Item: "app", Value: "70", Summary: "1 value"}) {
+		t.Errorf("Chart add = %+v, %v", got, err)
 	}
-	if got, err := a.Chart("tests", "add", "store", "-2"); err != nil || got != "tests.md: store = -2" {
-		t.Errorf("Chart add to a new label = %q, %v", got, err)
+	if got, err := a.Chart("tests", "add", "store", "-2"); err != nil || got != (Edited{Note: "tests.md", Action: "add", Item: "store", Value: "-2", Summary: "2 values"}) {
+		t.Errorf("Chart add to a new label = %+v, %v", got, err)
 	}
 	if got := read(t, dir, "tests.md"); got != "---\ntype: chart\ntitle: tests\nopen: true\n---\napp: 70\nstore: -2\n" {
 		t.Errorf("file = %q", got)
@@ -92,25 +93,26 @@ func TestChartSetsAndCounts(t *testing.T) {
 
 func TestLogAppends(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"plain.md": "first\n"})
-	if got, err := a.Log("worklog", "tests passed"); err != nil || got != "worklog.md: 1 line" {
-		t.Fatalf("Log = %q, %v", got, err)
+	if got, err := a.Log("worklog", "tests passed"); err != nil || got != (Edited{Note: "worklog.md", Action: "log", Item: "tests passed", Summary: "1 line"}) {
+		t.Fatalf("Log = %+v, %v", got, err)
 	}
-	if got, err := a.Log("worklog", "review done"); err != nil || got != "worklog.md: 2 lines" {
-		t.Errorf("Log = %q, %v", got, err)
+	if got, err := a.Log("worklog", "review done"); err != nil || got != (Edited{Note: "worklog.md", Action: "log", Item: "review done", Summary: "2 lines"}) {
+		t.Errorf("Log = %+v, %v", got, err)
 	}
 	if got := read(t, dir, "worklog.md"); got != "---\ntype: log\ntitle: worklog\nopen: true\n---\ntests passed\nreview done\n" {
 		t.Errorf("file = %q", got)
 	}
 	// A line can be added to a plain note too: it is the same as appending.
-	if _, err := a.Log("plain", "second"); err != nil || read(t, dir, "plain.md") != "first\nsecond\n" {
+	// A plain note has no summary.
+	if got, err := a.Log("plain", "second"); err != nil || got.Summary != "" || read(t, dir, "plain.md") != "first\nsecond\n" {
 		t.Errorf("Log on a plain note: %v, %q", err, read(t, dir, "plain.md"))
 	}
 }
 
 func TestSetChangesKeysAndNothingElse(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"n.md": "---\ntitle: Old\nview: spark\n---\nbody stays\n"})
-	if got, err := a.Set("n", []string{"title=New title", "type=chart", "view="}); err != nil || got != "n.md: set title, type; removed view" {
-		t.Fatalf("Set = %q, %v", got, err)
+	if got, err := a.Set("n", []string{"title=New title", "type=chart", "view="}); err != nil || !reflect.DeepEqual(got, Keyed{Note: "n.md", Set: []string{"title", "type"}, Removed: []string{"view"}}) {
+		t.Fatalf("Set = %+v, %v", got, err)
 	}
 	if got := read(t, dir, "n.md"); got != "---\ntitle: New title\ntype: chart\n---\nbody stays\n" {
 		t.Errorf("file = %q", got)
@@ -127,11 +129,11 @@ func TestSetChangesKeysAndNothingElse(t *testing.T) {
 
 func TestSayMakesAChatAndAddsMessages(t *testing.T) {
 	a, dir := newAPI(t, nil)
-	if got, err := a.Say("chat", "claude", "41/41 pass"); err != nil || got != "chat.md: 1 message" {
-		t.Fatalf("Say = %q, %v", got, err)
+	if got, err := a.Say("chat", "claude", "41/41 pass"); err != nil || got != (Edited{Note: "chat.md", Action: "say", Item: "41/41 pass", Who: "claude", Summary: "1 message"}) {
+		t.Fatalf("Say = %+v, %v", got, err)
 	}
-	if got, err := a.Say("chat", "", "next?"); err != nil || got != "chat.md: 2 messages" {
-		t.Errorf("Say = %q, %v", got, err)
+	if got, err := a.Say("chat", "", "next?"); err != nil || got != (Edited{Note: "chat.md", Action: "say", Item: "next?", Who: "agent", Summary: "2 messages"}) {
+		t.Errorf("Say = %+v, %v", got, err)
 	}
 	got := read(t, dir, "chat.md")
 	if !strings.Contains(got, "type: chat") || !regexp.MustCompile(`(?m)^## \d{4}-\d{2}-\d{2}\n@claude \d\d:\d\d 41/41 pass\n@agent \d\d:\d\d next\?\n$`).MatchString(got) {
@@ -154,16 +156,16 @@ func TestANewNoteIsTitledWithoutItsOrderNumber(t *testing.T) {
 
 func TestANameWithoutItsExtensionFindsTheNoteThatHasIt(t *testing.T) {
 	a, _ := newAPI(t, map[string]string{"live.http": "### Ping\nGET http://x\n", "build.log": "ok\n", "plan.md": "x\n"})
-	for name, want := range map[string]string{"live": "showing live.http", "build": "showing build.log", "plan": "showing plan.md"} {
+	for name, want := range map[string]Shown{"live": {Note: "live.http", Open: true}, "build": {Note: "build.log", Open: true}, "plan": {Note: "plan.md", Open: true}} {
 		if got, err := a.Show(name); err != nil || got != want {
-			t.Errorf("Show(%q) = %q, %v; want %q", name, got, err, want)
+			t.Errorf("Show(%q) = %+v, %v; want %+v", name, got, err, want)
 		}
 	}
-	if got, err := a.Hide("live"); err != nil || got != "hidden live.http" {
-		t.Errorf("Hide = %q, %v", got, err)
+	if got, err := a.Hide("live"); err != nil || got != (Shown{Note: "live.http"}) {
+		t.Errorf("Hide = %+v, %v", got, err)
 	}
-	if got, err := a.Set("live", []string{"size=page"}); err != nil || !strings.HasPrefix(got, "live.http:") {
-		t.Errorf("Set = %q, %v", got, err)
+	if got, err := a.Set("live", []string{"size=page"}); err != nil || got.Note != "live.http" {
+		t.Errorf("Set = %+v, %v", got, err)
 	}
 	if b, err := a.Cat("live"); err != nil || !strings.Contains(string(b), "### Ping") {
 		t.Errorf("Cat = %q, %v", b, err)

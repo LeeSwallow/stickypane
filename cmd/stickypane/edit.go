@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
@@ -39,21 +38,21 @@ func editCmd(cmd string) func(env, []string) error {
 		var out string
 		switch cmd {
 		case "todo":
-			out, err = a.Todo(name, rest[0], strings.Join(rest[1:], " "))
+			out, err = said(a.Todo(name, rest[0], strings.Join(rest[1:], " ")))(status)
 		case "card":
-			out, err = a.Card(name, rest[0], strings.Join(rest[1:], " "), to)
+			out, err = said(a.Card(name, rest[0], strings.Join(rest[1:], " "), to))(status)
 		case "chart":
-			out, err = a.Chart(name, rest[0], strings.Join(rest[1:len(rest)-1], " "), rest[len(rest)-1])
+			out, err = said(a.Chart(name, rest[0], strings.Join(rest[1:len(rest)-1], " "), rest[len(rest)-1]))(valued)
 		case "log":
 			line := strings.Join(rest, " ")
 			if stamp {
 				line = e.now().Format(when.Clock) + " " + line
 			}
-			out, err = a.Log(name, line)
+			out, err = said(a.Log(name, line))(status)
 		case "say":
-			out, err = a.Say(name, to, strings.Join(rest, " "))
+			out, err = said(a.Say(name, to, strings.Join(rest, " ")))(status)
 		default: // set
-			out, err = a.Set(name, rest)
+			out, err = said(a.Set(name, rest))(keyed)
 		}
 		if err != nil {
 			return err
@@ -83,30 +82,25 @@ func manageCmd(cmd string) func(env, []string) error {
 			return err
 		}
 		var out string
-		var moved api.Moved
 		switch cmd {
 		case "rm":
-			moved, err = a.Remove(words[0])
-			out = removed(moved)
+			out, err = said(a.Remove(words[0]))(removed)
 		case "restore":
-			moved, err = a.Restore(words[0])
-			out = "restored " + moved.To
+			out, err = said(a.Restore(words[0]))(restored)
 		case "archive":
-			moved, err = a.Archive(words[0])
-			out = movedTo(moved)
+			out, err = said(a.Archive(words[0]))(movedTo)
 		case "show":
-			out, err = a.Show(words[0])
+			out, err = said(a.Show(words[0]))(shown)
 		case "hide":
-			out, err = a.Hide(words[0])
+			out, err = said(a.Hide(words[0]))(shown)
 		case "link":
 			name := ""
 			if len(words) == 2 {
 				name = words[1]
 			}
-			out, err = a.Link(words[0], name)
+			out, err = said(a.Link(words[0], name))(linked)
 		default: // mv
-			moved, err = a.Move(words[0], words[1])
-			out = movedTo(moved)
+			out, err = said(a.Move(words[0], words[1]))(movedTo)
 		}
 		if err != nil {
 			return err
@@ -114,12 +108,4 @@ func manageCmd(cmd string) func(env, []string) error {
 		_, err = fmt.Fprintln(e.stdout, out)
 		return err
 	}
-}
-
-// movedTo says where a note went.
-func movedTo(m api.Moved) string { return fmt.Sprintf("moved %s to %s", m.From, m.To) }
-
-// removed says where a removed note went and how to bring it back.
-func removed(m api.Moved) string {
-	return fmt.Sprintf("%s; `stickypane restore %s` brings it back", movedTo(m), strings.TrimSuffix(m.From, ".md"))
 }
