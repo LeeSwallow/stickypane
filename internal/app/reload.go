@@ -48,8 +48,9 @@ func (m *Model) reload() {
 	// What a note's kind fills in by itself, the board writes, so that an
 	// agent editing the file never has to; then it reads the board again.
 	// Charts computed from other notes (from:) are computed too.
-	derived, _ := api.NewWithClock(m.store, m.reg, m.now).Derive()
-	if m.tend(board.Tabs, m.shownDocs()) || derived > 0 {
+	calls := m.calls()
+	derived, _ := calls.Derive()
+	if calls.TendAll(board.Tabs, m.shownDocs()) || derived > 0 {
 		if board, err = m.store.Load(); err != nil {
 			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 			return
@@ -268,32 +269,6 @@ func (m *Model) showing(name string) int {
 		}
 	}
 	return -1
-}
-
-// tend writes into the notes of every tab what their kinds fill in by
-// themselves (Kind.Tend), such as the time an item was ticked by hand, at
-// the time the file changed. It reports whether it wrote anything.
-func (m *Model) tend(tabs []store.Tab, before map[string]doc.Document) bool {
-	wrote := false
-	visit := func(n store.Note) {
-		if n.Err != nil || n.Book() {
-			return
-		}
-		if k := m.reg.For(n.Name, n.Doc); k.Tend != nil {
-			if op := k.Tend(before[n.Name], n.Doc, n.ModTime); op != nil && m.store.Apply(n.Name, op) == nil {
-				wrote = true
-			}
-		}
-	}
-	for _, t := range tabs {
-		for _, n := range t.Notes {
-			visit(n)
-			for _, p := range n.Pages {
-				visit(p)
-			}
-		}
-	}
-	return wrote
 }
 
 // shownDocs is what each file of the screen said when it was last read, so
