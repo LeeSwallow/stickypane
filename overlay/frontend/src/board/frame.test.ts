@@ -89,11 +89,11 @@ test('a note that cannot be read offers no rename, size, pin or colour', () => {
 test('a note says its width as a fraction of the board; old names and cards read as one', () => {
   const at = (size: string, width: number) =>
     render(NoteFrame, { props: { note: { ...base, size, name: 'a.md', title: 'A', kind: 'note', data: { markdown: '' } } as unknown as Note, width }, context: ctx() }).body
-  expect(at('1/3', 1200)).toMatch(/aria-label="Width 1\/3"/)
-  expect(at('half', 1200)).toMatch(/aria-label="Width 1\/2"/)
-  expect(at('page', 1200)).toMatch(/aria-label="Width 1"/)
-  expect(at('card', 960)).toMatch(/aria-label="Width 1\/3"/) // the narrowest a card fits in
-  expect(at('1/2', 1200)).toMatch(/aria-label="Narrower"/)
+  expect(at('1/3', 1200)).toMatch(/aria-label="Width: 1\/3 of the board"/)
+  expect(at('half', 1200)).toMatch(/aria-label="Width: 1\/2 of the board"/)
+  expect(at('page', 1200)).toMatch(/aria-label="Width: the whole board"/)
+  expect(at('card', 960)).toMatch(/aria-label="Width: 1\/3 of the board"/) // the narrowest a card fits in
+  expect(at('1/2', 1200)).toMatch(/aria-label="Narrower: 1\/3 of the board"/)
   expect(at('1/2', 1200)).toMatch(/class="edge side\b/) // the right edge drags the width
 })
 

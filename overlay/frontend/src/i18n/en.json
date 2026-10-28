@@ -154,7 +154,7 @@
   "ui.size": "Size",
   "ui.size.narrower": "Narrower",
   "ui.size.wider": "Wider",
-  "ui.size.now": "Width {size}",
+  "ui.size.now": "Width: {size}",
   "ui.view": "View",
   "ui.view.grid": "Grid",
   "ui.view.canvas": "Canvas",
@@ -320,5 +320,10 @@
   "settings.boardLanguage.hint": "When unset, the board follows this computer's app language.",
   "settings.appLanguage": "App language",
   "settings.appLanguage.hint": "The home window and boards with no language of their own use it.",
-  "settings.sections": "Settings sections"
+  "settings.sections": "Settings sections",
+  "ui.size.full": "Full",
+  "ui.size.share": "{size} of the board",
+  "ui.size.whole": "the whole board",
+  "ui.size.narrowerTo": "Narrower: {size}",
+  "ui.size.widerTo": "Wider: {size}"
 }

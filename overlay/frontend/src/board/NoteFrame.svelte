@@ -12,7 +12,6 @@
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
-  import { fractionGlyph } from '../lib/sizes'
   import IconButton from '../lib/ui/IconButton.svelte'
   import NoteHeader from '../lib/ui/NoteHeader.svelte'
   import type { MenuItem } from '../lib/ui/menu'
@@ -230,7 +229,7 @@
       {/if}
     {/if}
   </NoteFrame>
-  {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing })}>{fractionGlyph(landing)}</span>{/if}
+  {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing === '1' ? $tr('ui.size.whole') : $tr('ui.size.share', { size: landing }) })}>{landing === '1' ? $tr('ui.size.full') : landing}</span>{/if}
 </div>
 
 <style>

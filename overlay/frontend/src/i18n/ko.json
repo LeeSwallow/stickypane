@@ -154,7 +154,7 @@
   "ui.size": "크기",
   "ui.size.narrower": "더 좁게",
   "ui.size.wider": "더 넓게",
-  "ui.size.now": "너비 {size}",
+  "ui.size.now": "너비: {size}",
   "ui.view": "보기",
   "ui.view.grid": "그리드",
   "ui.view.canvas": "캔버스",
@@ -320,5 +320,10 @@
   "settings.boardLanguage.hint": "정하지 않으면 이 컴퓨터의 앱 언어를 따라요.",
   "settings.appLanguage": "앱 언어",
   "settings.appLanguage.hint": "홈 창과, 언어를 정하지 않은 보드가 이 언어를 써요.",
-  "settings.sections": "설정 묶음"
+  "settings.sections": "설정 묶음",
+  "ui.size.full": "전체",
+  "ui.size.share": "보드의 {size}",
+  "ui.size.whole": "보드 전체",
+  "ui.size.narrowerTo": "더 좁게: {size}",
+  "ui.size.widerTo": "더 넓게: {size}"
 }
