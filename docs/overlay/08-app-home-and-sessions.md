@@ -69,7 +69,7 @@ flowchart LR
 
 [설계자 판단] 이름은 `~/.sticky`가 아니라 **`~/.stickypane/`**이다. `store.Find`는 현재 폴더에서 위로 올라가며 처음 만나는 `.sticky`를 board로 쓰므로, `~/.sticky`가 있으면 홈 아래에서 `.sticky`가 없는 모든 프로젝트가 레지스트리를 board로 열고 자동 `init`도 멈춘다.
 
-[설계자 판단] 기록은 **`~/.stickypane/`이 있을 때만** 남긴다. 폴더는 overlay 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람의 홈에는 아무것도 생기지 않고, 오래된 기록 정리는 앱이 맡는다.
+[설계자 판단] 기록은 **`~/.stickypane/`이 있을 때만** 남긴다. 폴더는 overlay 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람의 홈에는 아무것도 생기지 않는다. 기록을 쓰고 지우는 것은 본체뿐이다(`registry.Prune`, board를 열 때). 앱은 읽기만 한다(#32, #24).
 
 ```text
 ~/.stickypane/                       (STICKYPANE_HOME으로 바꿀 수 있다)
@@ -90,17 +90,17 @@ flowchart LR
     reg["internal/registry<br/>Append · Live"]
   end
   subgraph app["overlay 앱 (overlay/ 모듈)"]
-    idx["index<br/>modernc.org/sqlite"]
+    idx["index<br/>GORM · glebarez/sqlite"]
   end
   reg -->|"한 줄 append, O_APPEND"| ev["events/YYYY-MM-DD.jsonl"]
-  reg -->|"시작 시 생성, 종료 시 삭제"| run["run/&lt;pid&gt;.json"]
+  reg -->|"시작 시 생성, 종료·Prune 시 삭제"| run["run/&lt;pid&gt;.json"]
   ev -->|"새 줄만 읽어 반영"| idx
   run -->|"pid 생존 확인"| idx
   idx --> db[("stickypane.db")]
 ```
 
 - **본체**는 SQLite를 모른다. `~/.stickypane/`이 있으면, 프로젝트에서 무엇인가 할 때(`init`, TUI 시작·종료, `bridge`, `mcp`, `watch`, 노트를 바꾸는 명령) 그날의 `events/*.jsonl`에 한 줄을 덧붙이고, 오래 사는 프로세스는 `run/<pid>.json`을 만든다. 실패해도 명령은 실패하지 않는다(best-effort).
-- **overlay 앱**이 SQLite 색인을 소유한다. 시작할 때와 `events/`가 바뀔 때 새 줄만 읽어 반영한다.
+- **overlay 앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
 
 이렇게 나누는 이유:
 1. 본체는 "표준 라이브러리 먼저" 규칙을 지키고 바이너리가 커지지 않는다(반목표 X5).
@@ -129,7 +129,7 @@ flowchart LR
 CREATE TABLE project (
   id          INTEGER PRIMARY KEY,
   path        TEXT NOT NULL UNIQUE,     -- 프로젝트 루트(.sticky의 부모), 정규화된 절대 경로
-  title       TEXT,                     -- sticky.json title 또는 폴더 이름
+  title       TEXT,                     -- bridge board.load의 title, 그전에는 폴더 이름
   first_seen  TEXT NOT NULL,            -- RFC 3339
   last_seen   TEXT NOT NULL,
   removed_at  TEXT                      -- 사라진 것으로 정리한 시각. NULL이면 살아 있음
@@ -166,12 +166,12 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);  -- schema_version 등
 | 프로젝트 폴더나 `.sticky/`가 없어짐 | 앱 시작과 홈을 열 때마다 확인 → `removed_at`을 기록하고 목록에서 뺀다. 홈에 "사라진 프로젝트 n개 정리함 · 실행 취소"를 한 번 보인다. 30일 뒤 행을 지운다 |
 | 사라졌던 폴더가 다시 생김 | 다음 사건이나 확인 때 `removed_at`을 비운다 |
 | 프로젝트 폴더를 옮김 | 옛 경로는 사라진 것으로, 새 경로는 새 프로젝트로 잡힌다. [설계자 판단] 같은 `sticky.json` title과 같은 노트 목록이면 "옮긴 것 같아요 · 합치기"를 제안한다(나중 단계) |
-| 프로세스가 죽어 `run/<pid>.json`이 남음 | pid가 살아 있지 않거나, 살아 있어도 다른 프로그램이면(시작 시각 비교) 파일을 지우고 `session.ended_at`을 채운다 |
+| 프로세스가 죽어 `run/<pid>.json`이 남음 | 앱: pid가 살아 있지 않거나, 살아 있어도 다른 프로그램이면(시작 시각 비교) 살아 있는 세션으로 보이지 않고 `session.ended_at`을 채운다. 파일은 본체가 다음에 board를 열 때 지운다 |
 | `events/*.jsonl` 마지막 줄이 잘림 | 줄바꿈으로 끝나지 않은 마지막 줄은 다음에 읽는다(offset을 그 앞에 둔다). JSON이 깨진 줄은 건너뛰고 세어 둔다 |
 | `events/` 파일을 사용자가 지움 | `ingest` 행을 지운다. 이미 반영한 기록은 남는다 |
 | `stickypane.db`가 깨지거나 지워짐 | 이름을 바꿔 두고 `events/` 전체에서 다시 만든다 |
-| 오래된 기록 | `events/`는 90일 뒤 앱이 지운다. `day` 표는 남는다 |
-| 스키마 변경 | `meta.schema_version`으로 순서대로 이전. 실패하면 다시 만들기 |
+| 오래된 기록 | `events/`는 90일 뒤 본체가 지운다. 앱은 그 파일의 `ingest` 행만 잊는다. `day` 표는 남는다 |
+| 스키마 변경 | `meta.schema_version`으로 순서대로 이전(`gormstore` 의 migrations). 앱이 모르는 더 새 버전이면 다시 만들기 |
 
 ## 8.5 앱이 띄워지는 길
 

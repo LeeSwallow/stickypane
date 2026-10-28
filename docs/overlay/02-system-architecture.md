@@ -218,7 +218,21 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 | `internal/bridge` | 신규 | 50, `internal/app`·`internal/mcp`와 나란히 |
 | `internal/registry` | 신규 | 5. `internal/when`만 쓰는 잎 패키지에 가깝다. 명령 표(60)와 front end(50)가 부른다 |
 | `bridge` 명령 | `cmd/stickypane` 명령 표에 한 줄 | 60 |
-| overlay 앱 | `overlay/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다 |
+| overlay 앱 | `overlay/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다. 앱 안의 층은 §2.6.1 |
+
+### 2.6.1 앱 모듈의 레이어
+
+앱 모듈(`overlay/`)은 안쪽에서 바깥쪽으로 다섯 층이다([ADR-0018](adr/0018-app-layers.md)). 한 패키지는 자기보다 낮은 층만 import하고, 도메인과 유스케이스는 파일·DB·프로세스·Wails를 import하지 않는다. `overlay/internal/layers`의 테스트가 이 둘을 확인한다.
+
+| 층 | 패키지 | 하는 일 |
+|---|---|---|
+| 도메인 (0) | `internal/index/model`, `internal/prefs` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. I/O 없음 |
+| 포트 (10) | `internal/index/ports` | 유스케이스가 바깥에 바라는 것: `ProjectRepository`·`DayRepository`·`SessionRepository`·`IngestLog`·`Store`(작업 단위), `Records`, `Boards`, `Clock`, `ProcessChecker` |
+| 유스케이스 (20) | `internal/index/service` | `Ingest`·`Prune`·`Sessions`·`Restore`·`Retitle`. 트랜잭션 경계를 여기서 정하고 포트로만 일한다 |
+| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridge` | 포트의 구현 |
+| 조립 (40) · 화면 (50–60) | `internal/index`, `internal/shell`, `main.go` | 부품을 잇고 창에 낸다 |
+
+색인은 `~/.stickypane`을 읽기만 한다. 지우는 것은 본체(`registry.Prune`)뿐이고, 프로젝트 제목은 `sticky.json`을 직접 읽지 않고 bridge의 `board.load`가 답한 `title`로 셸이 `Retitle`한다.
 
 주의할 점 두 가지(구현자 확인 필요):
 
