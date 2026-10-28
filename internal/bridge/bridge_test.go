@@ -634,3 +634,21 @@ func TestBridgeCreatesFileTypeNotes(t *testing.T) {
 		t.Errorf("unknown kind: %q", r.code)
 	}
 }
+
+// A script's language: its extension when it says (.sh, .ps1), as the
+// runner runs it; else the shebang the script's own data read.
+func TestScriptLanguageIsTheExtensionThenTheShebang(t *testing.T) {
+	for _, c := range []struct{ name, hint, want string }{
+		{"run.sh", "ps1", "sh"},
+		{"run.SH", "ps1", "sh"},
+		{"win.ps1", "sh", "ps1"},
+		{"run", "ps1", "ps1"},
+		{"run.txt", "sh", "sh"},
+	} {
+		var got struct{ Lang string }
+		json.Unmarshal(data(c.name, map[string]string{"lang": c.hint}), &got)
+		if got.Lang != c.want {
+			t.Errorf("%s with hint %s: lang %q, want %q", c.name, c.hint, got.Lang, c.want)
+		}
+	}
+}

@@ -220,7 +220,8 @@ func (s *server) link(name string) (bool, string) {
 
 // data encodes what a kind's Data says. A document does not know its
 // file's name, so where the value says which language it runs in ("lang"),
-// the file's extension decides: "ps1" for a .ps1 file, "sh" otherwise.
+// one rule decides, the runner's: the extension when it names one (".sh"
+// is "sh", ".ps1" is "ps1"), else the value's own guess from the shebang.
 func data(name string, v any) json.RawMessage {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
@@ -233,11 +234,14 @@ func data(name string, v any) json.RawMessage {
 	if json.Unmarshal(raw, &fields) != nil || fields["lang"] == nil {
 		return raw
 	}
-	lang := `"sh"`
-	if strings.EqualFold(path.Ext(name), ".ps1") {
-		lang = `"ps1"`
+	switch strings.ToLower(path.Ext(name)) {
+	case ".sh":
+		fields["lang"] = json.RawMessage(`"sh"`)
+	case ".ps1":
+		fields["lang"] = json.RawMessage(`"ps1"`)
+	default:
+		return raw
 	}
-	fields["lang"] = json.RawMessage(lang)
 	if out, err := json.Marshal(fields); err == nil {
 		return out
 	}
