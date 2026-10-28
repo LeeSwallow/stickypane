@@ -138,6 +138,52 @@ func TestSessionStartHookIsQuietWithoutABoard(t *testing.T) {
 	}
 }
 
+// Only .sticky is a board. ~/.stickypane is where the registry lives, so a
+// project under it without a .sticky of its own has no board.
+func TestBoardContextTakesOnlyStickyForABoard(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join(repoRoot, "scripts", "board-context.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("no sh")
+	}
+	bin := t.TempDir()
+	fake := "#!/bin/sh\necho 'stickypane 0.0.0'\n"
+	if err := os.WriteFile(filepath.Join(bin, "stickypane"), []byte(fake), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	home := t.TempDir()
+	project := filepath.Join(home, "work", "app")
+	for _, d := range []string{filepath.Join(home, ".stickypane"), project} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(dir string) (string, int) {
+		cmd := exec.Command("sh", script)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"), "PWD="+dir)
+		out, err := cmd.CombinedOutput()
+		code := 0
+		if ee, ok := err.(*exec.ExitError); ok {
+			code = ee.ExitCode()
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		return string(out), code
+	}
+	if out, code := run(project); code != 3 || !strings.Contains(out, "BOARD_DIR=\n") {
+		t.Errorf("a folder named .stickypane is not a board: exit %d\n%s", code, out)
+	}
+	if err := os.Mkdir(filepath.Join(project, ".sticky"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := run(project); code != 0 || !strings.Contains(out, "BOARD_DIR="+filepath.Join(project, ".sticky")+"\n") {
+		t.Errorf(".sticky is the board: exit %d\n%s", code, out)
+	}
+}
+
 // TestTheLayersPointAtEachOther keeps the plugin a tree: every command
 // follows a skill that exists, every skill the way in names is there, and
 // every skill but the way in is named by it.
