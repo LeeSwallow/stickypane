@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -324,20 +323,6 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
-	tab := strings.Trim(p.Tab, "/")
-	if tab != "" {
-		tabs, err := s.api.Store().Tabs()
-		if err != nil {
-			return nil, err
-		}
-		found := false
-		for _, t := range tabs {
-			found = found || t.Name == tab
-		}
-		if !found {
-			return nil, notFound(fmt.Sprintf("there is no tab %q", tab))
-		}
-	}
 	if p.Options != nil && p.Body != "" {
 		return nil, badRequest("note.create takes a body or options, not both")
 	}
@@ -381,30 +366,13 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if strings.TrimSpace(text) == "" && p.Options == nil {
 		text, _, _ = strings.Cut(strings.TrimSpace(p.Body), "\n")
 	}
-	stem := store.Slug(text, s.api.Now())
-	if tab != "" {
-		stem = tab + "/" + stem
+	// Named, stamped and made without writing over anything as every
+	// screen makes a note.
+	file, err := s.api.CreateFrom(p.Tab, text, ext, opts, body)
+	if err != nil {
+		return nil, err
 	}
-	// Each name is made exclusively: a file that appears between one try
-	// and the next is not written over, the next name is tried.
-	for i := 1; i <= maxSameName; i++ {
-		name := stem + ext
-		if i > 1 {
-			name = fmt.Sprintf("%s-%d%s", stem, i, ext)
-		}
-		file, err := s.api.Create(name, opts, body)
-		if errors.Is(err, fs.ErrExist) {
-			continue
-		}
-		if errors.Is(err, api.ErrUnknownType) {
-			return nil, badRequest(err.Error())
-		}
-		if err != nil {
-			return nil, err
-		}
-		return map[string]string{"note": file}, nil
-	}
-	return nil, &Error{CodeFailed, fmt.Sprintf("there are %d notes called %q already", maxSameName, stem)}
+	return map[string]string{"note": file}, nil
 }
 
 // optionValues reads the options of note.create as Kind.Make takes them:
@@ -449,10 +417,6 @@ func (s *server) kindNamed(name string) (widget.Kind, bool) {
 	}
 	return widget.Kind{}, false
 }
-
-// maxSameName is how many notes of one title note.create makes before it
-// gives up.
-const maxSameName = 1000
 
 // userName is who says what the user says in a chat: $STICKYPANE_USER,
 // else git's user.name, else the login, as the terminal names them.

@@ -2,10 +2,16 @@ package app
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
+	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
 func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
@@ -61,6 +67,42 @@ func TestEmptyJotCreatesNothing(t *testing.T) {
 	press(m, "N", "esc")
 	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
 		t.Errorf("no file should exist, got %v", entries)
+	}
+}
+
+// A note the screen makes and one api makes from the same words on the same
+// clock are the same file under the same name: one rule names and stamps
+// them.
+func TestTheScreenMakesNotesAsTheAPIDoes(t *testing.T) {
+	clock := time.Date(2026, 3, 4, 5, 6, 7, 0, time.UTC)
+	for _, c := range []struct {
+		keys  []string
+		text  string
+		ext   string
+		body  []byte
+		named string
+	}{
+		{[]string{"N"}, "Ship it", "", []byte("Ship it\n"), "ship-it.md"},
+		{[]string{"a", "j", "enter"}, "Auth work", ".md", board.Kind.Template("Auth work"), "auth-work.md"},
+	} {
+		m, dir := newModel(t, nil)
+		m.now = func() time.Time { return clock }
+		press(m, c.keys...)
+		typeText(m, c.text)
+		press(m, "enter")
+
+		other := filepath.Join(t.TempDir(), store.DirName)
+		if err := os.MkdirAll(other, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		a := api.NewWithClock(store.Open(other), kinds.Default(note.Plain), func() time.Time { return clock })
+		name, err := a.CreateFrom("", c.text, c.ext, api.Options{}, c.body)
+		if err != nil || name != c.named {
+			t.Fatalf("api made %q, %v; want %q", name, err, c.named)
+		}
+		if screen, made := readFile(t, dir, c.named), readFile(t, other, c.named); screen != made {
+			t.Errorf("%s: the screen wrote\n%q\napi wrote\n%q", c.named, screen, made)
+		}
 	}
 }
 
