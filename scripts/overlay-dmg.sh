@@ -105,7 +105,7 @@ mnt=$(printf '%s\n' "$line" | awk -F '\t' '{ print $NF }' | sed 's/[[:space:]]*$
 
 # Finder lays the window out and writes it to the volume's .DS_Store.
 # The bounds are the window's frame: 660x420 of content under a title bar.
-osascript - "$vol" "$name" <<'EOF'
+if ! osascript - "$vol" "$name" <<'EOF'
 on run argv
 	set vol to item 1 of argv
 	set appName to item 2 of argv
@@ -133,6 +133,9 @@ on run argv
 	end tell
 end run
 EOF
+then
+	die "osascript could not arrange the Finder window. If macOS denied it, allow your terminal to control Finder in System Settings > Privacy & Security > Automation, then run this again"
+fi
 
 # Wait for Finder to write .DS_Store, then mark the volume icon and ask
 # Finder to open the window when the image is mounted. bless --openfolder
