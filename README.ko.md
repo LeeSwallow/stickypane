@@ -51,8 +51,8 @@ flowchart LR
     folder -->|"다시 읽음: CLI, MCP, 파일"| agent
 ```
 
-> **상태: 설계 단계.** 아직 1.0 전입니다. 파일 이름, 명령 이름, `sticky.json`이
-> v0.1.0 전까지 바뀔 수 있습니다. 에이전트와 하루 써 보고 보드가 어떻게 해 주길
+> **상태: 설계 단계.** 아직 1.0 전입니다. 파일 이름, 명령 이름, `sticky.json`은
+> 1.0 전까지 바뀔 수 있습니다. 에이전트와 하루 써 보고 보드가 어떻게 해 주길
 > 바랐는지 [디자인 피드백 이슈](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)나
 > [Discussions](https://github.com/LeeSwallow/stickypane/discussions)에 알려 주세요.
 > 데스크톱 앱은 만들고 있습니다([#10](https://github.com/LeeSwallow/stickypane/issues/10)).

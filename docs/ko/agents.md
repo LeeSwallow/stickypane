@@ -15,6 +15,10 @@
 | 안내문 | `stickypane init`이 `CLAUDE.md`나 `AGENTS.md`에 넣습니다 | 그 파일을 읽는 모든 에이전트 |
 | MCP | `stickypane setup --mcp` | MCP를 쓰는 모든 클라이언트 |
 
+`setup`은 보드를 만들지 않고 안내문 파일도 쓰지 않으니 어느 폴더에서 실행해도 됩니다.
+보드는 프로젝트에서 `stickypane init`으로 만듭니다. `setup --undo`는 플러그인을 지우고,
+`--mcp`를 붙이면 MCP 서버도 지웁니다. 보드와 안내문은 그대로 둡니다.
+
 플러그인은 계층으로 되어 있습니다. 입구 스킬 `using-the-board`가 일에 맞는 스킬을
 알려 줍니다: 진행 추적(`tracking-progress`), 묻기(`asking-the-user`), 채팅
 (`talking-in-chat`), 노트 연결(`connecting-notes`). 에이전트 안내문

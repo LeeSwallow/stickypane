@@ -49,7 +49,7 @@ flowchart LR
 ```
 
 > **Status: design stage.** stickypane is before 1.0. File names, command
-> names and `sticky.json` may change until v0.1.0. Try it with your agent
+> names and `sticky.json` may still change before 1.0. Try it with your agent
 > for a day and tell us what you expected the board to do, in a
 > [design feedback issue](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)
 > or in [Discussions](https://github.com/LeeSwallow/stickypane/discussions).

@@ -23,7 +23,7 @@ program, the license, and the licenses of the libraries it is built from.
 macOS and Linux:
 
 ```sh
-VERSION=0.1.0 OS=linux ARCH=amd64      # or OS=darwin, ARCH=arm64
+VERSION=0.1.1 OS=linux ARCH=amd64      # or OS=darwin, ARCH=arm64
 curl -LO "https://github.com/LeeSwallow/stickypane/releases/download/v$VERSION/stickypane_${VERSION}_${OS}_${ARCH}.tar.gz"
 tar -xzf "stickypane_${VERSION}_${OS}_${ARCH}.tar.gz" stickypane
 sudo install stickypane /usr/local/bin/   # or any folder on your PATH
@@ -36,7 +36,7 @@ for you.
 Windows, in PowerShell:
 
 ```powershell
-$v = "0.1.0"
+$v = "0.1.1"
 Invoke-WebRequest "https://github.com/LeeSwallow/stickypane/releases/download/v$v/stickypane_${v}_windows_amd64.zip" -OutFile stickypane.zip
 Expand-Archive stickypane.zip -DestinationPath "$env:LOCALAPPDATA\stickypane"
 # add it to your PATH, once
