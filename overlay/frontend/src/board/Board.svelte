@@ -153,7 +153,7 @@
       } else view = navigate(view, at.tab, name)
     },
     act: (note, action) =>
-      act(api, note, action, (error) => (failed = t('note.actFailed', { title: note.title, error })), refresh),
+      act(api, note, action, (error) => (failed = t('note.actFailed', { title: note.title, error })), refresh, update),
     async arrange(name, patch) {
       try {
         await arrange(api, name, patch, update)

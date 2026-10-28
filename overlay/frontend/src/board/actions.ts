@@ -3,6 +3,8 @@
 
 import { withArrange, type ArrangePatch, type Board, type Note } from './model'
 import type { BoardApi } from '../services/board'
+import { errorText } from '../services/errors'
+import { predict, withData } from './interact'
 
 export type { BoardApi, Status } from '../services/board'
 export type { Action } from './model'
@@ -26,15 +28,26 @@ export const setRows = (api: BoardApi, note: string, rows: number, update: Updat
 export { toggleAction } from './model'
 
 /**
- * act is note.act with the note's version. A failure (a stale version, a
- * note gone) is told through fail, never thrown; either way the board is
- * read again, so the window draws what the file says now.
+ * act is note.act with the note's version. With update, a change the
+ * window can tell (a tick, a card moved: interact.ts) is drawn at once. A
+ * failure (a stale version, a note gone) is told through fail, never
+ * thrown; either way the board is read again, so the window draws what the
+ * file says now, and a guess the bridge refused is undone.
  */
-export async function act(api: BoardApi, note: Note, a: Action, fail: (why: string) => void, refresh: () => Promise<void>): Promise<void> {
+export async function act(
+  api: BoardApi,
+  note: Note,
+  a: Action,
+  fail: (why: string) => void,
+  refresh: () => Promise<void>,
+  update?: Update,
+): Promise<void> {
+  const guess = update ? predict(note.kind, note.data, a) : null
+  if (guess !== null && update) update((b) => withData(b, note.name, guess))
   try {
     await api.act(note.name, note.version, a)
   } catch (e) {
-    fail(String(e))
+    fail(errorText(e))
   } finally {
     await refresh()
   }

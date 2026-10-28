@@ -4,7 +4,7 @@ import { act, toggleAction, type BoardApi } from './actions'
 import { boardContext, type BoardCtx } from './context'
 import { frameOf, keyAction } from './keys'
 import { HeightDrag, ROW_PX } from './layout'
-import type { Note } from './model'
+import type { Board, Note } from './model'
 import NoteFrame from './NoteFrame.svelte'
 import { look } from '../lib/doodle/look.svelte'
 import { THEMES } from '../lib/theme/palettes'
@@ -117,6 +117,26 @@ test('a failed act is told, and the board is read again', async () => {
   const told: string[] = []
   let refreshed = 0
   await expect(act(api, note, toggleAction(0), (m) => told.push(m), async () => void refreshed++)).resolves.toBeUndefined()
-  expect(told).toEqual(['Error: stale'])
+  // the runtime's "Error: " lead is not part of what is told
+  expect(told).toEqual(['stale'])
   expect(refreshed).toBe(1)
+})
+
+test('a tick is drawn at once, and a refused one is put back by the read that follows', async () => {
+  const data = { items: [{ text: 'x', checked: false }], prose: [], done: 0, total: 1 }
+  const note = { ...base, name: 'plan.md', title: 'Plan', kind: 'checklist', data } as unknown as Note
+  let board = { title: '', tabs: [{ name: '', title: '', notes: [note] }] } as unknown as Board
+  const shown: boolean[] = []
+  const api = {
+    act: async () => {
+      shown.push((board.tabs[0].notes[0].data as typeof data).items[0].checked)
+      throw new Error('stale')
+    },
+  } as unknown as BoardApi
+  const refresh = async () => {
+    board = { ...board, tabs: [{ name: '', title: '', notes: [note] }] } as unknown as Board
+  }
+  await act(api, note, toggleAction(0), () => {}, refresh, (patch) => (board = patch(board)))
+  expect(shown).toEqual([true])
+  expect((board.tabs[0].notes[0].data as typeof data).items[0].checked).toBe(false)
 })
