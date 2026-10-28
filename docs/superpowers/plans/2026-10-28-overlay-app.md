@@ -77,6 +77,7 @@
 **Files:** Create `overlay/frontend/src/lib/theme/{tokens.ts,palette.ts}`, `src/lib/doodle/{Paper.svelte,Sheet.svelte,Tape.svelte,RoughBox.svelte,Crayon.svelte,Check.svelte,Radio.svelte,Underline.svelte,Mark.svelte,Circle.svelte,Arrow.svelte,Logo.svelte}`, `src/lib/doodle/rough.ts`, 테스트 `*.test.ts`
 
 **Interfaces:**
+- 격자 노트 바탕과 모드(시스템·다크·라이트, 03 §3.4): `paperGrid` CSS, `pickByMode(themeName, mode, osDark)`로 짝 테마 선택, OS 변경 구독.
 - Produces: `applyTheme(palette: Palette, dark: boolean)`(03 §3.4 파생 규칙 그대로: wash 35%/78%, 외곽선 55%/Text, paper 6%/50%, dot 12%/16%), `agentColor(name: string, notes: string[]): string`(본체 노트 색 해시와 같은 함수 — 본체 `color` 해시 구현을 TS로 옮기고 같은 입력에 같은 결과인지 golden으로), `seedOf(id: string): number`, 스타일 `doodle|neat`에서 `roughness` 0 처리.
 - [ ] Step 1: 실패 테스트 — `palette derivations match 03 §3.4`, `agentColor matches the Go hash for 10 names`, `contrast is at least 4.5:1 for every theme × card colour`(어긋나면 wash를 더 밝게 하는 규칙을 고친다), `neat style draws straight`.
 - [ ] Step 2–4: FAIL → 구현(목업 `overlay-doodle-v3-themes.html`의 `crayon`·`roughBox`가 출발점) → PASS. Step 5: Commit `feat(overlay): the doodle and neat looks in every colour theme (#10)`
@@ -135,11 +136,12 @@
 
 ### Task A10: Motion
 
-**Files:** Create `src/motion/{tokens.ts,choreo.ts,flip.ts,pen.ts}`; Modify Kanban·Checklist·Grid·창 열기/닫기
+**Files:** Create `src/motion/{tokens.ts,choreo.ts,flip.ts,pen.ts,intro.ts}`; Modify Kanban·Checklist·Grid·창 열기/닫기
 
 **Interfaces:**
 - `choreograph(events: BoardEvent[], reduce: boolean): Plan` — 04 §4.3 표의 사건→움직임, §4.4 묶음 규칙(≤3 각자 60ms 간격, 그 이상 이동만 30ms 간격 최대 6개, 전체 1.2초 상한, 새 알림이 오면 진행 중인 것을 끝 상태로), 창이 숨겨져 있으면 재생하지 않고 ● 표시만.
-- [ ] Step 1: 실패 테스트 — `card.moved plays lift-carry-slap`, `more than three events are batched and capped at 1.2s`, `a new notification finishes the running plan`, `reduced motion is opacity only`, `hidden window marks instead of playing`, `user's own action gets no highlight`.
+- 시작 인트로 "꾸물꾸물"(04 §4.3.1): `intro.ts`의 `playIntro(kind: 'launch'|'reopen', reduce, style)`; 클릭·키로 건너뛰기.
+- [ ] Step 1: 실패 테스트 — `launch intro plays once per process`, `reopen plays only the notes wriggle`, `a key skips the intro to its end state`, `reduced motion skips the intro`, `card.moved plays lift-carry-slap`, `more than three events are batched and capped at 1.2s`, `a new notification finishes the running plan`, `reduced motion is opacity only`, `hidden window marks instead of playing`, `user's own action gets no highlight`.
 - [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: Commit `feat(overlay): motion that shows what changed (#10)`
 
 ### Task A11: Choosing and opening the overlay (본체)
