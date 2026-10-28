@@ -13,6 +13,7 @@ import (
 func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, widget.DefaultEnv()) }
 
 func TestDrawShowsEveryEntry(t *testing.T) {
+	t.Parallel()
 	out, at := parseBody("one\ntwo\n\nthree\n\n\n").Draw(40, true)
 	if out != "one\ntwo\n\nthree" {
 		t.Errorf("Draw = %q, want every entry and no trailing blank lines", out)
@@ -23,12 +24,14 @@ func TestDrawShowsEveryEntry(t *testing.T) {
 }
 
 func TestDrawOfEmptyLog(t *testing.T) {
+	t.Parallel()
 	if got, _ := parseBody("\n").Draw(40, false); ansi.Strip(got) != "(no entries yet)" {
 		t.Errorf("Draw = %q", got)
 	}
 }
 
 func TestDrawWrapsAndCleans(t *testing.T) {
+	t.Parallel()
 	out, _ := parseBody("14:02 \x1b[32mtests passed\x1b[0m and a very long tail that goes on\r\n").Draw(18, false)
 	if strings.Contains(out, "\x1b") || strings.Contains(out, "\r") {
 		t.Errorf("control characters were kept: %q", out)
@@ -44,6 +47,7 @@ func TestDrawWrapsAndCleans(t *testing.T) {
 }
 
 func TestSyncReplacesContent(t *testing.T) {
+	t.Parallel()
 	w := parseBody("a\n").Sync(doc.Document{Body: "a\nb\n"})
 	if got, _ := w.Draw(40, false); got != "a\nb" {
 		t.Errorf("Draw after Sync = %q", got)
@@ -51,6 +55,7 @@ func TestSyncReplacesContent(t *testing.T) {
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	if Kind.Name != "log" || !Kind.Tail || Kind.Rows != 10 || Kind.Keys != "" {
 		t.Errorf("Kind = %+v", Kind)
 	}
@@ -63,6 +68,7 @@ func TestKind(t *testing.T) {
 }
 
 func TestSummaryCountsEntries(t *testing.T) {
+	t.Parallel()
 	if got := parseBody("one\ntwo\n\nthree\n").Summary(); got != "3 lines" {
 		t.Errorf("Summary = %q", got)
 	}
@@ -75,6 +81,7 @@ func TestSummaryCountsEntries(t *testing.T) {
 }
 
 func TestKindDescribesItself(t *testing.T) {
+	t.Parallel()
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || Kind.Blurb == "" || Kind.Example == "" {
 		t.Errorf("Kind needs a one-cell icon, a blurb and an example: %+v", Kind)
 	}

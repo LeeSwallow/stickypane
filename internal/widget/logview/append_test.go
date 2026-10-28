@@ -7,6 +7,7 @@ import (
 )
 
 func TestAppendAddsALineAtTheEnd(t *testing.T) {
+	t.Parallel()
 	for src, want := range map[string]string{
 		"":                             "built\n",
 		"first\n":                      "first\nbuilt\n",

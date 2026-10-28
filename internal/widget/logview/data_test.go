@@ -11,6 +11,7 @@ import (
 )
 
 func TestDataOfTheExample(t *testing.T) {
+	t.Parallel()
 	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
@@ -22,6 +23,7 @@ func TestDataOfTheExample(t *testing.T) {
 }
 
 func TestDataKeepsTheLastThousandLines(t *testing.T) {
+	t.Parallel()
 	var b strings.Builder
 	for i := 0; i < 1005; i++ {
 		fmt.Fprintf(&b, "line %d\n", i)

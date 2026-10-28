@@ -62,7 +62,7 @@ func parse(d doc.Document, e widget.Env) *Log {
 // Draw implements widget.Widget. A log has no cursor.
 func (l *Log) Draw(width int, _ bool) (string, widget.Span) {
 	if len(l.lines) == 0 {
-		return widget.Faint.Render(widget.T("(no entries yet)")), widget.NoSpan
+		return l.env.Styles.Faint.Render(l.env.T("(no entries yet)")), widget.NoSpan
 	}
 	var out []string
 	// A log shows the file as it is: no styling, only wrapping so that
@@ -85,9 +85,9 @@ func (l *Log) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return widget.T("1 line")
+		return l.env.T("1 line")
 	}
-	return fmt.Sprintf(widget.T("%d lines"), n)
+	return fmt.Sprintf(l.env.T("%d lines"), n)
 }
 
 // Update implements widget.Widget. A log takes no keys.
