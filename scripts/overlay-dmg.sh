@@ -47,7 +47,6 @@ bg="$root/overlay/build/dmg/background.tiff"
 icns="$app/Contents/Resources/icons.icns"
 [ -f "$icns" ] || icns="$root/overlay/build/darwin/icons.icns"
 [ -d "/Volumes/$vol" ] && die "a volume named \"$vol\" is mounted: eject it first"
-mkdir -p "$(dirname "$out")"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/overlay-dmg.XXXXXX")
 dev=""
@@ -154,6 +153,7 @@ sync
 
 hdiutil detach "$dev" -quiet || hdiutil detach "$dev" -force -quiet
 dev=""
+mkdir -p "$(dirname "$out")"
 rm -f "$out"
 hdiutil convert -quiet "$work/rw.dmg" -format UDZO -imagekey zlib-level=9 -o "$out"
 echo "overlay-dmg: wrote $out ($(du -h "$out" | cut -f1))"
