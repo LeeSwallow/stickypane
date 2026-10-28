@@ -4,13 +4,16 @@
   // the shell's ProjectService; every change goes back through the
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
-  import { onMount, setContext } from 'svelte'
+  import { onMount, setContext, tick } from 'svelte'
   import { setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
-  import { applyTheme } from '../lib/theme/tokens'
+  import { agentColor, applyTheme } from '../lib/theme/tokens'
+  import { director } from '../lib/motion/director'
+  import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
+  import type { Plan } from '../lib/motion/plan'
   import { chromeOf } from '../lib/ui/chrome'
   import { windowActions } from '../services/window'
   import EmptyState from '../lib/ui/EmptyState.svelte'
@@ -24,7 +27,7 @@
   import * as manage from './manage'
   import type { Manage, ManageDeps } from './manage'
   import { act, arrange } from './actions'
-  import { events, type Status } from '../services/board'
+  import { events, type Bus, type Status } from '../services/board'
   import { projectService, type ProjectApi } from '../services/project'
   import { boardContext, type BoardCtx } from './context'
   import Glance from './Glance.svelte'
@@ -47,12 +50,16 @@
   // zoom: a note to open zoomed on the first load; create: the create
   // dialog open on a shape (both for the dev screens page)
   // settings: the settings open (the dev screens page)
+  // bus: where the bridge's events come from; played: told what moved
+  // (both for the dev motion page)
   let {
     api = projectService,
     zoom: startZoom,
     create: startCreate,
     settings: startSettings = false,
-  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean } = $props()
+    bus = events,
+    played,
+  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean; bus?: Bus; played?: (p: Plan) => void } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -75,6 +82,8 @@
   let configuring = $state(false)
   // a short word at the bottom (made, archived, deleted with 되돌리기)
   let notice = $state<{ message: string; action?: { label: string; run: () => void } } | null>(null)
+  // where the notes are drawn: what moves when the board changes (lib/motion)
+  let scroller: HTMLElement | undefined = $state()
 
   const chrome = chromeOf(location.search)
   const win = windowActions('project')
@@ -366,12 +375,13 @@
   onMount(() => {
     if (startCreate) creating = true
     if (startSettings) configuring = true
-    const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d))]
+    const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d)), watchReducedMotion(), () => stage.stop()]
     api
       .prefs()
       .then((p) => {
         mode = modeOf(p.mode)
         hotkey = p.hotkey ?? ''
+        motion.setting = p.motion ?? ''
       })
       .catch(() => {})
     refresh()
@@ -380,12 +390,8 @@
     offs.push(
       connect({
         status: () => api.status(),
-        bus: events,
-        onChanged(data) {
-          // A10's motion listens for this and picks a movement from the events.
-          window.dispatchEvent(new CustomEvent('stickypane:board-changed', { detail: data }))
-          refresh()
-        },
+        bus,
+        onChanged: (data) => void stage.changed(data),
         onRestarted: () => refresh(),
         onStatus: () => refresh(),
       }),
@@ -394,6 +400,20 @@
     const tick = setInterval(() => (now = new Date()), 60_000)
     offs.push(() => clearInterval(tick))
     return () => offs.forEach((off) => off())
+  })
+
+  // a board.changed moves what it changed (04 §4.3): measured before the
+  // board is read again, moved once it is drawn
+  const stage = director({
+    root: () => scroller ?? null,
+    board: () => board,
+    refresh,
+    settle: tick,
+    visible: () => new Set(zoomed ? [zoomed.name] : open.map((n) => n.name)),
+    look: () => ({ style: look.style, level: level() }),
+    colorOf: (who) => (look.palette ? agentColor(who, look.palette.notes) : undefined),
+    hidden: () => document.visibilityState === 'hidden',
+    played: (p) => played?.(p),
   })
 
   const stateText: Record<string, string> = { loading: 'board.loading', missing: 'board.missing', too_old: 'board.tooOld' }
@@ -428,7 +448,7 @@
       />
     {/if}
   {/if}
-  <div class="scroll">
+  <div class="scroll" bind:this={scroller}>
     <Paper>
       {#if !status || status.state !== 'ready' || !board}
         <div class="state" role="status">

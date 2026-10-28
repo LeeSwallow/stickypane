@@ -24,7 +24,7 @@ export interface BoardApi {
   order(tab: string, order: string[]): Promise<unknown>
   open(note: string): Promise<unknown>
   pin(on: boolean): Promise<unknown>
-  prefs(): Promise<{ hotkey?: string; mode?: string; language?: string }>
+  prefs(): Promise<{ hotkey?: string; mode?: string; language?: string; motion?: string }>
 }
 
 export const boardService: BoardApi = {
@@ -35,7 +35,7 @@ export const boardService: BoardApi = {
   order: (tab, order) => Call.ByName(project('Order'), { tab, order }),
   open: (note) => Call.ByName(project('Open'), note),
   pin: (on) => Call.ByName(project('Pin'), on),
-  prefs: () => Call.ByName(home('Prefs')) as Promise<{ hotkey?: string; mode?: string; language?: string }>,
+  prefs: () => Call.ByName(home('Prefs')) as Promise<{ hotkey?: string; mode?: string; language?: string; motion?: string }>,
 }
 
 /** The shell's events, by name; on returns the way to stop listening. */

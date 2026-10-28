@@ -36,7 +36,7 @@
 <ul>
   {#each order as i (i)}
     {@const item = data.items[i]}
-    <li>
+    <li data-item={item.text}>
       <button
         class="item"
         class:done={item.checked}

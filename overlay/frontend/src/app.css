@@ -16,3 +16,20 @@ body {
   background: #fffdf7;
   color: #2b2b2b;
 }
+
+/* lib/motion: the soft light over a part that just changed, laid on by the
+   player and taken away when it has faded (04 §4.3); under reduced motion a
+   thick outline instead (04 §4.6). Its opacity is all that moves. */
+.motion-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-sm, 6px);
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    0 0 0 2px var(--glow, var(--accent, #4a7bd0)),
+    0 0 18px 4px var(--glow, var(--accent, #4a7bd0));
+}
+.motion-glow.outline {
+  box-shadow: 0 0 0 3px var(--glow, var(--accent, #4a7bd0));
+}
