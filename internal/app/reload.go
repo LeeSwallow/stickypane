@@ -41,7 +41,7 @@ func (m *Model) reload() {
 	// every widget is rebuilt so nothing keeps the old words.
 	board, err := m.store.Load()
 	if err != nil {
-		m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
 	// What a note's kind fills in by itself, the board writes, so that an
@@ -51,7 +51,7 @@ func (m *Model) reload() {
 	derived, _ := calls.Derive()
 	if calls.TendAll(board.Tabs, m.shownDocs()) || derived > 0 {
 		if board, err = m.store.Load(); err != nil {
-			m.status = say(tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+			m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 			return
 		}
 	}
@@ -59,7 +59,7 @@ func (m *Model) reload() {
 	m.applyPrefs(set)
 	if l := set.Language(); l != m.language {
 		m.language = l
-		UseLanguage(l)
+		m.useLanguage(l)
 		m.items = nil
 		m.drawn = nil
 	}
@@ -91,13 +91,13 @@ func (m *Model) reload() {
 
 	views := set.Views()
 	if err := set.Err(); err != nil {
-		m.status = say(tr.ViewsBroken, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ViewsBroken, map[string]any{"Err": err.Error()})
 	}
 	m.views = views
 
 	unreadable := func(n store.Note) store.Note {
 		if n.Err != nil {
-			n.Doc = doc.Document{Body: say(tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
+			n.Doc = doc.Document{Body: say(m.tr.CannotShowNote, map[string]any{"Err": n.Err.Error()})}
 		}
 		return n
 	}
@@ -126,7 +126,7 @@ func (m *Model) reload() {
 					it.page = i
 				}
 			}
-			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page}
+			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, env: m.env}
 		} else {
 			o, had := old[n.Name]
 			var oldLog store.Note
@@ -219,7 +219,7 @@ func (m *Model) reload() {
 	m.followEdit()
 	if m.zoomed() && m.index(m.zoomName) < 0 {
 		m.mode = modeBoard
-		m.status = tr.NoteRemoved
+		m.status = m.tr.NoteRemoved
 	}
 }
 

@@ -211,10 +211,6 @@ type Timed interface {
 	NextChange(now time.Time) time.Time
 }
 
-// Now is the clock every widget reads. The screen sets it to its own, so
-// that what a widget draws and when the screen wakes agree.
-var Now = time.Now
-
 // ExampleFile is a whole file of the kind, front matter included.
 func (k Kind) ExampleFile() string {
 	if k.New != "" {

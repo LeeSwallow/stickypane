@@ -16,6 +16,7 @@ type book struct {
 	pages  []page
 	at     int   // the page the view is on
 	starts []int // the line each page started at in the last Draw
+	env    widget.Env
 }
 
 func (b *book) current() page { return b.pages[max(min(b.at, len(b.pages)-1), 0)] }
@@ -54,11 +55,11 @@ func (b *book) Draw(width int, active bool) (string, widget.Span) {
 		name := nameOf(p.note)
 		rule := widget.Truncate(" "+name+" ", max(width-4, 1))
 		if i == b.at {
-			rule = widget.Accent.Render(rule)
+			rule = b.env.Styles.Accent.Render(rule)
 		} else {
-			rule = widget.Faint.Render(rule)
+			rule = b.env.Styles.Faint.Render(rule)
 		}
-		out = append(out, widget.Faint.Render("─")+rule+widget.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule)-1, 0))))
+		out = append(out, b.env.Styles.Faint.Render("─")+rule+b.env.Styles.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule)-1, 0))))
 		drawn, span := p.w.Draw(width, active && i == b.at)
 		if span.Ok() && i == b.at {
 			at = span.Shift(len(out))

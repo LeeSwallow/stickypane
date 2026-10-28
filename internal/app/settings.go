@@ -9,21 +9,16 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
-	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 // settingsWidth is the dialog that lists the settings.
 const settingsWidth = 64
 
-// editorChoice is the editor the settings chose for E; "auto" leaves it to
-// the environment.
-var editorChoice = "auto"
-
 func init() {
 	handlers[modeSettings] = settingsUpdate
 	bodies[modeSettings] = settingsBody
 	footers[modeSettings] = func(m *Model) string {
-		return hints(m.width, "j k", tr.L("choose"), "h l", tr.L("change"), "esc", tr.L("close"))
+		return m.hints(m.width, "j k", m.tr.L("choose"), "h l", m.tr.L("change"), "esc", m.tr.L("close"))
 	}
 	boardKeys["S"] = func(m *Model) tea.Cmd {
 		m.back, m.mode = m.mode, modeSettings
@@ -44,7 +39,7 @@ func (m *Model) applyPrefs(set store.Settings) {
 		m.env.Times, m.env.StaleAfter = times, stale
 		m.items = nil
 	}
-	editorChoice = prefs.Get(set, "editor")
+	m.editor = prefs.Get(set, "editor")
 	m.drawn = nil // what notes drew may say times or flags differently now
 }
 
@@ -90,21 +85,21 @@ func settingsBody(m *Model, h int) []string {
 		v := prefs.Get(set, p.Key)
 		value := v
 		if v == p.Default {
-			value += widget.Faint.Render(" (" + tr.L("default") + ")")
+			value += m.env.Styles.Faint.Render(" (" + m.tr.L("default") + ")")
 		}
-		label := fmt.Sprintf("%-20s", tr.L(p.Label))
+		label := fmt.Sprintf("%-20s", m.tr.L(p.Label))
 		line := "  " + label + "‹ " + value + " ›"
 		if i == m.settingsAt {
-			line = widget.Selected.Render("› " + label + "‹ " + v + " ›")
+			line = m.env.Styles.Selected.Render("› " + label + "‹ " + v + " ›")
 			if v == p.Default {
-				line += widget.Faint.Render(" (" + tr.L("default") + ")")
+				line += m.env.Styles.Faint.Render(" (" + m.tr.L("default") + ")")
 			}
 		}
 		lines = append(lines, line)
 	}
-	lines = append(lines, "", widget.Faint.Render(tr.L(prefs.All[m.settingsAt].Help)))
+	lines = append(lines, "", m.env.Styles.Faint.Render(m.tr.L(prefs.All[m.settingsAt].Help)))
 	if m.width < settingsWidth || h < len(lines)+2 {
 		return lines
 	}
-	return dialog(tr.L("Settings"), lines, settingsWidth, m.width, h, m.accent())
+	return m.dialog(m.tr.L("Settings"), lines, settingsWidth, m.width, h, m.accent())
 }

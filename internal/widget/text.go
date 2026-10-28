@@ -12,35 +12,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/theme"
 )
 
-// Shared text styles, by role. Apply fills them from a theme; until then
-// they hold the default dark theme.
-var (
-	Bold     lipgloss.Style
-	Faint    lipgloss.Style // hints, details, what steps back
-	Selected lipgloss.Style // the selected line
-	Accent   lipgloss.Style // focus and buttons
-	Good     lipgloss.Style
-	Warn     lipgloss.Style
-	Bad      lipgloss.Style
-	Info     lipgloss.Style
-	Struck   lipgloss.Style // done items
-)
-
-func init() { Apply(theme.Pick("auto", true).Styles()) }
-
-// Translate turns a phrase a widget shows into the user's language. The
-// app sets it; until then phrases stay as written.
-var Translate = func(phrase string) string { return phrase }
-
-// T translates a phrase a widget shows.
-func T(phrase string) string { return Translate(phrase) }
-
-// Apply makes every widget draw with the styles of a theme from now on.
-func Apply(s theme.Styles) {
-	Bold, Faint, Selected, Accent = s.Bold, s.Faint, s.Selected, s.Accent
-	Good, Warn, Bad, Info, Struck = s.Good, s.Warn, s.Bad, s.Info, s.Struck
-}
-
 // Clean prepares file text for the screen: escape sequences and control
 // characters are dropped and tabs become four spaces. Newlines are kept.
 func Clean(s string) string {
@@ -162,12 +133,8 @@ func Unlink(s string) string {
 	})
 }
 
-// NameStyle gives a name (an @owner, a chat's author) its color, the same
-// each time it appears and in every note.
-func NameStyle(name string) lipgloss.Style {
-	return nameStyle(theme.Styles{Info: Info, Good: Good, Accent: Accent, Warn: Warn}, name)
-}
-
+// nameStyle gives a name (an @owner, a chat's author) its color, among
+// the styles s, the same each time it appears and in every note.
 func nameStyle(s theme.Styles, name string) lipgloss.Style {
 	styles := []lipgloss.Style{s.Info, s.Good, s.Accent, s.Warn}
 	h := fnv.New32a()

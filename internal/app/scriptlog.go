@@ -71,7 +71,7 @@ func (w *withLog) run() (output []string, ended string, failed bool) {
 	if picker, ok := w.script.(interface{ Selected() string }); ok && httpfile.HasSections(body) {
 		part, sent := httpfile.Section(body, picker.Selected())
 		if !sent {
-			return []string{widget.T("not sent yet: enter sends it")}, "", false
+			return []string{w.env.T("not sent yet: enter sends it")}, "", false
 		}
 		body = part
 	}
@@ -100,41 +100,41 @@ func (w *withLog) Draw(width int, active bool) (string, widget.Span) {
 	w.scriptH = len(lines)
 	output, ended, failed := w.run()
 
-	label := " " + widget.T("log")
+	label := " " + w.env.T("log")
 	if path.Ext(w.log.Name) == ".log" && !slices.Contains(scriptExts, w.owner) {
-		label = " " + widget.T("output") // what the agent did with a form
+		label = " " + w.env.T("output") // what the agent did with a form
 	}
 	if t := w.env.Short(w.log.ModTime); t != "" {
 		label += " · " + t
 	}
-	rule := widget.Faint.Render("─" + label)
+	rule := w.env.Styles.Faint.Render("─" + label)
 	if ended != "" {
-		style := widget.Faint
+		style := w.env.Styles.Faint
 		if failed {
-			style = widget.Bad
+			style = w.env.Styles.Bad
 		}
-		rule += widget.Faint.Render(" · ") + style.Render(ended)
+		rule += w.env.Styles.Faint.Render(" · ") + style.Render(ended)
 	}
-	rule += " " + widget.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule)-1, 0)))
+	rule += " " + w.env.Styles.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule)-1, 0)))
 	lines = append(lines, "", rule)
 
 	if !w.full && len(output) > logRows {
-		lines = append(lines, widget.Faint.Render(fmt.Sprintf(widget.T("… %d earlier lines"), len(output)-logRows)))
+		lines = append(lines, w.env.Styles.Faint.Render(fmt.Sprintf(w.env.T("… %d earlier lines"), len(output)-logRows)))
 		output = output[len(output)-logRows:]
 	}
 	for _, l := range output {
 		style := lipgloss.NewStyle()
 		switch { // the checks of a request, and what is said about it
 		case strings.HasPrefix(l, "✔ "):
-			style = widget.Good
+			style = w.env.Styles.Good
 		case strings.HasPrefix(l, "✘ "):
-			style = widget.Bad
+			style = w.env.Styles.Bad
 		case strings.HasPrefix(l, "· wait "), strings.HasPrefix(l, "descriptors: "):
-			style = widget.Faint
+			style = w.env.Styles.Faint
 		}
 		for i, part := range widget.Wrap(widget.Clean(l), max(width, 1)) {
 			if i == 0 && (strings.HasPrefix(part, "→ ") || strings.HasPrefix(part, "← ")) {
-				lines = append(lines, transcriptLine(part))
+				lines = append(lines, w.transcriptLine(part))
 				continue
 			}
 			lines = append(lines, style.Render(part))
@@ -146,18 +146,18 @@ func (w *withLog) Draw(width int, active bool) (string, widget.Span) {
 // transcriptLine draws a line of a WebSocket session: the arrow in the
 // color of its way (sent, received), the time faint, a control message
 // (ping, pong, close) faint too.
-func transcriptLine(l string) string {
+func (w *withLog) transcriptLine(l string) string {
 	arrow, rest, _ := strings.Cut(l, " ")
 	at, msg, _ := strings.Cut(rest, "  ")
-	dir := widget.Accent
+	dir := w.env.Styles.Accent
 	if arrow == "←" {
-		dir = widget.Good
+		dir = w.env.Styles.Good
 	}
 	body := lipgloss.NewStyle()
-	if w, _, _ := strings.Cut(msg, " "); w == "ping" || w == "pong" || w == "close" || msg == "close" {
-		body = widget.Faint
+	if word, _, _ := strings.Cut(msg, " "); word == "ping" || word == "pong" || word == "close" || msg == "close" {
+		body = w.env.Styles.Faint
 	}
-	return dir.Render(arrow) + " " + widget.Faint.Render(at) + "  " + body.Render(msg)
+	return dir.Render(arrow) + " " + w.env.Styles.Faint.Render(at) + "  " + body.Render(msg)
 }
 
 // Summary implements widget.Widget: how the last run ended, else the

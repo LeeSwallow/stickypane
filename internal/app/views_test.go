@@ -188,7 +188,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 		t.Fatalf("English by default:\n%s", s)
 	}
 	writeView(t, dir, `{"language":"ko"}`)
-	UseLanguage(m.store.Language())
+	m.useLanguage(m.store.Language())
 	m.reload()
 	s := screen(m)
 	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
@@ -199,7 +199,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 		t.Errorf("messages with names are filled in Korean:\n%s", s)
 	}
 	press(m, "n")
-	UseLanguage("en")
+	m.useLanguage("en")
 	if s := screen(m); strings.Contains(s, "도움말") {
 		t.Errorf("back to English:\n%s", s)
 	}
@@ -209,7 +209,6 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 // the change to sticky.json is enough, as it is for the tab.
 func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
 	t.Setenv("STICKYPANE_LANG", "en")
-	t.Cleanup(func() { UseLanguage("en") })
 	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
 	writeView(t, dir, `{"language":"ko"}`)
 	m.Update(changedMsg{})

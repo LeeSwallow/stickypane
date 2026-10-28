@@ -30,7 +30,7 @@ func init() {
 		name := it.file().Name
 		b, err := m.store.Read(name)
 		if err != nil {
-			m.status = say(tr.CannotReadNote, map[string]any{"Err": err.Error()})
+			m.status = say(m.tr.CannotReadNote, map[string]any{"Err": err.Error()})
 			return nil
 		}
 		m.edit, m.editName, m.editDisk = editor.New(string(b)), name, string(b)
@@ -58,7 +58,7 @@ func editUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case editor.Reload:
 		b, err := m.store.Read(m.editName)
 		if err != nil {
-			m.edit.SetMessage(say(tr.CannotReadFile, map[string]any{"Err": err.Error()}))
+			m.edit.SetMessage(say(m.tr.CannotReadFile, map[string]any{"Err": err.Error()}))
 			break
 		}
 		m.edit.Load(string(b))
@@ -77,10 +77,10 @@ func (m *Model) save(force bool) bool {
 	}
 	text := m.edit.Text()
 	if err := m.calls().Save(m.editName, was, []byte(text)); errors.Is(err, api.ErrStale) {
-		m.edit.SetMessage(tr.FileChangedSave)
+		m.edit.SetMessage(m.tr.FileChangedSave)
 		return false
 	} else if err != nil {
-		m.edit.SetMessage(say(tr.WriteFailed, map[string]any{"Err": err.Error()}))
+		m.edit.SetMessage(say(m.tr.WriteFailed, map[string]any{"Err": err.Error()}))
 		return false
 	}
 	m.edit.Saved()
@@ -101,7 +101,7 @@ func (m *Model) followEdit() {
 		return
 	}
 	if m.edit.Dirty() {
-		m.edit.SetMessage(tr.FileChangedEdit)
+		m.edit.SetMessage(m.tr.FileChangedEdit)
 		return
 	}
 	m.edit.Load(string(b))
@@ -130,7 +130,7 @@ func editBody(m *Model, h int) []string {
 	}
 	_, where := m.edit.Status()
 	lines := m.edit.View(max(m.width-4, 1), max(h-2, 1))
-	return strings.Split(frame(box{
+	return strings.Split(frame(box{styles: m.env.Styles,
 		title: title, icon: "✎", summary: where,
 		body: strings.Join(lines, "\n"), width: m.width, color: color, focused: true,
 	}), "\n")
@@ -142,11 +142,11 @@ func editFooter(m *Model) string {
 	left, _ := m.edit.Status()
 	switch {
 	case m.edit.Mode() == editor.Command:
-		return left + widget.Selected.Render(" ")
+		return left + m.env.Styles.Selected.Render(" ")
 	case m.edit.Message() != "":
-		return widget.Warn.Render(widget.Truncate(left, m.width))
+		return m.env.Styles.Warn.Render(widget.Truncate(left, m.width))
 	case left != "":
-		return widget.Bold.Render(widget.Truncate(left, m.width))
+		return m.env.Styles.Bold.Render(widget.Truncate(left, m.width))
 	}
-	return hints(m.width, "i", "insert", ":w", "save", ":q", "quit", ":wq", "save and quit", "u", "undo", "/", "search", "ctrl+f ctrl+b", "page")
+	return m.hints(m.width, "i", "insert", ":w", "save", ":q", "quit", ":wq", "save and quit", "u", "undo", "/", "search", "ctrl+f ctrl+b", "page")
 }

@@ -101,21 +101,21 @@ func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
 func TestEditorCommand(t *testing.T) {
 	t.Setenv("VISUAL", "")
 	t.Setenv("EDITOR", "code --wait")
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "code --wait /tmp/a.md" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "code --wait /tmp/a.md" {
 		t.Errorf("Args = %q", got)
 	}
 	t.Setenv("EDITOR", "")
 	// Without one, the first terminal editor found (env tests the order).
-	if got := editorCommand("/tmp/a.md").Args; len(got) != 2 || got[1] != "/tmp/a.md" || !slices.Contains([]string{"nvim", "vim", "vi", "nano", "notepad"}, got[0]) {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; len(got) != 2 || got[1] != "/tmp/a.md" || !slices.Contains([]string{"nvim", "vim", "vi", "nano", "notepad"}, got[0]) {
 		t.Errorf("Args without EDITOR = %q", got)
 	}
 	t.Setenv("EDITOR", "zed")
-	if got := editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "zed --wait /tmp/a.md" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; strings.Join(got, " ") != "zed --wait /tmp/a.md" {
 		t.Errorf("a GUI editor is told to wait: %q", got)
 	}
 	t.Setenv("EDITOR", "")
 	t.Setenv("VISUAL", "nvim")
-	if got := editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
+	if got := (&Model{editor: "auto"}).editorCommand("/tmp/a.md").Args; got[0] != "nvim" {
 		t.Errorf("VISUAL comes first, as git reads it: %q", got)
 	}
 }
@@ -131,7 +131,7 @@ func TestEditorFailureIsReported(t *testing.T) {
 func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
-	for _, line := range strings.Split(tr.Help, "\n") {
+	for _, line := range strings.Split(m.tr.Help, "\n") {
 		if w := widget.Width(line); w > 40 {
 			t.Errorf("help line %q is %d cells wide, want at most 40", line, w)
 		}

@@ -22,11 +22,11 @@ func init() {
 	handlers[modeIndex] = indexUpdate
 	bodies[modeIndex] = indexBody
 	footers[modeIndex] = func(m *Model) string {
-		return hints(m.width, "↑ ↓", tr.L("choose"), "enter", tr.L("go"), "esc", tr.L("close")) + "  " +
-			widget.Bold.Render("/ ") + m.indexFilter.View()
+		return m.hints(m.width, "↑ ↓", m.tr.L("choose"), "enter", m.tr.L("go"), "esc", m.tr.L("close")) + "  " +
+			m.env.Styles.Bold.Render("/ ") + m.indexFilter.View()
 	}
 	open := func(m *Model) tea.Cmd {
-		idx, err := api.NewWithClock(m.store, m.reg, m.now).Index()
+		idx, err := api.NewWithEnv(m.store, m.reg, m.env).Index()
 		if err != nil {
 			m.status = err.Error()
 			return nil
@@ -57,7 +57,7 @@ func init() {
 		}
 		if len(linked) == 0 {
 			m.mode = m.back
-			m.status = tr.L("no links to or from this note")
+			m.status = m.tr.L("no links to or from this note")
 			return nil
 		}
 		m.indexAll = linked
@@ -150,33 +150,33 @@ func indexBody(m *Model, h int) []string {
 			if len(lines) > 0 {
 				lines = append(lines, "")
 			}
-			lines = append(lines, widget.Bold.Render(widget.Truncate(widget.Clean(e.TabTitle), w)))
+			lines = append(lines, m.env.Styles.Bold.Render(widget.Truncate(widget.Clean(e.TabTitle), w)))
 		}
 		mark := "  "
 		if e.Open {
-			mark = widget.Accent.Render("● ")
+			mark = m.env.Styles.Accent.Render("● ")
 		}
 		stamp := m.env.Short(e.Modified)
 		text := e.Icon + " " + widget.Clean(e.Title)
 		if e.Summary != "" {
-			text += widget.Faint.Render("  " + e.Summary)
+			text += m.env.Styles.Faint.Render("  " + e.Summary)
 		}
 		if n := len(e.Backlinks); n > 0 {
-			text += widget.Faint.Render(fmt.Sprintf("  ← %d", n))
+			text += m.env.Styles.Faint.Render(fmt.Sprintf("  ← %d", n))
 		}
 		if e.Gist != "" && e.Gist != e.Title {
-			text += widget.Faint.Render("  — " + e.Gist)
+			text += m.env.Styles.Faint.Render("  — " + e.Gist)
 		}
 		room := max(w-4-widget.Width(stamp)-1, 1)
-		line := mark + widget.Pad(text, room) + " " + widget.Faint.Render(stamp)
+		line := mark + widget.Pad(text, room) + " " + m.env.Styles.Faint.Render(stamp)
 		if i == m.indexAt {
 			at = len(lines)
-			line = widget.Selected.Render("› " + widget.Pad(ansi.Strip(text), room) + " " + stamp)
+			line = m.env.Styles.Selected.Render("› " + widget.Pad(ansi.Strip(text), room) + " " + stamp)
 		}
 		lines = append(lines, line)
 	}
 	if len(lines) == 0 {
-		lines = []string{widget.Faint.Render(tr.L("nothing matches"))}
+		lines = []string{m.env.Styles.Faint.Render(m.tr.L("nothing matches"))}
 	}
 	// Keep the chosen line in view.
 	offset := 0

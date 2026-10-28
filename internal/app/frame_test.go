@@ -61,7 +61,7 @@ func TestFrameHeightFollowsTheBody(t *testing.T) {
 }
 
 func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
-	lines := dialog("Keys", []string{"one", "two"}, 20, 60, 12, lipgloss.Color("#7FB3F5"))
+	lines := (&Model{}).dialog("Keys", []string{"one", "two"}, 20, 60, 12, lipgloss.Color("#7FB3F5"))
 	var first string
 	for _, l := range lines {
 		if strings.TrimSpace(ansi.Strip(l)) != "" {
@@ -77,26 +77,26 @@ func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
 			t.Errorf("line is %d cells wide", w)
 		}
 	}
-	if got := dialog("Keys", []string{"one", "two"}, 20, 10, 12, lipgloss.Color("#7FB3F5")); len(got) != 2 || got[0] != "one" {
+	if got := (&Model{}).dialog("Keys", []string{"one", "two"}, 20, 10, 12, lipgloss.Color("#7FB3F5")); len(got) != 2 || got[0] != "one" {
 		t.Errorf("without room for a frame the body should come back as it is: %q", got)
 	}
-	if got := dialog("Keys", []string{"one", "two"}, 20, 60, 3, lipgloss.Color("#7FB3F5")); len(got) != 2 {
+	if got := (&Model{}).dialog("Keys", []string{"one", "two"}, 20, 60, 3, lipgloss.Color("#7FB3F5")); len(got) != 2 {
 		t.Errorf("without height for a frame the body should come back as it is: %q", got)
 	}
 }
 
 func TestHintsPairKeysWithLabels(t *testing.T) {
-	if got := ansi.Strip(hints(80, "tab", "next", "o", "close")); got != "tab next  o close" {
+	if got := ansi.Strip((&Model{}).hints(80, "tab", "next", "o", "close")); got != "tab next  o close" {
 		t.Errorf("hints = %q", got)
 	}
-	if got := hints(80); got != "" {
+	if got := (&Model{}).hints(80); got != "" {
 		t.Errorf("no pairs should give an empty line, got %q", got)
 	}
 	// A pair that does not fit is left out whole, never cut in the middle.
-	if got := ansi.Strip(hints(16, "tab", "next", "o", "close", "?", "help")); got != "tab next" {
+	if got := ansi.Strip((&Model{}).hints(16, "tab", "next", "o", "close", "?", "help")); got != "tab next" {
 		t.Errorf("hints in 16 cells = %q, want %q", got, "tab next")
 	}
-	if got := ansi.Strip(hints(17, "tab", "next", "o", "close", "?", "help")); got != "tab next  o close" {
+	if got := ansi.Strip((&Model{}).hints(17, "tab", "next", "o", "close", "?", "help")); got != "tab next  o close" {
 		t.Errorf("hints in 17 cells = %q", got)
 	}
 }
