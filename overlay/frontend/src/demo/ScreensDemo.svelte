@@ -2,7 +2,10 @@
   // Dev only (?demo=screens&screen=home|empty|board|canvas|torn|zoom|create
   // |settings&shape=board|form|chart…&mode=dark|light):
   // the real Home and Board screens over made-up data, so they can be seen
-  // in a browser without the shell. Nothing here ships.
+  // in a browser without the shell. With &bridge=<devbridge url>
+  // (overlay/scripts/devbridge.mjs) the board is a real bridge's, and the
+  // home's folder is its project: making a board there runs the real init
+  // and turns the page into the board's window. Nothing here ships.
   import Board from '../board/Board.svelte'
   import { fakeProject } from './fakeProject'
   import type { Board as BoardData, Note } from '../board/model'
@@ -11,12 +14,15 @@
   import type { Layout } from '../services/canvas'
   import type { Groups, HomeApi, Row } from '../services/home'
   import { THEMES } from './themes'
+  import { live } from './live'
 
   const q = new URLSearchParams(location.search)
   const screen = q.get('screen') ?? 'home'
   const mode = q.get('mode') === 'light' ? 'light' : 'dark'
   const lang = q.get('lang') === 'en' ? 'en' : 'ko'
   const style = q.get('style') === 'neat' ? 'neat' : 'doodle'
+  const bridge = q.get('bridge')
+  const real = bridge ? live(bridge) : null
 
   const NOW = new Date()
   const ago = (min: number) => new Date(NOW.getTime() - min * 60_000).toISOString()
@@ -48,7 +54,7 @@
           ],
           Removed: [{ ID: 9, Path: '/Users/min/old/thing', Title: 'thing' }],
         }
-  const homeApi: HomeApi = {
+  const fakeHome: HomeApi = {
     ensure: async () => '/Users/min/.stickypane',
     sessions: async () => groups,
     restore: async () => {},
@@ -63,6 +69,13 @@
     onNotices: () => () => {},
     copy: async () => {},
   }
+  // the page as the board's window: what the shell does when a board opens
+  const toBoard = () => {
+    const next = new URLSearchParams(location.search)
+    next.set('screen', 'board')
+    location.search = next.toString()
+  }
+  const homeApi = real ? real.home(fakeHome, toBoard) : fakeHome
 
   // --- board ---------------------------------------------------------------
   const base = { tab: 'work', icon: '', open: true, rows: 0, color: 'yellow', pinned: false, version: 'v1', summary: '', modTime: ago(30), linked: false }
@@ -120,8 +133,9 @@
     torn: { 'work/ideas.md': { screenX: 1200, screenY: 80, w: 320, h: 260, pinned: true } },
   }
   const layout = screen === 'canvas' || screen === 'torn' ? canvasLayout : { mode: 'grid' as const }
-  const boardApi = fakeProject(board, mode, lang, layout, screen === 'torn' ? (q.get('note') ?? 'work/release.md') : '')
-  const quietBus = { on: () => () => {} }
+  const boardApi = real ? real.project(mode, lang) : fakeProject(board, mode, lang, layout, screen === 'torn' ? (q.get('note') ?? 'work/release.md') : '')
+  const quietBus = real ? real.bus : { on: () => () => {} }
+  const setup = real?.setup()
 </script>
 
 {#if screen === 'torn'}
@@ -132,7 +146,9 @@
     zoom={screen === 'zoom' ? 'work/auth.md' : undefined}
     create={screen === 'create' ? (q.get('shape') ?? 'board') : undefined}
     settings={screen === 'settings'}
+    bus={quietBus}
+    {setup}
   />
 {:else}
-  <Home api={homeApi} />
+  <Home api={homeApi} {setup} />
 {/if}

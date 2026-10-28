@@ -22,6 +22,7 @@
   import Toast from '../lib/ui/Toast.svelte'
   import CreateDialog from '../create/CreateDialog.svelte'
   import SettingsDialog from '../settings/SettingsDialog.svelte'
+  import type { SetupApi } from '../services/install'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -62,8 +63,9 @@
     create: startCreate,
     settings: startSettings = false,
     bus = events,
+    setup,
     played,
-  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean; bus?: Bus; played?: (p: Plan) => void } = $props()
+  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean; bus?: Bus; setup?: SetupApi; played?: (p: Plan) => void } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -618,6 +620,7 @@
     <SettingsDialog
       bind:open={configuring}
       {api}
+      {setup}
       settings={board.settings}
       {mode}
       {hotkey}

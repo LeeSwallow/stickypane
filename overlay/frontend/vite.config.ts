@@ -18,6 +18,12 @@ export default defineConfig({
     host: "127.0.0.1",
     port: Number(process.env.WAILS_VITE_PORT) || 9245,
     strictPort: true,
+    // DEVBRIDGE=http://127.0.0.1:9300: the dev screens page reaches
+    // overlay/scripts/devbridge.mjs at /devbridge (the page's CSP allows
+    // only its own origin)
+    proxy: process.env.DEVBRIDGE
+      ? { "/devbridge": { target: process.env.DEVBRIDGE, rewrite: (p) => p.replace(/^\/devbridge/, "") } }
+      : undefined,
   },
   plugins: [svelte(), wails("./bindings"), keepDist],
 });
