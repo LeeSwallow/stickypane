@@ -3,6 +3,7 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -14,6 +15,27 @@ func TestInitProjectRefusesHomeAndRoot(t *testing.T) {
 		if err := r.s.InitProject(dir); err == nil {
 			t.Errorf("InitProject(%q) did not refuse", dir)
 		}
+	}
+}
+
+func TestInitProjectRefusesASymlinkToHome(t *testing.T) {
+	home := t.TempDir()
+	old := userHomeDir
+	userHomeDir = func() (string, error) { return home, nil }
+	t.Cleanup(func() { userHomeDir = old })
+	link := filepath.Join(t.TempDir(), "h")
+	if err := os.Symlink(home, link); err != nil {
+		t.Fatal(err)
+	}
+	r := newRig(t)
+	if err := r.s.InitProject(link); err == nil {
+		t.Error("InitProject through a symlink to home did not refuse")
+	}
+	if runtime.GOOS == "darwin" && !samePath("/Users/Min", "/users/min") {
+		t.Error("samePath is case-sensitive on macOS")
+	}
+	if runtime.GOOS != "darwin" && samePath("/a/B", "/a/b") {
+		t.Error("samePath is case-insensitive off macOS")
 	}
 }
 

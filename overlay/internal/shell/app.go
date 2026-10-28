@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -452,14 +453,34 @@ func (s *Shell) Inspect(dir string) Inspection {
 	return Inspection{Exists: err == nil && fi.IsDir(), Path: dir}
 }
 
+// userHomeDir is the person's home folder; a test replaces it.
+var userHomeDir = os.UserHomeDir
+
+// resolvePath cleans p and follows its symlinks; when that fails, only cleans.
+func resolvePath(p string) string {
+	p = filepath.Clean(p)
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return filepath.Clean(r)
+	}
+	return p
+}
+
+// samePath compares two resolved paths; macOS volumes are case-insensitive.
+func samePath(a, b string) bool {
+	if runtime.GOOS == "darwin" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
+}
+
 // refuseInit stops a board being made in the home folder or the root, where
 // every project below would find it.
 func refuseInit(dir string) error {
-	d := filepath.Clean(dir)
+	d := resolvePath(dir)
 	if d == string(filepath.Separator) {
 		return errors.New("will not make a board in the root folder")
 	}
-	if h, err := os.UserHomeDir(); err == nil && d == filepath.Clean(h) {
+	if h, err := userHomeDir(); err == nil && samePath(d, resolvePath(h)) {
 		return errors.New("will not make a board in the home folder: every project below it would find it")
 	}
 	return nil
