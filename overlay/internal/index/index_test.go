@@ -3,12 +3,16 @@ package index
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+// alive is a ProcessChecker that answers the same for every process.
+type alive bool
+
+func (a alive) Alive(int, time.Time) bool { return bool(a) }
 
 func newHome(t *testing.T) string {
 	t.Helper()
@@ -25,7 +29,7 @@ func openIdx(t *testing.T, home string) *Index {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ix.Alive = func(int, time.Time) bool { return false }
+	ix.Procs = alive(false)
 	t.Cleanup(func() { ix.Close() })
 	return ix
 }
@@ -86,7 +90,8 @@ func projects(t *testing.T, ix *Index) []Project {
 func dayEvents(t *testing.T, ix *Index, path string) int {
 	t.Helper()
 	var n int
-	err := ix.db.QueryRow(`SELECT COALESCE(SUM(events),0) FROM day JOIN project ON id=project_id WHERE path=?`, path).Scan(&n)
+	err := ix.store.DB().Table("day").Select("COALESCE(SUM(events),0)").
+		Joins("JOIN project ON project.id = day.project_id").Where("project.path = ?", path).Row().Scan(&n)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,8 +103,8 @@ func date(t time.Time) string { return t.Format("2006-01-02") }
 func TestOpenSetsSchemaVersionAndWAL(t *testing.T) {
 	ix := openIdx(t, newHome(t))
 	var v, mode string
-	ix.db.QueryRow(`SELECT value FROM meta WHERE key='schema_version'`).Scan(&v)
-	ix.db.QueryRow(`PRAGMA journal_mode`).Scan(&mode)
+	ix.store.DB().Table("meta").Select("value").Where("key = ?", "schema_version").Row().Scan(&v)
+	ix.store.DB().Raw(`PRAGMA journal_mode`).Row().Scan(&mode)
 	if v != "1" || mode != "wal" {
 		t.Fatalf("schema_version=%q journal_mode=%q", v, mode)
 	}
@@ -262,7 +267,7 @@ func TestDeadPidsEndTheirSessions(t *testing.T) {
 	os.WriteFile(filepath.Join(run, ".tmp-1"), []byte("junk"), 0o644)
 	ix := openIdx(t, home)
 
-	ix.Alive = func(int, time.Time) bool { return true }
+	ix.Procs = alive(true)
 	ix.Ingest()
 	if g, _ := ix.Sessions(now); len(g.Active) != 1 || len(g.Active[0].Live) != 1 {
 		t.Fatalf("live session missing: %+v", g)
@@ -272,18 +277,19 @@ func TestDeadPidsEndTheirSessions(t *testing.T) {
 	}
 
 	// Alive says no: process gone, or the pid belongs to another program.
-	ix.Alive = func(int, time.Time) bool { return false }
+	// Its session ends; its file stays, for stickypane to remove.
+	ix.Procs = alive(false)
 	ix.Ingest()
-	if _, err := os.Stat(filepath.Join(run, "4242.json")); !os.IsNotExist(err) {
-		t.Fatal("dead run file kept")
+	if g, _ := ix.Sessions(now); len(g.Active) != 1 || len(g.Active[0].Live) != 0 {
+		t.Fatalf("dead session listed live: %+v", g)
 	}
-	for _, f := range []string{"touch-abc", ".tmp-1"} {
+	for _, f := range []string{"4242.json", "touch-abc", ".tmp-1"} {
 		if _, err := os.Stat(filepath.Join(run, f)); err != nil {
 			t.Fatalf("%s was touched", f)
 		}
 	}
 	var ended *string
-	ix.db.QueryRow(`SELECT ended_at FROM session WHERE pid=4242`).Scan(&ended)
+	ix.store.DB().Table("session").Select("ended_at").Where("pid = ?", 4242).Row().Scan(&ended)
 	if ended == nil {
 		t.Fatal("ended_at not filled")
 	}
@@ -320,7 +326,7 @@ func TestDeletedEventFileForgetsItsOffset(t *testing.T) {
 	os.Remove(f)
 	ix.Ingest()
 	var n int
-	ix.db.QueryRow(`SELECT COUNT(*) FROM ingest`).Scan(&n)
+	ix.store.DB().Table("ingest").Select("COUNT(*)").Row().Scan(&n)
 	if n != 0 {
 		t.Fatalf("ingest rows = %d", n)
 	}
@@ -335,20 +341,26 @@ func TestDeletedEventFileForgetsItsOffset(t *testing.T) {
 	}
 }
 
-func TestOldEventFilesAreRemovedAfter90Days(t *testing.T) {
+// The app deletes nothing in ~/.stickypane: stickypane prunes its own old
+// events and dead run files (internal/registry Prune). Changed in #24: the
+// app used to remove events older than 90 days and dead run files itself.
+func TestPruneLeavesTheRecordsToStickypane(t *testing.T) {
 	home, p := newHome(t), board(t, "a")
 	now := time.Now()
 	old, fresh := now.AddDate(0, 0, -91), now.AddDate(0, 0, -89)
 	fo := writeEvents(t, home, date(old), ev(old, "project.touch", p, ""))
 	ff := writeEvents(t, home, date(fresh), ev(fresh, "project.touch", p, ""))
+	run := filepath.Join(home, "run")
+	os.MkdirAll(run, 0o755)
+	dead := filepath.Join(run, "4242.json")
+	os.WriteFile(dead, []byte(fmt.Sprintf(`{"kind":"tui","pid":4242,"project":%q,"started":%q}`, p, old.Format(time.RFC3339))), 0o644)
 	ix := openIdx(t, home)
 	ix.Ingest()
-	ix.Prune(now)
-	if _, err := os.Stat(fo); !os.IsNotExist(err) {
-		t.Fatal("91-day file kept")
-	}
-	if _, err := os.Stat(ff); err != nil {
-		t.Fatal("89-day file removed")
+	ix.Prune(now.AddDate(1, 0, 0))
+	for _, f := range []string{fo, ff, dead} {
+		if _, err := os.Stat(f); err != nil {
+			t.Fatalf("%s removed by the app", f)
+		}
 	}
 	if n := dayEvents(t, ix, p); n != 2 {
 		t.Fatalf("day table lost rows: %d", n)
@@ -364,12 +376,16 @@ func TestSessionsGroupsByLocalDay(t *testing.T) {
 	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, -3)
 	today := midnight.Add(30 * time.Minute)
 	yest := midnight.Add(-30 * time.Minute)
-	// c is active: its .sticky/ changed within 30 minutes of now.
-	os.WriteFile(filepath.Join(c, ".sticky", "sticky.json"), []byte(`{"title":"Sea"}`), 0o644)
+	// c is active: its .sticky/ changed within 30 minutes of now. Its board
+	// names it Sea (board.load, through the shell).
+	os.WriteFile(filepath.Join(c, ".sticky", "sticky.json"), []byte(`{}`), 0o644)
 	writeEvents(t, home, date(today), ev(today, "project.touch", a, ""), ev(today, "project.touch", c, ""))
 	writeEvents(t, home, date(yest), ev(yest, "project.touch", b, ""))
 	ix := openIdx(t, home)
 	ix.Ingest()
+	if err := ix.Retitle(c, "Sea"); err != nil {
+		t.Fatal(err)
+	}
 	g, err := ix.Sessions(now)
 	if err != nil {
 		t.Fatal(err)
@@ -387,24 +403,6 @@ func TestSessionsGroupsByLocalDay(t *testing.T) {
 	g, _ = ix.Sessions(now.Add(31 * time.Minute))
 	if len(g.Active) != 0 || len(g.Days) != 2 || len(g.Days[0].Rows) != 2 {
 		t.Fatalf("after 31 minutes: %+v", g)
-	}
-}
-
-func TestProcessAliveComparesStartTimes(t *testing.T) {
-	cmd := exec.Command("sleep", "30")
-	if err := cmd.Start(); err != nil {
-		t.Skip(err)
-	}
-	t.Cleanup(func() { cmd.Process.Kill(); cmd.Wait() })
-	now := time.Now()
-	if !processAlive(cmd.Process.Pid, now) {
-		t.Fatal("running child not alive")
-	}
-	if processAlive(cmd.Process.Pid, now.Add(-time.Hour)) {
-		t.Fatal("pid reused by a later process counted as alive")
-	}
-	if processAlive(1<<22+12345, now) {
-		t.Fatal("missing pid alive")
 	}
 }
 
@@ -480,18 +478,26 @@ func TestConcurrentIngestAppliesEachLineOnce(t *testing.T) {
 	}
 }
 
-func TestTitleComesFromStickyJSONElseFolder(t *testing.T) {
+// The app does not read sticky.json: a project is named after its folder
+// until its board, loaded through the bridge, names it. Changed in #24:
+// the index used to read the title from .sticky/sticky.json itself.
+func TestTitleIsTheFolderUntilTheBoardNamesIt(t *testing.T) {
 	home, p := newHome(t), oldBoard(t, "folder")
 	now := time.Now()
 	writeEvents(t, home, date(now), ev(now, "project.touch", p, ""))
+	os.WriteFile(filepath.Join(p, ".sticky", "sticky.json"), []byte(`{"title":"Ignored"}`), 0o644)
 	ix := openIdx(t, home)
 	ix.Ingest()
 	if ps := projects(t, ix); ps[0].Title != "folder" {
 		t.Fatalf("title = %q", ps[0].Title)
 	}
-	os.WriteFile(filepath.Join(p, ".sticky", "sticky.json"), []byte(`{"title":"Named"}`), 0o644)
+	if err := ix.Retitle(p+"/", "Named"); err != nil {
+		t.Fatal(err)
+	}
+	ix.Retitle(p, "") // an empty title changes nothing
+	ix.Retitle("/elsewhere", "Other")
 	ix.Prune(now)
-	if ps := projects(t, ix); ps[0].Title != "Named" {
-		t.Fatalf("title = %q", ps[0].Title)
+	if ps := projects(t, ix); len(ps) != 1 || ps[0].Title != "Named" {
+		t.Fatalf("projects = %+v", ps)
 	}
 }

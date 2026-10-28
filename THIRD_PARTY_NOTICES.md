@@ -29,7 +29,9 @@ program above and, in addition, these.
 | Project | License | Used for |
 | --- | --- | --- |
 | [wailsapp/wails](https://github.com/wailsapp/wails) v3 and `@wailsio/runtime` | MIT | the window, tray and webview |
-| [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | BSD-3-Clause | the index of boards |
+| [go-gorm/gorm](https://github.com/go-gorm/gorm), with jinzhu/inflection and jinzhu/now | MIT | the index of boards |
+| [glebarez/sqlite](https://github.com/glebarez/sqlite) | MIT | GORM's SQLite dialect, without cgo |
+| [glebarez/go-sqlite](https://github.com/glebarez/go-sqlite) and [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) | BSD-3-Clause | SQLite in pure Go |
 | [sveltejs/svelte](https://github.com/sveltejs/svelte) | MIT | the interface |
 | [rough-stuff/rough](https://github.com/rough-stuff/rough) (roughjs) | MIT | hand-drawn strokes, in the app and the DMG window |
 | [Gaegu](https://github.com/fontsource/font-files/tree/main/fonts/google/gaegu) | OFL-1.1 | the handwriting font |
@@ -45,7 +47,8 @@ dedication.
 The copyright lines of the projects above, as their licenses state them:
 
 - Wails: Copyright (c) 2018-Present Lea Anthony (MIT)
-- modernc.org/sqlite: Copyright (c) 2017 The Sqlite Authors (BSD-3-Clause)
+- GORM, glebarez/sqlite, jinzhu/inflection, jinzhu/now: Copyright (c) 2013-present Jinzhu (MIT)
+- glebarez/go-sqlite, modernc.org/sqlite: Copyright (c) 2017 The Sqlite Authors (BSD-3-Clause)
 - Svelte: Copyright (c) 2016-2025 Svelte Contributors (MIT)
 - roughjs: Copyright (c) 2019 Preet Shihn (MIT)
 - Gaegu: Copyright 2018 The Gaegu Project Authors (OFL-1.1)
