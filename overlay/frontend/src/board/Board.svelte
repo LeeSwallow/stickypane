@@ -7,10 +7,11 @@
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
   import { onMount, setContext, tick } from 'svelte'
-  import { setLanguage, t, tr } from '../i18n'
+  import { resolveAuto, setLanguage, t, tr } from '../i18n'
+  import { fallbackPalette } from '../lib/theme/fallback'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
-  import { watchSystemDark, type Mode } from '../lib/theme/mode'
+  import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
@@ -119,6 +120,21 @@
   })
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
 
+  // before a board is read (no board in the folder, a stickypane too old,
+  // still loading) the window is drawn as the home is: the app's own
+  // light or dark and the app's language, never unstyled English
+  let appLanguage = $state('')
+  $effect(() => {
+    if (palette) return
+    const p = fallbackPalette(resolveDark(mode, systemDark))
+    applyTheme(p, p.dark)
+    look.palette = p
+    look.dark = p.dark
+  })
+  $effect(() => {
+    if (board) return
+    setLanguage(appLanguage === 'ko' || appLanguage === 'en' ? appLanguage : resolveAuto())
+  })
   $effect(() => {
     if (!palette) return
     applyTheme(palette, palette.dark)
@@ -442,6 +458,7 @@
       .then((p) => {
         mode = modeOf(p.mode)
         hotkey = p.hotkey ?? ''
+        appLanguage = p.language ?? ''
         motion.setting = p.motion ?? ''
       })
       .catch(() => {})
