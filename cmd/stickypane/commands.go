@@ -190,9 +190,9 @@ func init() {
 		}},
 		{[]string{"say"}, editCmd("say"), helpText{
 			group: "notes", brief: "add a message to a chat note",
-			what:     "Adds a message to a chat note, as you or as someone else.",
+			what:     "Adds a message to a chat note, said by agent unless --as names someone else.",
 			syntax:   "stickypane say <name> [--as <who>] <text>",
-			args:     "--as W  who says it (default: you)",
+			args:     "--as W  who says it (default: agent)",
 			examples: []string{"stickypane say chat \"41/41 pass\" --as claude", "stickypane say chat \"thanks\""},
 			related:  []string{"log", "watch"},
 		}},
