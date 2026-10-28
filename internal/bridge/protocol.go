@@ -67,7 +67,7 @@ func answer(err error) *Error {
 		return e
 	case errors.Is(err, api.ErrStale):
 		return &Error{CodeStale, err.Error()}
-	case errors.Is(err, api.ErrBadName), errors.Is(err, widget.ErrUnknownAction):
+	case errors.Is(err, api.ErrBadName), errors.Is(err, api.ErrUnknownType), errors.Is(err, widget.ErrUnknownAction):
 		return badRequest(err.Error())
 	case errors.Is(err, fs.ErrNotExist), errors.Is(err, doc.ErrConflict):
 		return notFound(err.Error())
@@ -95,12 +95,26 @@ type (
 	noteParams struct {
 		Note string `json:"note"`
 	}
-	viewParams struct {
-		Note string  `json:"note"`
-		Size *string `json:"size"`
-		Rows *int    `json:"rows"`
-		Open *bool   `json:"open"`
-		Pin  *bool   `json:"pin"`
+	arrangeParams struct {
+		Note  string  `json:"note"`
+		Open  *bool   `json:"open"`
+		Size  *string `json:"size"`
+		Rows  *int    `json:"rows"`
+		Pin   *bool   `json:"pin"`
+		Color *string `json:"color"`
+		Title *string `json:"title"`
+	}
+	orderParams struct {
+		Tab   string   `json:"tab"`
+		Order []string `json:"order"`
+	}
+	moveParams struct {
+		Note string `json:"note"`
+		To   string `json:"to"`
+	}
+	sendParams struct {
+		Note    string          `json:"note"`
+		Request json.RawMessage `json:"request"` // its title or part, or its number from 1
 	}
 	settingsParams struct {
 		Theme    *string `json:"theme"`

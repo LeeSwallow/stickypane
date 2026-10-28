@@ -1,10 +1,15 @@
 // Package bridge opens the board to a screen other than the terminal: the
 // desktop app runs `stickypane bridge` as its child and talks to it over
 // standard input and output, one JSON object a line. The app asks
-// (board.load, note.act, note.create, note.run, note.view, note.open,
-// settings.get, settings.set) and the bridge answers each request by its
-// id; when the files change, whoever changed them, it says so with
-// board.changed. There is no network listener: the files stay the truth,
+// (board.load, note.act, note.create, note.run, note.open,
+// settings.get, settings.set, and the ones that arrange and manage notes
+// as the terminal does: note.arrange, tab.order, note.move, note.archive,
+// note.trash, note.restore, note.send, kinds.list, board.index) and the
+// bridge answers each request by its id; when the files change, whoever
+// changed them, it says so with board.changed. When the session ends,
+// because the app closed the input or the context ended, a script it
+// started is stopped: the bridge never outlives the app for it. There is no network
+// listener: the files stay the truth,
 // and the bridge is one more reader and writer of them, through the same
 // api and store as the command line.
 package bridge
@@ -14,9 +19,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"os"
+	"io/fs"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -24,7 +30,6 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/runner"
@@ -38,28 +43,40 @@ type server struct {
 	api *api.API
 	reg widget.Registry
 
-	mu   sync.Mutex // one line at a time on out
+	ctx  context.Context // the session: a request that outlives a line ends with it
+	mu   sync.Mutex      // one line at a time on out
 	out  io.Writer
 	fail func() // ends the session when out cannot be written
 	runs sync.WaitGroup
+
+	live   sync.Mutex // guards ending and scripts
+	ending bool       // the session is over: a script that starts now is stopped
+	script map[*runner.Run]struct{}
 }
 
 // Serve answers the requests read from in on out, and tells out of every
 // change to the board, until in ends or ctx does. A line it cannot make
 // sense of is answered with an error, never the end of the session. It
-// returns once every script it started has ended.
+// returns once every request is answered; a script it started that still
+// runs when the session ends is stopped, and the input is closed when it
+// can be (a reader nobody reads from would wait for ever). Closing the
+// input is how the goroutine that reads it ends with the session.
 func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, out io.Writer) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	s := &server{api: a, reg: reg, out: out, fail: cancel}
-	before, err := a.Store().Load()
-	if err != nil {
-		return err
-	}
+	s := &server{ctx: ctx, api: a, reg: reg, out: out, fail: cancel, script: map[*runner.Run]struct{}{}}
+	// The watcher first: a change made while the board is read is then seen
+	// as a change, not lost between the reading and the watching.
 	changed, err := a.Store().Watch(ctx)
 	if err != nil {
 		return err
 	}
+	trace("watching")
+	before, err := a.Store().Load()
+	if err != nil {
+		return err
+	}
+	trace("read")
 	var following sync.WaitGroup
 	following.Add(1)
 	go func() {
@@ -67,9 +84,13 @@ func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, o
 		s.follow(ctx, changed, before)
 	}()
 	defer func() {
-		s.runs.Wait()
 		cancel()
+		s.stopScripts()
+		s.runs.Wait()
 		following.Wait()
+		if c, ok := in.(io.Closer); ok {
+			c.Close() // unblocks the reader
+		}
 	}()
 
 	lines := make(chan []byte)
@@ -137,10 +158,24 @@ var methods = map[string]func(s *server, params json.RawMessage) (any, error){
 	"board.load":   (*server).boardLoad,
 	"note.act":     (*server).noteAct,
 	"note.create":  (*server).noteCreate,
-	"note.view":    (*server).noteView,
+	"note.arrange": (*server).noteArrange,
+	"tab.order":    (*server).tabOrder,
+	"note.move":    (*server).noteMove,
+	"note.archive": (*server).noteArchive,
+	"note.trash":   (*server).noteTrash,
+	"note.restore": (*server).noteRestore,
+	"kinds.list":   (*server).kindsList,
+	"board.index":  (*server).boardIndex,
 	"note.open":    (*server).noteOpen,
 	"settings.get": (*server).settingsGet,
 	"settings.set": (*server).settingsSet,
+}
+
+// long are the methods that are answered when they are done, while the
+// session goes on.
+var long = map[string]func(s *server, params json.RawMessage) (any, error){
+	"note.run":  (*server).noteRun,
+	"note.send": (*server).noteSend,
 }
 
 // handle answers one line.
@@ -150,12 +185,12 @@ func (s *server) handle(line []byte) {
 		s.reply(nil, nil, badRequest("a request is one JSON object a line: "+err.Error()))
 		return
 	}
-	if req.Method == "note.run" {
-		// A script may run for long; the session goes on meanwhile.
+	if long, ok := long[req.Method]; ok {
+		// A script or a request may take long; the session goes on meanwhile.
 		s.runs.Add(1)
 		go func() {
 			defer s.runs.Done()
-			res, err := s.noteRun(req.Params)
+			res, err := long(s, req.Params)
 			s.reply(req.ID, res, err)
 		}()
 		return
@@ -197,16 +232,27 @@ func (s *server) boardLoad(json.RawMessage) (any, error) {
 	return s.load(b), nil
 }
 
+// checkName refuses what is not the name of a note in the notes folder.
+func checkName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return badRequest("which note? params.note is empty")
+	}
+	for _, part := range strings.Split(name, "/") {
+		if part == "" || strings.HasPrefix(part, ".") || strings.ContainsAny(part, "\\\x00") {
+			return badRequest(fmt.Sprintf("%q is not a note's name: use one board.load gave", name))
+		}
+	}
+	return nil
+}
+
 // find looks a note up by the name board.load gave it: a note, a book or
 // a page. owner is the note itself, or the book a page is in.
 func (s *server) find(name string) (n, owner store.Note, err error) {
 	if strings.TrimSpace(name) == "" {
 		return n, owner, badRequest("which note? params.note is empty")
 	}
-	for _, part := range strings.Split(name, "/") {
-		if part == "" || strings.HasPrefix(part, ".") || strings.ContainsAny(part, "\\\x00") {
-			return n, owner, badRequest(fmt.Sprintf("%q is not a note's name: use one board.load gave", name))
-		}
+	if err := checkName(name); err != nil {
+		return n, owner, err
 	}
 	b, err := s.api.Store().Load()
 	if err != nil {
@@ -254,6 +300,18 @@ func (s *server) noteAct(params json.RawMessage) (any, error) {
 	if k.Act == nil {
 		return nil, badRequest(fmt.Sprintf("%s is a %s: it takes no action from a screen", n.Name, k.Name))
 	}
+	if k.Name == "chat" && p.Action.Name == "say" && strings.TrimSpace(p.Action.Args["who"]) == "" {
+		// Said by the user, who is named as the terminal names them.
+		args := map[string]string{"who": userName()}
+		for k, v := range p.Action.Args {
+			if k != "who" {
+				args[k] = v
+			}
+		}
+		act := *p.Action
+		act.Args = args
+		p.Action = &act
+	}
 	if _, err := k.Act(n.Doc, *p.Action); err != nil {
 		return nil, badRequest(err.Error())
 	}
@@ -298,21 +356,61 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if tab != "" {
 		stem = tab + "/" + stem
 	}
-	name := stem + ".md"
-	for i := 2; ; i++ {
-		if _, err := os.Lstat(filepath.Join(s.api.Store().Dir, filepath.FromSlash(name))); err != nil {
-			break
+	// Each name is made exclusively: a file that appears between one try
+	// and the next is not written over, the next name is tried.
+	for i := 1; i <= maxSameName; i++ {
+		name := stem + ".md"
+		if i > 1 {
+			name = fmt.Sprintf("%s-%d.md", stem, i)
 		}
-		name = fmt.Sprintf("%s-%d.md", stem, i)
-	}
-	file, err := s.api.Write(name, api.Options{Type: kind, Title: p.Title}, []byte(p.Body))
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "unknown type") {
+		file, err := s.api.Create(name, api.Options{Type: kind, Title: p.Title}, []byte(p.Body))
+		if errors.Is(err, fs.ErrExist) {
+			continue
+		}
+		if errors.Is(err, api.ErrUnknownType) {
 			return nil, badRequest(err.Error())
 		}
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{"note": file}, nil
 	}
-	return map[string]string{"note": file}, nil
+	return nil, &Error{CodeFailed, fmt.Sprintf("there are %d notes called %q already", maxSameName, stem)}
+}
+
+// maxSameName is how many notes of one title note.create makes before it
+// gives up.
+const maxSameName = 1000
+
+// userName is who says what the user says in a chat: $STICKYPANE_USER,
+// else git's user.name, else the login, as the terminal names them.
+func userName() string { return env.Detect().User() }
+
+// stopScripts ends the session's hold on its scripts: those running are
+// killed, and one started after this is killed as it starts.
+func (s *server) stopScripts() {
+	s.live.Lock()
+	defer s.live.Unlock()
+	s.ending = true
+	for r := range s.script {
+		r.Kill()
+	}
+}
+
+// running keeps a script to stop it when the session ends; it returns what
+// to call when the script is over.
+func (s *server) running(r *runner.Run) (done func()) {
+	s.live.Lock()
+	defer s.live.Unlock()
+	if s.ending {
+		r.Kill()
+	}
+	s.script[r] = struct{}{}
+	return func() {
+		s.live.Lock()
+		delete(s.script, r)
+		s.live.Unlock()
+	}
 }
 
 // runResult is what note.run answers: the exit code, and how long the
@@ -340,47 +438,12 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer s.running(r)()
 	code, took, err := r.Wait()
 	if err != nil {
 		return nil, err
 	}
 	return runResult{Code: code, Took: took.Milliseconds()}, nil
-}
-
-func (s *server) noteView(params json.RawMessage) (any, error) {
-	var p viewParams
-	if err := decode(params, &p); err != nil {
-		return nil, err
-	}
-	if p.Size != nil && *p.Size != "" && !arrange.ValidSize(*p.Size) {
-		return nil, badRequest(fmt.Sprintf("size %q is not card, half, page or \"\"", *p.Size))
-	}
-	if p.Rows != nil && *p.Rows < 0 {
-		return nil, badRequest("rows cannot be negative")
-	}
-	_, owner, err := s.find(p.Note)
-	if err != nil {
-		return nil, err
-	}
-	// A page is arranged by its book.
-	err = s.api.Store().SetView(owner.Name, func(v *store.View) {
-		if p.Size != nil {
-			v.Size = *p.Size
-		}
-		if p.Rows != nil {
-			v.Rows = *p.Rows
-		}
-		if p.Open != nil {
-			v.Open = p.Open
-		}
-		if p.Pin != nil {
-			v.Pin = p.Pin
-		}
-	})
-	if err != nil {
-		return nil, err
-	}
-	return empty{}, nil
 }
 
 // start begins a program and does not wait for it. Tests replace it.
@@ -480,11 +543,18 @@ type changes struct {
 	Notes   []Note      `json:"notes"`
 	Removed []string    `json:"removed"`
 	Events  []api.Event `json:"events"`
+	// Settings, when the root settings changed (the tab an agent's show
+	// chose, a theme or language chosen in the terminal), are all of them
+	// as board.load says them; Palette comes with them when the theme
+	// changed.
+	Settings *Settings `json:"settings,omitempty"`
+	Palette  *Palette  `json:"palette,omitempty"`
 }
 
 // follow tells the screen of every change to the board until ctx ends.
 func (s *server) follow(ctx context.Context, changed <-chan struct{}, before store.Board) {
 	seen := s.drawn(before)
+	known := settingsOf(before.Settings)
 	for {
 		select {
 		case <-ctx.Done():
@@ -512,8 +582,16 @@ func (s *server) follow(ctx context.Context, changed <-chan struct{}, before sto
 			if c.Events == nil {
 				c.Events = []api.Event{}
 			}
+			if set := settingsOf(after.Settings); set != known {
+				c.Settings = &set
+				if set.Theme != known.Theme {
+					p := palette(set.Theme)
+					c.Palette = &p
+				}
+				known = set
+			}
 			before, seen = after, now
-			if len(c.Notes) > 0 || len(c.Removed) > 0 || len(c.Events) > 0 {
+			if len(c.Notes) > 0 || len(c.Removed) > 0 || len(c.Events) > 0 || c.Settings != nil {
 				s.send(notification{Method: "board.changed", Params: c})
 			}
 		}
@@ -532,7 +610,7 @@ func (s *server) drawn(b store.Board) drawing {
 	d := drawing{notes: map[string]Note{}, json: map[string][]byte{}}
 	views := b.Settings.Views()
 	for _, t := range b.Tabs {
-		for _, n := range t.Notes {
+		for _, n := range inOrder(t, b.Settings, views) {
 			note := s.note(t.Name, n, views)
 			raw, _ := json.Marshal(note)
 			d.order = append(d.order, n.Name)
@@ -541,3 +619,6 @@ func (s *server) drawn(b store.Board) drawing {
 	}
 	return d
 }
+
+// trace tells a test the order of the session's first steps.
+var trace = func(string) {}

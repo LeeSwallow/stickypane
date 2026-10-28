@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"os"
 	"path"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -52,7 +56,9 @@ type Note struct {
 	Summary string          `json:"summary"`
 	Data    json.RawMessage `json:"data"`
 	ModTime time.Time       `json:"modTime"`
-	Error   string          `json:"error,omitempty"` // why the file cannot be shown
+	Linked  bool            `json:"linked"`           // a symbolic link to something outside the notes folder
+	Target  string          `json:"target,omitempty"` // where the link leads
+	Error   string          `json:"error,omitempty"`  // why the file cannot be shown
 	Pages   []Note          `json:"pages,omitempty"`
 }
 
@@ -62,6 +68,10 @@ type Settings struct {
 	Style    string   `json:"style"`
 	View     string   `json:"view"`
 	Language Language `json:"language"`
+	Tab      string   `json:"tab"`    // the tab the terminal is on, "" for the root
+	Time     string   `json:"time"`   // how times are written: auto, ko, en-US...
+	Editor   string   `json:"editor"` // what the terminal's E opens: auto or an editor
+	Stale    string   `json:"stale"`  // when a card that has not moved is flagged
 }
 
 // Language is the language the user chose ("auto", "ko", "en") and the
@@ -90,19 +100,43 @@ type Palette struct {
 
 // load reads the whole board for a screen.
 func (s *server) load(b store.Board) Board {
-	out := Board{Title: filepath.Base(s.project()), Settings: s.settings(), Tabs: []Tab{}}
+	out := Board{Title: filepath.Base(s.project()), Settings: settingsOf(b.Settings), Tabs: []Tab{}}
 	views := b.Settings.Views()
 	for _, t := range b.Tabs {
 		tab := Tab{Name: t.Name, Title: t.Title, Notes: []Note{}}
 		if t.Name == "" && t.Title != "" {
 			out.Title = t.Title
 		}
-		for _, n := range t.Notes {
+		for _, n := range inOrder(t, b.Settings, views) {
 			tab.Notes = append(tab.Notes, s.note(t.Name, n, views))
 		}
 		out.Tabs = append(out.Tabs, tab)
 	}
 	out.Palette = palette(out.Settings.Theme)
+	return out
+}
+
+// inOrder is a tab's notes in the order the terminal draws them: the
+// pinned ones first, then those the user put in an order of their own
+// (tab.order) as they put them, then the rest by name.
+func inOrder(t store.Tab, set store.Settings, views store.Views) []store.Note {
+	place := map[string]int{}
+	for i, name := range set.Order(t.Name) {
+		place[name] = i + 1
+	}
+	rank := func(n store.Note) int {
+		if p, ok := place[n.Name]; ok {
+			return p
+		}
+		return len(place) + 1
+	}
+	out := slices.Clone(t.Notes)
+	sort.SliceStable(out, func(i, j int) bool {
+		if pi, pj := arrange.Pinned(views[out[i].Name], out[i].Doc), arrange.Pinned(views[out[j].Name], out[j].Doc); pi != pj {
+			return pi
+		}
+		return rank(out[i]) < rank(out[j])
+	})
 	return out
 }
 
@@ -120,6 +154,7 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 		Color: color(n.Name, arrange.Color(v, n.Doc)), Pinned: arrange.Pinned(v, n.Doc),
 		ModTime: n.ModTime, Data: json.RawMessage("null"), Pages: []Note{},
 	}
+	out.Linked, out.Target = s.link(n.Name)
 	for _, p := range n.Pages {
 		out.Pages = append(out.Pages, s.file(tab, p, n, v))
 		if p.ModTime.After(out.ModTime) {
@@ -149,6 +184,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 		ModTime: n.ModTime,
 		Data:    json.RawMessage("null"),
 	}
+	out.Linked, out.Target = s.link(n.Name)
 	if owner.Name == n.Name {
 		out.Title = arrange.Title(v, n.Doc, n.Name)
 	} else {
@@ -164,6 +200,22 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 		out.Data = data(n.Name, k.Data(n.Doc))
 	}
 	return out
+}
+
+// link says whether a note is a symbolic link, and to what.
+func (s *server) link(name string) (bool, string) {
+	st := s.api.Store()
+	if !st.Linked(name) {
+		return false, ""
+	}
+	full := filepath.Join(st.Dir, filepath.FromSlash(name))
+	if target, err := filepath.EvalSymlinks(full); err == nil {
+		return true, target
+	}
+	if target, err := os.Readlink(full); err == nil { // a link to nothing
+		return true, target
+	}
+	return true, ""
 }
 
 // data encodes what a kind's Data says. A document does not know its
@@ -206,17 +258,26 @@ func color(name, chosen string) string {
 }
 
 // settings reads the root settings.
-func (s *server) settings() Settings {
-	st := s.api.Store()
-	th := st.Theme()
+func (s *server) settings() Settings { return settingsOf(s.api.Store().Settings()) }
+
+// settingsOf is what the settings files say, with the defaults.
+func settingsOf(set store.Settings) Settings {
+	th := set.Theme()
 	if th == "" {
 		th = "auto"
 	}
-	lang := strings.ToLower(st.Language())
+	lang := strings.ToLower(set.Language())
 	if lang == "" {
 		lang = "auto"
 	}
-	return Settings{Theme: th, Style: st.Style(), View: st.ViewMode(), Language: Language{lang, resolve(lang)}}
+	return Settings{
+		Theme: th, Style: set.Style(), View: set.ViewMode(),
+		Language: Language{lang, resolve(lang)},
+		Tab:      set.Tab(),
+		Time:     prefs.Get(set, "time"),
+		Editor:   prefs.Get(set, "editor"),
+		Stale:    prefs.Get(set, "stale"),
+	}
 }
 
 // resolve is the language a choice comes to: the choice when there is a

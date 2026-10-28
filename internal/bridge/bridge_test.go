@@ -218,6 +218,13 @@ func (s *session) changed(within time.Duration, match func(changed) bool) change
 }
 
 type changed struct {
+	Settings *struct {
+		Theme string `json:"theme"`
+		Tab   string `json:"tab"`
+	} `json:"settings"`
+	Palette *struct {
+		Name string `json:"name"`
+	} `json:"palette"`
 	Notes   []loaded `json:"notes"`
 	Removed []string `json:"removed"`
 	Events  []struct {
@@ -239,6 +246,10 @@ type loaded struct {
 	Data    json.RawMessage `json:"data"`
 	ModTime time.Time       `json:"modTime"`
 	Pages   []loaded        `json:"pages"`
+	Title   string          `json:"title"`
+	Linked  bool            `json:"linked"`
+	Target  string          `json:"target"`
+	Error   string          `json:"error"`
 }
 
 type loadedBoard struct {
@@ -256,6 +267,10 @@ type loadedBoard struct {
 			Choice   string `json:"choice"`
 			Resolved string `json:"resolved"`
 		} `json:"language"`
+		Tab    string `json:"tab"`
+		Time   string `json:"time"`
+		Editor string `json:"editor"`
+		Stale  string `json:"stale"`
 	} `json:"settings"`
 	Palette map[string]json.RawMessage `json:"palette"`
 }
@@ -450,9 +465,9 @@ func TestBridgeAnswersBadInputAndKeepsRunning(t *testing.T) {
 		{"note.act", map[string]any{"note": "plan.md", "version": v, "action": map[string]any{"name": "dance"}}, "bad_request"},
 		{"note.act", map[string]any{"note": "plan.md", "version": v, "action": map[string]any{"name": "toggle", "args": map[string]string{"i": "9"}}}, "bad_request"},
 		{"note.act", map[string]any{"note": "n.md", "version": versionOf(t, dir, "n.md"), "action": map[string]any{"name": "toggle"}}, "bad_request"},
-		{"note.view", map[string]any{"note": "plan.md", "size": "huge"}, "bad_request"},
-		{"note.view", map[string]any{"note": "plan.md", "rows": -1}, "bad_request"},
-		{"note.view", map[string]any{"note": "nope.md"}, "not_found"},
+		{"note.arrange", map[string]any{"note": "plan.md", "size": "huge"}, "bad_request"},
+		{"note.arrange", map[string]any{"note": "plan.md", "rows": -1}, "bad_request"},
+		{"note.arrange", map[string]any{"note": "nope.md", "pin": true}, "not_found"},
 		{"note.open", map[string]any{"note": "nope.md"}, "not_found"},
 		{"note.run", map[string]any{"note": "plan.md"}, "bad_request"},
 		{"note.create", map[string]any{"tab": "nowhere", "kind": "note", "title": "x"}, "not_found"},
@@ -470,31 +485,6 @@ func TestBridgeAnswersBadInputAndKeepsRunning(t *testing.T) {
 		t.Errorf("bad requests changed the note: %q", b)
 	}
 	s.ok("hello", nil, nil) // still there
-}
-
-func TestBridgeViewChangesTheNotesSize(t *testing.T) {
-	dir := board(t, map[string]string{"plan.md": plan})
-	s := serve(t, dir)
-	s.ok("note.view", map[string]any{"note": "plan.md", "size": "card", "rows": 4, "open": true, "pin": true}, nil)
-	v, err := store.Open(dir).Views()
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := v["plan.md"]
-	if got.Size != "card" || got.Rows != 4 || got.Open == nil || !*got.Open || got.Pin == nil || !*got.Pin {
-		t.Errorf("sticky.json view: %+v", got)
-	}
-	// What is not given stays; an empty size gives the choice back.
-	s.ok("note.view", map[string]any{"note": "plan.md", "size": "", "pin": false}, nil)
-	v, _ = store.Open(dir).Views()
-	if got := v["plan.md"]; got.Size != "" || got.Rows != 4 || got.Pin == nil || *got.Pin {
-		t.Errorf("after the second view: %+v", got)
-	}
-	var b loadedBoard
-	s.ok("board.load", nil, &b)
-	if p := b.note(t, "plan.md"); p.Rows != 4 || p.Pinned {
-		t.Errorf("board.load after view: %+v", p)
-	}
 }
 
 func TestBridgeCreatesANote(t *testing.T) {
