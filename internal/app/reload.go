@@ -140,7 +140,7 @@ func (m *Model) reload() {
 			if l, ok := logs[n.Name]; ok {
 				l = unreadable(l)
 				kept = kept && l.Path == oldLog.Path && l.ModTime.Equal(oldLog.ModTime)
-				it.w = &withLog{owner: path.Ext(n.Name), script: it.w, log: l, now: m.now}
+				it.w = &withLog{owner: path.Ext(n.Name), script: it.w, log: l, env: m.env}
 			}
 			if !kept {
 				m.forget(n.Name)

@@ -254,7 +254,7 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 	UseLanguage(m.language)
 	// Times are written the way the user's country does, whatever language
 	// the screen speaks.
-	when.UseLocale(env.Detect().Locale)
+	m.env.Times = when.Locale(env.Detect().Locale)
 	m.useTheme(theme.Pick(st.Theme(), true))
 	m.reload()
 	return m

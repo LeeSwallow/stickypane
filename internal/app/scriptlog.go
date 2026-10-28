@@ -6,14 +6,12 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"charm.land/lipgloss/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -35,9 +33,9 @@ type withLog struct {
 	owner   string // the extension of the note the log belongs to
 	script  widget.Widget
 	log     store.Note
-	now     func() time.Time
-	full    bool // zoomed in: the whole log, not its end
-	scriptH int  // lines the script took in the last Draw
+	env     widget.Env // the screen's: its clock, words and styles
+	full    bool       // zoomed in: the whole log, not its end
+	scriptH int        // lines the script took in the last Draw
 }
 
 // logsOfScripts finds, among a tab's notes, the logs that belong to a
@@ -106,7 +104,7 @@ func (w *withLog) Draw(width int, active bool) (string, widget.Span) {
 	if path.Ext(w.log.Name) == ".log" && !slices.Contains(scriptExts, w.owner) {
 		label = " " + widget.T("output") // what the agent did with a form
 	}
-	if t := when.Short(w.log.ModTime, w.now()); t != "" {
+	if t := w.env.Short(w.log.ModTime); t != "" {
 		label += " · " + t
 	}
 	rule := widget.Faint.Render("─" + label)
@@ -166,7 +164,7 @@ func transcriptLine(l string) string {
 // script's own summary.
 func (w *withLog) Summary() string {
 	if _, ended, _ := w.run(); ended != "" {
-		if t := when.Short(w.log.ModTime, w.now()); t != "" {
+		if t := w.env.Short(w.log.ModTime); t != "" {
 			return ended + " · " + t
 		}
 		return ended

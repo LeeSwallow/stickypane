@@ -365,7 +365,7 @@ func (f *Form) Sync(d doc.Document) widget.Widget {
 func (f *Form) sentRule(width int) string {
 	label := widget.Clean(f.submitted)
 	if t, ok := when.Parse(f.at); ok {
-		label += " · " + widget.T("sent") + " " + when.Short(t, now())
+		label += " · " + widget.T("sent") + " " + f.env.Times.Short(t, now())
 	}
 	rule := widget.Faint.Render("─ ") + widget.Good.Render("✓ ") + widget.Faint.Render(label+" ")
 	return widget.Truncate(rule+widget.Faint.Render(strings.Repeat("─", max(width-widget.Width(rule), 0))), width)

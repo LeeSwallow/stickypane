@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
-
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -391,7 +389,7 @@ func stalled(cd card, last bool, t time.Time) bool {
 func (b *Board) meta(cd card, last bool, width int) string {
 	t := now()
 	tail := ""
-	if s := when.Short(cd.moved, t); s != "" {
+	if s := b.env.Times.Short(cd.moved, t); s != "" {
 		tail = widget.Faint.Render(s)
 	}
 	if stalled(cd, last, t) {

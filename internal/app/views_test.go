@@ -9,8 +9,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-
-	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestArrangingTheScreenLeavesTheNotesAlone(t *testing.T) {
@@ -235,7 +233,7 @@ func TestALogSaysWhenItLastGrew(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.Update(changedMsg{})
-	if s := screen(m); !strings.Contains(s, "2 lines · "+when.Short(at, time.Now())) {
+	if s := screen(m); !strings.Contains(s, "2 lines · "+m.env.Short(at)) {
 		t.Errorf("the border should say when the log last grew:\n%s", s)
 	}
 }

@@ -44,13 +44,18 @@ func (m *Model) applyPrefs(set store.Settings) {
 		m.themeChoice = v
 		m.useTheme(theme.Pick(v, m.dark))
 	}
+	var times when.Formatter
 	switch v := prefs.Get(set, "time"); v {
 	case "auto":
-		when.UseLocale(env.Detect().Locale)
+		times = when.Locale(env.Detect().Locale)
 	case "iso":
-		when.UseLocale("")
 	default:
-		when.UseLocale(v)
+		times = when.Locale(v)
+	}
+	if times != m.env.Times {
+		// Widgets keep the Env they were parsed with: they are made again.
+		m.env.Times = times
+		m.items = nil
 	}
 	board.StaleAfter = 0
 	if d, err := time.ParseDuration(strings.Replace(prefs.Get(set, "stale"), "d", "h", 1)); err == nil {

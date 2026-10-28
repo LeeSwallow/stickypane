@@ -11,7 +11,6 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/lineedit"
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -157,7 +156,7 @@ func indexBody(m *Model, h int) []string {
 		if e.Open {
 			mark = widget.Accent.Render("● ")
 		}
-		stamp := when.Short(e.Modified, m.now())
+		stamp := m.env.Short(e.Modified)
 		text := e.Icon + " " + widget.Clean(e.Title)
 		if e.Summary != "" {
 			text += widget.Faint.Render("  " + e.Summary)

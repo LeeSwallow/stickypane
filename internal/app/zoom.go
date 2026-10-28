@@ -5,7 +5,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -124,7 +123,7 @@ func zoomBody(m *Model, h int) []string {
 func (m *Model) zoomSummary(it item) string {
 	s := m.summary(it)
 	f := it.file()
-	made, changed := when.Short(f.Created, m.now()), when.Short(f.ModTime, m.now())
+	made, changed := m.env.Short(f.Created), m.env.Short(f.ModTime)
 	span := changed
 	if made != "" && made != changed {
 		span = made + " → " + changed

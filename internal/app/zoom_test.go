@@ -10,8 +10,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-
-	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
@@ -252,7 +250,7 @@ func TestAZoomedNoteSaysWhenItWasMadeAndChanged(t *testing.T) {
 	}
 	m.Update(changedMsg{})
 	press(m, "z")
-	want := when.Short(made, time.Now()) + " → " + when.Short(changed, time.Now())
+	want := m.env.Short(made) + " → " + m.env.Short(changed)
 	if s := screen(m); !strings.Contains(s, want) {
 		t.Errorf("want %q in the zoomed border:\n%s", want, s)
 	}

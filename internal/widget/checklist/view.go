@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
-
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -57,9 +55,9 @@ func (c *Checklist) order() []int {
 // selected is the entry under the cursor.
 func (c *Checklist) selected() int { return c.items[c.order()[c.cursor]] }
 
-// when says when an item was done, as short as the day allows: the time
+// doneAt says when an item was done, as short as the day allows: the time
 // for today, the day for this year, the date before that.
-func doneAt(t time.Time) string { return when.Short(t, now()) }
+func (c *Checklist) doneAt(t time.Time) string { return c.env.Times.Short(t, now()) }
 
 func bar(done, total, width int) string {
 	label := fmt.Sprintf(" %d/%d", done, total)
@@ -116,7 +114,7 @@ func (c *Checklist) Draw(width int, active bool) (string, widget.Span) {
 			// A finished item steps back so the open ones stand out.
 			mark, style = "☑ ", func(s string) string { return widget.Struck.Render(s) }
 		}
-		stamp := doneAt(e.done)
+		stamp := c.doneAt(e.done)
 		textWidth := max(width-4, 1)
 		if stamp != "" {
 			textWidth = max(width-4-widget.Width(stamp)-1, 1)

@@ -3,8 +3,6 @@ package app
 import (
 	"image/color"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
-
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -115,7 +113,7 @@ func (m *Model) summary(it item) string {
 		if s != "" {
 			s += " · "
 		}
-		s += when.Short(it.file().ModTime, m.now())
+		s += m.env.Short(it.file().ModTime)
 	}
 	return s
 }
