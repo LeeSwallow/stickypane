@@ -148,8 +148,6 @@
     position: relative;
     flex: 1;
     min-height: 100%;
-    background-image: radial-gradient(var(--line) 1px, transparent 1px);
-    background-size: 16px 16px;
   }
   .sizer {
     position: relative;
