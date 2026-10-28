@@ -10,7 +10,7 @@
 |---|---|---|
 | macOS (arm64, amd64) | `stickypane-<버전>-<arch>.dmg`, 볼륨 이름 `stickypane`, 안에 `Stickypane.app` | `wails3 package` → `scripts/overlay-dmg.sh`(hdiutil + 배경 + 아이콘 배치) |
 | macOS | Homebrew cask | 같은 DMG를 가리킨다([미결정]: 이름과 본체 cask와의 관계) |
-| Linux (amd64, arm64) | `stickypane-app-<버전>-linux-<arch>.tar.gz` (앱 + `stickypane` + `.desktop` + 아이콘 + 라이선스) | Linux에서 `wails3 build` → `scripts/overlay-linux.sh`. WebKitGTK 4.1이 필요하다 |
+| Linux (amd64, arm64) | `stickypane-app-<버전>-linux-<arch>.tar.gz` (앱 + `stickypane` + `.desktop` + 아이콘 + 라이선스(`LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`)) | Linux에서 `wails3 build` → `scripts/overlay-linux.sh`. WebKitGTK 4.1이 필요하다 |
 
 | 이름 | 값 |
 |---|---|
@@ -21,6 +21,8 @@
 | 버전 | 하나뿐: `overlay/build/config.yml`의 `info.version`. `Info.plist`·`Info.dev.plist`의 `CFBundleShortVersionString`·`CFBundleVersion`이 같은 값을 되풀이하고 `TestVersionsAgree`가 지킨다. `overlay-dmg.sh`는 `.app`의 버전이 다르면 멈춘다 |
 
 [사용자 결정] **앱만 깔면 다 된다.** 앱 안에 `stickypane` 명령을 넣는다. macOS는 `Stickypane.app/Contents/Helpers/stickypane`, Linux는 앱 바이너리 옆 `stickypane`. 같은 체크아웃의 `./cmd/stickypane`을 앱과 같은 버전(`-X main.version=<CFBundleShortVersionString>`), 같은 아키텍처로 `overlay-dmg.sh`·`overlay-linux.sh`가 빌드해 넣는다. 앱은 bridge를 찾을 때 이 번들 사본을 **먼저** 보고(`bridge.BundledCLI()`), 그다음 `STICKYPANE_BIN`, PATH, `/opt/homebrew/bin`·`/usr/local/bin`·`~/go/bin` 순이다. 터미널에서 쓰도록 PATH에 링크를 거는 버튼은 따로 한다.
+
+라이선스 전문도 앱과 함께 간다. macOS는 `Contents/Resources/`, Linux는 압축 폴더 맨 위에 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`를 둔다. `licenses/stickypane-app.txt`는 `overlay/scripts/licenses.sh --write`가 앱에 링크된 Go 모듈과 번들된 npm 패키지(글꼴의 OFL-1.1 포함)의 라이선스 파일을 그대로 모은 것이고, `licenses/stickypane.txt`는 `scripts/licenses.sh`가 번들 CLI의 모듈로 만든 것이다. robust-predicates(mermaid → d3-delaunay, Unlicense)도 목록에 그대로 둔다([미결정]: 뺄지).
 
 본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
@@ -63,7 +65,7 @@
 `scripts/overlay-dmg.sh <app> <out.dmg>`의 순서:
 
 1. `.app`을 검사한다(Info.plist와 그 `CFBundleExecutable`, 버전이 `config.yml`과 같은지). 같은 이름의 볼륨이 이미 마운트돼 있으면 멈춘다.
-2. 임시 폴더에 `Stickypane.app`으로 복사하고, `stickypane` CLI를 빌드해 `Contents/Helpers/`에 넣고(Apple 규칙상 `Resources`에는 실행 코드를 두지 않는다), 안쪽부터 ad-hoc 서명한다(CLI → 앱). `/Applications` 심볼릭 링크와 `.background/background.tiff`를 둔다.
+2. 임시 폴더에 `Stickypane.app`으로 복사하고, `stickypane` CLI를 빌드해 `Contents/Helpers/`에 넣고(Apple 규칙상 `Resources`에는 실행 코드를 두지 않는다), 안쪽부터 ad-hoc 서명한다(CLI → 앱). 서명 전에 `Contents/Resources/`에 라이선스 파일(9.1)을 넣는다. `/Applications` 심볼릭 링크와 `.background/background.tiff`를 둔다.
 3. `hdiutil create -format UDRW` → `hdiutil attach`(Finder가 볼 수 있게 `-nobrowse` 없이).
 4. AppleScript로 그 디스크 이미지의 Finder 창만 정리한다: 아이콘 보기, 도구 막대·상태 막대 숨김, 창 경계, 아이콘 크기·위치, 배경. Finder가 `.DS_Store`를 쓸 때까지 기다린다.
 5. `.VolumeIcon.icns`와 사용자 정의 아이콘 속성, `bless --openfolder`. Apple Silicon에서는 `bless --openfolder`가 지원되지 않아 실패할 수 있고, 그러면 경고만 내고 계속한다. 마운트하면 창이 저절로 열리는지는 [미검증]이다.

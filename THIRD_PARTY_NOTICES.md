@@ -37,7 +37,29 @@ program above and, in addition, these.
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | the code font |
 
 `overlay/scripts/licenses.sh` checks every Go module and npm package of the
-app against MIT, BSD, Apache-2.0, ISC and OFL-1.1.
+app against MIT, BSD, Apache-2.0, ISC and OFL-1.1, with a few listed
+exceptions. One of them ships in the app: robust-predicates (pulled in by
+mermaid through d3-delaunay), under the Unlicense, a public-domain
+dedication.
+
+The copyright lines of the projects above, as their licenses state them:
+
+- Wails: Copyright (c) 2018-Present Lea Anthony (MIT)
+- modernc.org/sqlite: Copyright (c) 2017 The Sqlite Authors (BSD-3-Clause)
+- Svelte: Copyright (c) 2016-2025 Svelte Contributors (MIT)
+- roughjs: Copyright (c) 2019 Preet Shihn (MIT)
+- Gaegu: Copyright 2018 The Gaegu Project Authors (OFL-1.1)
+- Pretendard: Copyright (c) 2021, Kil Hyung-jin, with Reserved Font Name
+  Pretendard (OFL-1.1)
+- JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (OFL-1.1)
+
+The full texts travel with the app. `Stickypane.app/Contents/Resources/` and
+the Linux archive hold `LICENSE`, this file and a `licenses/` folder:
+`licenses/stickypane-app.txt` has the license of every Go module linked into
+the app and every npm package bundled in it (the SIL Open Font License 1.1
+with each font's copyright among them), as each package ships it, written by
+`overlay/scripts/licenses.sh --write`; `licenses/stickypane.txt` has those of
+the bundled stickypane program, written by `scripts/licenses.sh`.
 
 ## Color palettes
 

@@ -2,7 +2,14 @@
 # licenses.sh: check that every Go module and npm package of the overlay app
 # has an allowed license. It lists the ones that do not, by name, and exits 1.
 #
-#   scripts/licenses.sh [--go-dir DIR | --no-go] [--npm-dir DIR | --no-npm]
+#   scripts/licenses.sh [--go-dir DIR | --no-go] [--npm-dir DIR | --no-npm] [--write FILE]
+#
+# With --write, and only when the check passes, it also writes FILE: the
+# license text of every Go module linked into the app (`go list -deps .`)
+# and every npm package shipped in it (the dependencies, not the
+# devDependencies, plus svelte, whose runtime the bundle carries, and its
+# dependencies), each as the package ships it. The release images carry it
+# as licenses/stickypane-app.txt (docs/overlay/09 §9.1).
 #
 # Go modules come from `go list -m -json all`; the license is read from the
 # module's LICENSE file. npm packages come from `npm ls --all --parseable`;
@@ -20,13 +27,15 @@ set -eu
 here="$(cd "$(dirname "$0")/.." && pwd)"
 go_dir="$here"
 npm_dir="$here/frontend"
+write=""
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--go-dir) go_dir="$2"; shift 2 ;;
 	--npm-dir) npm_dir="$2"; shift 2 ;;
 	--no-go) go_dir=""; shift ;;
 	--no-npm) npm_dir=""; shift ;;
-	*) echo "usage: licenses.sh [--go-dir DIR | --no-go] [--npm-dir DIR | --no-npm]" >&2; exit 2 ;;
+	--write) write="$2"; shift 2 ;;
+	*) echo "usage: licenses.sh [--go-dir DIR | --no-go] [--npm-dir DIR | --no-npm] [--write FILE]" >&2; exit 2 ;;
 	esac
 done
 
@@ -35,22 +44,30 @@ trap 'rm -rf "$work"' EXIT
 
 if [ -n "$go_dir" ]; then
 	(cd "$go_dir" && go list -m -json all) >"$work/go.json"
+	(cd "$go_dir" && go list -deps -f '{{with .Module}}{{if not .Main}}{{.Path}} {{.Version}} {{.Dir}}{{end}}{{end}}' .) |
+		sort -u >"$work/go-ship.txt"
 else
 	: >"$work/go.json"
+	: >"$work/go-ship.txt"
 fi
 if [ -n "$npm_dir" ]; then
 	# npm ls exits non-zero for an extraneous or invalid tree; the list is
 	# still what we check.
 	(cd "$npm_dir" && npm ls --all --parseable 2>/dev/null) >"$work/npm.txt" || true
+	(cd "$npm_dir" && npm ls --omit=dev --all --parseable 2>/dev/null) >"$work/npm-ship.txt" || true
 else
 	: >"$work/npm.txt"
+	: >"$work/npm-ship.txt"
 fi
 
-python3 -I - "$work/go.json" "$work/npm.txt" "$go_dir" <<'PY'
+python3 -I - "$work/go.json" "$work/npm.txt" "$go_dir" "$work/go-ship.txt" "$work/npm-ship.txt" "$npm_dir" "$write" <<'PY'
 import json, os, re, sys
 
 go_json, npm_list = sys.argv[1], sys.argv[2]
-go_dir_arg = sys.argv[3] if len(sys.argv) > 3 else ""
+go_dir_arg = sys.argv[3]
+go_ship, npm_ship, npm_dir_arg, write = sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]
+# devDependencies whose code the bundle carries: the Svelte runtime.
+BUNDLED_DEV = ("svelte",)
 
 ALLOWED = {"MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "OFL-1.1"}
 ALLOWED_EXTRA = {
@@ -221,4 +238,91 @@ for kind, name, why in bad:
 if bad:
     sys.exit(1)
 print(f"licenses: ok ({checked_go} go modules, {checked_npm} npm packages)")
+
+def license_file(d):
+    """The package's license file, at its root or in dist/, or None."""
+    for sub in ("", "dist"):
+        dd = os.path.join(d, sub)
+        if not os.path.isdir(dd):
+            continue
+        for n in sorted(os.listdir(dd)):
+            if re.match(r"(?i)^(licen[cs]e|copying|unlicense)([._-].*)?$", n) and os.path.isfile(os.path.join(dd, n)):
+                return os.path.join(dd, n)
+    return None
+
+MIT_TEXT = """Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE."""
+
+if write:
+    out = []
+    def entry(title, d, fallback):
+        f = license_file(d) if d else None
+        out.append("\n\n" + "=" * 64 + "\n" + title + "\n" + "=" * 64 + "\n\n")
+        if f:
+            with open(f, errors="replace") as fh:
+                out.append(fh.read())
+        else:
+            out.append(fallback + "\n")
+    for line in open(go_ship):
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        path, version, d = parts[0], parts[1], parts[2]
+        entry(f"{path} {version} (Go)", d, "No license file in the module; see its repository.")
+    dirs = []
+    for line in open(npm_ship):
+        d = line.strip()
+        if d and "node_modules" in d.split(os.sep) and d not in dirs:
+            dirs.append(d)
+    if npm_dir_arg:
+        nm = os.path.join(npm_dir_arg, "node_modules")
+        for name in BUNDLED_DEV:
+            d = os.path.join(nm, name)
+            pj = os.path.join(d, "package.json")
+            if not os.path.isfile(pj):
+                continue
+            with open(pj) as f:
+                deps = list(json.load(f).get("dependencies", {}))
+            for dd in [d] + [os.path.join(nm, x) for x in deps]:
+                if os.path.isdir(dd) and dd not in dirs:
+                    dirs.append(dd)
+    for d in sorted(set(dirs)):
+        with open(os.path.join(d, "package.json")) as f:
+            meta = json.load(f)
+        lic = meta.get("license")
+        if isinstance(lic, dict):
+            lic = lic.get("type", "")
+        repo = meta.get("repository")
+        if isinstance(repo, dict):
+            repo = repo.get("url", "")
+        author = meta.get("author") or ""
+        if isinstance(author, dict):
+            author = author.get("name", "")
+        fallback = f"License: {lic or 'unstated'}. The package ships no license file; see {repo or 'its repository'}."
+        if lic == "MIT":
+            fallback = (f"The package ships no license file; its package.json says MIT, by {author or 'its authors'}"
+                        f" ({repo or 'see its repository'}). The MIT License:\n\n"
+                        f"Copyright (c) {author or 'the authors'}\n\n" + MIT_TEXT)
+        entry(f"{meta.get('name', os.path.basename(d))} {meta.get('version', '?')} (npm)", d, fallback)
+    os.makedirs(os.path.dirname(os.path.abspath(write)), exist_ok=True)
+    with open(write, "w") as f:
+        f.write("stickypane-app is MIT licensed (LICENSE). It carries the Go modules and npm\n")
+        f.write("packages below; each license is reproduced as the package ships it.\n")
+        f.write("".join(out))
+    print(f"licenses: wrote {write}")
 PY

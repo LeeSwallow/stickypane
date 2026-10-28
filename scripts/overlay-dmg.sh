@@ -10,7 +10,9 @@
 # overlay/build/dmg/render.sh. The image's copy of the app carries the
 # command line program at Contents/Helpers/stickypane, built here
 # from this checkout for the app's architectures with the app's version,
-# so installing the app is enough (09 §9.1). Both are signed ad hoc (codesign -s -), the program first.
+# so installing the app is enough (09 §9.1), and Contents/Resources gets
+# LICENSE, THIRD_PARTY_NOTICES.md and licenses/ with every bundled package's
+# license text. Both are signed ad hoc (codesign -s -), the program first.
 # Finder arranges the window through AppleScript, so it runs on a Mac with
 # a logged-in user. It overwrites out.dmg, and whatever happens it leaves no
 # volume of its own mounted and no files of its own behind.
@@ -75,6 +77,13 @@ for a in $archs; do
 	set -- "$@" "$work/stickypane-$a"
 done
 lipo -create "$@" -output "$cli"
+# The license texts, before signing: the seal covers Resources.
+res="$stage/$name/Contents/Resources"
+cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$res/"
+sh "$root/overlay/scripts/licenses.sh" --write "$res/licenses/stickypane-app.txt" >/dev/null ||
+	die "overlay/scripts/licenses.sh failed: run it to see why"
+sh "$root/scripts/licenses.sh" "$res/licenses/stickypane.txt" >/dev/null ||
+	die "scripts/licenses.sh failed: run it to see why"
 xattr -cr "$stage/$name"
 codesign --force --sign - "$cli"
 codesign --force --sign - "$stage/$name"
