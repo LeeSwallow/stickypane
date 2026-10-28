@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,13 +20,13 @@ func TestRemoveGoesToTheTrashAndRestoreBringsItBack(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"plan.md": "the plan\n"})
 	got, err := a.Remove("plan")
 	if err != nil || has(dir, "plan.md") || !has(dir, ".trash/plan.md") {
-		t.Fatalf("Remove = %q, %v", got, err)
+		t.Fatalf("Remove = %+v, %v", got, err)
 	}
-	if !strings.Contains(got, ".trash/plan.md") || !strings.Contains(got, "restore plan") {
-		t.Errorf("the answer should say where the note went and how to get it back: %q", got)
+	if got != (Moved{From: "plan.md", To: ".trash/plan.md"}) {
+		t.Errorf("the answer should say where the note went: %+v", got)
 	}
-	if got, err := a.Restore("plan"); err != nil || got != "restored plan.md" || read(t, dir, "plan.md") != "the plan\n" {
-		t.Errorf("Restore = %q, %v", got, err)
+	if got, err := a.Restore("plan"); err != nil || got != (Moved{From: ".trash/plan.md", To: "plan.md"}) || read(t, dir, "plan.md") != "the plan\n" {
+		t.Errorf("Restore = %+v, %v", got, err)
 	}
 	if _, err := a.Restore("plan"); err == nil {
 		t.Error("there is nothing left to restore")
@@ -40,14 +41,43 @@ func TestArchiveAndRemoveTakeABookByItsFolder(t *testing.T) {
 	if _, err := a.Write("docs/guide", Options{}, []byte("guide\n")); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := a.Archive("plan"); err != nil || got != "moved plan.md to archive/plan.md" || !has(dir, "archive/plan.md") {
-		t.Errorf("Archive = %q, %v", got, err)
+	if got, err := a.Archive("plan"); err != nil || got != (Moved{From: "plan.md", To: "archive/plan.md"}) || !has(dir, "archive/plan.md") {
+		t.Errorf("Archive = %+v, %v", got, err)
 	}
 	if _, err := a.Remove("docs"); err != nil || has(dir, "docs") || !has(dir, ".trash/docs/guide.md") {
 		t.Errorf("a book goes to the trash whole: %v", err)
 	}
 	if _, err := a.Restore("docs"); err != nil || read(t, dir, "docs/guide.md") != "guide\n" {
 		t.Errorf("and comes back whole: %v", err)
+	}
+}
+
+// A book in a tab is a book too: archived, trashed and restored whole, by
+// its folder's name, and a book whose name has a dot comes back by it.
+func TestABookInATabIsTakenByItsFolder(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"x.md": "x\n"})
+	for _, f := range []string{"deploy/docs/guide.md", "deploy/v1.2/notes.md"} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, f)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("g\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, err := a.Archive("deploy/docs"); err != nil || got.From != "deploy/docs" || !has(dir, got.To+"/guide.md") {
+		t.Errorf("Archive = %+v, %v", got, err)
+	}
+	if got, err := a.Remove("deploy/v1.2"); err != nil || got.To != ".trash/deploy/v1.2" || has(dir, "deploy/v1.2") {
+		t.Fatalf("Remove = %+v, %v", got, err)
+	}
+	if _, err := a.Restore("deploy/v1.2"); err != nil || !has(dir, "deploy/v1.2/notes.md") {
+		t.Errorf("a book in a tab comes back whole: %v", err)
+	}
+	if _, err := a.Restore("v9.9"); !errors.Is(err, fs.ErrNotExist) || !strings.Contains(err.Error(), "there is no v9.9 in the trash") {
+		t.Errorf("a book that was never trashed: %v", err)
+	}
+	if got, err := a.Set("deploy/v1.2", []string{"color=blue", "title=Release"}); err != nil || got != "deploy/v1.2: set color, title" {
+		t.Errorf("Set on a book in a tab = %q, %v", got, err)
 	}
 }
 
@@ -59,17 +89,21 @@ func TestMove(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "docs", "p.md"), []byte("p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	steps := []struct{ name, to, want, file string }{
-		{"plan", "docs", "moved plan.md to docs/plan.md", "docs/plan.md"},                 // into a book
-		{"docs/plan", ".", "moved docs/plan.md to plan.md", "plan.md"},                    // out to the top level
-		{"plan", "roadmap", "moved plan.md to roadmap.md", "roadmap.md"},                  // a new name
-		{"build.log", "ci", "moved build.log to ci.log", "ci.log"},                        // a new name keeps the kind of file
-		{"roadmap", "notes/", "moved roadmap.md to notes/roadmap.md", "notes/roadmap.md"}, // a folder that is not there yet
-		{"docs", "manual", "moved docs to manual", "manual/p.md"},                         // a book under a new name
+	steps := []struct {
+		name, to string
+		want     Moved
+		file     string
+	}{
+		{"plan", "docs", Moved{"plan.md", "docs/plan.md"}, "docs/plan.md"},                 // into a book
+		{"docs/plan", ".", Moved{"docs/plan.md", "plan.md"}, "plan.md"},                    // out to the top level
+		{"plan", "roadmap", Moved{"plan.md", "roadmap.md"}, "roadmap.md"},                  // a new name
+		{"build.log", "ci", Moved{"build.log", "ci.log"}, "ci.log"},                        // a new name keeps the kind of file
+		{"roadmap", "notes/", Moved{"roadmap.md", "notes/roadmap.md"}, "notes/roadmap.md"}, // a folder that is not there yet
+		{"docs", "manual", Moved{"docs", "manual"}, "manual/p.md"},                         // a book under a new name
 	}
 	for _, s := range steps {
 		if got, err := a.Move(s.name, s.to); err != nil || got != s.want || !has(dir, s.file) {
-			t.Errorf("Move(%q, %q) = %q, %v", s.name, s.to, got, err)
+			t.Errorf("Move(%q, %q) = %+v, %v", s.name, s.to, got, err)
 		}
 	}
 	if _, err := a.Move("other", "ci.log"); err == nil || read(t, dir, "ci.log") != "x\n" {

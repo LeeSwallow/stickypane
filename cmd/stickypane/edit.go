@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
@@ -82,13 +83,17 @@ func manageCmd(cmd string) func(env, []string) error {
 			return err
 		}
 		var out string
+		var moved api.Moved
 		switch cmd {
 		case "rm":
-			out, err = a.Remove(words[0])
+			moved, err = a.Remove(words[0])
+			out = removed(moved)
 		case "restore":
-			out, err = a.Restore(words[0])
+			moved, err = a.Restore(words[0])
+			out = "restored " + moved.To
 		case "archive":
-			out, err = a.Archive(words[0])
+			moved, err = a.Archive(words[0])
+			out = movedTo(moved)
 		case "show":
 			out, err = a.Show(words[0])
 		case "hide":
@@ -100,7 +105,8 @@ func manageCmd(cmd string) func(env, []string) error {
 			}
 			out, err = a.Link(words[0], name)
 		default: // mv
-			out, err = a.Move(words[0], words[1])
+			moved, err = a.Move(words[0], words[1])
+			out = movedTo(moved)
 		}
 		if err != nil {
 			return err
@@ -108,4 +114,12 @@ func manageCmd(cmd string) func(env, []string) error {
 		_, err = fmt.Fprintln(e.stdout, out)
 		return err
 	}
+}
+
+// movedTo says where a note went.
+func movedTo(m api.Moved) string { return fmt.Sprintf("moved %s to %s", m.From, m.To) }
+
+// removed says where a removed note went and how to bring it back.
+func removed(m api.Moved) string {
+	return fmt.Sprintf("%s; `stickypane restore %s` brings it back", movedTo(m), strings.TrimSuffix(m.From, ".md"))
 }

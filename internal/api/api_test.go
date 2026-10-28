@@ -224,11 +224,11 @@ func TestRestoreOfWhatIsNotInTheTrashIsNotFound(t *testing.T) {
 	}
 }
 
-func TestMoveToSaysWhereTheNoteWent(t *testing.T) {
+func TestMoveSaysWhereTheNoteWent(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"a.md": "a\n"})
-	dest, err := a.MoveTo("a", "docs/")
-	if err != nil || dest != "docs/a.md" {
-		t.Fatalf("MoveTo = %q, %v", dest, err)
+	got, err := a.Move("a", "docs/")
+	if err != nil || got.To != "docs/a.md" {
+		t.Fatalf("Move = %+v, %v", got, err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "docs", "a.md")); err != nil {
 		t.Error(err)

@@ -525,13 +525,26 @@ func arrange(b *api.API, name, action, to string) (string, error) {
 		if to == "" {
 			return "", errors.New(`move needs "to": a new name, a folder ending in "/", or "."`)
 		}
-		return b.Move(name, to)
+		return said(b.Move(name, to))(func(m api.Moved) string { return fmt.Sprintf("moved %s to %s", m.From, m.To) })
 	case "remove":
-		return b.Remove(name)
+		return said(b.Remove(name))(func(m api.Moved) string {
+			return fmt.Sprintf("moved %s to %s; `stickypane restore %s` brings it back", m.From, m.To, strings.TrimSuffix(m.From, ".md"))
+		})
 	case "restore":
-		return b.Restore(name)
+		return said(b.Restore(name))(func(m api.Moved) string { return "restored " + m.To })
 	}
 	return "", fmt.Errorf("unknown action %q: show, hide, move, remove or restore", action)
+}
+
+// said words what api answered, when it did not fail: the agent reads the
+// sentence, api only says where the note went.
+func said(m api.Moved, err error) func(func(api.Moved) string) (string, error) {
+	return func(say func(api.Moved) string) (string, error) {
+		if err != nil {
+			return "", err
+		}
+		return say(m), nil
+	}
 }
 
 // boardTools are the tools that work on the board, each with whether it
