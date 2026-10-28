@@ -49,7 +49,13 @@ cat >"$tmp/Odd.app/Contents/Info.plist" <<'EOF'
 <key>CFBundleShortVersionString</key><string>9.9.9</string>
 </dict></plist>
 EOF
-expect_fail "version not config.yml's" "version 9.9.9" "$tmp/Odd.app" "$tmp/out.dmg"
+# The version check reads Info.plist with PlistBuddy, which only macOS has;
+# elsewhere the script stops earlier, at "needs macOS".
+if [ "$(uname -s)" = Darwin ]; then
+	expect_fail "version not config.yml's" "version 9.9.9" "$tmp/Odd.app" "$tmp/out.dmg"
+else
+	expect_fail "not macOS" "needs macOS" "$tmp/Odd.app" "$tmp/out.dmg"
+fi
 expect_fail "not a .dmg" "must end in .dmg" "$tmp/Missing.app" "$tmp/out.img"
 
 [ "$fail" -eq 0 ] && echo "dmg_test: ok"
