@@ -32,6 +32,7 @@ type State struct {
 	Hotkey   string                 `json:"hotkey"`
 	Language string                 `json:"language,omitempty"` // the home window's: "", "ko", "en"
 	Mode     string                 `json:"mode,omitempty"`     // the home window's: "", "light", "dark"
+	Motion   string                 `json:"motion,omitempty"`   // every window's: "", "reduce", "off"
 	Last     string                 `json:"last,omitempty"`     // the project the hotkey toggles
 	Windows  map[string]WindowState `json:"windows,omitempty"`  // by project path
 	// TrayHint is set once the person has been told, on closing a window,

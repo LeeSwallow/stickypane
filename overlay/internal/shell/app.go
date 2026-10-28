@@ -927,19 +927,28 @@ type Prefs struct {
 	Hotkey   string `json:"hotkey"`
 	Language string `json:"language"`
 	Mode     string `json:"mode"`
+	// Motion is how much the windows move: "" as the system says,
+	// "reduce" (fades only) or "off".
+	Motion string `json:"motion"`
 }
 
 // Prefs returns the home window's settings.
 func (s *Shell) Prefs() Prefs {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode}
+	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode, Motion: s.state.Motion}
 }
 
 // SetPrefs keeps the home window's settings; a new hotkey is registered.
 func (s *Shell) SetPrefs(p Prefs) error {
 	s.mu.Lock()
 	s.state.Language, s.state.Mode = p.Language, p.Mode
+	switch p.Motion {
+	case "reduce", "off":
+		s.state.Motion = p.Motion
+	default:
+		s.state.Motion = ""
+	}
 	// A new hotkey, or the same one that could not be had: try it.
 	change := p.Hotkey != "" && p.Hotkey != s.hotkey
 	s.mu.Unlock()

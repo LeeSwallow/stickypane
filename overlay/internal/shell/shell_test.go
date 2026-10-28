@@ -764,3 +764,23 @@ func TestEnsureHonoursStickypaneHome(t *testing.T) {
 		t.Errorf("home not made: %v", err)
 	}
 }
+
+func TestMotionIsKeptAndOnlyItsWords(t *testing.T) {
+	r := newRig(t)
+	r.s.Start()
+	for _, c := range []struct{ in, want string }{{"off", "off"}, {"reduce", "reduce"}, {"wild", ""}, {"", ""}} {
+		if err := r.s.SetPrefs(Prefs{Hotkey: DefaultHotkey, Motion: c.in}); err != nil {
+			t.Fatal(err)
+		}
+		if got := r.s.Prefs().Motion; got != c.want {
+			t.Errorf("motion %q kept as %q, want %q", c.in, got, c.want)
+		}
+	}
+	if err := r.s.SetPrefs(Prefs{Hotkey: DefaultHotkey, Motion: "off"}); err != nil {
+		t.Fatal(err)
+	}
+	st, err := LoadState(filepath.Join(r.home, StateFile))
+	if err != nil || st.Motion != "off" {
+		t.Errorf("overlay.json motion %q, %v", st.Motion, err)
+	}
+}

@@ -16,11 +16,15 @@ export interface BoardSettingsPatch {
   language?: 'auto' | 'ko' | 'en'
 }
 
-/** The app's settings in overlay.json. mode: "" (system), "light", "dark". */
+/**
+ * The app's settings in overlay.json. mode: "" (system), "light", "dark";
+ * motion: "" (as the system says), "reduce", "off".
+ */
 export interface AppPrefs {
   hotkey: string
   language: string
   mode: string
+  motion?: string
 }
 
 export interface SettingsApi {
@@ -43,7 +47,10 @@ export const settingsService: SettingsApi = {
  */
 export async function setAppPref(api: SettingsApi, patch: Partial<AppPrefs>): Promise<AppPrefs> {
   const now = await api.appPrefs()
-  const next = { hotkey: now?.hotkey ?? '', language: now?.language ?? '', mode: now?.mode ?? '', ...patch }
+  const next: AppPrefs = { hotkey: now?.hotkey ?? '', language: now?.language ?? '', mode: now?.mode ?? '', ...patch }
+  const motion = patch.motion ?? now?.motion
+  if (motion) next.motion = motion
+  else delete next.motion
   await api.setAppPrefs(next)
   return next
 }
