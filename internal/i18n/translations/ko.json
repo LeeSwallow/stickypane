@@ -191,7 +191,7 @@
     "cat.what": "노트의 파일을 디스크에 있는 그대로 출력합니다.",
     "write.brief": "표준 입력으로 노트를 만들거나 바꿉니다",
     "write.what": "표준 입력으로 들어온 내용으로 노트를 만들거나 통째로 바꿉니다. 파일을 덮어쓰는 것과 같습니다. 고쳐 쓰기 전에 먼저 읽으세요.",
-    "write.args": "--type T   모양: note, board, checklist, log, chart, form, script\n--title X  노트 제목\n--open     바로 화면에 올립니다\n--size S   half, 1/3, 줄 수...",
+    "write.args": "--type T   모양: note, board, checklist, log, chart, form, script\n--title X  노트 제목\n--open     바로 화면에 올립니다\n--size S   너비: 화면의 1/4, 1/3, 1/2, 2/3, 3/4, 1 (또는 card, half, page)",
     "todo.brief": "체크리스트 항목을 추가, 체크, 체크 해제합니다",
     "todo.what": "체크리스트의 항목 하나를 읽거나 다시 쓰지 않고 바꾸고, 노트의 현황을 출력합니다. 항목은 글자, 글자 일부, #2로 가리킵니다.",
     "card.brief": "보드의 카드를 추가하거나 옮깁니다",

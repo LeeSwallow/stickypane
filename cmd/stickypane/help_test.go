@@ -205,6 +205,28 @@ func realFlags(t *testing.T, c command) *flag.FlagSet {
 	return made
 }
 
+// The sizes write's help names are the sizes write takes, and a number
+// of lines is not one.
+func TestWriteSizeHelpIsWhatItAccepts(t *testing.T) {
+	english(t)
+	project(t)
+	english(t)
+	c, _ := lookup("write")
+	_, line, _ := strings.Cut(c.help.args, "--size S")
+	sizes := regexp.MustCompile(`[0-9]/[0-9]|\b1\b|card|half|page`).FindAllString(line, -1)
+	if len(sizes) != 9 {
+		t.Fatalf("the help names %v", sizes)
+	}
+	for _, size := range sizes {
+		if code, _, errOut := execIn(t, "x\n", "write", "n", "--size", size); code != 0 {
+			t.Errorf("--size %s: %s", size, errOut)
+		}
+	}
+	if code, _, _ := execIn(t, "x\n", "write", "n", "--size", "12"); code == 0 {
+		t.Error("--size 12 was taken")
+	}
+}
+
 func isShape(name string) bool {
 	k, f, ok := findShape(name)
 	return ok && (k != nil || f != nil)

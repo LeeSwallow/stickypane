@@ -154,7 +154,7 @@ func init() {
 			group: "notes", brief: "create or replace a note from standard input",
 			what:     "Creates or replaces a note with what comes on standard input, exactly as overwriting the file would. Read a note before rewriting it.",
 			syntax:   "stickypane write <name> [--type T] [--title X] [--open] [--size S]",
-			args:     "--type T   the shape: note, board, checklist, log, chart, form, script\n--title X  the note's title\n--open     put the note on the screen now\n--size S   half, 1/3, a number of lines...",
+			args:     "--type T   the shape: note, board, checklist, log, chart, form, script\n--title X  the note's title\n--open     put the note on the screen now\n--size S   the width: 1/4, 1/3, 1/2, 2/3, 3/4 or 1 of the screen (or card, half, page)",
 			examples: []string{"echo \"- [ ] build\" | stickypane write plan --type checklist --title \"Release\" --open", "echo \"hello\" | stickypane write hello", "echo \"- [ ] a\" | stickypane write deploy/steps --type checklist"},
 			related:  []string{"kinds", "set", "cat"},
 		}},
