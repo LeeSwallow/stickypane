@@ -13,6 +13,28 @@ Back to the [README](../README.md).
 brew install --cask LeeSwallow/tap/stickypane
 ```
 
+## The desktop app
+
+The app is built and tested on this repository but not released yet; the
+DMG and the Linux archive come with its first release, on the
+[releases page](https://github.com/LeeSwallow/stickypane/releases). It
+carries its own `stickypane`, so it is the only thing to install.
+
+macOS: open `stickypane-<version>-<arch>.dmg` and drag **Stickypane** to
+**Applications**. The first release is not notarized, so the first open is
+held back: open **System Settings → Privacy & Security** and choose **Open
+Anyway**. Then, in a board's settings, **Terminal and agents** installs the
+`stickypane` command for your terminals and connects Claude Code and Codex.
+
+Linux (WebKitGTK 4.1 needed):
+
+```sh
+tar -xzf stickypane-app-<version>-linux-amd64.tar.gz
+sh stickypane-app-<version>-linux-amd64/install.sh   # --uninstall takes it out
+```
+
+The app's own design and build notes are in [docs/overlay](overlay/README.md).
+
 ## A release archive
 
 Every [release](https://github.com/LeeSwallow/stickypane/releases) has an
