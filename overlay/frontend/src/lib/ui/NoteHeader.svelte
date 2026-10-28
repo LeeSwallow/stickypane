@@ -310,6 +310,13 @@
       display: none;
     }
   }
+  /* a very narrow note gives its title the line; its controls come back
+     when it is pointed at or holds the focus */
+  @container (max-width: 320px) {
+    .head:not(:hover):not(:focus-within) .tools {
+      display: none;
+    }
+  }
   @container (max-width: 300px) {
     .step {
       display: none;
