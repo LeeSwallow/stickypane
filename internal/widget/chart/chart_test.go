@@ -29,6 +29,7 @@ func draw(t *testing.T, src string, width int) []string {
 }
 
 func TestBarsAreScaledToTheLargestValue(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "Tests per package\n\napp: 40\nboard: 20\nstore: 10\nempty: 0\n", 25)
 	want := []string{
 		"Tests per package",
@@ -44,6 +45,7 @@ func TestBarsAreScaledToTheLargestValue(t *testing.T) {
 }
 
 func TestBarsUsePartialBlocks(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "a: 8\nb: 3\n", 12) // 8 cells of bar: b is 3 cells exactly
 	if lines[0] != "a ████████ 8" || lines[1] != "b ███      3" {
 		t.Errorf("Draw = %q", lines)
@@ -55,6 +57,7 @@ func TestBarsUsePartialBlocks(t *testing.T) {
 }
 
 func TestBarsAcceptListItemsAndFormattedNumbers(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "- 입력: 1,200\n* 출력: 300.5\n  캐시 읽기: 2_400\n", 30)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{"입력", "출력", "캐시 읽기", "1,200", "300.5", "2_400"} {
@@ -68,6 +71,7 @@ func TestBarsAcceptListItemsAndFormattedNumbers(t *testing.T) {
 }
 
 func TestSparkOnOneLineWhenThereIsNothingToPlot(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "---\ntype: chart\nview: spark\n---\nmon: 1\n", 60)
 	if lines[0] != "▅" || len(lines) != 2 {
 		t.Errorf("one value keeps the one-line form: %q", lines)
@@ -81,6 +85,7 @@ func TestSparkOnOneLineWhenThereIsNothingToPlot(t *testing.T) {
 const eightValues = "---\ntype: chart\nview: spark\n---\nmon: 10\ntue: 30\nwed: 20\nthu: 80\nfri: 50\nsat: 60\nsun: 40\nmon2: 95\n"
 
 func TestSparkIsALineChartThatFillsTheWidth(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, eightValues, 60)
 	if len(lines) < 6+1 {
 		t.Errorf("want at least 6 rows and a label line, got %d:\n%s", len(lines), strings.Join(lines, "\n"))
@@ -108,6 +113,7 @@ func TestSparkIsALineChartThatFillsTheWidth(t *testing.T) {
 }
 
 func TestSparkIsTallerWhenZoomed(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(eightValues).(widget.Roomy)
 	pane, _ := w.DrawIn(60, 0, false)
 	zoom, _ := w.DrawIn(150, 30, true)
@@ -143,6 +149,7 @@ func ninetyDays() string {
 }
 
 func TestHeatFillsTheWidthWithTouchingShades(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, ninetyDays(), 80)
 	if got := widest(strings.Join(lines, "\n")); got < 60 {
 		t.Errorf("the calendar spans %d cells, want at least 60:\n%s", got, strings.Join(lines, "\n"))
@@ -163,6 +170,7 @@ func TestHeatFillsTheWidthWithTouchingShades(t *testing.T) {
 }
 
 func TestHeatWeekWidthFollowsTheRoom(t *testing.T) {
+	t.Parallel()
 	// 2026-09-28 is a Monday: three weeks of data.
 	src := "---\nview: heat\n---\n2026-09-28: 4\n2026-10-05: 4\n2026-10-12: 4\n"
 	for width, cells := range map[int]int{80: 4, 40: 4, 16: 1} {
@@ -174,6 +182,7 @@ func TestHeatWeekWidthFollowsTheRoom(t *testing.T) {
 }
 
 func TestHeatIsBiggerWhenZoomed(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(ninetyDays())
 	pane, _ := w.Draw(60, false)
 	zoom, _ := w.(widget.Roomy).DrawIn(200, 40, true)
@@ -183,6 +192,7 @@ func TestHeatIsBiggerWhenZoomed(t *testing.T) {
 }
 
 func TestSparkKeepsTheLatestValuesWhenNarrow(t *testing.T) {
+	t.Parallel()
 	src := "---\nview: spark\n---\n"
 	for i := 1; i <= 30; i++ {
 		src += "d" + strings.Repeat("x", i) + ": " + strings.Repeat("1", 1) + "\n"
@@ -195,6 +205,7 @@ func TestSparkKeepsTheLatestValuesWhenNarrow(t *testing.T) {
 }
 
 func TestHeatDrawsACalendar(t *testing.T) {
+	t.Parallel()
 	// 2026-09-28 is a Monday.
 	src := "---\ntype: chart\nview: heat\n---\n" +
 		"2026-09-28: 4\n2026-09-30: 1\n2026-10-02: 2\n2026-10-05: 0\n2026-10-06: 3\n"
@@ -224,6 +235,7 @@ func TestHeatDrawsACalendar(t *testing.T) {
 }
 
 func TestHeatShadesByRankSoOneHugeDayDoesNotFlattenTheRest(t *testing.T) {
+	t.Parallel()
 	src := "---\nview: heat\n---\n2026-09-28: 1\n2026-09-29: 2\n2026-09-30: 3\n2026-10-01: 1000\n"
 	lines := draw(t, src, 30)
 	var got []string
@@ -236,6 +248,7 @@ func TestHeatShadesByRankSoOneHugeDayDoesNotFlattenTheRest(t *testing.T) {
 }
 
 func TestHeatShowsTheLatestWeeksWhenNarrow(t *testing.T) {
+	t.Parallel()
 	src := "---\nview: heat\n---\n2026-01-05: 1\n2026-10-05: 5\n"
 	lines := draw(t, src, 16) // room for five week columns
 	if !strings.Contains(lines[1], "█") {
@@ -244,6 +257,7 @@ func TestHeatShowsTheLatestWeeksWhenNarrow(t *testing.T) {
 }
 
 func TestHeatWithoutDatesFallsBackToBars(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "---\nview: heat\n---\napp: 4\nstore: 2\n", 20)
 	if !strings.HasPrefix(lines[0], "app") || !strings.Contains(lines[0], "█") {
 		t.Errorf("labels that are not dates cannot make a calendar: %q", lines)
@@ -251,6 +265,7 @@ func TestHeatWithoutDatesFallsBackToBars(t *testing.T) {
 }
 
 func TestChartWithoutDataShowsItsText(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "nothing to plot yet\nstill nothing\n", 50)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{`"label: number"`, "nothing to plot yet", "still nothing"} {
@@ -261,6 +276,7 @@ func TestChartWithoutDataShowsItsText(t *testing.T) {
 }
 
 func TestNarrowChartsDoNotBreak(t *testing.T) {
+	t.Parallel()
 	src := "아주 긴 한글 라벨입니다: 12\n또 다른 긴 라벨: 7\n"
 	for _, view := range []string{"bar", "spark", "heat"} {
 		for _, width := range []int{1, 4, 9, 20} {
@@ -270,6 +286,7 @@ func TestNarrowChartsDoNotBreak(t *testing.T) {
 }
 
 func TestSparkSurvivesExtremeValues(t *testing.T) {
+	t.Parallel()
 	huge := "1" + strings.Repeat("0", 308)
 	lines := draw(t, "---\nview: spark\n---\na: "+huge+"\nb: -"+huge+"\nc: 0\n", 40)
 	if len(lines) < 2 {
@@ -278,6 +295,7 @@ func TestSparkSurvivesExtremeValues(t *testing.T) {
 }
 
 func TestTextThatOnlyLooksLikeDataStaysText(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "Updated at 12:30\nSee http://localhost:8080\napp: 4\n", 40)
 	text := strings.Join(lines, "\n")
 	if !strings.Contains(text, "Updated at 12:30") || !strings.Contains(text, "http://localhost:8080") {
@@ -289,6 +307,7 @@ func TestTextThatOnlyLooksLikeDataStaysText(t *testing.T) {
 }
 
 func TestHeatShowsValuesThatAreNotDays(t *testing.T) {
+	t.Parallel()
 	lines := draw(t, "---\nview: heat\n---\n2026-09-28: 4\nbudget: 100\n", 40)
 	text := strings.Join(lines, "\n")
 	if !strings.Contains(text, "budget: 100") {
@@ -300,6 +319,7 @@ func TestHeatShowsValuesThatAreNotDays(t *testing.T) {
 }
 
 func TestSummaryAndSync(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("a: 1\nb: 2\n")
 	if got := w.Summary(); got != "2 values" {
 		t.Errorf("Summary = %q", got)
@@ -317,6 +337,7 @@ func TestSummaryAndSync(t *testing.T) {
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	if Kind.Name != "chart" || Kind.Keys != "" || Kind.Size(doc.Document{}) != widget.SizeHalf {
 		t.Errorf("Kind = %+v", Kind)
 	}
