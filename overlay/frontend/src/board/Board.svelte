@@ -407,7 +407,21 @@
     return () => offs.forEach((off) => off())
   })
 
-  const stateText: Record<string, string> = { loading: 'board.loading', missing: 'board.missing', too_old: 'board.tooOld' }
+  const stateText: Record<string, string> = { loading: 'board.loading', missing: 'board.missing', too_old: 'board.tooOld', no_board: 'board.noBoard' }
+
+  // a folder without .sticky/: the app's own stickypane init makes one, and the bridge starts again
+  let making = $state(false)
+  async function makeBoard() {
+    making = true
+    failed = ''
+    try {
+      await api.makeBoard()
+    } catch (e) {
+      failed = errorText(e)
+    } finally {
+      making = false
+    }
+  }
 </script>
 
 <svelte:window onkeydown={onkey} />
@@ -443,7 +457,13 @@
     <Paper>
       {#if !status || status.state !== 'ready' || !board}
         <div class="state" role="status">
-          <EmptyState title={$tr(status ? (stateText[status.state] ?? 'board.cannotOpen') : 'board.loading')} body={status?.error} art={!!status && status.state !== 'loading'} />
+          {#if status?.state === 'no_board'}
+            <EmptyState title={$tr('board.noBoard')} body={failed || status.path}>
+              <Button variant="primary" loading={making} onclick={makeBoard}>{$tr('board.makeBoard')}</Button>
+            </EmptyState>
+          {:else}
+            <EmptyState title={$tr(status ? (stateText[status.state] ?? 'board.cannotOpen') : 'board.loading')} body={status?.error} art={!!status && status.state !== 'loading'} />
+          {/if}
         </div>
       {:else if zoomed}
         <!-- a click on the paper around a zoomed note goes back; Esc does too -->

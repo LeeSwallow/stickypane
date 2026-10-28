@@ -97,7 +97,7 @@ describe('home', () => {
     expect(within(ask).getByText('이 폴더에 보드를 만들까요?')).toBeTruthy()
     expect(within(ask).getByText('/home/min/new')).toBeTruthy()
     expect(api.initProject).not.toHaveBeenCalled()
-    await fireEvent.click(within(ask).getByRole('button', { name: '만들기' }))
+    await fireEvent.click(within(ask).getByRole('button', { name: '보드 만들기' }))
     await waitFor(() => expect(api.initProject).toHaveBeenCalledWith('/home/min/new'))
     expect(screen.queryByRole('alertdialog')).toBeNull()
   })
@@ -134,7 +134,7 @@ describe('home', () => {
     })
     mount(api)
     await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
-    await fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: '만들기' }))
+    await fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: '보드 만들기' }))
     expect(await screen.findByText('보드를 만들지 못했어요 · refused')).toBeTruthy()
   })
 

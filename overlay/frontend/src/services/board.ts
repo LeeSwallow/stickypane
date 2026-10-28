@@ -24,6 +24,8 @@ export interface BoardApi {
   order(tab: string, order: string[]): Promise<unknown>
   open(note: string): Promise<unknown>
   pin(on: boolean): Promise<unknown>
+  /** makeBoard runs the app's stickypane init in a folder that had no board, and opens it */
+  makeBoard(): Promise<void>
   prefs(): Promise<{ hotkey?: string; mode?: string; language?: string }>
 }
 
@@ -35,6 +37,7 @@ export const boardService: BoardApi = {
   order: (tab, order) => Call.ByName(project('Order'), { tab, order }),
   open: (note) => Call.ByName(project('Open'), note),
   pin: (on) => Call.ByName(project('Pin'), on),
+  makeBoard: () => Call.ByName(project('MakeBoard')) as Promise<void>,
   prefs: () => Call.ByName(home('Prefs')) as Promise<{ hotkey?: string; mode?: string; language?: string }>,
 }
 

@@ -6,6 +6,7 @@ const pkg = 'github.com/LeeSwallow/stickypane/overlay/internal/shell'
 
 export const home = (method: string) => `${pkg}.HomeService.${method}`
 export const project = (method: string) => `${pkg}.ProjectService.${method}`
+export const setup = (method: string) => `${pkg}.SetupService.${method}`
 
 export type WindowKind = 'home' | 'project'
 

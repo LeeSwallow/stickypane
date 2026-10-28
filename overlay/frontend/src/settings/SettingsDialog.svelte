@@ -13,12 +13,15 @@
   import SegmentedControl from '../lib/ui/SegmentedControl.svelte'
   import type { Settings } from '../board/model'
   import { errorText } from '../services/errors'
+  import { setupService, type SetupApi } from '../services/install'
   import { setAppPref, type BoardSettingsPatch, type SettingsApi } from '../services/settings'
   import Language from './Language.svelte'
+  import Terminal from './Terminal.svelte'
 
   let {
     open = $bindable(false),
     api,
+    setup = setupService,
     settings,
     mode,
     hotkey = '',
@@ -28,6 +31,8 @@
   }: {
     open?: boolean
     api: SettingsApi
+    /** the terminal command and the agents (any window's) */
+    setup?: SetupApi
     /** the board's, as board.load gave them */
     settings: Settings
     mode: Mode
@@ -165,11 +170,7 @@
 
     <section aria-labelledby="s-cli">
       <h3 id="s-cli" class:neat={look.style === 'neat'}>{$tr('settings.terminal')}</h3>
-      <div class="buttons">
-        <Button size="sm" variant="secondary" disabled title={$tr('settings.soon')}>{$tr('settings.installCli')}</Button>
-        <Button size="sm" variant="secondary" disabled title={$tr('settings.soon')}>{$tr('settings.connectAgents')}</Button>
-      </div>
-      <p class="scope">{$tr('settings.soon')}</p>
+      <Terminal {setup} {open} project />
     </section>
 
     <section aria-labelledby="s-about">
@@ -246,11 +247,6 @@
   }
   .keys > :global(.btn) {
     margin-top: 22px;
-  }
-  .buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .err {
     margin: 0;

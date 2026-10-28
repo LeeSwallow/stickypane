@@ -6,6 +6,7 @@ import type { Settings } from '../board/model'
 import { setAppPref, type AppPrefs, type SettingsApi } from '../services/settings'
 import SettingsDialog from './SettingsDialog.svelte'
 import { THEMES } from '../demo/themes'
+import { fakeSetup } from './fakeSetup'
 
 const settings: Settings = {
   theme: 'nord', style: 'doodle', view: 'both', language: { choice: 'en', resolved: 'en' }, tab: '', time: '', editor: '', stale: '2h',
@@ -45,7 +46,7 @@ afterEach(cleanup)
 const show = (api: SettingsApi, over: Record<string, unknown> = {}) => {
   const onmode = vi.fn()
   const onchanged = vi.fn()
-  render(SettingsDialog, { props: { open: true, api, settings, mode: 'system', hotkey: 'Option+Space', version: '0.4.0', onmode, onchanged, ...over } })
+  render(SettingsDialog, { props: { open: true, api, setup: fakeSetup().api, settings, mode: 'system', hotkey: 'Option+Space', version: '0.4.0', onmode, onchanged, ...over } })
   return { onmode, onchanged }
 }
 
@@ -91,10 +92,11 @@ describe('the settings', () => {
     expect(field.getAttribute('aria-invalid')).toBe('true')
   })
 
-  it('names the bridge\'s version, and the terminal buttons wait for the next version', () => {
+  it('names the bridge\'s version, and offers the terminal command and the agents', async () => {
     show(fakeApi().api)
     expect(document.body.textContent).toContain('stickypane 0.4.0')
-    expect((screen.getByRole('button', { name: t('settings.installCli') }) as HTMLButtonElement).disabled).toBe(true)
+    await waitFor(() => expect(screen.getByRole('button', { name: t('cli.install') })).toBeTruthy())
+    expect((screen.getByRole('button', { name: t('settings.connectAgents') }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('lists the themes the bridge gives, and keeps the chosen one when it gives none', async () => {

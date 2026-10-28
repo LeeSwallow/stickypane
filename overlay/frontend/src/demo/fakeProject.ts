@@ -20,6 +20,7 @@ export function fakeProject(board: Board, mode: string, lang: string): ProjectAp
     order: async () => {},
     open: async () => {},
     pin: async () => {},
+    makeBoard: async () => {},
     prefs: async () => prefs,
     archive: async () => {},
     trash: async () => {},
