@@ -13,7 +13,8 @@
 # Also allowed, because build tools in the current tree need them; each is
 # listed in ALLOWED_EXTRA below with its reason. Add one only with a reason.
 # MPL-2.0 is allowed only for lightningcss (see BUILD_ONLY), a tool of Vite
-# that is not part of the app.
+# that is not part of the app, and golang-lru (see GO_TEST_ONLY), which only
+# a test of modernc.org/libc imports.
 set -eu
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -61,6 +62,10 @@ OK = ALLOWED | ALLOWED_EXTRA
 # Packages that may carry MPL-2.0: file-level copyleft, fine for a build tool
 # that is run but neither linked nor shipped.
 BUILD_ONLY = {"MPL-2.0": ("lightningcss",)}
+# Go modules that are MPL-2.0 and in the module graph only through the tests
+# of a dependency: modernc.org/libc.test imports golang-lru, but no package
+# of the app or of its dependencies does (`go list -deps` does not list it).
+GO_TEST_ONLY = ("github.com/hashicorp/golang-lru/v2",)
 
 def expr_ok(expr):
     """True when the SPDX expression is satisfied by the allowed set."""
@@ -153,6 +158,8 @@ while i < len(raw):
             with open(os.path.join(d, n), errors="replace") as f:
                 text = f.read()
             break
+    if path in GO_TEST_ONLY:
+        continue
     checked_go += 1
     if text is None:
         bad.append(("go", f"{path}@{version}", "no license file"))
