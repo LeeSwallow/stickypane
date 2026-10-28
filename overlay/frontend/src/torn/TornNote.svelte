@@ -3,7 +3,9 @@
   // window of its own, anywhere on the screen, over the same bridge as its
   // board's window. It draws and acts as on the board (the same frame and
   // shapes, through the same context); its bar is where the window is
-  // carried, kept on top, and put back. The shell closes it when the note
+  // carried, kept on top, and put back. Its ⋯ runs a script, sends a
+  // request, moves, archives and deletes as the board's does, after the
+  // same questions. The shell closes it when the note
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
   import { onMount, setContext } from 'svelte'
@@ -13,7 +15,11 @@
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { applyTheme } from '../lib/theme/tokens'
+  import Button from '../lib/ui/Button.svelte'
+  import Confirm from '../lib/ui/Confirm.svelte'
+  import Dialog from '../lib/ui/Dialog.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
+  import Input from '../lib/ui/Input.svelte'
   import IconButton from '../lib/ui/IconButton.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import { events, type Bus, type Status } from '../services/board'
@@ -23,6 +29,7 @@
   import { boardContext, noteHex, type BoardCtx } from '../board/context'
   import { allNotes, findNote, resolveLink, type Board } from '../board/model'
   import NoteFrame from '../board/NoteFrame.svelte'
+  import * as manage from '../board/manage'
   import { connect } from '../board/session'
   import { modeOf, paletteFor } from '../board/theme'
 
@@ -36,6 +43,12 @@
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
   let failed = $state('')
+  // a short word at the bottom (run, sent, archived, deleted with 되돌리기)
+  let notice = $state<manage.Said | null>(null)
+  // a question before a delete, a run or a send; the note being moved
+  let asking = $state<manage.Asking | null>(null)
+  let moving = $state(false)
+  let moveTo = $state('')
   let mode = $state<Mode>('system')
   let systemDark = $state(false)
   let now = $state(new Date())
@@ -100,6 +113,27 @@
     if (board) board = patch(board)
   }
 
+  const deps: manage.ManageDeps = {
+    get api() {
+      return api
+    },
+    refresh,
+    say: (s) => (notice = s),
+    fail: (m) => (failed = m),
+  }
+  const question = $derived(asking ? manage.question(asking, board?.title ?? '') : null)
+
+  async function answer() {
+    const a = asking
+    asking = null
+    if (a) await manage.answer(deps, a)
+  }
+
+  async function moveNote() {
+    moving = false
+    if (note && moveTo.trim()) await manage.move(deps, note, moveTo)
+  }
+
   async function putBack() {
     await api.putBack().catch((e) => (failed = errorText(e)))
   }
@@ -141,6 +175,13 @@
     now: () => now,
     edit: (n) => void api.open(n).catch((e) => (failed = errorText(e))),
     putBack: () => void putBack(),
+    manage(n, what, request) {
+      if (what === 'archive') void manage.archive(deps, n)
+      else if (what === 'move') {
+        moving = true
+        moveTo = ''
+      } else asking = { what, note: n, request }
+    },
   }
   setContext(boardContext, ctx)
 
@@ -194,6 +235,34 @@
     <div class="toasts">
       <Toast message={failed} tone="bad" icon="warn" onclose={() => (failed = '')} />
     </div>
+  {:else if notice}
+    <div class="toasts">
+      {#key notice}
+        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+      {/key}
+    </div>
+  {/if}
+  {#if asking && question}
+    <Confirm open title={question.title} message={question.body} confirmLabel={question.yes} danger onconfirm={answer} oncancel={() => (asking = null)} />
+  {/if}
+  {#if moving && note}
+    {@const targets = manage.moveTargets(board?.tabs ?? [], note.tab)}
+    <Dialog open title={t('note.moveTitle', { title: note.title })} width={320} onclose={() => (moving = false)}>
+      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
+        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
+        {#if targets.length}
+          <div class="targets">
+            {#each targets as to (to)}
+              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
+            {/each}
+          </div>
+        {/if}
+      </form>
+      {#snippet actions()}
+        <Button variant="ghost" onclick={() => (moving = false)}>{$tr('ui.cancel')}</Button>
+        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
+      {/snippet}
+    </Dialog>
   {/if}
 </div>
 
@@ -249,6 +318,16 @@
     display: grid;
     place-items: center;
     flex: 1;
+  }
+  .move {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .targets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
   .toasts {
     position: absolute;

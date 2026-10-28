@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage, t } from '../i18n'
 import type { Board, Note } from '../board/model'
@@ -8,6 +8,7 @@ import { fakeProject } from '../demo/fakeProject'
 import type { ProjectApi } from '../services/project'
 import { THEMES } from '../lib/theme/palettes'
 import TornNote from './TornNote.svelte'
+import { fixture } from '../shapes/fixtures/fixtures'
 
 const base = { tab: 'work', icon: '', open: true, rows: 0, color: 'yellow', pinned: false, version: 'v1', summary: '', modTime: '2026-10-28T10:00:00Z', linked: false, size: '1/2' }
 const checklist = {
@@ -99,5 +100,55 @@ describe('a torn-off note', () => {
     })
     await fireEvent.click(link)
     expect(a.tearOff).toHaveBeenCalledWith('work/release.md')
+  })
+})
+
+// #20's shapes, drawn from a real bridge's board.load, act the same torn off
+describe('a torn-off note of every shape', () => {
+  const real = fixture as Board
+  const torn = (name: string, over: Partial<ProjectApi> = {}) => {
+    const a = api(real, { status: async () => ({ window: 7, path: '/p', state: 'ready', pinned: true, note: name }), run: vi.fn(async () => ({ code: 0, took: 5 })), send: vi.fn(async () => ({})), ...over })
+    render(TornNote, { props: { api: a, bus: fakeBus().bus, note: name } })
+    return a
+  }
+
+  it('answers a form', async () => {
+    const a = torn('deploy.md')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Deploy' }))
+    expect(a.act).toHaveBeenCalledWith('deploy.md', expect.any(String), { name: 'submit', args: { label: 'Deploy' } })
+  })
+
+  it('says something in a chat', async () => {
+    const a = torn('chat.md')
+    const say = await screen.findByLabelText('Say something')
+    await fireEvent.input(say, { target: { value: 'thanks' } })
+    await fireEvent.keyDown(say, { key: 'Enter' })
+    expect(a.act).toHaveBeenCalledWith('chat.md', expect.any(String), { name: 'say', args: { text: 'thanks' } })
+  })
+
+  it('runs a script after the question', async () => {
+    const a = torn('build.sh')
+    await fireEvent.click(await screen.findByRole('button', { name: 'Run' }))
+    expect(a.run).not.toHaveBeenCalled()
+    const ask = await screen.findByRole('alertdialog')
+    await fireEvent.click(within(ask).getByRole('button', { name: t('run.button') }))
+    await waitFor(() => expect(a.run).toHaveBeenCalledWith('build.sh'))
+    await screen.findByText(t('run.done', { code: 0, took: 5 }))
+  })
+
+  it('sends the picked request of a .http note after the question', async () => {
+    const a = torn('api.http')
+    await screen.findByRole('button', { name: 'Send' })
+    await fireEvent.click(document.querySelectorAll('.req')[1])
+    await fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    const ask = await screen.findByRole('alertdialog')
+    await fireEvent.click(within(ask).getByRole('button', { name: t('send.button') }))
+    await waitFor(() => expect(a.send).toHaveBeenCalledWith('api.http', 2))
+  })
+
+  it('has no tear-off of its own', async () => {
+    torn('plan.md')
+    await screen.findByText('Plan')
+    expect(screen.queryByRole('button', { name: t('ui.tearOff') })).toBeNull()
   })
 })
