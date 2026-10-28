@@ -7,7 +7,7 @@ keep in view (a plan, progress, a decision to make) instead of the chat.
 
 Put something on it with one command. Each prints where the note stands
 (`plan.md: 2/5`); report that line, do not read the file back. A missing
-note is made, and so is a missing board in a git repository.
+note is made, and so is a missing board in a git repository (else `stickypane init`).
 
     stickypane show README.md                    # a note, or any file or folder of the project
     stickypane todo plan add "write tests"       # also: check, uncheck <item>
