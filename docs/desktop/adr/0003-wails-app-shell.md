@@ -8,7 +8,7 @@
 
 ## 맥락
 
-사용자는 브라우저가 아닌 overlay 앱을 원한다(R-07). 후보는 Electron, Tauri, Wails, 네이티브다([05 A2](../05-alternatives.md#a2-앱-셸)).
+사용자는 브라우저가 아닌 앱을 원한다(R-07). 후보는 Electron, Tauri, Wails, 네이티브다([05 A2](../05-alternatives.md#a2-앱-셸)).
 
 ## 결정
 

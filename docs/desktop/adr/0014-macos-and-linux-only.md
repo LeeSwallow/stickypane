@@ -1,4 +1,4 @@
-# ADR-0014. overlay 앱은 macOS와 Linux만 지원한다
+# ADR-0014. 앱은 macOS와 Linux만 지원한다
 
 | 항목 | 값 |
 |---|---|
@@ -12,7 +12,7 @@ Wails v3는 Windows도 지원하지만 사용자는 지원 영역을 줄이고 �
 
 ## 결정
 
-overlay 앱은 macOS(arm64, amd64)와 Linux(amd64, arm64)용만 만든다. 본체 터미널 board는 지금처럼 Windows도 지원한다. Linux는 CI 빌드·테스트까지 하고 실기 확인은 [미검증]으로 둔다.
+앱은 macOS(arm64, amd64)와 Linux(amd64, arm64)용만 만든다. 본체 터미널 board는 지금처럼 Windows도 지원한다. Linux는 CI 빌드·테스트까지 하고 실기 확인은 [미검증]으로 둔다.
 
 ## 결과
 

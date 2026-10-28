@@ -1,4 +1,4 @@
-# Build outputs and per-machine state of the overlay app.
+# Build outputs and per-machine state of the app.
 .task
 bin
 node_modules

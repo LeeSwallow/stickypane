@@ -374,10 +374,10 @@ func (s *Store) SetViewMode(mode string) error {
 	return fmt.Errorf("view %q is not terminal, overlay or both", mode)
 }
 
-// Style returns the look of the overlay: "doodle" (the default) or "neat".
+// Style returns the look of the app: "doodle" (the default) or "neat".
 func (s *Store) Style() string { return s.one("").Style() }
 
-// Style returns the look of the overlay, as Store.Style does.
+// Style returns the look of the app, as Store.Style does.
 func (set Settings) Style() string {
 	if v := set.Root(styleKey); v == StyleNeat {
 		return v
@@ -385,7 +385,7 @@ func (set Settings) Style() string {
 	return StyleDoodle
 }
 
-// SetStyle writes the look of the overlay; "doodle" takes the key out.
+// SetStyle writes the look of the app; "doodle" takes the key out.
 func (s *Store) SetStyle(style string) error {
 	switch style {
 	case StyleDoodle:

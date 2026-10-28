@@ -1,5 +1,5 @@
 #!/bin/sh
-# licenses.sh: check that every Go module and npm package of the overlay app
+# licenses.sh: check that every Go module and npm package of the app
 # has an allowed license. It lists the ones that do not, by name, and exits 1.
 #
 #   scripts/licenses.sh [--go-dir DIR | --no-go] [--npm-dir DIR | --no-npm] [--write FILE]

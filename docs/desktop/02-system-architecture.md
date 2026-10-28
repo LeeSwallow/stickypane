@@ -6,15 +6,15 @@
 
 | 관점 | 선택 | 근거 |
 |---|---|---|
-| overlay의 정체 | **같은 폴더의 두 번째 화면**. 자기 데이터 모델이 없다 | VISION 1, [ADR-0001](adr/0001-second-screen-of-the-same-folder.md) |
-| 본체와의 연결 | overlay 앱이 **`stickypane bridge`를 자식 프로세스로 띄우고 stdio JSON으로 대화**한다 | `internal/`은 다른 모듈에서 import할 수 없다. 네트워크 listener를 열지 않는다 ([ADR-0002](adr/0002-bridge-over-stdio.md)) |
+| 앱의 정체 | **같은 폴더의 두 번째 화면**. 자기 데이터 모델이 없다 | VISION 1, [ADR-0001](adr/0001-second-screen-of-the-same-folder.md) |
+| 본체와의 연결 | 앱이 **`stickypane bridge`를 자식 프로세스로 띄우고 stdio JSON으로 대화**한다 | `internal/`은 다른 모듈에서 import할 수 없다. 네트워크 listener를 열지 않는다 ([ADR-0002](adr/0002-bridge-over-stdio.md)) |
 | shape의 계약 | `widget.Kind`에 **`Data`(무엇을 말하는가)와 `Act`(클릭을 어떤 Op로 바꾸는가)** 두 필드를 더한다 | 쓰기는 지금처럼 `doc.Op` → `store.Apply` 하나 ([ADR-0005](adr/0005-kind-data-and-act.md)) |
 | 앱 셸 | **Wails**(Go + 시스템 webview), 별도 모듈 `desktop/` | 언어 하나(Go), 서버 없음, MIT ([ADR-0003](adr/0003-wails-app-shell.md)) |
 | 프런트엔드 | **Svelte 5 + Vite + TypeScript**, 렌더러는 unified · Shiki · Mermaid · KaTeX · rough.js | [ADR-0012](adr/0012-frontend-stack.md) |
 | HTML 노트 | **샌드박스 iframe**, 보기 전용 | [ADR-0006](adr/0006-html-notes-view-only.md) |
 | 설정 | 보기 방식 `view`, 스타일 `style`을 `sticky.json` 루트에. 색은 기존 `theme` | [ADR-0004](adr/0004-view-mode-in-sticky-json.md), [ADR-0008](adr/0008-two-theme-axes.md) |
 | 홈과 세션 | 본체가 `~/.stickypane/events/*.jsonl`·`run/*.json`에 기록, 앱이 SQLite로 색인 | [08](08-app-home-and-sessions.md), [ADR-0013](adr/0013-home-registry-events-and-sqlite.md) |
-| 플랫폼 | overlay 앱은 macOS·Linux | [ADR-0014](adr/0014-macos-and-linux-only.md) |
+| 플랫폼 | 앱은 macOS·Linux | [ADR-0014](adr/0014-macos-and-linux-only.md) |
 
 ## 2.2 C4 Level 1 — 시스템 컨텍스트
 
@@ -33,7 +33,7 @@ flowchart TB
   user --> ov
 ```
 
-에이전트와 overlay 사이에는 화살표가 없다. 둘은 **폴더를 통해서만** 만난다(VISION 2·3).
+에이전트와 앱 사이에는 화살표가 없다. 둘은 **폴더를 통해서만** 만난다(VISION 2·3).
 
 ## 2.3 C4 Level 2 — 컨테이너
 
@@ -43,7 +43,7 @@ flowchart LR
     cli["stickypane<br/>CLI · TUI · MCP"]
     bridge["stickypane bridge<br/>stdio JSON 서버<br/>(새 front end)"]
   end
-  subgraph app["모듈 .../stickypane/overlay (새)"]
+  subgraph app["모듈 .../stickypane/desktop (새)"]
     shell["Wails 셸 (Go)<br/>창 · 단축키 · 핀 · 트레이"]
     web["webview 프런트엔드<br/>Svelte · 렌더러 · Motion"]
     sandbox["샌드박스 iframe<br/>HTML 노트"]
@@ -175,7 +175,7 @@ sequenceDiagram
   W->>W: FLIP 이동 → 탁 붙음 → 하이라이트
 ```
 
-### 2.5.2 사용자가 overlay에서 체크한다
+### 2.5.2 사용자가 앱에서 체크한다
 
 ```mermaid
 sequenceDiagram
@@ -200,13 +200,13 @@ sequenceDiagram
 flowchart TD
   start["stickypane (인자 없음)"] --> v{"sticky.json view"}
   v -- "terminal (기본)" --> tui["TUI"]
-  v -- "overlay" --> has{"overlay 앱 설치됨?"}
-  has -- 예 --> launch["overlay 앱에 이 프로젝트 창을 연다<br/>TUI는 띄우지 않음"]
+  v -- "overlay" --> has{"앱 설치됨?"}
+  has -- 예 --> launch["앱에 이 프로젝트 창을 연다<br/>TUI는 띄우지 않음"]
   has -- 아니오 --> tui2["TUI + 한 줄 안내<br/>brew install --cask LeeSwallow/tap/stickypane"]
-  v -- "both" --> both["overlay 창을 열고 TUI도 띄운다"]
+  v -- "both" --> both["앱 창을 열고 TUI도 띄운다"]
 ```
 
-overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/adapter/env`가 안다.
+앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연다(단일 인스턴스). 앱을 찾고 호출하는 방법(Linux는 PATH의 `stickypane-app`, macOS는 `open -a stickypane`)은 `internal/adapter/env`가 안다.
 
 ## 2.6 레이어와 모듈
 
@@ -219,7 +219,7 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 | `internal/surface/bridge` | 신규 | 50, `internal/surface/app`·`internal/surface/mcp`와 나란히 |
 | `internal/adapter/registry` | 신규 | 5. `internal/core/when`만 쓰는 잎 패키지에 가깝다. 명령 표(60)와 front end(50)가 부른다 |
 | `bridge` 명령 | `cmd/stickypane` 명령 표에 한 줄 | 60 |
-| overlay 앱 | `desktop/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다. 앱 안의 층은 §2.6.1 |
+| 앱 | `desktop/` 별도 `go.mod` | 본체 레이어 표 밖. 본체를 import하지 않는다. 앱 안의 층은 §2.6.1 |
 
 ### 2.6.1 앱 모듈의 레이어
 
@@ -269,8 +269,8 @@ flowchart LR
 
 | 관심사 | 결정 |
 |---|---|
-| 네트워크 | overlay는 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
+| 네트워크 | 앱은 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
 | 상태 | 창 위치·크기·핀은 앱 자체 설정(OS 표준 위치). 노트와 화면 배치는 `sticky.json`뿐 |
 | 언어 | 화면 문구는 `internal/core/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
 | 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.10](03-design-system.md#310-접근성)) |
-| 라이선스 | 본체 `scripts/licenses.sh`는 그대로. overlay 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |
+| 라이선스 | 본체 `scripts/licenses.sh`는 그대로. 앱 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |

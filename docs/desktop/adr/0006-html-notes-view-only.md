@@ -12,7 +12,7 @@
 
 ## 결정
 
-새 shape `html`(확장자 `.html`)을 둔다. overlay는 `sandbox="allow-scripts"`(same-origin 없음) iframe에 CSP `default-src 'none'`을 주입해 그린다. HTML은 파일에 쓰지 않는다. 상호작용은 기존 `form` shape로 한다([사용자 결정] R-11). 터미널은 태그를 걷은 텍스트와 "overlay에서 열기"를 보여 준다.
+새 shape `html`(확장자 `.html`)을 둔다. 앱은 `sandbox="allow-scripts"`(same-origin 없음) iframe에 CSP `default-src 'none'`을 주입해 그린다. HTML은 파일에 쓰지 않는다. 상호작용은 기존 `form` shape로 한다([사용자 결정] R-11). 터미널은 태그를 걷은 텍스트와 "앱에서 열기"를 보여 준다.
 
 ## 결과
 

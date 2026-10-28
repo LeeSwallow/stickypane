@@ -54,7 +54,7 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 }
 
 // StartGroup is Start for a front end with no terminal, the desktop
-// overlay: on unix the script leads a process group of its own, so that
+// app: on unix the script leads a process group of its own, so that
 // Kill stops what it started too (a server, a sleep).
 func StartGroup(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	r, err := Prepare(st, name, now)

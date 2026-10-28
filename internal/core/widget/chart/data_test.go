@@ -21,7 +21,7 @@ func TestDataOfTheExample(t *testing.T) {
 }
 
 // A calendar with no dated value is drawn as bars, and Data says so, so
-// the overlay draws what the terminal draws.
+// the app draws what the terminal draws.
 func TestDataSaysBarWhenAHeatHasNoDays(t *testing.T) {
 	t.Parallel()
 	for src, want := range map[string]string{

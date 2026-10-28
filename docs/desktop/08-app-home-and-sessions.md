@@ -6,14 +6,14 @@
 
 ## 8.1 앱의 표면
 
-overlay 앱에는 창이 두 종류 있다.
+앱에는 창이 두 종류 있다.
 
 ```mermaid
 flowchart LR
   tray["메뉴 막대 / 트레이 아이콘<br/>세션 수 배지 · 빠른 열기"]
   home["홈 창<br/>세션 목록 · 설정"]
-  ov1["프로젝트 overlay 창<br/>~/a/.sticky"]
-  ov2["프로젝트 overlay 창<br/>~/b/.sticky"]
+  ov1["프로젝트 앱 창<br/>~/a/.sticky"]
+  ov2["프로젝트 앱 창<br/>~/b/.sticky"]
   tray --> home
   home -->|"세션 누르기"| ov1 & ov2
   cli["stickypane (view=overlay)"] -->|"이 프로젝트 창 열기"| ov1
@@ -23,7 +23,7 @@ flowchart LR
 | 표면 | 언제 | 내용 |
 |---|---|---|
 | 홈 창 | 앱을 실행하거나 Dock·트레이에서 열 때 | 세션 목록(비어 있으면 빈 상태 한 장) |
-| 프로젝트 overlay 창 | 세션을 누르거나 `stickypane`이 열 때 | [03 §3.6](03-design-system.md#36-창-구성)의 board |
+| 프로젝트 앱 창 | 세션을 누르거나 `stickypane`이 열 때 | [03 §3.6](03-design-system.md#36-창-구성)의 board |
 | 트레이 아이콘 | 앱이 떠 있는 동안 | 활성 세션 수, 최근 프로젝트 5개, 홈 열기, 종료 |
 
 ## 8.2 첫 실행 — 설명 없이 바로 목록
@@ -73,7 +73,7 @@ flowchart LR
 | 날짜별 | 마지막 활동 날짜로 묶는다(오늘, 어제, 그 전은 날짜). 프로젝트당 한 줄 |
 | 사라진 프로젝트 | 폴더나 `.sticky/`가 없어져 자동으로 정리된 것. 한 번 알리고 실행 취소할 수 있다 |
 
-각 줄에는 프로젝트 이름(`sticky.json`의 title 또는 폴더 이름), 경로, 활동 중인 에이전트(board 카드의 `@담당자`), 요약(카드 수, 정체 수), 마지막 활동이 보인다. 누르면 그 프로젝트의 overlay 창이 열린다.
+각 줄에는 프로젝트 이름(`sticky.json`의 title 또는 폴더 이름), 경로, 활동 중인 에이전트(board 카드의 `@담당자`), 요약(카드 수, 정체 수), 마지막 활동이 보인다. 누르면 그 프로젝트의 앱 창이 열린다.
 
 화면은 디자인 시스템(03 §3.11)으로 짓는다: 제목줄은 TitleBar(⋯에 창 닫기·stickypane 종료), 줄은 테이프로 붙인 메모지(기울지 않음) 안에 이름(손글씨)·에이전트 Chip·실행 중인 것 Badge·시각·경로 한 줄, 빈 목록은 EmptyState. 셸의 알림과 창 자신의 실패는 제목줄 아래 Toast로, "없어진 프로젝트 N개를 목록에서 뺐어요 · 되돌리기"와 한 번만 나오는 "창을 닫아도 stickypane은 계속 실행돼요 · stickypane 종료"도 Toast다. 폴더에 보드를 만들기 전에는 Confirm으로 묻는다. 제목줄 ⋯의 **터미널과 에이전트…**는 보드 설정과 같은 터미널 명령 설치·에이전트 연결을 대화상자로 연다([09 §9.4](09-distribution.md#94-첫-실행-연결)).
 
@@ -83,7 +83,7 @@ flowchart LR
 
 [설계자 판단] 이름은 `~/.sticky`가 아니라 **`~/.stickypane/`**이다. `store.Find`는 현재 폴더에서 위로 올라가며 처음 만나는 `.sticky`를 board로 쓰므로, `~/.sticky`가 있으면 홈 아래에서 `.sticky`가 없는 모든 프로젝트가 레지스트리를 board로 열고 자동 `init`도 멈춘다.
 
-[설계자 판단] 기록은 **`~/.stickypane/`이 있을 때만** 남긴다. 폴더는 overlay 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람의 홈에는 아무것도 생기지 않는다. 기록을 쓰고 지우는 것은 본체뿐이다(`registry.Prune`, board를 열 때). 앱은 읽기만 한다(#32, #24).
+[설계자 판단] 기록은 **`~/.stickypane/`이 있을 때만** 남긴다. 폴더는 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람의 홈에는 아무것도 생기지 않는다. 기록을 쓰고 지우는 것은 본체뿐이다(`registry.Prune`, board를 열 때). 앱은 읽기만 한다(#32, #24).
 
 ```text
 ~/.stickypane/                       (STICKYPANE_HOME으로 바꿀 수 있다)
@@ -92,7 +92,7 @@ flowchart LR
 │   └── 2026-10-28.jsonl
 ├── run/
 │   └── 48211.json              살아 있는 stickypane 프로세스 하나에 파일 하나
-├── stickypane.db               overlay 앱의 SQLite 색인 (WAL)
+├── stickypane.db               앱의 SQLite 색인 (WAL)
 └── overlay.json                창 위치 · 크기 · 핀 · 단축키 (앱 설정)
 ```
 
@@ -103,7 +103,7 @@ flowchart LR
   subgraph main["stickypane 본체 (표준 라이브러리만)"]
     reg["internal/adapter/registry<br/>Append · Live"]
   end
-  subgraph app["overlay 앱 (desktop/ 모듈)"]
+  subgraph app["앱 (desktop/ 모듈)"]
     idx["index<br/>GORM · glebarez/sqlite"]
   end
   reg -->|"한 줄 append, O_APPEND"| ev["events/YYYY-MM-DD.jsonl"]
@@ -114,7 +114,7 @@ flowchart LR
 ```
 
 - **본체**는 SQLite를 모른다. `~/.stickypane/`이 있으면, 프로젝트에서 무엇인가 할 때(`init`, TUI 시작·종료, `bridge`, `mcp`, `watch`, 노트를 바꾸는 명령) 그날의 `events/*.jsonl`에 한 줄을 덧붙이고, 오래 사는 프로세스는 `run/<pid>.json`을 만든다. 실패해도 명령은 실패하지 않는다(best-effort).
-- **overlay 앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/adapter/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
+- **앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/adapter/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
 
 이렇게 나누는 이유:
 1. 본체는 "표준 라이브러리 먼저" 규칙을 지키고 바이너리가 커지지 않는다(반목표 X5).
@@ -193,20 +193,20 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);  -- schema_version 등
 sequenceDiagram
   participant U as 사용자
   participant CLI as stickypane
-  participant App as overlay 앱
+  participant App as 앱
   participant Reg as ~/.stickypane
   U->>CLI: stickypane (view=overlay)
   CLI->>Reg: session.start 기록 · run/<pid>.json
   CLI->>App: 앱이 떠 있으면 열기 요청, 아니면 앱 실행(--project=<path>)
   App->>Reg: 새 events 반영 · 사라진 것 정리
-  App->>App: 그 프로젝트의 overlay 창 (bridge 자식 프로세스)
+  App->>App: 그 프로젝트의 앱 창 (bridge 자식 프로세스)
 ```
 
 열기 요청은 단일 인스턴스 앱에 두 번째 실행의 인자를 넘기는 방식으로 한다(Wails v3 single instance). macOS는 `open -b io.github.leeswallow.stickypane --args --project=<절대 경로>`, Linux는 PATH의 `stickypane-app --project=<절대 경로>`. `view`가 `overlay`(`init --view app`)면 앱만 열고, 앱이 없으면 받을 곳을 말하고 터미널 보드를 연다. `both`면 앱과 터미널 둘 다다. 본체의 `openApp` 포트 뒤에 있어 테스트는 아무것도 띄우지 않는다.
 
 ## 8.6 플랫폼
 
-[사용자 결정] 지원은 **macOS와 Linux**로 줄인다(R-30). Windows는 본체 터미널 board만 지금처럼 지원하고, overlay 앱은 만들지 않는다.
+[사용자 결정] 지원은 **macOS와 Linux**로 줄인다(R-30). Windows는 본체 터미널 board만 지금처럼 지원하고, 앱은 만들지 않는다.
 
 | | macOS | Linux |
 |---|---|---|

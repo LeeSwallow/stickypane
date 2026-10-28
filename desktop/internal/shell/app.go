@@ -1,4 +1,4 @@
-// Package shell is the overlay app's desktop side: the home window, one
+// Package shell is the app's desktop side: the home window, one
 // window per project with its bridge, the tray, the global hotkey, pins,
 // and the second launch of a single-instance app (docs/desktop/08 §8.1,
 // §8.5; ADR-0007). The desktop is reached through Platform and Window, so
@@ -430,7 +430,7 @@ func (s *Shell) refreshTray() {
 }
 
 // StickypaneState is whether a stickypane was found, whether it has the
-// bridge the overlay needs, and what it says of itself.
+// bridge the app needs, and what it says of itself.
 type StickypaneState struct {
 	Found       bool                     `json:"found"`
 	Bridge      bool                     `json:"bridge"` // false: every copy found is too old

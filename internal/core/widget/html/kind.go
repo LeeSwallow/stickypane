@@ -1,4 +1,4 @@
-// Package html is the note that is a web page: HTML the overlay draws. In
+// Package html is the note that is a web page: HTML the app draws. In
 // the terminal it is only its text, so it is view-only.
 package html
 

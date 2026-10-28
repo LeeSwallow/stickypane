@@ -41,7 +41,7 @@ flowchart LR
 - 디자인 토큰, 글꼴 번들, 색 테마 10개, 스타일 테마 2개, 아이콘.
 - 렌더러: note(Markdown 전부), checklist, board — 보기만.
 
-**완료 조건**: 홈에 이 Mac의 stickypane 프로젝트가 활동 날짜별로 보이고, 폴더를 지운 프로젝트는 다음 실행 때 자동으로 빠진다. 실제 프로젝트에서 overlay를 띄워 에이전트가 쓴 변경이 1초 안에 보인다. 테마를 바꾸면 터미널도 바뀐다.
+**완료 조건**: 홈에 이 Mac의 stickypane 프로젝트가 활동 날짜별로 보이고, 폴더를 지운 프로젝트는 다음 실행 때 자동으로 빠진다. 실제 프로젝트에서 앱을 띄워 에이전트가 쓴 변경이 1초 안에 보인다. 테마를 바꾸면 터미널도 바뀐다.
 
 ### 4단계 — 렌더러와 상호작용
 
@@ -56,10 +56,10 @@ flowchart LR
 ### 5단계 — 연결과 배포
 
 - `stickypane init --view/--style`, 사람이 터미널에서 직접 실행할 때만 묻는다(ADR-0004).
-- `stickypane`(인자 없음)이 `view`에 따라 overlay를 연다([02 §2.5.3](02-system-architecture.md#253-보기-방식에-따라-띄우기)).
+- `stickypane`(인자 없음)이 `view`에 따라 앱을 연다([02 §2.5.3](02-system-architecture.md#253-보기-방식에-따라-띄우기)).
 - 손그림 DMG([09](09-distribution.md)), Linux tar.gz, goreleaser·Homebrew cask, `THIRD_PARTY_NOTICES.md`(글꼴·npm), README·README.ko·에이전트 가이드에 HTML 노트 한 줄, `ROADMAP.md` 목표 문장.
 
-**완료 조건**: 이 Mac에서 DMG를 마운트하면 손그림 설치 화면이 보이고, 앱을 Applications로 옮겨 열면 세션 목록(또는 빈 상태)이 뜬다. `stickypane init`에서 overlay를 고르면 `stickypane`으로 창이 뜬다. Linux 산출물은 CI에서 빌드된다.
+**완료 조건**: 이 Mac에서 DMG를 마운트하면 손그림 설치 화면이 보이고, 앱을 Applications로 옮겨 열면 세션 목록(또는 빈 상태)이 뜬다. `stickypane init`에서 앱을 고르면 `stickypane`으로 창이 뜬다. Linux 산출물은 CI에서 빌드된다.
 
 ## 6.3 검증 게이트 (모든 단계 공통)
 
@@ -67,7 +67,7 @@ flowchart LR
 |---|---|
 | 본체 | `go vet ./... && go test -race ./... && test -z "$(gofmt -l .)"` |
 | 레이어 | `internal/layers` 테스트(새 패키지 `bridge`, `widget/html`에 rank) |
-| 라이선스 | 본체 `sh scripts/licenses.sh`. overlay는 Go 모듈과 npm 의존성을 같은 허용 목록으로 검사하는 스크립트 추가 |
+| 라이선스 | 본체 `sh scripts/licenses.sh`. 앱은 Go 모듈과 npm 의존성을 같은 허용 목록으로 검사하는 스크립트 추가 |
 | 프런트엔드 | 타입 검사, 단위 테스트(Data → DOM), 테마 10개 × 스타일 2개 스냅샷 |
 | 대비 | 테마마다 본문·카드 글자 대비 4.5:1 자동 검사 |
 | 문서 | 에이전트 가이드 55줄 이하, 스킬 테스트 통과 |

@@ -4,7 +4,7 @@
 
 ## 9.1 산출물
 
-[사용자 결정] 제품 이름에서 "overlay"를 뺀다. 앱 이름은 **stickypane**이다. 저장소의 `desktop/` 폴더와 Go 모듈 경로는 안쪽 이름이라 그대로 둔다.
+[사용자 결정] 제품 이름에서 "overlay"를 뺀다. 앱 이름은 **stickypane**이다. 저장소의 폴더와 Go 모듈 경로도 `desktop/`이다(#51). 보기 설정 값 `"view": "overlay"`와 `~/.stickypane/overlay.json`은 이미 쓰는 사람이 있어 이름을 그대로 둔다.
 
 | 플랫폼 | 산출물 | 만드는 법 |
 |---|---|---|
@@ -24,7 +24,7 @@
 
 라이선스 전문도 앱과 함께 간다. macOS는 `Contents/Resources/`, Linux는 압축 폴더 맨 위에 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`를 둔다. `licenses/stickypane-app.txt`는 `desktop/scripts/licenses.sh --write`가 앱에 링크된 Go 모듈과 번들된 npm 패키지(글꼴의 OFL-1.1 포함)의 라이선스 파일을 그대로 모은 것이고, `licenses/stickypane.txt`는 `scripts/licenses.sh`가 번들 CLI의 모듈로 만든 것이다. robust-predicates(mermaid → d3-delaunay, Unlicense)도 목록에 그대로 둔다([미결정]: 뺄지).
 
-본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). 그 전까지 `desktop/`나 `scripts/overlay-*.sh`를 건드린 PR마다 `.github/workflows/desktop.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
+본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). 그 전까지 `desktop/`나 `scripts/desktop-*.sh`를 건드린 PR마다 `.github/workflows/desktop.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
 ## 9.2 DMG 설치 화면
 

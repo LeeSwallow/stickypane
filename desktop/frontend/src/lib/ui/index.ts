@@ -1,4 +1,4 @@
-// The overlay's components (03 §3.11). Screens import from here.
+// The app's components (03 §3.11). Screens import from here.
 export { default as Badge } from './Badge.svelte'
 export { default as Button } from './Button.svelte'
 export { default as Chip } from './Chip.svelte'

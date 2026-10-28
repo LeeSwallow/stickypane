@@ -48,7 +48,7 @@ export function noteIndexOf(name: string): number {
  * agentColor is the colour of an agent name: the note colour its name
  * hashes to, the same function as the bridge's note `color(name, chosen)`.
  * A `chosen` colour name (yellow, pink, ..., case-insensitive) wins before
- * hashing. @owners in the overlay use this note-colour hash; the terminal's
+ * hashing. @owners in the app use this note-colour hash; the terminal's
  * NameStyle is a different 4-style hash and is not what this ports.
  */
 export function agentColor(name: string, notes: string[], chosen = ''): string {

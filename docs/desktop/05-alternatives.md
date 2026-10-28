@@ -9,7 +9,7 @@ quadrantChart
   title 보기 도구의 위치
   x-axis "터미널 안" --> "데스크톱 창"
   y-axis "사람이 쓰는 도구" --> "에이전트가 쓰고 사람이 보는 도구"
-  quadrant-1 "overlay의 자리"
+  quadrant-1 "앱의 자리"
   quadrant-2 "stickypane 터미널"
   quadrant-3 "TUI 대시보드"
   quadrant-4 "화이트보드 앱"
@@ -32,7 +32,7 @@ quadrantChart
 | 터미널만 (현행) | 설치 하나, ssh | 렌더링 한계(01 §1.2) | 기본으로 유지 |
 | localhost 웹 페이지 | 구현 쉬움 | 사용자가 원하지 않음(R-07), 서버가 필요해 VISION 4와 충돌, 다른 로컬 프로세스의 접근 면 | **기각** |
 | VS Code 확장 패널 | 에디터 옆 | 에디터 하나에 묶임(VISION 5), overlay가 아님 | 기각, 나중에 같은 bridge로 가능 |
-| **전용 데스크톱 overlay 창** | 어떤 앱 위에도 뜸, webview로 무엇이든 그림 | 설치 하나 더 | **채택** ([ADR-0001](adr/0001-second-screen-of-the-same-folder.md)) |
+| **전용 데스크톱 앱 창** | 어떤 앱 위에도 뜸, webview로 무엇이든 그림 | 설치 하나 더 | **채택** ([ADR-0001](adr/0001-second-screen-of-the-same-folder.md)) |
 
 ### A2. 앱 셸
 
@@ -54,12 +54,12 @@ bridge를 stdio로 두었기 때문에([ADR-0002](adr/0002-bridge-over-stdio.md)
 | HTTP/WebSocket 서버 | listener를 연다. VISION 4·N4와 충돌 |
 | **`stickypane bridge` stdio JSON** | **채택**. 자식 프로세스라 접근 면이 없고, 본체가 진실의 원천으로 남는다 |
 
-### A4. overlay에서 할 수 있는 일
+### A4. 앱에서 할 수 있는 일
 
 | 대안 | 판정 |
 |---|---|
 | 보기 전용 | 기각. VISION 3의 루프에서 빠져 터미널로 돌아가야 한다 |
-| 터미널의 모든 키 동작 | 기각. overlay가 "작은 터미널"이 된다(O2) |
+| 터미널의 모든 키 동작 | 기각. 앱이 "작은 터미널"이 된다(O2) |
 | **클릭 한 번 동작 + 생성(카탈로그), 긴 편집은 `$EDITOR`** | **채택** (빠른 끄적이기는 R-36으로 뺐다) |
 
 ### A5. HTML 노트의 상호작용
