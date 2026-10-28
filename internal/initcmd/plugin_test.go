@@ -164,7 +164,7 @@ func TestEveryShapeHasAShortEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"## Note", "mermaid", "## Board", "type: board", "## Checklist", "type: checklist", "## Log", "type: log", ".log", "## Chart", "type: chart", "## Form", "type: form", "stickypane wait", "## Script", ".sh", "## Tab", "## Book", "stickypane kinds"} {
+	for _, want := range []string{"## Note", "mermaid", "## Board", "type: board", "## Checklist", "type: checklist", "## Log", "type: log", ".log", "## Chart", "type: chart", "## Form", "type: form", "stickypane wait", "## Script", ".sh", "## Tab", "## Book", "stickypane help"} {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("references/kinds.md should cover %q", want)
 		}

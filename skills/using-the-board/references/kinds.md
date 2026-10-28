@@ -1,9 +1,9 @@
 # The shapes of a note
 
 One entry per shape: what it is for, the fastest way to make one, the file,
-and how it behaves on the board. `stickypane kinds` lists the shapes and
-`stickypane kinds <shape>` prints the full example of one, with the create
-options a shape takes: `stickypane write sprint --type board --opt
+and how it behaves on the board. Read it when you need a shape you have not
+used; `stickypane help <shape>` prints the full example of one, with the
+create options a shape takes: `stickypane write sprint --type board --opt
 columns=Backlog --opt columns=Done` has the shape write the new note itself.
 
 ## Note
