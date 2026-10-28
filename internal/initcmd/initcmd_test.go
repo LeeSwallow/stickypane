@@ -52,8 +52,8 @@ func TestRunCreatesBoardWelcomeNoteAndAgentsFile(t *testing.T) {
 	if open, _ := welcome.Get("open"); open != "true" {
 		t.Errorf("the welcome note should be open on first run, open = %q", open)
 	}
-	if !welcome.Pinned() || !strings.Contains(welcome.Body, "jots a note") {
-		t.Errorf("the welcome note should be pinned and explain the keys: %q", welcome.Body)
+	if !welcome.Pinned() || !strings.Contains(welcome.Body, "jots a note") || !strings.Contains(welcome.Body, "+ New note") {
+		t.Errorf("the welcome note should be pinned and say how to start in the terminal and in the app: %q", welcome.Body)
 	}
 	if got := read(t, filepath.Join(root, "AGENTS.md")); got != Guide() {
 		t.Errorf("AGENTS.md = %q, want exactly the guide", got)
