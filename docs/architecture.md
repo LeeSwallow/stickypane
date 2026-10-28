@@ -17,7 +17,7 @@ written through a named form in `when`, and a clock is handed in as a
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
 | 50 | `internal/app`, `internal/mcp`, `internal/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
-| 40 | `internal/api`, `internal/initcmd` | what the command line and agents call; setting a project up |
+| 40 | `internal/api`, `internal/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
 | 12 | `internal/runner` | running a script and keeping its log, for every front end |
@@ -28,7 +28,10 @@ written through a named form in `when`, and a clock is handed in as a
 | 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
+| 0 | `internal/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
+| 0 | `internal/filelock` | the advisory lock on a notes folder that writers hold from a read to its write: flock(2) on the folder on Unix, LockFileEx on Windows |
 | 0 | `internal/doc`, `internal/theme`, `internal/env`, `internal/when`, `internal/markdown`, `internal/lineedit`, `internal/layout`, `internal/editor` | leaves that know nothing of the board; `when` is how every time is written and read |
+| 0 | `internal/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
 
 The packages stay side by side under `internal/` rather than in folders by
 role. The layers do not split by role: widgets draw with the theme, the
@@ -87,7 +90,32 @@ this card to that column", applied by `store.Apply` to the file as it is on
 disk now and written in one step. The screen, the command line and MCP all
 write this way, so an agent and the user editing the same note do not
 overwrite each other. Settings are written the same way, through one read,
-change and replace step.
+change and replace step. Each such step holds the board's lock
+(`internal/filelock`), so two processes do not read the same version and
+lose one of their changes, and replaces the file through
+`internal/atomicfile`, so no reader sees half of it. Nothing else writes
+a note: a whole note goes through `store.Rewrite`, a new one through
+`store.WriteNew`, a linked one through `store.Link`, and a move that
+carries its arrangement through `store.MoveArranged`, which moves the
+note back if the arrangement cannot be written.
+
+**One place for each rule.** `internal/api` is the use-case layer: the
+terminal (`internal/app`), the bridge and the command line change the
+board through it, never through the store. A note is made by
+`api.CreateFrom` (named and stamped on the API's clock), tended by
+`api.TendAll`, changed by a key's op through `api.Do`, saved from the
+editor by `api.Save`, archived, trashed, restored and moved by
+`api.Archive`, `api.Remove`, `api.Restore`/`api.Return` and `api.Move`,
+and a `.http` request is sent by `api.SendPart`. Settings are changed by
+`api.ChangeSettings`, over `prefs.Normal`, the one rule for what each
+setting takes. api answers with values, never sentences: `api.Edited`
+(a todo, card, chart, log or say), `api.Keyed` (set), `api.Shown` (show,
+hide), `api.Linked`, `api.Moved`, `api.Sent`; the front end says them in
+its own words (`said.go` in `cmd/stickypane` and in `internal/mcp`, each
+pinned line by line by its tests). A note's colour is
+`arrange.ColorIndex`, and the language a choice comes to `i18n.Resolve`.
+What a front end still takes from the store only reads it, or arranges
+the screen in `sticky.json` (a view, the tab).
 
 **Events.** Each kind may say what happened in a note between two
 versions (`Kind.Events`: item.ticked, card.moved, form.submitted...).
@@ -127,6 +155,19 @@ reader and a writer is laid out the same way:
 | `events.go` | what happened between two versions of the file, for `stickypane watch` |
 
 Small shapes (`note`, `logview`, `script`) stay in one file. `html` is view-only, so its `ops.go` and `events.go` hold only a comment.
+Only `view.go` imports lipgloss or bubbletea, and no widget imports the
+network, `os/exec` or `internal/httpfile` (the API note reads its file with
+`internal/httpfile/syntax`); `internal/layers` checks both.
+
+**The Env.** A widget keeps no package variables. What it reads that is not
+in its file comes in a `widget.Env`, handed to `Kind.Parse`, `Kind.Data` and
+`Kind.Act`: the clock, the translator, the theme's styles, how long a card
+may stall, how a time is written (`when.Formatter`) and how to find the
+note a `![[name]]` line shows. The screen makes one from its own clock and
+settings and makes its widgets again when it changes; the command line and
+the bridge use the API's (`api.NewWithEnv`, `API.Env`), so what an action
+writes carries the API's clock. Tests hand a widget an Env with a stopped
+clock and run in parallel.
 
 To add a shape:
 
@@ -143,9 +184,10 @@ To add a shape:
    of the "labels" in `internal/i18n/translations`.
 4. Add one line to `internal/kinds.Default`.
 5. If the command line should change one thing in it, add a function to
-   `internal/api/edit.go` that applies one of its ops, and a command to the
-   table in `cmd/stickypane/commands.go`.
-6. Describe it in `skills/using-the-board/references/kinds.md`.
+   `internal/api/edit.go` that applies one of its ops and answers an
+   `api.Edited`, and a command to the table in `cmd/stickypane/commands.go`.
+6. Describe it in `skills/using-the-board/references/kinds.md`, and in a
+   line of `rules/writing-notes.md` if agents write it by hand.
 
 `TestEveryKindKeepsTheContract` in `internal/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
@@ -161,14 +203,15 @@ each pointing only at the one below:
 
 | Layer | Folder | Is |
 | --- | --- | --- |
-| commands | `commands/` | `/board:track`, `/board:ask`, `/board:say`...: a line that names a skill |
+| commands | `commands/` | `/board:status`, `/board:track`, `/board:ask`, `/board:say`, `/board:setup`: a line that names a skill |
 | skills | `skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
 | references | `skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
-| rules | `rules/` | what every skill keeps to: what the board writes itself, how a note is worded |
+| rules | `rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
 
 The program embeds `skills/`, `rules/` and `commands/` (`harness.go` at the
 module root), and `internal/harness` hands the skills to the MCP server, as
-prompts and as topics of the `guide` tool, and to `stickypane guide`. The
+prompts and as topics of the `guide` tool, and to `stickypane guide`;
+`internal/initcmd` builds the agent guide from `rules/`. The
 tests in `internal/initcmd` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 
@@ -184,6 +227,7 @@ library only:
 | `help.go` | `help`: the overview, one command or shape, the way to start; words from `internal/i18n` |
 | `errors.go` | `exitCode`: the one place errors become exit codes 0, 1, 2, 3, 130 |
 | `flags.go` | `parse`: flags anywhere among the words |
+| `said.go` | the line each command that changes the board prints, from what api answered |
 | `notes.go`, `edit.go`, `settings.go`, `kinds.go` | the commands |
 
 A command is `func(env, []string) error`. Its usage is the lines of the

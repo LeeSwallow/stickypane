@@ -16,6 +16,7 @@ func apply(t *testing.T, src string, op doc.Op) string {
 }
 
 func TestSetReplacesOrAddsAValue(t *testing.T) {
+	t.Parallel()
 	src := "---\ntype: chart\n---\nTests per package\n\n- app: 61\nboard: 31\n"
 	if got := apply(t, src, Set{Label: "app", Value: "67"}); got != "---\ntype: chart\n---\nTests per package\n\n- app: 67\nboard: 31\n" {
 		t.Errorf("Set keeps the line as it was written: %q", got)
@@ -38,6 +39,7 @@ func TestSetReplacesOrAddsAValue(t *testing.T) {
 }
 
 func TestAddCountsUp(t *testing.T) {
+	t.Parallel()
 	if got := apply(t, "done: 3\nleft: 9\n", Add{Label: "done", Delta: 1}); got != "done: 4\nleft: 9\n" {
 		t.Errorf("Add = %q", got)
 	}

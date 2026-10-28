@@ -12,7 +12,7 @@ import (
 func init() {
 	handlers[modeInput] = inputUpdate
 	footers[modeInput] = func(m *Model) string {
-		return widget.Bold.Render(m.inputLabel) + ": " + m.input.View()
+		return m.env.Styles.Bold.Render(m.inputLabel) + ": " + m.input.View()
 	}
 }
 

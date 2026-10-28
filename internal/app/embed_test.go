@@ -16,6 +16,7 @@ import (
 // A line ![[plan]] in a note draws the plan there, as its own shape and
 // read only; when the plan changes, the note that shows it does too.
 func TestANoteEmbedsAnother(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), store.DirName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
@@ -38,6 +39,7 @@ func TestANoteEmbedsAnother(t *testing.T) {
 
 // A chart computed from a checklist follows it on the board.
 func TestADerivedChartFollowsItsSourceOnTheBoard(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{
 		"plan.md":     "---\ntype: checklist\n---\n- [x] a\n- [ ] b\n",
 		"progress.md": "---\ntype: chart\nopen: true\nfrom: plan\n---\n",

@@ -128,8 +128,8 @@ func pick(d doc.Document, verb string, a widget.Action) (content, int, error) {
 // act is the form's Kind.Act: "choose" with line, a position in the lines
 // of Data, which flips that option as enter does; "fill" with line and
 // text; "submit" with label, a button of the form. The time of a submit is
-// the board's, as when a button is pressed on the terminal.
-func act(d doc.Document, a widget.Action) (doc.Op, error) {
+// e's: the clock of whoever applies the action.
+func act(d doc.Document, a widget.Action, e widget.Env) (doc.Op, error) {
 	switch a.Name {
 	case "choose":
 		c, i, err := pick(d, a.Name, a)
@@ -171,7 +171,7 @@ func act(d doc.Document, a widget.Action) (doc.Op, error) {
 		lines, _ := scan(d.Body)
 		for _, label := range buttonLabels(lines) {
 			if label == a.Args["label"] {
-				return Submit{Label: label, At: now().Format(when.Moment)}, nil
+				return Submit{Label: label, At: e.Now().Format(when.Moment)}, nil
 			}
 		}
 		return nil, fmt.Errorf("submit: the form has no button %q", a.Args["label"])

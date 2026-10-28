@@ -26,6 +26,7 @@ func events(t *testing.T, kind, before, after string) string {
 // Each shape says what happened in it, in its own words, so that anything
 // watching the board can react to it.
 func TestEveryShapeSaysWhatHappened(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct{ kind, before, after, want string }{
 		{"checklist", "- [ ] a\n- [ ] b\n", "- [x] a ✅ 2026-10-03 14:02\n- [ ] b\n- [ ] c\n",
 			`item.ticked "a" ""→""; item.added "c" ""→""`},

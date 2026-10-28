@@ -38,21 +38,21 @@ func editCmd(cmd string) func(env, []string) error {
 		var out string
 		switch cmd {
 		case "todo":
-			out, err = a.Todo(name, rest[0], strings.Join(rest[1:], " "))
+			out, err = said(a.Todo(name, rest[0], strings.Join(rest[1:], " ")))(status)
 		case "card":
-			out, err = a.Card(name, rest[0], strings.Join(rest[1:], " "), to)
+			out, err = said(a.Card(name, rest[0], strings.Join(rest[1:], " "), to))(status)
 		case "chart":
-			out, err = a.Chart(name, rest[0], strings.Join(rest[1:len(rest)-1], " "), rest[len(rest)-1])
+			out, err = said(a.Chart(name, rest[0], strings.Join(rest[1:len(rest)-1], " "), rest[len(rest)-1]))(valued)
 		case "log":
 			line := strings.Join(rest, " ")
 			if stamp {
 				line = e.now().Format(when.Clock) + " " + line
 			}
-			out, err = a.Log(name, line)
+			out, err = said(a.Log(name, line))(status)
 		case "say":
-			out, err = a.Say(name, to, strings.Join(rest, " "))
+			out, err = said(a.Say(name, to, strings.Join(rest, " ")))(status)
 		default: // set
-			out, err = a.Set(name, rest)
+			out, err = said(a.Set(name, rest))(keyed)
 		}
 		if err != nil {
 			return err
@@ -84,23 +84,23 @@ func manageCmd(cmd string) func(env, []string) error {
 		var out string
 		switch cmd {
 		case "rm":
-			out, err = a.Remove(words[0])
+			out, err = said(a.Remove(words[0]))(removed)
 		case "restore":
-			out, err = a.Restore(words[0])
+			out, err = said(a.Restore(words[0]))(restored)
 		case "archive":
-			out, err = a.Archive(words[0])
+			out, err = said(a.Archive(words[0]))(movedTo)
 		case "show":
-			out, err = a.Show(words[0])
+			out, err = said(a.Show(words[0]))(shown)
 		case "hide":
-			out, err = a.Hide(words[0])
+			out, err = said(a.Hide(words[0]))(shown)
 		case "link":
 			name := ""
 			if len(words) == 2 {
 				name = words[1]
 			}
-			out, err = a.Link(words[0], name)
+			out, err = said(a.Link(words[0], name))(linked)
 		default: // mv
-			out, err = a.Move(words[0], words[1])
+			out, err = said(a.Move(words[0], words[1]))(movedTo)
 		}
 		if err != nil {
 			return err

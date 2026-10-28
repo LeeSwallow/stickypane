@@ -6,6 +6,7 @@ import (
 )
 
 func TestPick(t *testing.T) {
+	t.Parallel()
 	names := []string{"Write tests", "write docs", "Ship", "ship it"}
 	cases := []struct {
 		want string

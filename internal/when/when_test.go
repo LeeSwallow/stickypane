@@ -8,6 +8,7 @@ import (
 var now = time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local)
 
 func TestShortSaysAsLittleAsTheDayAllows(t *testing.T) {
+	t.Parallel()
 	for _, c := range []struct {
 		t    time.Time
 		want string
@@ -17,14 +18,11 @@ func TestShortSaysAsLittleAsTheDayAllows(t *testing.T) {
 		{time.Date(2025, 12, 31, 10, 0, 0, 0, time.Local), "2025-12-31"},
 		{time.Time{}, ""},
 	} {
-		if got := Short(c.t, now); got != c.want {
+		if got := (Formatter{}).Short(c.t, now); got != c.want {
 			t.Errorf("Short(%v) = %q, want %q", c.t, got, c.want)
 		}
 	}
-	old := DayLayout
-	DayLayout = "1월 2일"
-	t.Cleanup(func() { DayLayout = old })
-	if got := Short(time.Date(2026, 9, 30, 10, 0, 0, 0, time.Local), now); got != "9월 30일" {
+	if got := Locale("ko").Short(time.Date(2026, 9, 30, 10, 0, 0, 0, time.Local), now); got != "9월 30일" {
 		t.Errorf("a translated day = %q", got)
 	}
 }
@@ -32,6 +30,7 @@ func TestShortSaysAsLittleAsTheDayAllows(t *testing.T) {
 // The forms written beside a run are fixed: a log's head, a watch line, a
 // transcript's frame and a file name.
 func TestTheFixedFormsOfARun(t *testing.T) {
+	t.Parallel()
 	at := time.Date(2026, 10, 3, 14, 2, 5, 42_000_000, time.UTC)
 	for _, c := range []struct{ got, want string }{
 		{LogHead(at), "2026-10-03 14:02:05"},
@@ -46,6 +45,7 @@ func TestTheFixedFormsOfARun(t *testing.T) {
 }
 
 func TestDurationIsReadable(t *testing.T) {
+	t.Parallel()
 	for d, want := range map[time.Duration]string{
 		420 * time.Millisecond:                     "0.42s",
 		1023 * time.Millisecond:                    "1.02s",
@@ -61,6 +61,7 @@ func TestDurationIsReadable(t *testing.T) {
 }
 
 func TestParseReadsTheFormsTheFilesUse(t *testing.T) {
+	t.Parallel()
 	for s, want := range map[string]string{
 		"2026-10-03 14:02": "2026-10-03 14:02",
 		"2026-10-03":       "2026-10-03 00:00",
@@ -81,7 +82,7 @@ func TestParseReadsTheFormsTheFilesUse(t *testing.T) {
 // The screen writes days and times the way the user's country does, as the
 // locale of the environment names it.
 func TestTimesFollowTheCountry(t *testing.T) {
-	t.Cleanup(func() { UseLocale("") })
+	t.Parallel()
 	today := time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local)
 	earlier := time.Date(2026, 9, 30, 9, 5, 0, 0, time.Local)
 	lastYear := time.Date(2025, 12, 31, 9, 5, 0, 0, time.Local)
@@ -95,8 +96,8 @@ func TestTimesFollowTheCountry(t *testing.T) {
 		{"", "14:02", "Sep 30", "2025-12-31"},
 		{"C", "14:02", "Sep 30", "2025-12-31"},
 	} {
-		UseLocale(c.locale)
-		got := []string{Short(today, now), Short(earlier, now), Short(lastYear, now)}
+		f := Locale(c.locale)
+		got := []string{f.Short(today, now), f.Short(earlier, now), f.Short(lastYear, now)}
 		want := []string{c.today, c.earlier, c.lastYear}
 		for i := range got {
 			if got[i] != want[i] {

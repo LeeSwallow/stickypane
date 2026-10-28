@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -31,7 +32,7 @@ func (o acted) Apply(d doc.Document) (doc.Document, error) {
 	if k.Act == nil {
 		return d, fmt.Errorf("%s is a %s: it takes no action from a screen", o.file, k.Name)
 	}
-	op, err := k.Act(d, o.act)
+	op, err := k.Act(d, o.act, o.api.env)
 	if err != nil {
 		return d, err
 	}
@@ -59,4 +60,52 @@ func (a *API) Apply(name, version string, act widget.Action) (string, error) {
 	}
 	_, _ = a.Derive() // charts computed from this note follow it
 	return widget.Version(after), nil
+}
+
+// Do applies op, an intent a screen made from a key (tick this item, move
+// that card), to the note called name, as it is on disk now, and fills in
+// what the note's kind writes by itself. On a conflict nothing is written
+// and the error is doc.ErrConflict.
+func (a *API) Do(name string, op doc.Op) error {
+	if err := a.st.Apply(name, tended{a, name, op}); err != nil {
+		return err
+	}
+	_, _ = a.Derive() // charts computed from this note follow it
+	return nil
+}
+
+// tended is an Op followed by what the note's kind fills in.
+type tended struct {
+	api  *API
+	file string
+	op   doc.Op
+}
+
+func (o tended) Apply(d doc.Document) (doc.Document, error) {
+	out, err := o.op.Apply(d)
+	if err != nil {
+		return d, err
+	}
+	return o.api.tend(o.file, d, out), nil
+}
+
+// Save writes what the user wrote in an editor into the note called name,
+// as it is: the text is theirs, and nothing is added to it. was is the
+// file as the editor loaded it; when the file is not that any more, or
+// cannot be read, someone else has changed it, and nothing is written:
+// ErrStale. A nil was writes whatever is there.
+func (a *API) Save(name string, was, body []byte) error {
+	// Compared and written in one step: nothing written in between is
+	// overwritten.
+	err := a.st.Rewrite(name, func(now []byte, ok bool) ([]byte, error) {
+		if was != nil && (!ok || !bytes.Equal(now, was)) {
+			return nil, ErrStale
+		}
+		return body, nil
+	})
+	if err != nil {
+		return err
+	}
+	_, _ = a.Derive()
+	return nil
 }

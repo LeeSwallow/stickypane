@@ -28,6 +28,7 @@ func composeKind() Kind {
 }
 
 func TestMakeFillsDefaultsAndChecksValues(t *testing.T) {
+	t.Parallel()
 	k := composeKind()
 	got, err := k.Make("T", nil)
 	if err != nil || string(got) != "view=bar;count=3;on=false;name=;rows=a\nb;" {
@@ -61,6 +62,7 @@ func TestMakeFillsDefaultsAndChecksValues(t *testing.T) {
 }
 
 func TestMakeWithoutComposeUsesTheTemplate(t *testing.T) {
+	t.Parallel()
 	k := composeKind()
 	k.Compose, k.Options = nil, nil
 	if got, err := k.Make("T", nil); err != nil || string(got) != string(k.Template("T")) {
@@ -72,6 +74,7 @@ func TestMakeWithoutComposeUsesTheTemplate(t *testing.T) {
 }
 
 func TestLinesDropsBlanks(t *testing.T) {
+	t.Parallel()
 	if got := Lines(" a \n\n b\n"); strings.Join(got, "|") != "a|b" {
 		t.Errorf("Lines = %q", got)
 	}

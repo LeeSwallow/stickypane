@@ -5,9 +5,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -23,14 +23,14 @@ func init() {
 	handlers[modeCatalog] = catalogUpdate
 	bodies[modeCatalog] = catalogBody
 	footers[modeCatalog] = func(m *Model) string {
-		return hints(m.width, "j k", "choose", "enter", "pick", "esc", "cancel")
+		return m.hints(m.width, "j k", "choose", "enter", "pick", "esc", "cancel")
 	}
 
 	// Jot: one line becomes a plain note. No shape, no title. N always
 	// jots; n jots too unless the focused open note uses n itself (a board
 	// adds a card, a checklist an item).
 	jot := func(m *Model) tea.Cmd {
-		m.ask(tr.Jot, "", func(text string) { m.create(text, "", []byte(text+"\n")) })
+		m.ask(m.tr.Jot, "", func(text string) { m.create(text, "", []byte(text+"\n")) })
 		return nil
 	}
 	boardKeys["N"] = jot
@@ -46,18 +46,10 @@ func init() {
 // sticky.json, so it is still on the screen after a restart: it is the
 // user's own note, and no agent is in the middle of editing it.
 func (m *Model) create(text, ext string, content []byte) {
-	if ext == "" {
-		ext = ".md"
-	}
-	if ext == ".md" {
-		// A note the board makes says when it was made.
-		if d := doc.Parse(content); !hasKey(d, "created") {
-			content = d.Set("created", m.now().Format(when.Stamp)).Bytes()
-		}
-	}
-	name, err := m.store.Create(text, ext, content, m.now())
+	// Named and stamped as every screen makes a note (api.CreateFrom).
+	name, err := m.calls().CreateFrom("", text, ext, api.Options{}, content)
 	if err != nil {
-		m.status = say(tr.CannotCreate, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.CannotCreate, map[string]any{"Err": err.Error()})
 		return
 	}
 	open := true
@@ -80,7 +72,7 @@ func catalogUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case "enter":
 		kind := m.reg[m.catalogIdx]
 		m.mode = modeBoard
-		m.ask(tr.Title, "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
+		m.ask(m.tr.Title, "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
 	}
 	return nil
 }
@@ -91,9 +83,9 @@ func catalogBody(m *Model, h int) []string {
 	kind := m.reg[m.catalogIdx]
 	var list []string
 	for i, k := range m.reg {
-		name := strings.TrimSpace(k.Icon + " " + tr.L(k.Label))
+		name := strings.TrimSpace(k.Icon + " " + m.tr.L(k.Label))
 		if i == m.catalogIdx {
-			list = append(list, widget.Selected.Render(widget.Pad("› "+name, catalogList-1)))
+			list = append(list, m.env.Styles.Selected.Render(widget.Pad("› "+name, catalogList-1)))
 		} else {
 			list = append(list, "  "+name)
 		}
@@ -107,14 +99,14 @@ func catalogBody(m *Model, h int) []string {
 	}
 	var detail []string
 	if side >= 16 {
-		for _, l := range widget.Wrap(tr.L(kind.Blurb), side) {
-			detail = append(detail, widget.Faint.Render(l))
+		for _, l := range widget.Wrap(m.tr.L(kind.Blurb), side) {
+			detail = append(detail, m.env.Styles.Faint.Render(l))
 		}
 		if kind.Example != "" && kind.Parse != nil {
-			example, _ := kind.Parse(doc.Parse([]byte(kind.Example))).Draw(side-4, false)
+			example, _ := kind.Parse(doc.Parse([]byte(kind.Example)), m.env).Draw(side-4, false)
 			detail = append(detail, "")
-			detail = append(detail, strings.Split(frame(box{
-				title: tr.Example, icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),
+			detail = append(detail, strings.Split(frame(box{styles: m.env.Styles,
+				title: m.tr.Example, icon: kind.Icon, body: example, width: side, color: m.noteColor(m.catalogIdx),
 			}), "\n")...)
 		}
 	}
@@ -134,10 +126,5 @@ func catalogBody(m *Model, h int) []string {
 			body = append(body, widget.Pad(left, catalogList)+right)
 		}
 	}
-	return dialog(tr.AddANote, body, boxW, m.width, h, m.accent())
-}
-
-func hasKey(d doc.Document, key string) bool {
-	_, ok := d.Get(key)
-	return ok
+	return m.dialog(m.tr.AddANote, body, boxW, m.width, h, m.accent())
 }

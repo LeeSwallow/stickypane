@@ -2,13 +2,20 @@ package app
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
+	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/board"
+	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
 
 func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	press(m, "N")
 	if s := screen(m); !strings.Contains(s, "Jot:") {
@@ -35,6 +42,7 @@ func TestJotCreatesAPlainNoteAndShowsIt(t *testing.T) {
 }
 
 func TestLowercaseNJotsUnlessTheNoteTakesIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("plain\n")})
 	press(m, "n")
 	typeText(m, "배포 전에 확인")
@@ -56,6 +64,7 @@ func TestLowercaseNJotsUnlessTheNoteTakesIt(t *testing.T) {
 }
 
 func TestEmptyJotCreatesNothing(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "N", "enter")
 	press(m, "N", "esc")
@@ -64,7 +73,44 @@ func TestEmptyJotCreatesNothing(t *testing.T) {
 	}
 }
 
+// A note the screen makes and one api makes from the same words on the same
+// clock are the same file under the same name: one rule names and stamps
+// them.
+func TestTheScreenMakesNotesAsTheAPIDoes(t *testing.T) {
+	clock := time.Date(2026, 3, 4, 5, 6, 7, 0, time.UTC)
+	for _, c := range []struct {
+		keys  []string
+		text  string
+		ext   string
+		body  []byte
+		named string
+	}{
+		{[]string{"N"}, "Ship it", "", []byte("Ship it\n"), "ship-it.md"},
+		{[]string{"a", "j", "enter"}, "Auth work", ".md", board.Kind.Template("Auth work"), "auth-work.md"},
+	} {
+		m, dir := newModel(t, nil)
+		m.now = func() time.Time { return clock }
+		press(m, c.keys...)
+		typeText(m, c.text)
+		press(m, "enter")
+
+		other := filepath.Join(t.TempDir(), store.DirName)
+		if err := os.MkdirAll(other, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		a := api.NewWithClock(store.Open(other), kinds.Default(note.Plain), func() time.Time { return clock })
+		name, err := a.CreateFrom("", c.text, c.ext, api.Options{}, c.body)
+		if err != nil || name != c.named {
+			t.Fatalf("api made %q, %v; want %q", name, err, c.named)
+		}
+		if screen, made := readFile(t, dir, c.named), readFile(t, other, c.named); screen != made {
+			t.Errorf("%s: the screen wrote\n%q\napi wrote\n%q", c.named, screen, made)
+		}
+	}
+}
+
 func TestCatalogCreatesTheChosenShape(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "a")
 	s := screen(m)
@@ -99,6 +145,7 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 }
 
 func TestCatalogCanBeCancelled(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "a", "j", "esc")
 	if m.mode != modeBoard {

@@ -6,19 +6,19 @@ import (
 	"io"
 	"strings"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/theme"
 )
 
 // choice is a setting of the root sticky.json the user picks from a list:
-// the theme or the language.
+// the theme or the language. Which values it takes is the settings' rule
+// (prefs.Normal), and it is written as every front end writes settings
+// (api.ChangeSettings); the command only says so.
 type choice struct {
-	cmd     string
-	current func(*store.Store) string
-	set     func(*store.Store, string) error
+	cmd     string                                      // the command, which is the setting's key
 	list    func(w io.Writer, mark func(string) string) // every option, marked
-	resolve func(arg string) (string, bool)             // the option arg names
 	missing string                                      // "there is no theme %q. The themes are:"
 }
 
@@ -28,15 +28,11 @@ func (c choice) run(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	dir, err := store.Resolve(".")
-	if errors.Is(err, store.ErrNotFound) {
-		return errNoBoard
-	}
+	a, err := open(e, false)
 	if err != nil {
 		return err
 	}
-	st := store.Open(dir)
-	current := c.current(st)
+	current := a.Settings().Root(c.cmd)
 	if current == "" {
 		current = "auto"
 	}
@@ -52,14 +48,17 @@ func (c choice) run(e env, args []string) error {
 		list(e.stdout)
 		return nil
 	}
-	name, ok := c.resolve(strings.TrimSpace(words[0]))
-	if !ok {
+	name, err := prefs.Normal(c.cmd, words[0])
+	var refused *prefs.Refused
+	if errors.As(err, &refused) {
 		var b strings.Builder
 		fmt.Fprintf(&b, c.missing+"\n", words[0])
 		list(&b)
 		return errors.New(strings.TrimRight(b.String(), "\n"))
+	} else if err != nil {
+		return err
 	}
-	if err := c.set(st, name); err != nil {
+	if err := a.ChangeSettings(api.Setting{Key: c.cmd, Value: name}); err != nil {
 		return err
 	}
 	_, err = fmt.Fprintf(e.stdout, "%s: %s\n", c.cmd, name)
@@ -69,9 +68,7 @@ func (c choice) run(e env, args []string) error {
 // themeCmd lists the themes or chooses one.
 func themeCmd(e env, args []string) error {
 	return choice{
-		cmd:     "theme",
-		current: (*store.Store).Theme,
-		set:     (*store.Store).SetTheme,
+		cmd: "theme",
 		list: func(w io.Writer, mark func(string) string) {
 			fmt.Fprintf(w, "%sauto  (follows the terminal: %s or %s)\n", mark("auto"), theme.DefaultDark, theme.DefaultLight)
 			for _, t := range theme.All() {
@@ -82,13 +79,6 @@ func themeCmd(e env, args []string) error {
 				fmt.Fprintf(w, "%s%s  (%s)\n", mark(t.Name), t.Name, kind)
 			}
 		},
-		resolve: func(arg string) (string, bool) {
-			if strings.EqualFold(arg, "auto") {
-				return "auto", true
-			}
-			t, ok := theme.Lookup(arg)
-			return t.Name, ok
-		},
 		missing: "there is no theme %q. The themes are:",
 	}.run(e, args)
 }
@@ -96,22 +86,12 @@ func themeCmd(e env, args []string) error {
 // languageCmd lists the languages the screen can speak or chooses one.
 func languageCmd(e env, args []string) error {
 	return choice{
-		cmd:     "language",
-		current: (*store.Store).Language,
-		set:     (*store.Store).SetLanguage,
+		cmd: "language",
 		list: func(w io.Writer, mark func(string) string) {
 			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect())
 			for _, code := range i18n.Languages() {
 				fmt.Fprintf(w, "%s%s\n", mark(code), code)
 			}
-		},
-		resolve: func(arg string) (string, bool) {
-			code := strings.ToLower(arg)
-			if code == "auto" {
-				return code, true
-			}
-			_, err := i18n.Load(code)
-			return code, err == nil
 		},
 		missing: "there is no translation for %q. The languages are:",
 	}.run(e, args)

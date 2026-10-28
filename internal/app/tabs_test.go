@@ -20,6 +20,7 @@ func twoTabs(t *testing.T) (*Model, string) {
 }
 
 func TestFoldersAreTabsAndOneIsActive(t *testing.T) {
+	t.Parallel()
 	m, _ := twoTabs(t)
 	s := screen(m)
 	top := strings.Split(s, "\n")[0]
@@ -48,6 +49,7 @@ func TestFoldersAreTabsAndOneIsActive(t *testing.T) {
 }
 
 func TestTheActiveTabIsRememberedAndFollowsStickyJSON(t *testing.T) {
+	t.Parallel()
 	m, dir := twoTabs(t)
 	press(m, "2")
 	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"tab": "deploy"`) {
@@ -63,6 +65,7 @@ func TestTheActiveTabIsRememberedAndFollowsStickyJSON(t *testing.T) {
 }
 
 func TestEachTabKeepsItsOwnFocusAndArrangement(t *testing.T) {
+	t.Parallel()
 	m, dir := twoTabs(t)
 	press(m, "2", "tab", "o") // close the second note of tab 2
 	if m.focus != "deploy/docs" && m.focus != "deploy/notes.md" {
@@ -83,6 +86,7 @@ func TestEachTabKeepsItsOwnFocusAndArrangement(t *testing.T) {
 }
 
 func TestATabCanBeNamed(t *testing.T) {
+	t.Parallel()
 	m, dir := twoTabs(t)
 	writeFile(t, dir, "deploy/sticky.json", `{"title":"배포","notes":{"build.log":{"open":true}}}`)
 	press(m, "r")
@@ -92,6 +96,7 @@ func TestATabCanBeNamed(t *testing.T) {
 }
 
 func TestClickingATabSwitchesToIt(t *testing.T) {
+	t.Parallel()
 	m, _ := twoTabs(t)
 	clickOn(t, m, "deploy")
 	if s := screen(m); !strings.Contains(s, "compiled") {
@@ -100,6 +105,7 @@ func TestClickingATabSwitchesToIt(t *testing.T) {
 }
 
 func TestMoveOffersTabsAndBooks(t *testing.T) {
+	t.Parallel()
 	m, dir := twoTabs(t)
 	press(m, "m")
 	if s := screen(m); !strings.Contains(s, "deploy") || strings.Contains(s, "top level") {

@@ -43,6 +43,7 @@ func finishAll(t *testing.T, m *Model, cmd tea.Cmd) {
 }
 
 func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"deploy.sh": failing})
 	press(m, "o", "enter")
 	if s := screen(m); m.mode != modeConfirm || !strings.Contains(s, "Run deploy.sh") || !strings.Contains(s, "(y/n)") {
@@ -85,6 +86,7 @@ func TestAScriptRunsOnlyAfterTheUserSaysYes(t *testing.T) {
 }
 
 func TestASecondRunStartsTheLogAgain(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"ok.sh": "echo run\n", "ok.log": "from an earlier run\n"})
 	press(m, "tab", "o", "enter")
 	_, cmd := m.Update(key("y"))
@@ -96,6 +98,7 @@ func TestASecondRunStartsTheLogAgain(t *testing.T) {
 }
 
 func TestAScriptInATabLogsIntoThatTab(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "ops")
 	writeFile(t, dir, "ops/build.sh", "echo built\n")
@@ -112,6 +115,7 @@ func TestAScriptInATabLogsIntoThatTab(t *testing.T) {
 }
 
 func TestAddingAScriptMakesAShellFile(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	press(m, "a")
 	for i := 0; i < len(m.reg) && m.reg[m.catalogIdx].Name != "script"; i++ {
@@ -132,6 +136,7 @@ func TestAddingAScriptMakesAShellFile(t *testing.T) {
 // asks, and a click on the question's Yes runs it. Nothing runs without
 // that yes; No, or a click elsewhere, leaves it.
 func TestAScriptRunsAgainWithTheMouseAlone(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"deploy.sh": "echo hello\n"})
 	writeView(t, dir, `{"notes":{"deploy.sh":{"open":true}}}`)
 	m.Update(changedMsg{})

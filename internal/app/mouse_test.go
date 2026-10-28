@@ -42,6 +42,7 @@ func wheel(m *Model, x, y int, down bool) {
 }
 
 func TestTheScreenAsksForTheMouse(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, nil)
 	if got := m.View().MouseMode; got != tea.MouseModeCellMotion {
 		t.Errorf("MouseMode = %v", got)
@@ -49,6 +50,7 @@ func TestTheScreenAsksForTheMouse(t *testing.T) {
 }
 
 func TestClickingATabOpensFocusesAndCloses(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{
 		"a.md": opened("first note\n"),
 		"b.md": "---\ntitle: Second\n---\nsecond note\n",
@@ -68,6 +70,7 @@ func TestClickingATabOpensFocusesAndCloses(t *testing.T) {
 }
 
 func TestClickingANoteFocusesIt(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"a.md": opened("first note\n"),
 		"b.md": opened("second note\n"),
@@ -82,6 +85,7 @@ func TestClickingANoteFocusesIt(t *testing.T) {
 }
 
 func TestClickingAChecklistItemTicksIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("first\n"), "c.md": checklistFile})
 	clickOn(t, m, "ship")
 	if got := readFile(t, dir, "c.md"); !strings.HasSuffix(plain(got), "- [x] build\n- [x] ship\n") || !strings.Contains(got, "ship ✅ ") {
@@ -97,6 +101,7 @@ func TestClickingAChecklistItemTicksIt(t *testing.T) {
 }
 
 func TestClickingAFormAnswersIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"f.md": formFile})
 	clickOn(t, m, "production")
 	if got := readFile(t, dir, "f.md"); !strings.Contains(got, "- (x) production") {
@@ -119,6 +124,7 @@ func TestClickingAFormAnswersIt(t *testing.T) {
 }
 
 func TestClickingACardSelectsIt(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	before := readFile(t, dir, "b.md")
 	clickOn(t, m, "schema")
@@ -135,6 +141,7 @@ func TestClickingACardSelectsIt(t *testing.T) {
 }
 
 func TestADoubleClickZoomsAndTheWheelScrollsTheZoomedNote(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(60))})
 	x, y := find(t, m, "line 03")
 	click(m, x, y)
@@ -152,6 +159,7 @@ func TestADoubleClickZoomsAndTheWheelScrollsTheZoomedNote(t *testing.T) {
 }
 
 func TestADoubleClickOnAControlDoesNotZoom(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	x, y := find(t, m, "ship")
 	click(m, x, y)
@@ -167,6 +175,7 @@ func TestADoubleClickOnAControlDoesNotZoom(t *testing.T) {
 }
 
 func TestClicksWorkInAZoomedNote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	press(m, "z")
 	clickOn(t, m, "ship")
@@ -176,6 +185,7 @@ func TestClicksWorkInAZoomedNote(t *testing.T) {
 }
 
 func TestTheMouseIsIgnoredWhileAsking(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"c.md": checklistFile})
 	x, y := find(t, m, "ship")
 	press(m, "N")
@@ -190,6 +200,7 @@ func TestTheMouseIsIgnoredWhileAsking(t *testing.T) {
 }
 
 func TestClicksOutsideEverythingDoNothing(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("note\n")})
 	for _, p := range [][2]int{{79, 23}, {79, 10}, {0, 23}, {-1, -1}, {500, 500}} {
 		click(m, p[0], p[1])

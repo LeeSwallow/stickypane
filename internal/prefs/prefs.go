@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 // Pref is one setting.
@@ -76,31 +78,149 @@ func Get(set store.Settings, key string) string {
 	if v := set.Root(key); v != "" {
 		return v
 	}
-	return Lookup(key).Default
+	p, _ := find(key)
+	return p.Default
 }
 
-// Set changes a setting. A value it cannot take, or a setting that does
-// not exist, is an error that lists what there is. The default is written
-// as no value at all.
-func Set(st *store.Store, key, value string) error {
-	p := Lookup(key)
-	if p.Key == "" {
+// StaleAfter is how long a card may stay put before the board flags it,
+// by the "stale" setting: "30m", "2h", "1d". Zero, for "off" or a value it
+// cannot read, never flags one.
+func StaleAfter(set store.Settings) time.Duration {
+	v := Get(set, "stale")
+	d, err := time.ParseDuration(strings.Replace(v, "d", "h", 1))
+	if err != nil {
+		return 0
+	}
+	if strings.HasSuffix(v, "d") {
+		d *= 24
+	}
+	return d
+}
+
+// Times is how the screen writes a time, by the "time" setting: the
+// locale's way for "auto", the neutral form for "iso", else the way of the
+// country it names.
+func Times(set store.Settings) when.Formatter {
+	switch v := Get(set, "time"); v {
+	case "auto":
+		return when.Locale(env.Detect().Locale)
+	case "iso":
+		return when.Formatter{}
+	default:
+		return when.Locale(v)
+	}
+}
+
+// Screen are the settings of how the board is shown, which the desktop app
+// changes and the terminal's panel does not list: the view and the style.
+var Screen = []Pref{
+	{
+		Key: "view", Label: "View", Default: store.ViewTerminal,
+		Help:   "where the board is shown: the terminal, the desktop overlay, or both",
+		Values: func() []string { return []string{store.ViewTerminal, store.ViewOverlay, store.ViewBoth} },
+	},
+	{
+		Key: "style", Label: "Style", Default: store.StyleDoodle,
+		Help:   "how the overlay draws its notes",
+		Values: func() []string { return []string{store.StyleDoodle, store.StyleNeat} },
+	},
+}
+
+// find is a setting of the panel or of the screen by key.
+func find(key string) (Pref, bool) {
+	for _, p := range append(slices.Clone(All), Screen...) {
+		if p.Key == key {
+			return p, true
+		}
+	}
+	return Pref{}, false
+}
+
+// Refused is a value a setting cannot take. What it says is the one
+// sentence every front end shows; a front end that lists the values
+// itself reads Values.
+type Refused struct {
+	Key, Value string
+	Values     []string // what the setting takes
+}
+
+func (r *Refused) Error() string {
+	switch r.Key {
+	case "theme":
+		return fmt.Sprintf("there is no theme %q", r.Value)
+	case "language":
+		return fmt.Sprintf("there is no translation for %q: use %s", r.Value, strings.Join(r.Values, ", "))
+	case "style":
+		return fmt.Sprintf("style %q is not doodle or neat", r.Value)
+	case "view":
+		return fmt.Sprintf("view %q is not terminal, overlay or both", r.Value)
+	}
+	return fmt.Sprintf("%s is one of %s, not %q", r.Key, strings.Join(r.Values, ", "), r.Value)
+}
+
+// Normal is the value a setting keeps for what was asked: a theme by its
+// name in any spelling theme.Lookup reads, a language code in lower case,
+// and any other value as its list writes it. A value the setting cannot
+// take is a *Refused; a setting that does not exist is an error that lists
+// the settings.
+func Normal(key, value string) (string, error) {
+	p, ok := find(key)
+	if !ok {
 		keys := make([]string, len(All))
 		for i, q := range All {
 			keys[i] = q.Key
 		}
-		return fmt.Errorf("there is no setting %q; there are %s", key, strings.Join(keys, ", "))
+		return "", fmt.Errorf("there is no setting %q; there are %s", key, strings.Join(keys, ", "))
 	}
 	vals := p.Values()
-	i := slices.IndexFunc(vals, func(v string) bool { return strings.EqualFold(v, value) })
-	if i < 0 {
-		return fmt.Errorf("%s is one of %s, not %q", key, strings.Join(vals, ", "), value)
+	switch v := strings.TrimSpace(value); {
+	case strings.EqualFold(v, "auto") && (key == "theme" || key == "language"):
+		return "auto", nil
+	case key == "theme":
+		if t, ok := theme.Lookup(v); ok {
+			return t.Name, nil
+		}
+	case key == "language":
+		code := strings.ToLower(v)
+		if _, err := i18n.Load(code); err == nil && code != "" {
+			return code, nil
+		}
+	default:
+		if i := slices.IndexFunc(vals, func(s string) bool { return strings.EqualFold(s, v) }); i >= 0 {
+			return vals[i], nil
+		}
 	}
-	if vals[i] == p.Default {
-		return st.SetRoot(key, "")
-	}
-	return st.SetRoot(key, vals[i])
+	return "", &Refused{Key: key, Value: value, Values: vals}
 }
+
+// Change is one setting given a value.
+type Change struct{ Key, Value string }
+
+// Apply checks every change and then writes them, so a value a setting
+// cannot take changes nothing. A value at its setting's default is
+// written as no value at all.
+func Apply(st *store.Store, changes ...Change) error {
+	keep := make([]Change, len(changes))
+	for i, c := range changes {
+		v, err := Normal(c.Key, c.Value)
+		if err != nil {
+			return err
+		}
+		if p, _ := find(c.Key); v == p.Default {
+			v = ""
+		}
+		keep[i] = Change{c.Key, v}
+	}
+	for _, c := range keep {
+		if err := st.SetRoot(c.Key, c.Value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Set changes one setting, as Apply does.
+func Set(st *store.Store, key, value string) error { return Apply(st, Change{key, value}) }
 
 // Next is the value after (or, with step -1, before) v, going round.
 func (p Pref) Next(v string, step int) string {

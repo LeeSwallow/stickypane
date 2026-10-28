@@ -25,7 +25,7 @@ var Kind = widget.Kind{
 		{Name: "from", Type: widget.OptText, Label: "Count from note"},
 	},
 	Compose: compose,
-	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:   func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Events:  events,
 	Data:    data,
 }

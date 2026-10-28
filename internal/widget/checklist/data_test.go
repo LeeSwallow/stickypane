@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -14,7 +15,7 @@ const listSrc = "Release plan\n- [ ] build\n- [x] test ✅ 2026-10-03 14:02\n- [
 
 func dataOf(t *testing.T, d doc.Document) string {
 	t.Helper()
-	b, err := json.Marshal(Kind.Data(d))
+	b, err := json.Marshal(Kind.Data(d, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,17 +23,17 @@ func dataOf(t *testing.T, d doc.Document) string {
 }
 
 func TestDataOfAList(t *testing.T) {
-	old := time.Local
-	time.Local = time.FixedZone("KST", 9*3600)
-	defer func() { time.Local = old }()
+	t.Parallel()
 	got := dataOf(t, doc.Parse([]byte(listSrc)))
-	want := `{"items":[{"text":"build","checked":false},{"text":"test","checked":true,"done":"2026-10-03T14:02:00+09:00"},{"text":"ship","checked":false}],"prose":["Release plan"],"done":1,"total":3}`
+	done := time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local).Format(when.Moment) // a time without a zone is local
+	want := `{"items":[{"text":"build","checked":false},{"text":"test","checked":true,"done":"` + done + `"},{"text":"ship","checked":false}],"prose":["Release plan"],"done":1,"total":3}`
 	if got != want {
 		t.Errorf("Data = %s\nwant   %s", got, want)
 	}
 }
 
 func TestDataOfAnEmptyList(t *testing.T) {
+	t.Parallel()
 	got := dataOf(t, doc.Parse(Kind.Template("Plan")))
 	want := `{"items":[],"prose":[],"done":0,"total":0}`
 	if got != want {
@@ -43,7 +44,7 @@ func TestDataOfAnEmptyList(t *testing.T) {
 func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document, error) {
 	t.Helper()
 	d := doc.Parse([]byte(src))
-	op, err := Kind.Act(d, widget.Action{Name: name, Args: args})
+	op, err := Kind.Act(d, widget.Action{Name: name, Args: args}, widget.DefaultEnv())
 	if err != nil {
 		if op != nil {
 			t.Errorf("Op = %v with an error", op)
@@ -58,6 +59,7 @@ func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document
 }
 
 func TestActToggleTicksTheItem(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, listSrc, "toggle", map[string]string{"i": "1"})
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +84,7 @@ func TestActToggleTicksTheItem(t *testing.T) {
 }
 
 func TestActToggleWritesNoTime(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, listSrc, "toggle", map[string]string{"i": "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -92,6 +95,7 @@ func TestActToggleWritesNoTime(t *testing.T) {
 }
 
 func TestActToggleSameTextCountsPosition(t *testing.T) {
+	t.Parallel()
 	src := "- [ ] a\n- [ ] a\n"
 	d, err := doAct(t, src, "toggle", map[string]string{"i": "1"})
 	if err != nil {
@@ -103,6 +107,7 @@ func TestActToggleSameTextCountsPosition(t *testing.T) {
 }
 
 func TestActToggleOutOfRange(t *testing.T) {
+	t.Parallel()
 	for _, i := range []string{"99", "-1", "3", "x", ""} {
 		if _, err := doAct(t, listSrc, "toggle", map[string]string{"i": i}); err == nil {
 			t.Errorf("toggle i=%q: no error", i)
@@ -111,6 +116,7 @@ func TestActToggleOutOfRange(t *testing.T) {
 }
 
 func TestActAddAppends(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, listSrc, "add", map[string]string{"text": "announce"})
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +128,7 @@ func TestActAddAppends(t *testing.T) {
 }
 
 func TestActAddNeedsText(t *testing.T) {
+	t.Parallel()
 	for _, s := range []string{"", "  ", "a\nb"} {
 		if _, err := doAct(t, listSrc, "add", map[string]string{"text": s}); err == nil {
 			t.Errorf("add text=%q: no error", s)
@@ -130,6 +137,7 @@ func TestActAddNeedsText(t *testing.T) {
 }
 
 func TestActUnknown(t *testing.T) {
+	t.Parallel()
 	_, err := doAct(t, listSrc, "delete", nil)
 	if !errors.Is(err, widget.ErrUnknownAction) {
 		t.Errorf("err = %v, want ErrUnknownAction", err)

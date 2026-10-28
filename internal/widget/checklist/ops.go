@@ -148,7 +148,7 @@ func tend(_, d doc.Document, changed time.Time) doc.Op {
 // act is the checklist's Kind.Act: "toggle" with i, the item's position
 // from zero, and "add" with text. The time of a ticked item is not written
 // here; tend writes it.
-func act(d doc.Document, a widget.Action) (doc.Op, error) {
+func act(d doc.Document, a widget.Action, _ widget.Env) (doc.Op, error) {
 	switch a.Name {
 	case "toggle":
 		i, err := strconv.Atoi(a.Args["i"])

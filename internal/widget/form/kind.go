@@ -33,7 +33,7 @@ func NewKind(render note.Renderer) widget.Kind {
 			{Name: "buttons", Type: widget.OptLines, Label: "Buttons", Default: defaultButton},
 		},
 		Compose: compose,
-		Parse:   func(d doc.Document) widget.Widget { return parse(d, render) },
+		Parse:   func(d doc.Document, e widget.Env) widget.Widget { return parse(d, render, e) },
 		Events:  events,
 		Data:    data,
 		Act:     act,

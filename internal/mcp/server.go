@@ -438,15 +438,15 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		file, werr := b.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
 		text, err = "wrote "+file, werr
 	case "todo":
-		text, err = b.Todo(a.Name, a.Action, a.Item)
+		text, err = said(b.Todo(a.Name, a.Action, a.Item))(status)
 	case "card":
-		text, err = b.Card(a.Name, a.Action, a.Card, a.To)
+		text, err = said(b.Card(a.Name, a.Action, a.Card, a.To))(status)
 	case "chart":
-		text, err = b.Chart(a.Name, a.Action, a.Label, plain(a.Value))
+		text, err = said(b.Chart(a.Name, a.Action, a.Label, plain(a.Value)))(valued)
 	case "log":
-		text, err = b.Log(a.Name, a.Line)
+		text, err = said(b.Log(a.Name, a.Line))(status)
 	case "say":
-		text, err = b.Say(a.Name, a.As, a.Text)
+		text, err = said(b.Say(a.Name, a.As, a.Text))(status)
 	case "arrange_note":
 		text, err = arrange(b, a.Name, a.Action, a.To)
 	case "set_keys":
@@ -459,7 +459,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		for i, k := range keys {
 			pairs[i] = k + "=" + plain(a.Keys[k])
 		}
-		text, err = b.Set(a.Name, pairs)
+		text, err = said(b.Set(a.Name, pairs))(keyed)
 	case "read_answers":
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
 		got, aerr := b.Wait(wctx, a.Name, waitEvery)
@@ -518,18 +518,18 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 func arrange(b *api.API, name, action, to string) (string, error) {
 	switch action {
 	case "show":
-		return b.Show(name)
+		return said(b.Show(name))(shown)
 	case "hide":
-		return b.Hide(name)
+		return said(b.Hide(name))(shown)
 	case "move":
 		if to == "" {
 			return "", errors.New(`move needs "to": a new name, a folder ending in "/", or "."`)
 		}
-		return b.Move(name, to)
+		return said(b.Move(name, to))(movedTo)
 	case "remove":
-		return b.Remove(name)
+		return said(b.Remove(name))(removed)
 	case "restore":
-		return b.Restore(name)
+		return said(b.Restore(name))(restored)
 	}
 	return "", fmt.Errorf("unknown action %q: show, hide, move, remove or restore", action)
 }

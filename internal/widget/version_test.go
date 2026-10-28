@@ -7,6 +7,7 @@ import (
 )
 
 func TestVersionChangesWithContent(t *testing.T) {
+	t.Parallel()
 	a := doc.Document{Body: "one\n"}
 	b := doc.Document{Body: "one\n"}
 	c := doc.Document{Body: "two\n"}

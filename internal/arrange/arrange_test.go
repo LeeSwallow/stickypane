@@ -5,6 +5,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -151,6 +152,28 @@ func TestFileTitleDropsTheNumberThatOrdersNotes(t *testing.T) {
 	} {
 		if got := FileTitle(name); got != want {
 			t.Errorf("FileTitle(%q) = %q, want %q", name, got, want)
+		}
+	}
+}
+
+// A note's color is the one chosen, in any case, else one its name picks,
+// the same on every screen and in every run.
+func TestColorNameIsTheChoiceOrTheNames(t *testing.T) {
+	for _, c := range []struct{ name, chosen, want string }{
+		{"plan.md", "", "orange"},
+		{"todo.md", "", "yellow"},
+		{"docs", "", "yellow"},
+		{"deploy/build.log", "", "pink"},
+		{"회의.md", "", "blue"},
+		{"a", "", "purple"},
+		{"plan.md", "Green", "green"},
+		{"plan.md", "teal", "orange"}, // not a note color: the name picks
+	} {
+		if got := ColorName(c.name, c.chosen); got != c.want {
+			t.Errorf("ColorName(%q, %q) = %q, want %q", c.name, c.chosen, got, c.want)
+		}
+		if got := theme.NoteNames[ColorIndex(c.name, c.chosen)]; got != c.want {
+			t.Errorf("ColorIndex(%q, %q) is %q, want %q", c.name, c.chosen, got, c.want)
 		}
 	}
 }

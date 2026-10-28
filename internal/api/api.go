@@ -62,6 +62,7 @@ type API struct {
 	st  *store.Store
 	reg widget.Registry
 	now func() time.Time // the clock every time the API writes is read from
+	env widget.Env       // what widgets read and act with: the same clock
 }
 
 // New returns the API for a notes folder. reg decides which types exist and
@@ -75,15 +76,28 @@ func NewWithClock(st *store.Store, reg widget.Registry, now func() time.Time) *A
 	if now == nil {
 		now = time.Now
 	}
-	return &API{st: st, reg: reg, now: now}
+	return NewWithEnv(st, reg, widget.Env{Clock: now, StaleAfter: widget.StaleAfter})
+}
+
+// NewWithEnv is New with the Env the API hands the widgets it reads and
+// acts through: a summary in the user's words, the time an action writes.
+// The API's clock is the Env's.
+func NewWithEnv(st *store.Store, reg widget.Registry, e widget.Env) *API {
+	return &API{st: st, reg: reg, now: e.Now, env: e}
 }
 
 // Now is the time on the API's clock, for callers that write a time
 // beside what the API writes.
 func (a *API) Now() time.Time { return a.now() }
 
-// Store is the notes folder the API works on, for callers that read or
-// change the board's settings.
+// Env is what the API hands widgets: its clock, and the words and settings
+// it was made with. A screen that draws a note's data reads it with this.
+func (a *API) Env() widget.Env { return a.env }
+
+// Store is the notes folder the API works on, for callers that only read
+// it (where a file is, whether it is a link), watch it, or hand it to the
+// runner. A change to a note or a setting goes through the API, so every
+// front end keeps one rule for it.
 func (a *API) Store() *store.Store { return a.st }
 
 // fileName turns a note name into its file name, adding ".md" when it has
@@ -185,26 +199,27 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	old, err := a.st.Read(file)
-	if err == nil {
-		was := doc.Parse(old)
-		for _, key := range append([]string{"created"}, viewKeys...) {
-			if _, set := d.Get(key); set {
-				continue
+	// What is kept from the note is read in the same step that replaces
+	// it, so nothing written in between is lost.
+	err = a.st.Rewrite(file, func(old []byte, ok bool) ([]byte, error) {
+		d := d
+		var before doc.Document
+		if ok {
+			before = doc.Parse(old)
+			for _, key := range append([]string{"created"}, viewKeys...) {
+				if _, set := d.Get(key); set {
+					continue
+				}
+				if v, ok := before.Get(key); ok {
+					d = d.Set(key, v)
+				}
 			}
-			if v, ok := was.Get(key); ok {
-				d = d.Set(key, v)
-			}
+		} else if isMarkdown(file) {
+			d = created(d, a.now())
 		}
-	}
-	var before doc.Document
-	if err == nil {
-		before = doc.Parse(old)
-	} else if isMarkdown(file) {
-		d = created(d, a.now())
-	}
-	d = a.tend(file, before, d)
-	if err := a.st.Write(file, d.Bytes()); err != nil {
+		return a.tend(file, before, d).Bytes(), nil
+	})
+	if err != nil {
 		return file, err
 	}
 	_, _ = a.Derive() // charts computed from this note follow it

@@ -256,13 +256,24 @@ func Load(code string) (Strings, error) {
 // nothing) for what the environment says. A choice without a translation
 // follows the environment too.
 func Pick(choice string) Strings {
-	if c := normalize(choice); c != "" && c != "auto" {
-		if s, err := Load(c); err == nil {
-			return s
+	s, _ := Load(Resolve(choice))
+	return s
+}
+
+// Resolve is the language a choice comes to, as a code such as "ko": the
+// choice when there is a translation for it, else what the environment
+// asks for when there is one for that, else English. It is the one rule;
+// the terminal speaks it (Pick) and the bridge reports it.
+func Resolve(choice string) string {
+	for _, c := range []string{normalize(choice), Detect()} {
+		if c == "" || c == "auto" {
+			continue
+		}
+		if _, err := Load(c); err == nil {
+			return c
 		}
 	}
-	s, _ := Load(Detect())
-	return s
+	return "en"
 }
 
 // Detect returns the language the environment asks for, as "ko" or "en":

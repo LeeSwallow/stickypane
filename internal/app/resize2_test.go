@@ -7,6 +7,7 @@ import (
 )
 
 func TestADragOfOneCellKeepsTheWidthOfAStretchedNote(t *testing.T) {
+	t.Parallel()
 	// 1/2 and 1/3 of 80 cells are 40 and 26, stretched to 48 and 32.
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/3"}}}`)
@@ -22,6 +23,7 @@ func TestADragOfOneCellKeepsTheWidthOfAStretchedNote(t *testing.T) {
 }
 
 func TestALoneStretchedNoteNeedsARealMoveToChange(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1"}}}`)
 	m.reload()
@@ -44,6 +46,7 @@ func TestALoneStretchedNoteNeedsARealMoveToChange(t *testing.T) {
 }
 
 func TestZeroMakesALogAsTallAsItsContent(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"build.log": "one\ntwo\n", "z.md": opened("other\n")})
 	writeView(t, dir, `{"notes":{"build.log":{"open":true,"size":"1"},"z.md":{"size":"1"}}}`)
 	m.reload()
@@ -67,6 +70,7 @@ func TestZeroMakesALogAsTallAsItsContent(t *testing.T) {
 }
 
 func TestADoubleClickOnALogsBottomBorderGoesBackToTheContent(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"build.log": "one\ntwo\n", "z.md": opened("other\n")})
 	writeView(t, dir, `{"notes":{"build.log":{"open":true,"size":"1"},"z.md":{"size":"1"}}}`)
 	m.reload()
@@ -80,6 +84,7 @@ func TestADoubleClickOnALogsBottomBorderGoesBackToTheContent(t *testing.T) {
 }
 
 func TestANoteWithAHeightGetsItBeforeTheOthersShareTheRest(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1","rows":5},"b.md":{"size":"1"}}}`)
 	m.reload()

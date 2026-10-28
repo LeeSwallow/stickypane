@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/httpfile"
+	"github.com/LeeSwallow/stickypane/internal/httpfile/syntax"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -47,20 +47,21 @@ var Kind = widget.Kind{
 		{Name: "status", Type: widget.OptNumber, Label: "Expected status", Default: "200"},
 	},
 	Compose: compose,
-	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Parse:   func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Data:    data,
 }
 
 // API is the widget for a .http file.
 type API struct {
-	file   httpfile.File
+	file   syntax.File
 	lines  []string
 	cursor int
 	drawn  []widget.Span // the lines of each request in the last Draw
+	env    widget.Env
 }
 
-func parse(d doc.Document) *API {
-	return &API{file: httpfile.Parse(d.Body), lines: doc.Lines(d.Body)}
+func parse(d doc.Document, e widget.Env) *API {
+	return &API{file: syntax.Parse(d.Body), lines: doc.Lines(d.Body), env: e}
 }
 
 func (a *API) clamp() { a.cursor = max(min(a.cursor, len(a.file.Requests)-1), 0) }
@@ -68,18 +69,18 @@ func (a *API) clamp() { a.cursor = max(min(a.cursor, len(a.file.Requests)-1), 0)
 // methodStyle colors a method by what it does: reads, writes, removes.
 // A WebSocket session and a gRPC call get the accent, so the protocol
 // stands out from the methods.
-func methodStyle(m string) lipgloss.Style {
+func (a *API) methodStyle(m string) lipgloss.Style {
 	switch m {
 	case "WS", "GRPC":
-		return widget.Accent
+		return a.env.Styles.Accent
 	case "GET", "HEAD", "OPTIONS":
-		return widget.Info
+		return a.env.Styles.Info
 	case "POST":
-		return widget.Good
+		return a.env.Styles.Good
 	case "DELETE":
-		return widget.Bad
+		return a.env.Styles.Bad
 	default:
-		return widget.Warn
+		return a.env.Styles.Warn
 	}
 }
 
@@ -89,12 +90,12 @@ func methodStyle(m string) lipgloss.Style {
 func (a *API) Draw(width int, active bool) (string, widget.Span) {
 	a.drawn = a.drawn[:0]
 	if len(a.file.Requests) == 0 {
-		return widget.Fit(widget.Faint.Render(widget.T("(no requests yet: ### name, then GET https://…)")), width), widget.NoSpan
+		return widget.Fit(a.env.Styles.Faint.Render(a.env.T("(no requests yet: ### name, then GET https://…)")), width), widget.NoSpan
 	}
 	a.clamp()
 	var out []string
 	if a.file.Env != "" {
-		out = append(out, widget.Faint.Render(widget.T("environment")+" "+a.file.Env), "")
+		out = append(out, a.env.Styles.Faint.Render(a.env.T("environment")+" "+a.file.Env), "")
 	}
 	at := widget.NoSpan
 	for i, r := range a.file.Requests {
@@ -104,7 +105,7 @@ func (a *API) Draw(width int, active bool) (string, widget.Span) {
 			mark = "› "
 		}
 		badge := r.Badge()
-		method := methodStyle(badge).Render(fmt.Sprintf("%-6s", badge))
+		method := a.methodStyle(badge).Render(fmt.Sprintf("%-6s", badge))
 		line := mark + method + " "
 		where := r.URL
 		switch r.Protocol() {
@@ -119,25 +120,25 @@ func (a *API) Draw(width int, active bool) (string, widget.Span) {
 		}
 		rest := where
 		if r.Name != "" {
-			rest = r.Name + "  " + widget.Faint.Render(where)
+			rest = r.Name + "  " + a.env.Styles.Faint.Render(where)
 		}
 		if n := len(r.Asserts); n > 0 {
-			rest += widget.Faint.Render(fmt.Sprintf("  %d ✓", n))
+			rest += a.env.Styles.Faint.Render(fmt.Sprintf("  %d ✓", n))
 		}
 		if r.Hooks() {
-			rest += widget.Faint.Render("  ⚙")
+			rest += a.env.Styles.Faint.Render("  ⚙")
 		}
 		line = widget.Truncate(line+rest, width)
 		if active && i == a.cursor {
 			// The colors inside would cut the highlight short: the picked
 			// line is one plain run of text on the highlight.
-			line = widget.Selected.Render(widget.Pad(ansi.Strip(line), width))
+			line = a.env.Styles.Selected.Render(widget.Pad(ansi.Strip(line), width))
 		}
 		out = append(out, line)
 		if active && i == a.cursor {
 			for _, l := range a.block(r) {
 				for _, part := range widget.Wrap(widget.Clean(l), max(width-4, 1)) {
-					out = append(out, "    "+widget.Faint.Render(part))
+					out = append(out, "    "+a.env.Styles.Faint.Render(part))
 				}
 			}
 			at = widget.Span{Start: start, End: len(out)}
@@ -150,7 +151,7 @@ func (a *API) Draw(width int, active bool) (string, widget.Span) {
 // block is the request as written, without its "###" line, its request
 // line, which the line above shows, and the blank lines around it. The
 // hooks before the request line are kept: they run when it is sent.
-func (a *API) block(r httpfile.Request) []string {
+func (a *API) block(r syntax.Request) []string {
 	end := min(r.End, len(a.lines))
 	var ls []string
 	for i := r.Start; i < end; i++ {
@@ -185,9 +186,9 @@ func (a *API) Summary() string {
 	case 0:
 		return ""
 	case 1:
-		return widget.T("1 request")
+		return a.env.T("1 request")
 	default:
-		return fmt.Sprintf(widget.T("%d requests"), n)
+		return fmt.Sprintf(a.env.T("%d requests"), n)
 	}
 }
 
@@ -207,7 +208,7 @@ func (a *API) Update(key string) (widget.Widget, widget.Result) {
 		}
 	case "e":
 		res.Prompt = &widget.Prompt{
-			Label:   widget.T("Environment"),
+			Label:   a.env.T("Environment"),
 			Initial: a.file.Env,
 			Empty:   true,
 			Submit:  func(text string) doc.Op { return SetEnv{Name: strings.TrimSpace(text)} },
@@ -235,7 +236,7 @@ func (a *API) Click(line, _ int) (widget.Widget, widget.Result, bool) {
 
 // Sync implements widget.Widget: the file changed; the cursor stays.
 func (a *API) Sync(d doc.Document) widget.Widget {
-	n := parse(d)
+	n := parse(d, a.env)
 	n.cursor = a.cursor
 	n.clamp()
 	return n
@@ -291,8 +292,8 @@ type Requested struct {
 
 // data is the requests file as written, its environment, and its requests
 // read the way the terminal reads them, so a screen never parses the file.
-func data(d doc.Document) any {
-	a := parse(d)
+func data(d doc.Document, e widget.Env) any {
+	a := parse(d, e)
 	reqs := make([]Requested, 0, len(a.file.Requests))
 	for _, r := range a.file.Requests {
 		where := r.URL

@@ -13,7 +13,7 @@ import (
 
 func pageOf(t *testing.T, d doc.Document) Page {
 	t.Helper()
-	b, err := json.Marshal(kind.Data(d))
+	b, err := json.Marshal(kind.Data(d, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,6 +37,7 @@ func lineWhere(t *testing.T, p Page, kind, text string) int {
 }
 
 func TestDataOfAForm(t *testing.T) {
+	t.Parallel()
 	p := pageOf(t, doc.Parse([]byte(deploy)))
 	if p.Submitted != "" || p.At != "" {
 		t.Errorf("submitted = %q at %q, want neither", p.Submitted, p.At)
@@ -61,7 +62,7 @@ func TestDataOfAForm(t *testing.T) {
 	if !reflect.DeepEqual(labels, []string{"제출", "취소"}) {
 		t.Errorf("labels = %v", labels)
 	}
-	b, _ := json.Marshal(kind.Data(doc.Parse([]byte(deploy))))
+	b, _ := json.Marshal(kind.Data(doc.Parse([]byte(deploy)), widget.DefaultEnv()))
 	var raw map[string]any
 	_ = json.Unmarshal(b, &raw)
 	for _, k := range []string{"lines", "submitted", "at"} {
@@ -71,9 +72,12 @@ func TestDataOfAForm(t *testing.T) {
 	}
 }
 
+// sentAt is the clock the actions of these tests are taken by.
+func sentAt() time.Time { return time.Date(2026, 10, 28, 14, 2, 11, 0, time.FixedZone("KST", 9*3600)) }
+
 func doAct(t *testing.T, d doc.Document, name string, args map[string]string) (doc.Document, error) {
 	t.Helper()
-	op, err := kind.Act(d, widget.Action{Name: name, Args: args})
+	op, err := kind.Act(d, widget.Action{Name: name, Args: args}, widget.Env{Clock: sentAt})
 	if err != nil {
 		if op != nil {
 			t.Errorf("Op = %v with an error", op)
@@ -92,10 +96,9 @@ func idx(i int) map[string]string { return map[string]string{"line": itoa(i)} }
 func itoa(i int) string { b, _ := json.Marshal(i); return string(b) }
 
 func TestActChooseThenSubmit(t *testing.T) {
-	old := now
-	now = func() time.Time { return time.Date(2026, 10, 28, 14, 2, 11, 0, time.FixedZone("KST", 9*3600)) }
-	defer func() { now = old }()
+	t.Parallel()
 	d := doc.Parse([]byte(deploy))
+
 	p := pageOf(t, d)
 	d, err := doAct(t, d, "choose", idx(lineWhere(t, p, "option", "production")))
 	if err != nil {
@@ -124,6 +127,7 @@ func TestActChooseThenSubmit(t *testing.T) {
 }
 
 func TestActChooseOutOfRange(t *testing.T) {
+	t.Parallel()
 	d := doc.Parse([]byte(deploy))
 	p := pageOf(t, d)
 	for _, bad := range []map[string]string{
@@ -146,6 +150,7 @@ func TestActChooseOutOfRange(t *testing.T) {
 }
 
 func TestActOnASubmittedFormStillWorks(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, doc.Parse([]byte(deploy)), "submit", map[string]string{"label": "제출"})
 	if err != nil {
 		t.Fatal(err)
@@ -161,6 +166,7 @@ func TestActOnASubmittedFormStillWorks(t *testing.T) {
 }
 
 func TestActFillSameTextKeepsSubmission(t *testing.T) {
+	t.Parallel()
 	d, _ := doAct(t, doc.Parse([]byte(deploy)), "submit", map[string]string{"label": "제출"})
 	p := pageOf(t, d)
 	d, err := doAct(t, d, "fill", map[string]string{"line": itoa(lineWhere(t, p, "field", "")), "text": ""})
@@ -173,13 +179,15 @@ func TestActFillSameTextKeepsSubmission(t *testing.T) {
 }
 
 func TestActUnknownAction(t *testing.T) {
-	_, err := kind.Act(doc.Parse([]byte(deploy)), widget.Action{Name: "dance"})
+	t.Parallel()
+	_, err := kind.Act(doc.Parse([]byte(deploy)), widget.Action{Name: "dance"}, widget.DefaultEnv())
 	if !errors.Is(err, widget.ErrUnknownAction) {
 		t.Errorf("err = %v", err)
 	}
 }
 
 func TestActSubmitTheBuiltInButton(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, doc.Parse([]byte("---\ntype: form\n---\n## Q\n- ( ) a\n")), "submit", map[string]string{"label": defaultButton})
 	if err != nil || !Read(d).Submitted {
 		t.Errorf("err = %v, answers = %+v", err, Read(d))

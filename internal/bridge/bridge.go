@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -31,10 +30,9 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/runner"
 	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -67,13 +65,15 @@ func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, o
 	defer cancel()
 	s := &server{ctx: ctx, api: a, reg: reg, out: out, fail: cancel, script: map[*runner.Run]struct{}{}}
 	// The watcher first: a change made while the board is read is then seen
-	// as a change, not lost between the reading and the watching.
+	// as a change, not lost between the reading and the watching. The
+	// store's own signal, not api.Watch: the screen wants every change,
+	// to read the board again, not the events of the notes.
 	changed, err := a.Store().Watch(ctx)
 	if err != nil {
 		return err
 	}
 	trace("watching")
-	before, err := a.Store().Load()
+	before, err := a.Board()
 	if err != nil {
 		return err
 	}
@@ -220,14 +220,14 @@ func decode(params json.RawMessage, v any) error {
 }
 
 // project is the folder the notes folder is in.
-func (s *server) project() string { return filepath.Dir(s.api.Store().Dir) }
+func (s *server) project() string { return filepath.Dir(s.api.Store().Dir) } // read only
 
 func (s *server) hello(json.RawMessage) (any, error) {
 	return map[string]any{"protocol": Protocol, "version": Version, "project": s.project()}, nil
 }
 
 func (s *server) boardLoad(json.RawMessage) (any, error) {
-	b, err := s.api.Store().Load()
+	b, err := s.api.Board()
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (s *server) find(name string) (n, owner store.Note, err error) {
 	if err := checkName(name); err != nil {
 		return n, owner, err
 	}
-	b, err := s.api.Store().Load()
+	b, err := s.api.Board()
 	if err != nil {
 		return n, owner, err
 	}
@@ -311,7 +311,7 @@ func (s *server) noteAct(params json.RawMessage) (any, error) {
 		act.Args = args
 		p.Action = &act
 	}
-	if _, err := k.Act(n.Doc, *p.Action); err != nil {
+	if _, err := k.Act(n.Doc, *p.Action, s.api.Env()); err != nil {
 		return nil, badRequest(err.Error())
 	}
 	v, err := s.api.Apply(n.Name, p.Version, *p.Action)
@@ -325,20 +325,6 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	var p createParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
-	}
-	tab := strings.Trim(p.Tab, "/")
-	if tab != "" {
-		tabs, err := s.api.Store().Tabs()
-		if err != nil {
-			return nil, err
-		}
-		found := false
-		for _, t := range tabs {
-			found = found || t.Name == tab
-		}
-		if !found {
-			return nil, notFound(fmt.Sprintf("there is no tab %q", tab))
-		}
 	}
 	if p.Options != nil && p.Body != "" {
 		return nil, badRequest("note.create takes a body or options, not both")
@@ -383,30 +369,13 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if strings.TrimSpace(text) == "" && p.Options == nil {
 		text, _, _ = strings.Cut(strings.TrimSpace(p.Body), "\n")
 	}
-	stem := store.Slug(text, s.api.Now())
-	if tab != "" {
-		stem = tab + "/" + stem
+	// Named, stamped and made without writing over anything as every
+	// screen makes a note.
+	file, err := s.api.CreateFrom(p.Tab, text, ext, opts, body)
+	if err != nil {
+		return nil, err
 	}
-	// Each name is made exclusively: a file that appears between one try
-	// and the next is not written over, the next name is tried.
-	for i := 1; i <= maxSameName; i++ {
-		name := stem + ext
-		if i > 1 {
-			name = fmt.Sprintf("%s-%d%s", stem, i, ext)
-		}
-		file, err := s.api.Create(name, opts, body)
-		if errors.Is(err, fs.ErrExist) {
-			continue
-		}
-		if errors.Is(err, api.ErrUnknownType) {
-			return nil, badRequest(err.Error())
-		}
-		if err != nil {
-			return nil, err
-		}
-		return map[string]string{"note": file}, nil
-	}
-	return nil, &Error{CodeFailed, fmt.Sprintf("there are %d notes called %q already", maxSameName, stem)}
+	return map[string]string{"note": file}, nil
 }
 
 // optionValues reads the options of note.create as Kind.Make takes them:
@@ -451,10 +420,6 @@ func (s *server) kindNamed(name string) (widget.Kind, bool) {
 	}
 	return widget.Kind{}, false
 }
-
-// maxSameName is how many notes of one title note.create makes before it
-// gives up.
-const maxSameName = 1000
 
 // userName is who says what the user says in a chat: $STICKYPANE_USER,
 // else git's user.name, else the login, as the terminal names them.
@@ -508,6 +473,8 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "script" {
 		return nil, badRequest(fmt.Sprintf("%s is not a script", p.Note))
 	}
+	// The runner, below api, is the one way every front end runs a
+	// script and keeps its log; it writes the log into the store itself.
 	r, err := runner.StartGroup(s.api.Store(), n.Name, s.api.Now)
 	if err != nil {
 		return nil, err
@@ -545,7 +512,7 @@ func (s *server) noteOpen(params json.RawMessage) (any, error) {
 	if n.Book() {
 		return nil, badRequest(fmt.Sprintf("%s is a book, a folder: open one of its pages", p.Note))
 	}
-	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name))
+	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name)) // read only: where the file is
 	cmd := env.Detect().OpenCommand(file)
 	if cmd == nil {
 		return nil, &Error{CodeFailed, "this system has no way to open a file without a terminal"}
@@ -568,47 +535,20 @@ func (s *server) settingsSet(params json.RawMessage) (any, error) {
 	if p.Theme == nil && p.Style == nil && p.View == nil && p.Language == nil {
 		return nil, badRequest("settings.set needs theme, style, view or language")
 	}
-	st := s.api.Store()
-	var writes []func() error
-	if p.Theme != nil {
-		name := "auto"
-		if !strings.EqualFold(strings.TrimSpace(*p.Theme), "auto") {
-			t, ok := theme.Lookup(*p.Theme)
-			if !ok {
-				return nil, badRequest(fmt.Sprintf("there is no theme %q", *p.Theme))
-			}
-			name = t.Name
+	var changes []api.Setting
+	for _, c := range []struct {
+		key   string
+		value *string
+	}{{"theme", p.Theme}, {"style", p.Style}, {"view", p.View}, {"language", p.Language}} {
+		if c.value != nil {
+			changes = append(changes, api.Setting{Key: c.key, Value: *c.value})
 		}
-		writes = append(writes, func() error { return st.SetTheme(name) })
 	}
-	if p.Style != nil {
-		if *p.Style != store.StyleDoodle && *p.Style != store.StyleNeat {
-			return nil, badRequest(fmt.Sprintf("style %q is not doodle or neat", *p.Style))
-		}
-		writes = append(writes, func() error { return st.SetStyle(*p.Style) })
-	}
-	if p.View != nil {
-		switch *p.View {
-		case store.ViewTerminal, store.ViewOverlay, store.ViewBoth:
-		default:
-			return nil, badRequest(fmt.Sprintf("view %q is not terminal, overlay or both", *p.View))
-		}
-		writes = append(writes, func() error { return st.SetViewMode(*p.View) })
-	}
-	if p.Language != nil {
-		code := strings.ToLower(strings.TrimSpace(*p.Language))
-		if code != "auto" {
-			if _, err := i18n.Load(code); err != nil || code == "" {
-				return nil, badRequest(fmt.Sprintf("there is no translation for %q: use auto, %s", *p.Language, strings.Join(i18n.Languages(), ", ")))
-			}
-		}
-		// Stored as `stickypane language` stores it.
-		writes = append(writes, func() error { return st.SetLanguage(code) })
-	}
-	for _, w := range writes {
-		if err := w(); err != nil {
-			return nil, err
-		}
+	var refused *prefs.Refused
+	if err := s.api.ChangeSettings(changes...); errors.As(err, &refused) {
+		return nil, badRequest(err.Error())
+	} else if err != nil {
+		return nil, err
 	}
 	return empty{}, nil
 }
@@ -640,7 +580,7 @@ func (s *server) follow(ctx context.Context, changed <-chan struct{}, before sto
 			if !ok {
 				return
 			}
-			after, err := s.api.Store().Load()
+			after, err := s.api.Board()
 			if err != nil {
 				continue // a board caught in the middle of a change; the next signal reads it whole
 			}

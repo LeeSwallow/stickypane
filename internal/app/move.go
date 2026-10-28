@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -14,34 +15,34 @@ import (
 // newFolder is the last choice in the move dialog.
 const newFolder = "New folder…"
 
-// undo is how to take back the last delete or archive: the file went to
-// from and belongs at to.
+// undo is how to take back the last delete or archive: where the file
+// went, as api said, which api.Return takes back.
 type undo struct {
-	from, to string
-	label    string
+	moved api.Moved
+	label string
 }
 
 func init() {
 	handlers[modeMove] = moveUpdate
 	bodies[modeMove] = moveBody
 	footers[modeMove] = func(m *Model) string {
-		return hints(m.width, "j k", "choose", "enter", "move", "esc", "cancel")
+		return m.hints(m.width, "j k", "choose", "enter", "move", "esc", "cancel")
 	}
 
 	boardKeys["u"] = func(m *Model) tea.Cmd {
 		u := m.undo
 		if u == nil {
-			m.status = tr.NothingToUndo
+			m.status = m.tr.NothingToUndo
 			return nil
 		}
 		m.undo = nil
-		if err := m.store.Restore(u.from, u.to); err != nil {
-			m.status = say(tr.CannotRestore, map[string]any{"Name": u.label, "Where": u.from, "Err": err.Error()})
+		if _, err := m.calls().Return(u.moved); err != nil {
+			m.status = say(m.tr.CannotRestore, map[string]any{"Name": u.label, "Where": u.moved.To, "Err": err.Error()})
 			return nil
 		}
 		m.reload()
-		m.focusFile(u.to)
-		m.status = say(tr.Restored, map[string]any{"Name": u.label})
+		m.focusFile(u.moved.From)
+		m.status = say(m.tr.Restored, map[string]any{"Name": u.label})
 		return nil
 	}
 
@@ -97,7 +98,7 @@ func moveUpdate(m *Model, msg tea.Msg) tea.Cmd {
 			m.moveTo(target)
 			break
 		}
-		m.ask(tr.Folder, "", func(name string) {
+		m.ask(m.tr.Folder, "", func(name string) {
 			// A folder is named like a note: a short, plain file name.
 			m.moveTo(store.Slug(name, time.Time{}))
 		})
@@ -112,10 +113,12 @@ func (m *Model) moveTo(folder string) {
 	if folder != "" {
 		to = folder + "/" + to
 	}
-	if err := m.store.Move(m.moveFile, to); err != nil {
-		m.status = say(tr.CannotMove, map[string]any{"Err": err.Error()})
+	moved, err := m.calls().Move(m.moveFile, to)
+	if err != nil {
+		m.status = say(m.tr.CannotMove, map[string]any{"Err": err.Error()})
 		return
 	}
+	to = moved.To
 	// The board follows the note into its tab.
 	if tab := m.store.TabOf(to); tab != m.tabName {
 		_ = m.store.SetTab(tab)
@@ -154,9 +157,9 @@ func moveBody(m *Model, h int) []string {
 		label := t
 		switch t {
 		case "":
-			label = tr.TopLevel
+			label = m.tr.TopLevel
 		case newFolder:
-			label = tr.NewFolder
+			label = m.tr.NewFolder
 		default:
 			label = "▤ " + t
 			if !strings.Contains(t, "/") {
@@ -164,14 +167,14 @@ func moveBody(m *Model, h int) []string {
 			}
 		}
 		if i == m.moveIdx {
-			body = append(body, widget.Selected.Render(widget.Pad("› "+label, moveWidth-4)))
+			body = append(body, m.env.Styles.Selected.Render(widget.Pad("› "+label, moveWidth-4)))
 		} else {
 			body = append(body, "  "+label)
 		}
 	}
 	base := path.Base(m.moveFile)
-	title := say(tr.MoveTo, map[string]any{"Name": widget.Clean(strings.TrimSuffix(base, path.Ext(base)))})
-	return dialog(title, body, moveWidth, m.width, h, m.accent())
+	title := say(m.tr.MoveTo, map[string]any{"Name": widget.Clean(strings.TrimSuffix(base, path.Ext(base)))})
+	return m.dialog(title, body, moveWidth, m.width, h, m.accent())
 }
 
 // moveWidth is the move dialog at its widest.

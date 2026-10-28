@@ -7,10 +7,12 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestDataOfTheExample(t *testing.T) {
-	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example))))
+	t.Parallel()
+	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -21,11 +23,12 @@ func TestDataOfTheExample(t *testing.T) {
 }
 
 func TestDataKeepsTheLastThousandLines(t *testing.T) {
+	t.Parallel()
 	var b strings.Builder
 	for i := 0; i < 1005; i++ {
 		fmt.Fprintf(&b, "line %d\n", i)
 	}
-	got := Kind.Data(doc.Parse([]byte(b.String()))).(struct {
+	got := Kind.Data(doc.Parse([]byte(b.String())), widget.DefaultEnv()).(struct {
 		Lines []string `json:"lines"`
 	}).Lines
 	if len(got) != 1000 || got[0] != "line 5" || got[999] != "line 1004" {

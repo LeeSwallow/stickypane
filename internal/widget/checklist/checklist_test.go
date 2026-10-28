@@ -17,7 +17,16 @@ const body = "## Login API\n- [x] Add endpoint\n- [x] Validate input\n- [ ] Writ
 
 const sameItems = "## Backend\n- [ ] tests\n## Frontend\n- [ ] tests\n"
 
-func parseBody(s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}) }
+func parseBody(s string) widget.Widget { return parseBodyIn(widget.DefaultEnv(), s) }
+
+func parseBodyIn(e widget.Env, s string) widget.Widget { return Kind.Parse(doc.Document{Body: s}, e) }
+
+// envAt is the default Env with its clock stopped at t.
+func envAt(t time.Time) widget.Env {
+	e := widget.DefaultEnv()
+	e.Clock = func() time.Time { return t }
+	return e
+}
 
 func draw(w widget.Widget, width int, active bool) ([]string, int) {
 	out, at := w.Draw(width, active)
@@ -25,6 +34,7 @@ func draw(w widget.Widget, width int, active bool) ([]string, int) {
 }
 
 func TestSpanCoversEveryLineOfAWrappedItem(t *testing.T) {
+	t.Parallel()
 	w := parseBody("- [ ] an item that is long enough to wrap onto more lines than one\n- [ ] next\n")
 	out, at := w.Draw(20, true)
 	lines := strings.Split(ansi.Strip(out), "\n")
@@ -46,6 +56,7 @@ func apply(t *testing.T, op doc.Op, body string) string {
 }
 
 func TestDrawShowsProgressAndEveryLine(t *testing.T) {
+	t.Parallel()
 	lines, cursor := draw(parseBody(body), 30, false)
 	want := []string{
 		"▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░ 2/3",
@@ -66,6 +77,7 @@ func TestDrawShowsProgressAndEveryLine(t *testing.T) {
 }
 
 func TestDrawDoesNotFoldItems(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	for i := 1; i <= 12; i++ {
 		fmt.Fprintf(&sb, "- [ ] item %02d\n", i)
@@ -78,6 +90,7 @@ func TestDrawDoesNotFoldItems(t *testing.T) {
 }
 
 func TestDrawWrapsLongItems(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseBody("- [ ] 아주 긴 한글 항목 이름입니다 정말로 길어서 여러 줄이 됩니다\n- [ ] short\n"), 20, true)
 	for _, line := range lines {
 		if w := widget.Width(line); w > 20 {
@@ -91,6 +104,7 @@ func TestDrawWrapsLongItems(t *testing.T) {
 }
 
 func TestCursorShowsOnlyWhenActive(t *testing.T) {
+	t.Parallel()
 	w := parseBody(body)
 	w, _ = w.Update("j")
 	lines, cursor := draw(w, 40, true)
@@ -104,6 +118,7 @@ func TestCursorShowsOnlyWhenActive(t *testing.T) {
 }
 
 func TestChecklistWithoutItemsStillShowsItsText(t *testing.T) {
+	t.Parallel()
 	lines, cursor := draw(parseBody("# Steps\n1. [ ] one\n[ ] another\n"), 50, true)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{`"- [ ] task"`, "# Steps", "1. [ ] one", "[ ] another"} {
@@ -117,6 +132,7 @@ func TestChecklistWithoutItemsStillShowsItsText(t *testing.T) {
 }
 
 func TestToggle(t *testing.T) {
+	t.Parallel()
 	got := apply(t, Toggle{Text: "Write tests", Checked: true}, body)
 	if want := strings.Replace(body, "- [ ] Write tests", "- [x] Write tests", 1); got != want {
 		t.Errorf("got %q", got)
@@ -128,6 +144,7 @@ func TestToggle(t *testing.T) {
 }
 
 func TestToggleKeepsCRLF(t *testing.T) {
+	t.Parallel()
 	got := apply(t, Toggle{Text: "a", Checked: true}, "  * [ ] a\r\n- [ ] b\r\n")
 	if want := "  * [x] a\r\n- [ ] b\r\n"; got != want {
 		t.Errorf("got %q, want %q", got, want)
@@ -135,6 +152,7 @@ func TestToggleKeepsCRLF(t *testing.T) {
 }
 
 func TestToggleConflicts(t *testing.T) {
+	t.Parallel()
 	for _, op := range []doc.Op{
 		Toggle{Text: "gone", Checked: true},
 		Toggle{Text: "Add endpoint", Checked: true}, // already checked
@@ -148,6 +166,7 @@ func TestToggleConflicts(t *testing.T) {
 }
 
 func TestTogglePicksTheRightDuplicate(t *testing.T) {
+	t.Parallel()
 	got := apply(t, Toggle{Text: "tests", Checked: true, Nth: 1}, sameItems)
 	if want := "## Backend\n- [ ] tests\n## Frontend\n- [x] tests\n"; got != want {
 		t.Errorf("got %q, want %q", got, want)
@@ -155,6 +174,7 @@ func TestTogglePicksTheRightDuplicate(t *testing.T) {
 }
 
 func TestAddItem(t *testing.T) {
+	t.Parallel()
 	cases := []struct{ body, want string }{
 		{"- [x] a\n- [ ] b\n\nnotes\n", "- [x] a\n- [ ] b\n- [ ] new\n\nnotes\n"},
 		{"- [ ] a\n  detail of a\n\nnotes\n", "- [ ] a\n  detail of a\n- [ ] new\n\nnotes\n"},
@@ -172,9 +192,9 @@ func TestAddItem(t *testing.T) {
 }
 
 func TestSpaceTogglesItemUnderCursor(t *testing.T) {
-	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	w := parseBody(body)
+	t.Parallel()
+	e := envAt(time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local))
+	w := parseBodyIn(e, body)
 	w, res := w.Update("space") // the open item is first on the screen
 	if want := (Toggle{Text: "Write tests", Checked: true, At: "2026-10-03 14:02"}); res.Op != want {
 		t.Fatalf("Op = %+v, want %+v", res.Op, want)
@@ -185,9 +205,9 @@ func TestSpaceTogglesItemUnderCursor(t *testing.T) {
 }
 
 func TestSpaceCarriesTheDuplicateIndex(t *testing.T) {
-	now = func() time.Time { return time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	w := parseBody(sameItems)
+	t.Parallel()
+	e := envAt(time.Date(2026, 10, 3, 14, 2, 0, 0, time.Local))
+	w := parseBodyIn(e, sameItems)
 	w, _ = w.Update("j")
 	_, res := w.Update("space")
 	if want := (Toggle{Text: "tests", Checked: true, Nth: 1, At: "2026-10-03 14:02"}); res.Op != want {
@@ -196,6 +216,7 @@ func TestSpaceCarriesTheDuplicateIndex(t *testing.T) {
 }
 
 func TestXIsNotAToggleKey(t *testing.T) {
+	t.Parallel()
 	_, res := parseBody(body).Update("x")
 	if res.Op != nil || Kind.Handles("x") {
 		t.Error("x belongs to the screen (archive), not to the checklist")
@@ -203,6 +224,7 @@ func TestXIsNotAToggleKey(t *testing.T) {
 }
 
 func TestNewItemPrompt(t *testing.T) {
+	t.Parallel()
 	_, res := parseBody(body).Update("n")
 	if res.Prompt == nil || res.Prompt.Label != "New item" {
 		t.Fatalf("Prompt = %+v", res.Prompt)
@@ -213,6 +235,7 @@ func TestNewItemPrompt(t *testing.T) {
 }
 
 func TestSyncClampsCursor(t *testing.T) {
+	t.Parallel()
 	w := parseBody(body)
 	w, _ = w.Update("j")
 	w, _ = w.Update("j")
@@ -223,19 +246,21 @@ func TestSyncClampsCursor(t *testing.T) {
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	if got := string(Kind.Template("Release")); got != "---\ntype: checklist\ntitle: Release\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 	if Kind.Size(doc.Document{}) != widget.SizeHalf {
 		t.Errorf("Size = %q", Kind.Size(doc.Document{}))
 	}
-	w := Kind.Parse(doc.Parse(Kind.Template("Release")))
+	w := Kind.Parse(doc.Parse(Kind.Template("Release")), widget.DefaultEnv())
 	if lines, _ := draw(w, 50, false); strings.Contains(strings.Join(lines, "\n"), "0/1") {
 		t.Errorf("a new checklist must not contain a blank item: %q", lines)
 	}
 }
 
 func TestSummaryIsTheProgress(t *testing.T) {
+	t.Parallel()
 	if got := parseBody(body).Summary(); got != "2/3" {
 		t.Errorf("Summary = %q", got)
 	}
@@ -245,10 +270,11 @@ func TestSummaryIsTheProgress(t *testing.T) {
 }
 
 func TestKindDescribesItself(t *testing.T) {
+	t.Parallel()
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
 		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
 	}
-	example := Kind.Parse(doc.Parse([]byte(Kind.Example)))
+	example := Kind.Parse(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv())
 	if got := example.Summary(); got == "" {
 		t.Errorf("the example should be a checklist with items, summary = %q", got)
 	}

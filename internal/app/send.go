@@ -28,12 +28,12 @@ type sentMsg struct {
 // is sent without the user saying so, each time.
 func (m *Model) askSend(name string, part int) {
 	if m.running[name] {
-		m.status = say(tr.AlreadyRunning, map[string]any{"Name": path.Base(name)})
+		m.status = say(m.tr.AlreadyRunning, map[string]any{"Name": path.Base(name)})
 		return
 	}
 	data, err := m.store.Read(name)
 	if err != nil {
-		m.status = say(tr.CannotReadNote, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.CannotReadNote, map[string]any{"Err": err.Error()})
 		return
 	}
 	f := httpfile.Parse(string(data))
@@ -52,7 +52,7 @@ func (m *Model) askSend(name string, part int) {
 	for _, c := range r.Post {
 		hooks = append(hooks, "@post "+c)
 	}
-	m.confirm(say(tr.ConfirmSend, map[string]any{"Request": what, "Hooks": strings.Join(hooks, "; ")}), func() {
+	m.confirm(say(m.tr.ConfirmSend, map[string]any{"Request": what, "Hooks": strings.Join(hooks, "; ")}), func() {
 		m.pending = m.send(name, part)
 	})
 }
@@ -68,11 +68,11 @@ func (m *Model) send(name string, part int) tea.Cmd {
 		m.running = map[string]bool{}
 	}
 	m.running[name] = true
-	m.status = say(tr.Sending, map[string]any{"Name": path.Base(name)})
-	st := m.store
+	m.status = say(m.tr.Sending, map[string]any{"Name": path.Base(name)})
+	calls := m.calls()
 	return func() tea.Msg {
-		res, err := httpfile.SendNote(context.Background(), st, st.Dir, name, part, "")
-		return sentMsg{name: name, end: strings.Trim(httpfile.End(res), "[]"), err: err}
+		res, err := calls.SendPart(context.Background(), name, part, "")
+		return sentMsg{name: name, end: res.End, err: err}
 	}
 }
 
@@ -80,7 +80,7 @@ func (m *Model) send(name string, part int) tea.Cmd {
 func (m *Model) sent(msg sentMsg) {
 	delete(m.running, msg.name)
 	if msg.err != nil {
-		m.status = say(tr.CannotWriteLog, map[string]any{"Log": path.Base(runner.LogOf(msg.name)), "Err": msg.err.Error()})
+		m.status = say(m.tr.CannotWriteLog, map[string]any{"Log": path.Base(runner.LogOf(msg.name)), "Err": msg.err.Error()})
 	} else {
 		m.status = msg.end
 	}

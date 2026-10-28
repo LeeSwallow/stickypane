@@ -34,6 +34,7 @@ func mkdir(t *testing.T, dir, name string) {
 const openAll = `{"notes":{"build.log":{"open":true}},"tab":"t"}`
 
 func TestALogFileIsShownAsItIs(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"build.log": "---\nnot front matter\n---\ncompiled **ok**\n"})
 	if s := screen(m); !strings.Contains(s, "≣ build") || m.isOpen(m.items[0]) {
 		t.Fatalf("a .log file is a note, a log, and closed until it is opened:\n%s", s)
@@ -54,6 +55,7 @@ func TestALogFileIsShownAsItIs(t *testing.T) {
 }
 
 func TestAFolderIsOneNoteWithPages(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("another note\n")})
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/01-intro.md", "---\ntitle: Introduction\n---\nthe first page\n")
@@ -90,6 +92,7 @@ func TestAFolderIsOneNoteWithPages(t *testing.T) {
 }
 
 func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/a-notes.md", "just text\n")
@@ -111,6 +114,7 @@ func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 }
 
 func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/a.md", numbered(40))
@@ -137,6 +141,7 @@ func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 }
 
 func TestEditingAndDeletingAPage(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/a.md", "page a\n")
@@ -164,6 +169,7 @@ func TestEditingAndDeletingAPage(t *testing.T) {
 }
 
 func TestABookZooms(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, nil)
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/a.md", "page a\n")

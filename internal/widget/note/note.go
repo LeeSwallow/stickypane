@@ -16,11 +16,13 @@ const (
 	halfLines = 12 // up to this many, it takes half the width; longer notes get the page
 )
 
-// Renderer turns Markdown into terminal text no wider than width.
-type Renderer func(markdown string, width int) string
+// Renderer turns Markdown into terminal text no wider than width, with
+// the Env of the widget that draws it: its styles, and the notes its
+// ![[name]] lines show.
+type Renderer func(markdown string, width int, e widget.Env) string
 
 // Plain wraps text without styling it.
-func Plain(markdown string, width int) string {
+func Plain(markdown string, width int, _ widget.Env) string {
 	if width <= 0 {
 		return markdown
 	}
@@ -49,7 +51,7 @@ func NewKind(render Renderer) widget.Kind {
 			}
 			return widget.NewFile("note", title, body), nil
 		},
-		Parse: func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
+		Parse: func(d doc.Document, e widget.Env) widget.Widget { return newNote(d.Body, render, e) },
 		Data:  data,
 	}
 }
@@ -75,10 +77,11 @@ type Note struct {
 	body   string
 	render Renderer
 	cache  map[int][]string // rendered lines by width
+	env    widget.Env
 }
 
-func newNote(body string, render Renderer) *Note {
-	return &Note{body: body, render: render, cache: map[int][]string{}}
+func newNote(body string, render Renderer, e widget.Env) *Note {
+	return &Note{body: body, render: render, cache: map[int][]string{}, env: e}
 }
 
 // lines renders the body at width and trims blank lines from both ends.
@@ -86,7 +89,7 @@ func (n *Note) lines(width int) []string {
 	if l, ok := n.cache[width]; ok {
 		return l
 	}
-	l := strings.Split(n.render(widget.Clean(n.body), width), "\n")
+	l := strings.Split(n.render(widget.Clean(n.body), width, n.env), "\n")
 	blank := func(s string) bool { return strings.TrimSpace(ansi.Strip(s)) == "" }
 	for len(l) > 0 && blank(l[0]) {
 		l = l[1:]
@@ -102,7 +105,7 @@ func (n *Note) lines(width int) []string {
 func (n *Note) Draw(width int, _ bool) (string, widget.Span) {
 	l := n.lines(width)
 	if len(l) == 0 {
-		return widget.Faint.Render("(empty)"), widget.NoSpan
+		return n.env.Styles.Faint.Render("(empty)"), widget.NoSpan
 	}
 	return strings.Join(l, "\n"), widget.NoSpan
 }
@@ -114,10 +117,10 @@ func (n *Note) Summary() string { return "" }
 func (n *Note) Update(string) (widget.Widget, widget.Result) { return n, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render) }
+func (n *Note) Sync(d doc.Document) widget.Widget { return newNote(d.Body, n.render, n.env) }
 
 // data is what a note says: its Markdown, as the file has it.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	return struct {
 		Markdown string `json:"markdown"`
 	}{d.Body}

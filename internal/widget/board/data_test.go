@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -27,9 +27,15 @@ type boardData struct {
 	} `json:"columns"`
 }
 
+// dataOf is the board's Data at 15:00 on the day its cards moved.
 func dataOf(t *testing.T, d doc.Document) boardData {
 	t.Helper()
-	b, err := json.Marshal(Kind.Data(d))
+	return dataAt(t, d, 15, 0)
+}
+
+func dataAt(t *testing.T, d doc.Document, h, m int) boardData {
+	t.Helper()
+	b, err := json.Marshal(Kind.Data(d, envAt(h, m)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +49,7 @@ func dataOf(t *testing.T, d doc.Document) boardData {
 func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document, error) {
 	t.Helper()
 	d := doc.Parse([]byte(src))
-	op, err := Kind.Act(d, widget.Action{Name: name, Args: args})
+	op, err := Kind.Act(d, widget.Action{Name: name, Args: args}, widget.DefaultEnv())
 	if err != nil {
 		if op != nil {
 			t.Errorf("Op = %v with an error", op)
@@ -66,6 +72,7 @@ func titles(b boardData, col int) string {
 }
 
 func TestActMoveCardToAnotherColumn(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, Kind.Example, "move", map[string]string{"col": "1", "i": "0", "to": "2", "at": "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -88,6 +95,7 @@ func TestActMoveCardToAnotherColumn(t *testing.T) {
 }
 
 func TestActMoveOutOfRange(t *testing.T) {
+	t.Parallel()
 	for _, args := range []map[string]string{
 		{"col": "9", "i": "0", "to": "2"},
 		{"col": "1", "i": "5", "to": "2"},
@@ -104,6 +112,7 @@ func TestActMoveOutOfRange(t *testing.T) {
 }
 
 func TestActAddAndUnknown(t *testing.T) {
+	t.Parallel()
 	d, err := doAct(t, Kind.Example, "add", map[string]string{"col": "0", "text": "docs"})
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +131,7 @@ func TestActAddAndUnknown(t *testing.T) {
 }
 
 func TestActMoveSameTextCards(t *testing.T) {
+	t.Parallel()
 	src := "## A\n- x\n- x\n## B\n- x\n"
 	d, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "1", "to": "1", "at": "0"})
 	if err != nil {
@@ -134,9 +144,7 @@ func TestActMoveSameTextCards(t *testing.T) {
 }
 
 func TestDataMarksAStalledCard(t *testing.T) {
-	was := widget.Now
-	widget.Now = func() time.Time { return time.Date(2026, 10, 3, 15, 0, 0, 0, time.Local) }
-	t.Cleanup(func() { widget.Now = was })
+	t.Parallel()
 	src := "Plan\n## Doing\n- old @alice @{2026-10-03} @@{14:00}\n  note\n- fresh @{2026-10-03} @@{14:50}\n## Done\n- gone @{2026-10-03} @@{09:00}\n"
 	b := dataOf(t, doc.Parse([]byte(src)))
 	if len(b.Desc) != 1 || b.Desc[0] != "Plan" {
@@ -149,41 +157,34 @@ func TestDataMarksAStalledCard(t *testing.T) {
 	if c[0].Who[0] != "alice" || c[0].Detail[0] != "note" || c[0].Moved == "" {
 		t.Errorf("card = %+v", c[0])
 	}
-	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B")))); !strings.Contains(string(raw), `"desc":[]`) {
+	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B")), widget.DefaultEnv())); !strings.Contains(string(raw), `"desc":[]`) {
 		t.Errorf("empty board = %s", raw)
 	}
 }
 
-func fixClock(t *testing.T, h, m int) {
-	t.Helper()
-	zone, wasNow := time.Local, widget.Now
-	time.Local = time.FixedZone("T", 9*3600)
-	widget.Now = func() time.Time { return time.Date(2026, 10, 3, h, m, 0, 0, time.Local) }
-	t.Cleanup(func() { time.Local = zone; widget.Now = wasNow })
-}
-
 func TestDataWritesMovedInTheMachineLayout(t *testing.T) {
-	fixClock(t, 15, 0)
+	t.Parallel()
 	b := dataOf(t, doc.Parse([]byte("## Doing\n- a @{2026-10-03} @@{14:02}\n")))
-	if got := b.Columns[0].Cards[0].Moved; got != "2026-10-03T14:02:00+09:00" {
+	if got := b.Columns[0].Cards[0].Moved; got != at(14, 2).Format(when.Moment) {
 		t.Errorf("moved = %q", got)
 	}
 }
 
 func TestDataStaleBoundary(t *testing.T) {
+	t.Parallel()
 	src := "## Doing\n- a @{2026-10-03} @@{14:30}\n## Done\n"
 	for _, c := range []struct {
 		h, m int
 		want bool
 	}{{14, 59, false}, {15, 0, true}} {
-		fixClock(t, c.h, c.m)
-		if got := dataOf(t, doc.Parse([]byte(src))).Columns[0].Cards[0].Stalled; got != c.want {
+		if got := dataAt(t, doc.Parse([]byte(src)), c.h, c.m).Columns[0].Cards[0].Stalled; got != c.want {
 			t.Errorf("at %d:%02d stalled = %v, want %v", c.h, c.m, got, c.want)
 		}
 	}
 }
 
 func TestActMoveIntoTheMiddleAmongSameText(t *testing.T) {
+	t.Parallel()
 	src := "## A\n- x\n## B\n- p\n- x\n- q\n"
 	d, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "0", "to": "1", "at": "2"})
 	if err != nil {
@@ -202,6 +203,7 @@ func TestActMoveIntoTheMiddleAmongSameText(t *testing.T) {
 }
 
 func TestActMoveWithinAColumn(t *testing.T) {
+	t.Parallel()
 	src := "## A\n- a\n- b\n- c\n"
 	for at, want := range map[string]string{"0": "c,a,b", "1": "a,c,b", "2": "a,b,c"} {
 		d, err := doAct(t, src, "move", map[string]string{"col": "0", "i": "2", "to": "0", "at": at})

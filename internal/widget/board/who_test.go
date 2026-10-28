@@ -14,9 +14,17 @@ import (
 
 func at(h, m int) time.Time { return time.Date(2026, 10, 3, h, m, 0, 0, time.Local) }
 
+// envAt is the default Env with its clock stopped at h:m on that day.
+func envAt(h, m int) widget.Env {
+	e := widget.DefaultEnv()
+	e.Clock = func() time.Time { return at(h, m) }
+	return e
+}
+
 // A card says who has it (Backlog.md's @name) and when it last moved
 // (Obsidian Kanban's @{date} @@{time}); neither is part of its name.
 func TestACardSaysWhoHasItAndWhenItMoved(t *testing.T) {
+	t.Parallel()
 	c := read(doc.Parse([]byte("## Doing\n- table widget @codex-1 @{2026-10-03} @@{14:02}\n- mail a@b.com\n")))
 	cd := c.cols[0].cards[0]
 	if cd.text != "table widget" || strings.Join(cd.who, ",") != "codex-1" || !cd.moved.Equal(at(14, 2)) {
@@ -30,6 +38,7 @@ func TestACardSaysWhoHasItAndWhenItMoved(t *testing.T) {
 // stickypane writes when a card moved or appeared, by itself: a card an
 // agent moved by editing the file, a new card, a card without a time.
 func TestTendWritesWhenACardMoved(t *testing.T) {
+	t.Parallel()
 	before := doc.Parse([]byte("## To do\n- a @x @{2026-10-02} @@{09:00}\n- b @{2026-10-02} @@{09:00}\n## Doing\n"))
 	after := doc.Parse([]byte("## To do\n- b @{2026-10-02} @@{09:00}\n- c\n## Doing\n- a @x @{2026-10-02} @@{09:00}\n"))
 	op := Kind.Tend(before, after, at(14, 2))
@@ -51,6 +60,7 @@ func TestTendWritesWhenACardMoved(t *testing.T) {
 
 // Moving a card on the board takes its old time off, so it gets the new one.
 func TestMovingACardTakesItsOldTimeOff(t *testing.T) {
+	t.Parallel()
 	d, err := MoveCard{From: "To do", To: "Doing", Text: "a"}.Apply(doc.Parse([]byte("## To do\n- a @x @{2026-10-02} @@{09:00}\n## Doing\n")))
 	if err != nil || d.Body != "## To do\n## Doing\n- a @x\n" {
 		t.Errorf("moved = %q, %v", d.Body, err)
@@ -60,9 +70,8 @@ func TestMovingACardTakesItsOldTimeOff(t *testing.T) {
 // Under each card, who has it and when it moved; a card that has not moved
 // for half an hour, outside the last column, is flagged.
 func TestACardShowsWhoAndWhenAndWhetherItStalled(t *testing.T) {
-	now = func() time.Time { return at(15, 0) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	b := parse(doc.Parse([]byte("## Doing\n- fresh @claude-a @{2026-10-03} @@{14:50}\n- stuck @codex-1 @{2026-10-03} @@{14:20}\n## Done\n- old @x @{2026-10-03} @@{09:00}\n")))
+	t.Parallel()
+	b := parse(doc.Parse([]byte("## Doing\n- fresh @claude-a @{2026-10-03} @@{14:50}\n- stuck @codex-1 @{2026-10-03} @@{14:20}\n## Done\n- old @x @{2026-10-03} @@{09:00}\n")), envAt(15, 0))
 	out, _ := b.Draw(80, false)
 	s := ansi.Strip(out)
 	for _, want := range []string{"@claude-a · 14:50", "@codex-1 · 14:20 ⚠", "@x · 09:00"} {
@@ -80,9 +89,8 @@ func TestACardShowsWhoAndWhenAndWhetherItStalled(t *testing.T) {
 
 // In a narrow column a long name is cut, never the time.
 func TestALongNameIsCutBeforeTheTime(t *testing.T) {
-	now = func() time.Time { return at(15, 0) }
-	t.Cleanup(func() { now = func() time.Time { return widget.Now() } })
-	b := parse(doc.Parse([]byte("## Doing\n- x @refactor/widget-modules @{2026-10-03} @@{14:55}\n## Done\n")))
+	t.Parallel()
+	b := parse(doc.Parse([]byte("## Doing\n- x @refactor/widget-modules @{2026-10-03} @@{14:55}\n## Done\n")), envAt(15, 0))
 	out, _ := b.Draw(40, false)
 	if s := ansi.Strip(out); !strings.Contains(s, "· 14:55") || !strings.Contains(s, "@refa") {
 		t.Errorf("the time stays whole:\n%s", s)

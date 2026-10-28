@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/filelock"
 )
 
 func read(t *testing.T, path string) string {
@@ -37,7 +38,7 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 	if n := strings.Count(g, "\n"); n > 55 {
 		t.Errorf("the guide is %d lines, want at most 55", n)
 	}
-	for _, want := range []string{".sticky/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "stickypane todo", "stickypane card", "stickypane chart", "stickypane log", "stickypane set", "- [ ]", "## Heading", "open: true", "sticky.json", "name.sh", "name.log", "stickypane mv", "stickypane show", "A folder", "stickypane kinds", "a book", "hide"} {
+	for _, want := range []string{".sticky/", "type: board", "type: checklist", "type: log", "type: chart", "label: number", "mermaid", "type: form", "- ( ) ", "[ Deploy ]", "stickypane wait", "stickypane todo", "stickypane card", "stickypane chart", "stickypane log", "stickypane set", "- [ ]", "## Heading", "open: true", "sticky.json", "name.sh", "name.log", "stickypane mv", "stickypane show", "A folder", "stickypane help <shape>", "a book", "hide"} {
 		if !strings.Contains(g, want) {
 			t.Errorf("the guide should mention %q", want)
 		}
@@ -162,7 +163,7 @@ func TestRunKeepsTheTrashOutOfGit(t *testing.T) {
 	root := t.TempDir()
 	run(t, root, Options{NoAgentDocs: true})
 	ignore := read(t, filepath.Join(root, ".sticky", ".gitignore"))
-	if !strings.Contains(ignore, ".trash/") {
+	if !strings.Contains(ignore, ".trash/") || !strings.Contains(ignore, filelock.Name) {
 		t.Errorf(".sticky/.gitignore = %q", ignore)
 	}
 }

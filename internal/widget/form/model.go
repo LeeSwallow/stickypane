@@ -26,8 +26,8 @@ type content struct {
 	at        string
 }
 
-func parse(d doc.Document, render note.Renderer) *Form {
-	return &Form{content: read(d), render: render}
+func parse(d doc.Document, render note.Renderer, e widget.Env) *Form {
+	return &Form{content: read(d), render: render, env: e}
 }
 
 // read reads a form note.
@@ -172,7 +172,7 @@ var kindNames = map[lineKind]string{prose: "text", option: "option", detail: "de
 // data is the lines of the form, from the same read the board draws. When
 // the file has no button, the built-in one is among them, because it can
 // be pressed.
-func data(d doc.Document) any {
+func data(d doc.Document, _ widget.Env) any {
 	c := read(d)
 	p := Page{Lines: make([]Line, 0, len(c.lines)), Submitted: c.submitted}
 	if c.submitted != "" {

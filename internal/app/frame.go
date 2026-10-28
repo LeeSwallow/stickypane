@@ -1,7 +1,6 @@
 package app
 
 import (
-	"hash/fnv"
 	"image/color"
 	"strings"
 
@@ -14,19 +13,6 @@ import (
 // palette is the names of the note colors, in the order "c" cycles
 // through them. The colors themselves come from the theme.
 var palette = theme.NoteNames
-
-// colorIndex picks a note's color: the named one, or one derived from the
-// file name so that a note keeps its color between runs.
-func colorIndex(name, key string) int {
-	for i, p := range palette {
-		if strings.EqualFold(p, key) {
-			return i
-		}
-	}
-	h := fnv.New32a()
-	h.Write([]byte(name))
-	return int(h.Sum32() % uint32(len(palette)))
-}
 
 // noteColor returns the theme's color for a note color index.
 func (m *Model) noteColor(i int) color.Color {
@@ -45,7 +31,8 @@ type box struct {
 	width   int
 	color   color.Color
 	focused bool
-	plain   bool // a dialog of the screen's own, not a note: its title is plain
+	plain   bool         // a dialog of the screen's own, not a note: its title is plain
+	styles  theme.Styles // the theme's text styles: the border, the summary
 	// When the body is a window on more lines than it shows, offset is its
 	// first line and total how many there are. The right border then
 	// carries a scroll bar.
@@ -72,14 +59,14 @@ func thumb(offset, total, rows int) (from, to int) {
 func frame(b box) string {
 	width := max(b.width, 8)
 	tl, tr, bl, br, hz, vt := "╭", "╮", "╰", "╯", "─", "│"
-	st := widget.Faint
+	st := b.styles.Faint
 	titled := lipgloss.NewStyle().Foreground(b.color).Bold(true)
 	if b.focused {
 		tl, tr, bl, br, hz, vt = "╔", "╗", "╚", "╝", "═", "║"
 		st = lipgloss.NewStyle().Foreground(b.color)
 	}
 	if b.plain {
-		titled = widget.Bold
+		titled = b.styles.Bold
 	}
 
 	// The label is "icon title"; either part may be missing.
@@ -110,7 +97,7 @@ func frame(b box) string {
 	fill := max(width-used-widget.Width(tail), 0)
 	top.WriteString(st.Render(strings.Repeat(hz, fill)))
 	if summary != "" {
-		top.WriteString(" " + widget.Faint.Render(summary) + " ")
+		top.WriteString(" " + b.styles.Faint.Render(summary) + " ")
 	}
 	top.WriteString(st.Render(tr))
 
@@ -120,7 +107,7 @@ func frame(b box) string {
 	for i, l := range body {
 		right := st.Render(vt)
 		if i >= from && i < to {
-			right = widget.Accent.Render("█")
+			right = b.styles.Accent.Render("█")
 		}
 		lines = append(lines, st.Render(vt)+" "+widget.Pad(l, width-4)+" "+right)
 	}
@@ -131,12 +118,12 @@ func frame(b box) string {
 // dialog frames body in a box boxW wide and centers it in an area w wide and
 // h tall, a little above the middle. Without room for the frame it returns
 // the body as it is, so small panes still show the content.
-func dialog(title string, body []string, boxW, w, h int, accent color.Color) []string {
+func (m *Model) dialog(title string, body []string, boxW, w, h int, accent color.Color) []string {
 	boxW = min(boxW, w)
 	if boxW < 12 || h < len(body)+2 {
 		return body
 	}
-	framed := strings.Split(frame(box{title: title, body: strings.Join(body, "\n"), width: boxW, color: accent, focused: true, plain: true}), "\n")
+	framed := strings.Split(frame(box{styles: m.env.Styles, title: title, body: strings.Join(body, "\n"), width: boxW, color: accent, focused: true, plain: true}), "\n")
 	left := strings.Repeat(" ", (w-boxW)/2)
 	out := make([]string, (h-len(framed))/3, h)
 	for _, l := range framed {
@@ -149,7 +136,7 @@ func dialog(title string, body []string, boxW, w, h int, accent color.Color) []s
 // the key stands out and what it does steps back. The most important pairs
 // come first; one that does not fit in width is left out whole, along with
 // everything after it, so the line never ends in half a word.
-func hints(width int, pairs ...string) string {
+func (m *Model) hints(width int, pairs ...string) string {
 	var parts []string
 	used := 0
 	for i := 0; i+1 < len(pairs); i += 2 {
@@ -161,7 +148,7 @@ func hints(width int, pairs ...string) string {
 			break
 		}
 		used += w
-		parts = append(parts, widget.Accent.Bold(true).Render(pairs[i])+" "+widget.Faint.Render(tr.L(pairs[i+1])))
+		parts = append(parts, m.env.Styles.Accent.Bold(true).Render(pairs[i])+" "+m.env.Styles.Faint.Render(m.tr.L(pairs[i+1])))
 	}
 	return strings.Join(parts, "  ")
 }
@@ -169,12 +156,12 @@ func hints(width int, pairs ...string) string {
 // hintsThen draws pairs like hints but always ends with one last pair, for
 // which it keeps room: the way out, such as "? help", must not be the thing
 // a narrow pane drops.
-func hintsThen(width int, lastKey, lastLabel string, pairs ...string) string {
-	last := hints(width, lastKey, lastLabel)
+func (m *Model) hintsThen(width int, lastKey, lastLabel string, pairs ...string) string {
+	last := m.hints(width, lastKey, lastLabel)
 	if last == "" {
 		return ""
 	}
-	body := hints(width-widget.Width(lastKey)-widget.Width(lastLabel)-3, pairs...)
+	body := m.hints(width-widget.Width(lastKey)-widget.Width(lastLabel)-3, pairs...)
 	if body == "" {
 		return last
 	}

@@ -347,6 +347,25 @@ func TestLanguageCommand(t *testing.T) {
 	}
 }
 
+// What theme, language and config say of a value they refuse is pinned:
+// the first line names the value, and the list of what there is follows.
+func TestSettingCommandsRefuseInTheirOwnWords(t *testing.T) {
+	project(t)
+	for _, c := range []struct {
+		args []string
+		says string
+	}{
+		{[]string{"theme", "no-such-theme"}, "there is no theme \"no-such-theme\". The themes are:\n"},
+		{[]string{"language", "xx"}, "there is no translation for \"xx\". The languages are:\n"},
+		{[]string{"config", "stale", "forever"}, "stale is one of 30m, 15m, 1h, 4h, 1d, off, not \"forever\""},
+		{[]string{"config", "colour", "x"}, "there is no setting \"colour\"; there are theme, language, time, editor, stale"},
+	} {
+		if code, _, errOut := exec(t, c.args...); code != 1 || !strings.Contains(errOut, c.says) {
+			t.Errorf("%v: code = %d, stderr = %q, want %q", c.args, code, errOut, c.says)
+		}
+	}
+}
+
 // An html page is a note to every command: listed, shown and printed.
 func TestHTMLNotesAreNotes(t *testing.T) {
 	root := project(t)

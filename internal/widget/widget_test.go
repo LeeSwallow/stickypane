@@ -8,6 +8,7 @@ import (
 )
 
 func TestCleanDropsControlCharacters(t *testing.T) {
+	t.Parallel()
 	got := Clean("a\tb \x1b[31mred\x1b[0m\x07 end\r\nnext")
 	if want := "a    b red end\nnext"; got != want {
 		t.Errorf("Clean = %q, want %q", got, want)
@@ -15,6 +16,7 @@ func TestCleanDropsControlCharacters(t *testing.T) {
 }
 
 func TestTruncateAndPadCountCells(t *testing.T) {
+	t.Parallel()
 	if got := Truncate("한글 abcdef", 6); got != "한글 …" {
 		t.Errorf("Truncate = %q", got)
 	}
@@ -29,6 +31,7 @@ func TestTruncateAndPadCountCells(t *testing.T) {
 }
 
 func TestWindow(t *testing.T) {
+	t.Parallel()
 	lines := []string{"1", "2", "3", "4", "5"}
 	cases := []struct {
 		offset, height int
@@ -49,6 +52,7 @@ func TestWindow(t *testing.T) {
 }
 
 func TestScrollKey(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		offset int
 		key    string
@@ -76,6 +80,7 @@ func TestScrollKey(t *testing.T) {
 }
 
 func TestRegistryLookupFallsBackToFirst(t *testing.T) {
+	t.Parallel()
 	r := Registry{{Name: "note"}, {Name: "board"}}
 	if r.Lookup("board").Name != "board" {
 		t.Error("Lookup(board) should find board")
@@ -88,6 +93,7 @@ func TestRegistryLookupFallsBackToFirst(t *testing.T) {
 }
 
 func TestNewFile(t *testing.T) {
+	t.Parallel()
 	cases := []struct{ kind, title, body, want string }{
 		{"note", "", "hello\n", "hello\n"},
 		{"note", "Plan", "", "---\ntitle: Plan\n---\n"},
@@ -104,6 +110,7 @@ func TestNewFile(t *testing.T) {
 }
 
 func TestUnlinkWritesLinksAsTheirNames(t *testing.T) {
+	t.Parallel()
 	if got := Unlink("see [[why]], [[plan#tests]] and [[deploy|the run]]"); got != "see why, plan#tests and the run" {
 		t.Errorf("Unlink = %q", got)
 	}

@@ -8,6 +8,7 @@ require (
 	github.com/AlexanderGrooff/mermaid-ascii v0.0.0-20260908213847-5f00e3d9ac9f
 	github.com/charmbracelet/x/ansi v0.11.8
 	github.com/fsnotify/fsnotify v1.10.1
+	golang.org/x/sys v0.47.0
 )
 
 require (
@@ -28,5 +29,4 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
 )

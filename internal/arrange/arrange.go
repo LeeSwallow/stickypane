@@ -13,6 +13,7 @@ package arrange
 
 import (
 	"fmt"
+	"hash/fnv"
 	"path"
 	"slices"
 	"strconv"
@@ -104,6 +105,23 @@ func Color(v store.View, front doc.Document) string {
 	c, _ := front.Get("color")
 	return c
 }
+
+// ColorIndex is the place in theme.NoteNames of a note's color: the one
+// chosen, in any case, else one the note's name picks, so that a note keeps
+// its color between runs and the terminal and the desktop app agree.
+func ColorIndex(name, chosen string) int {
+	for i, c := range theme.NoteNames {
+		if strings.EqualFold(c, chosen) {
+			return i
+		}
+	}
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return int(h.Sum32() % uint32(len(theme.NoteNames)))
+}
+
+// ColorName is the name of a note's color, as ColorIndex picks it.
+func ColorName(name, chosen string) string { return theme.NoteNames[ColorIndex(name, chosen)] }
 
 // Title names a note: the name sticky.json gives it, else its front matter
 // title, else its file name without the folder and the extension. The text

@@ -10,11 +10,10 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-
-	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"long.md": opened(numbered(15)), "b.md": boardFile})
 	press(m, "tab", "enter") // long.md is second: b.md sorts first
 	if m.mode != modeZoom {
@@ -37,6 +36,7 @@ func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
 }
 
 func TestZoomScrollsANoteWithoutACursor(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"long.md": opened(numbered(60))})
 	press(m, "enter")
 	if s := screen(m); !strings.Contains(s, "line 01") || strings.Contains(s, "line 60") {
@@ -53,6 +53,7 @@ func TestZoomScrollsANoteWithoutACursor(t *testing.T) {
 }
 
 func TestZoomReachesEveryLineOfANoteWithACursor(t *testing.T) {
+	t.Parallel()
 	body := "---\ntype: checklist\ntitle: Mixed\nopen: true\n---\n" + numbered(60) + "- [ ] one\n- [ ] two\n"
 	for i := 1; i <= 40; i++ {
 		body += fmt.Sprintf("tail %02d\n", i)
@@ -77,6 +78,7 @@ func TestZoomReachesEveryLineOfANoteWithACursor(t *testing.T) {
 }
 
 func TestZoomStartsAtTheEndOfALog(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"log.md": "---\ntype: log\nopen: true\n---\n" + numbered(60)})
 	press(m, "enter")
 	if s := screen(m); !strings.Contains(s, "line 60") || strings.Contains(s, "line 01") {
@@ -85,6 +87,7 @@ func TestZoomStartsAtTheEndOfALog(t *testing.T) {
 }
 
 func TestZoomKeysReachTheWidgetAndFollowTheCursor(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("---\ntype: checklist\ntitle: Long\nopen: true\n---\n")
 	for i := 1; i <= 60; i++ {
@@ -106,6 +109,7 @@ func TestZoomKeysReachTheWidgetAndFollowTheCursor(t *testing.T) {
 }
 
 func TestConflictIsReportedAndNothingIsWritten(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	agent := strings.Replace(boardFile, "## To do\n- payments\n", "## To do\n", 1) + "- payments shipped\n"
 	writeFile(t, dir, "b.md", agent) // the agent edits before the screen catches up
@@ -120,6 +124,7 @@ func TestConflictIsReportedAndNothingIsWritten(t *testing.T) {
 }
 
 func TestFailedWriteRevertsTheScreen(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("on Windows a folder's mode bits do not stop writing to its files")
 	}
@@ -145,6 +150,7 @@ func TestFailedWriteRevertsTheScreen(t *testing.T) {
 }
 
 func TestPromptAddsACard(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "n")
 	if s := screen(m); !strings.Contains(s, "New card in To do:") {
@@ -161,6 +167,7 @@ func TestPromptAddsACard(t *testing.T) {
 }
 
 func TestPromptCanBeCancelledOrLeftEmpty(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "enter", "n")
 	typeText(m, "q") // "q" is text here, not a key
@@ -177,6 +184,7 @@ func TestPromptCanBeCancelledOrLeftEmpty(t *testing.T) {
 }
 
 func TestZoomClosesWhenNoteIsRemoved(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": boardFile})
 	press(m, "tab", "enter")
 	if err := os.Remove(filepath.Join(dir, "b.md")); err != nil {
@@ -193,6 +201,7 @@ func TestZoomClosesWhenNoteIsRemoved(t *testing.T) {
 }
 
 func TestPromptClosesWhenNoteIsRemoved(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": boardFile})
 	press(m, "tab", "enter", "n")
 	if err := os.Remove(filepath.Join(dir, "b.md")); err != nil {
@@ -208,6 +217,7 @@ func TestPromptClosesWhenNoteIsRemoved(t *testing.T) {
 }
 
 func TestZoomSurvivesKindChange(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "enter", "l")
 	writeFile(t, dir, "b.md", checklistFile)
@@ -222,6 +232,7 @@ func TestZoomSurvivesKindChange(t *testing.T) {
 }
 
 func TestExternalEditKeepsTheCursor(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "l")
 	writeFile(t, dir, "b.md", strings.Replace(boardFile, "- schema\n", "- schema\n- docs\n", 1))
@@ -232,6 +243,7 @@ func TestExternalEditKeepsTheCursor(t *testing.T) {
 }
 
 func TestZoomFitsAnySize(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "enter")
 	for _, size := range [][2]int{{80, 24}, {40, 8}, {12, 4}, {3, 2}} {
@@ -244,6 +256,7 @@ func TestZoomFitsAnySize(t *testing.T) {
 
 // Zoomed in, a note says when it was made and when it last changed.
 func TestAZoomedNoteSaysWhenItWasMadeAndChanged(t *testing.T) {
+	t.Parallel()
 	made := time.Now().Add(-48 * time.Hour).Truncate(time.Minute)
 	m, dir := newModel(t, map[string]string{"plan.md": "---\nopen: true\ncreated: " + made.Format("2006-01-02 15:04") + "\n---\nthe plan\n"})
 	changed := time.Now().Add(-time.Minute).Truncate(time.Minute)
@@ -252,7 +265,7 @@ func TestAZoomedNoteSaysWhenItWasMadeAndChanged(t *testing.T) {
 	}
 	m.Update(changedMsg{})
 	press(m, "z")
-	want := when.Short(made, time.Now()) + " → " + when.Short(changed, time.Now())
+	want := m.env.Short(made) + " → " + m.env.Short(changed)
 	if s := screen(m); !strings.Contains(s, want) {
 		t.Errorf("want %q in the zoomed border:\n%s", want, s)
 	}

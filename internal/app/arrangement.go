@@ -3,8 +3,6 @@ package app
 import (
 	"image/color"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
-
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -56,13 +54,13 @@ func (m *Model) pinned(it item) bool {
 // color returns the note's color: the one chosen for it, or one derived
 // from its name so that it keeps its color between runs.
 func (m *Model) color(it item) color.Color {
-	return m.noteColor(colorIndex(it.note.Name, arrange.Color(m.views[it.note.Name], it.note.Doc)))
+	return m.noteColor(arrange.ColorIndex(it.note.Name, arrange.Color(m.views[it.note.Name], it.note.Doc)))
 }
 
 // setView changes how a note is arranged and shows the result.
 func (m *Model) setView(name string, change func(*store.View)) {
 	if err := m.store.SetView(name, change); err != nil {
-		m.status = say(tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
 }
@@ -107,7 +105,7 @@ func (m *Model) summary(it item) string {
 		return m.mark.text
 	}
 	if m.running[it.file().Name] {
-		return tr.Running
+		return m.tr.Running
 	}
 	s := it.w.Summary()
 	// A log says when it last grew, so one that stopped is seen to.
@@ -115,7 +113,7 @@ func (m *Model) summary(it item) string {
 		if s != "" {
 			s += " · "
 		}
-		s += when.Short(it.file().ModTime, m.now())
+		s += m.env.Short(it.file().ModTime)
 	}
 	return s
 }

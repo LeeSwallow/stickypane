@@ -74,16 +74,25 @@ checksums, building from source, updating and removing.
 
 **1. Install** stickypane, as above.
 
-**2. Give the project a board.** In the project's folder:
+**2. Connect the agent, once.**
+
+```sh
+stickypane setup
+```
+
+This installs the board plugin for Claude Code and Codex, from any folder.
+`stickypane setup --mcp` also registers the MCP server.
+
+**3. Give the project a board.** In the project's folder:
 
 ```sh
 stickypane init
 ```
 
-This makes `.sticky/` and leaves a short guide in `CLAUDE.md` or
-`AGENTS.md`, so your agent knows the board is there.
+This makes `.sticky/`. An agent without the plugin gets a short guide in
+`CLAUDE.md` or `AGENTS.md` instead, so it knows the board is there.
 
-**3. Open the board beside your agent.** Split the terminal and run
+**4. Open the board beside your agent.** Split the terminal and run
 `stickypane` in the new pane. `stickypane env` prints the command for the
 terminal you are in.
 
@@ -95,16 +104,8 @@ terminal you are in.
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
 | anything else | a second window or tab, in the same folder: `stickypane` |
 
-**4. Connect the agent, once.**
-
-```sh
-stickypane setup
-```
-
-This installs the board plugin for Claude Code and Codex. `stickypane setup
---mcp` also registers the MCP server. Then ask for things: "Keep a
-checklist of this refactor on the board." "Ask me on the board before you
-deploy."
+Then ask for things: "Keep a checklist of this refactor on the board."
+"Ask me on the board before you deploy."
 
 <details>
 <summary>The same path, as <code>stickypane help start</code> prints it</summary>
@@ -112,19 +113,19 @@ deploy."
 ```text
 Getting started
 
-1. Give the project a board, and tell your agents it is there:
+1. Connect your agents, once:
+     stickypane setup
+   (Claude Code and Codex get the board plugin; setup --mcp adds MCP)
+2. Give the project a board:
      stickypane init
-2. Pin something up. Agents and scripts write files; so can you:
-     echo "- [ ] try the board" | stickypane write plan --type checklist --open
-   (stickypane kinds shows every shape a note can take)
+   (an agent without the plugin gets a short guide in CLAUDE.md or AGENTS.md)
 3. Open the board in a pane beside your agent:
      stickypane
    (not sure how in your terminal? stickypane env knows)
-4. Hook up your agent, once:
-     stickypane setup
-   (or setup --mcp, or the lines init left in CLAUDE.md / AGENTS.md)
-5. Rather see it outside the terminal? The desktop app shows the
-   same board and starts stickypane bridge on its own.
+
+Then ask your agent to put something on the board, or pin a note yourself:
+     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+(stickypane kinds lists the shapes a note can take)
 
 Next: stickypane help, then stickypane help <command>.
 ```
@@ -234,7 +235,7 @@ sequenceDiagram
 | board | cards in columns | `stickypane card work add "login API" --to Doing` |
 | checklist | steps to tick off, with a progress bar | `stickypane todo plan add "write tests"` |
 | log | one entry per line, the newest in sight | `stickypane log worklog --time "tests passed"` |
-| chat | who said what and when | `stickypane say chat "41/41 pass" --as claude` |
+| chat | who said what and when | `stickypane say chat "41/41 pass"` |
 | chart | bars, a trend line, or a calendar of days | `stickypane chart tokens add input 1200` |
 | form | options, lines to fill in, buttons | `stickypane wait deploy --timeout 10m` |
 | script | a shell script with a Run button | `stickypane show deploy.sh` |

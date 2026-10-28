@@ -6,6 +6,7 @@ import (
 )
 
 func TestWrapBreaksAtWidth(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		text  string
 		width int
@@ -29,6 +30,7 @@ func TestWrapBreaksAtWidth(t *testing.T) {
 }
 
 func TestFitCutsWithoutEllipsis(t *testing.T) {
+	t.Parallel()
 	if got := Fit("abcdef\n한글입니다\nok", 4); got != "abcd\n한글\nok" {
 		t.Errorf("Fit = %q", got)
 	}
@@ -38,6 +40,7 @@ func TestFitCutsWithoutEllipsis(t *testing.T) {
 }
 
 func TestSpan(t *testing.T) {
+	t.Parallel()
 	if NoSpan.Ok() || !(Span{Start: 0, End: 1}).Ok() {
 		t.Error("NoSpan is not a span; a span starting at line 0 is")
 	}
@@ -50,6 +53,7 @@ func TestSpan(t *testing.T) {
 }
 
 func TestKindHandles(t *testing.T) {
+	t.Parallel()
 	k := Kind{Keys: "h l j k left right space n"}
 	for _, key := range []string{"h", "left", "space", "n"} {
 		if !k.Handles(key) {

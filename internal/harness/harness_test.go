@@ -17,16 +17,22 @@ func TestSkillsComeFromThePluginWithTheWayInFirst(t *testing.T) {
 	}
 }
 
-func TestReadCarriesTheFilesASkillPointsTo(t *testing.T) {
+// Read carries the rules a skill points to, once each, and leaves its
+// references to be read when needed: the shapes in full would triple the
+// way in.
+func TestReadCarriesTheRulesASkillPointsTo(t *testing.T) {
 	s, ok := Lookup("board:using-the-board")
 	if !ok {
 		t.Fatal("no way in")
 	}
 	text := Read(s)
-	for _, want := range []string{"# Using the board", "<!-- skills/using-the-board/references/kinds.md -->", "## Checklist", "<!-- rules/touching-the-board.md -->", "<!-- rules/writing-notes.md -->"} {
+	for _, want := range []string{"# Using the board", "<!-- rules/touching-the-board.md -->", "<!-- rules/writing-notes.md -->"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("Read should carry %q", want)
 		}
+	}
+	if strings.Contains(text, "<!-- skills/using-the-board/references/kinds.md -->") {
+		t.Error("Read should not carry the shapes reference")
 	}
 	if strings.Count(text, "<!-- rules/touching-the-board.md -->") != 1 {
 		t.Error("a file named twice is carried once")

@@ -34,6 +34,7 @@ func typeKeys(m *Model, script string) {
 }
 
 func TestEOpensTheNoteInTheEditor(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("first line\nsecond line\n")})
 	press(m, "e")
 	if m.mode != modeEdit {
@@ -59,6 +60,7 @@ func TestEOpensTheNoteInTheEditor(t *testing.T) {
 }
 
 func TestTheEditorDoesNotLoseChangesByAccident(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("text\n")})
 	press(m, "e")
 	typeKeys(m, "Gx:q<enter>")
@@ -75,6 +77,7 @@ func TestTheEditorDoesNotLoseChangesByAccident(t *testing.T) {
 }
 
 func TestSavingOverAFileThatChangedAsksFirst(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("mine\n")})
 	press(m, "e")
 	typeKeys(m, "GA!<esc>")
@@ -102,6 +105,7 @@ func TestSavingOverAFileThatChangedAsksFirst(t *testing.T) {
 }
 
 func TestTheEditorReturnsToWhereItWasOpened(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("text\n")})
 	press(m, "z", "e")
 	if m.mode != modeEdit {
@@ -114,6 +118,7 @@ func TestTheEditorReturnsToWhereItWasOpened(t *testing.T) {
 }
 
 func TestANoteThatCannotBeReadCannotBeEdited(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("text\n")})
 	m.items[0].note.Err = errTest
 	press(m, "e")
@@ -123,6 +128,7 @@ func TestANoteThatCannotBeReadCannotBeEdited(t *testing.T) {
 }
 
 func TestCapitalEOpensTheExternalEditor(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("text\n")})
 	if _, cmd := m.Update(key("E")); cmd == nil || m.mode != modeBoard {
 		t.Errorf("E should hand the note to $EDITOR")
@@ -130,6 +136,7 @@ func TestCapitalEOpensTheExternalEditor(t *testing.T) {
 }
 
 func TestTheWheelMovesInTheEditor(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened(numbered(60))})
 	press(m, "e")
 	wheel(m, 5, 5, true)
@@ -140,6 +147,7 @@ func TestTheWheelMovesInTheEditor(t *testing.T) {
 }
 
 func TestTheEditorFollowsAFileItHasNotChanged(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("first\n")})
 	press(m, "e")
 	writeFile(t, dir, "a.md", opened("the agent rewrote this\n"))

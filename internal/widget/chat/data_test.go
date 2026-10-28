@@ -12,7 +12,8 @@ import (
 )
 
 func TestDataOfTheExample(t *testing.T) {
-	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example))))
+	t.Parallel()
+	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,13 +24,11 @@ func TestDataOfTheExample(t *testing.T) {
 }
 
 func TestActSayAppendsAMessageFromTheUser(t *testing.T) {
+	t.Parallel()
 	at := time.Date(2026, 10, 3, 14, 5, 0, 0, time.Local)
-	old := now
-	now = func() time.Time { return at }
-	t.Cleanup(func() { now = old })
-
 	d := doc.Parse([]byte(Kind.Example))
-	op, err := Kind.Act(d, widget.Action{Name: "say", Args: map[string]string{"text": "thanks", "who": "you"}})
+	op, err := Kind.Act(d, widget.Action{Name: "say", Args: map[string]string{"text": "thanks", "who": "you"}}, widget.Env{Clock: func() time.Time { return at }})
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,11 +41,11 @@ func TestActSayAppendsAMessageFromTheUser(t *testing.T) {
 	}
 
 	for _, text := range []string{"", "  "} {
-		if _, err := Kind.Act(d, widget.Action{Name: "say", Args: map[string]string{"text": text, "who": "you"}}); err == nil {
+		if _, err := Kind.Act(d, widget.Action{Name: "say", Args: map[string]string{"text": text, "who": "you"}}, widget.DefaultEnv()); err == nil {
 			t.Errorf("say %q: no error", text)
 		}
 	}
-	if _, err := Kind.Act(d, widget.Action{Name: "nope"}); !errors.Is(err, widget.ErrUnknownAction) {
+	if _, err := Kind.Act(d, widget.Action{Name: "nope"}, widget.DefaultEnv()); !errors.Is(err, widget.ErrUnknownAction) {
 		t.Errorf("unknown verb: err = %v, want ErrUnknownAction", err)
 	}
 }

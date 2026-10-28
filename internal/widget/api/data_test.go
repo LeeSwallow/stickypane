@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 func TestDataOfTheExample(t *testing.T) {
-	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example))))
+	t.Parallel()
+	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +22,7 @@ func TestDataOfTheExample(t *testing.T) {
 
 func TestDataSaysTheEnvironmentAndEveryRequest(t *testing.T) {
 	src := "# @env dev\n\n### One\nGET https://a.example/x\n\n###\nDELETE https://a.example/y\n"
-	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}))
+	b, err := json.Marshal(Kind.Data(doc.Document{Body: src}, widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +39,7 @@ func TestDataSaysTheEnvironmentAndEveryRequest(t *testing.T) {
 	if r := got.Requests[1]; r.Title != "DELETE https://a.example/y" || r.Method != "DELETE" || r.Asserts != 0 {
 		t.Errorf("second request = %+v", r)
 	}
-	b, _ = json.Marshal(Kind.Data(doc.Document{}))
+	b, _ = json.Marshal(Kind.Data(doc.Document{}, widget.DefaultEnv()))
 	if want := `{"source":"","env":"","requests":[]}`; string(b) != want {
 		t.Errorf("Data of an empty file = %s, want %s", b, want)
 	}

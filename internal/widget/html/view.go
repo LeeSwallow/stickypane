@@ -17,8 +17,8 @@ func (p *Page) Draw(width int, _ bool) (string, widget.Span) {
 	if len(out) > 0 {
 		out = append(out, "")
 	}
-	for _, l := range widget.Wrap(widget.T("open it in the overlay to see it drawn"), width) {
-		out = append(out, widget.Faint.Render(l))
+	for _, l := range widget.Wrap(p.env.T("open it in the overlay to see it drawn"), width) {
+		out = append(out, p.env.Styles.Faint.Render(l))
 	}
 	return strings.Join(out, "\n"), widget.NoSpan
 }
@@ -30,4 +30,4 @@ func (p *Page) Summary() string { return "" }
 func (p *Page) Update(string) (widget.Widget, widget.Result) { return p, widget.Result{} }
 
 // Sync implements widget.Widget.
-func (p *Page) Sync(d doc.Document) widget.Widget { return parse(d) }
+func (p *Page) Sync(d doc.Document) widget.Widget { return parse(d, p.env) }

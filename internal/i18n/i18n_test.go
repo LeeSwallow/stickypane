@@ -124,6 +124,36 @@ func TestDetectReadsTheEnvironment(t *testing.T) {
 	}
 }
 
+// Resolve is the one rule for which language a choice comes to: the choice
+// when there is a translation for it, else the environment's when there is
+// one for that, else English. Pick speaks what Resolve says.
+func TestResolveIsTheChoiceThenTheEnvironmentThenEnglish(t *testing.T) {
+	for _, v := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(v, "")
+	}
+	t.Setenv("STICKYPANE_LANG", "ko")
+	for _, c := range []struct{ choice, want string }{
+		{"ko", "ko"},
+		{"KO_kr", "ko"},
+		{"en", "en"},
+		{"auto", "ko"},
+		{"", "ko"},
+		{"tlh", "ko"}, // no translation: the environment's
+	} {
+		if got := Resolve(c.choice); got != c.want {
+			t.Errorf("Resolve(%q) = %q, want %q", c.choice, got, c.want)
+		}
+		want, _ := Load(c.want)
+		if got := Pick(c.choice); got.NothingOpen != want.NothingOpen {
+			t.Errorf("Pick(%q) does not speak %q", c.choice, c.want)
+		}
+	}
+	t.Setenv("STICKYPANE_LANG", "fr") // no translation either: English
+	if got := Resolve("tlh"); got != "en" {
+		t.Errorf("Resolve with nothing translated = %q, want en", got)
+	}
+}
+
 func TestFillLeavesABrokenTemplateReadable(t *testing.T) {
 	if got := Fill("Delete {{.Name}}", nil); got != "Delete <no value>" && got != "Delete {{.Name}}" {
 		t.Errorf("Fill with no values = %q", got)

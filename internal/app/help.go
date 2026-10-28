@@ -15,7 +15,7 @@ func init() {
 	handlers[modeHelp] = helpUpdate
 	bodies[modeHelp] = helpBody
 	footers[modeHelp] = func(m *Model) string {
-		return hints(m.width, "j k", "scroll") + "  " + widget.Faint.Render(tr.L("any other key closes"))
+		return m.hints(m.width, "j k", "scroll") + "  " + m.env.Styles.Faint.Render(m.tr.L("any other key closes"))
 	}
 
 	// Also reachable from a zoomed note, which it returns to.
@@ -41,10 +41,10 @@ func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
 // helpBody draws the key reference: section names stand out and the keys
 // line up. On a screen with room it sits in a centered dialog.
 func helpBody(m *Model, h int) []string {
-	lines := strings.Split(tr.Help, "\n")
+	lines := strings.Split(m.tr.Help, "\n")
 	for i, l := range lines {
 		if l != "" && !strings.HasPrefix(l, " ") {
-			lines[i] = widget.Bold.Render(l)
+			lines[i] = m.env.Styles.Bold.Render(l)
 		}
 	}
 	rows := h
@@ -57,5 +57,5 @@ func helpBody(m *Model, h int) []string {
 	if !framed {
 		return visible
 	}
-	return dialog(tr.Keys, visible, helpWidth, m.width, h, m.accent())
+	return m.dialog(m.tr.Keys, visible, helpWidth, m.width, h, m.accent())
 }
