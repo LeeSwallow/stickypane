@@ -244,5 +244,7 @@
   "settings.soon": "다음 버전에 와요. 그때까지는 터미널에서 stickypane setup.",
   "settings.about": "정보",
   "settings.version": "stickypane {version}",
-  "settings.open": "설정…"
+  "settings.open": "설정…",
+  "checklist.add": "새 항목",
+  "kanban.add": "새 카드"
 }

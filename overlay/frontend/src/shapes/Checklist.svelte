@@ -1,11 +1,12 @@
 <script lang="ts">
   // A checklist (03 §3.8): hand-drawn boxes, a pen tick, done items struck
   // through in pencil, and a progress bar. A click (or Space) ticks an
-  // item through note.act `toggle`; the bridge's board.changed redraws it.
+  // item through note.act `toggle`; the line at the end adds one (`add`).
   import { useBoard } from '../board/context'
   import { itemOrder, toggleAction, type ChecklistData, type Note } from '../board/model'
   import { language, relativeTime, tr } from '../i18n'
   import Check from '../lib/doodle/Check.svelte'
+  import AddLine from './AddLine.svelte'
   import { seedOf } from '../lib/theme/tokens'
 
   let { note }: { note: Note } = $props()
@@ -51,6 +52,7 @@
     </li>
   {/each}
 </ul>
+<AddLine label={$tr('checklist.add')} onadd={(text) => board.act(note, { name: 'add', args: { text } })} />
 
 <style>
   .prose {

@@ -10,6 +10,7 @@
   import { look } from '../lib/doodle/look.svelte'
   import { agentColor } from '../lib/theme/tokens'
   import { dropAt, keyMove } from '../board/interact'
+  import AddLine from './AddLine.svelte'
   import Card from './Card.svelte'
 
   let { note, narrow = false }: { note: Note; narrow?: boolean } = $props()
@@ -110,6 +111,7 @@
       {:else}
         <p class="none">{$tr('kanban.empty')}</p>
       {/each}
+      <AddLine label={$tr('kanban.add')} onadd={(text) => board.act(note, { name: 'add', args: { col: String(ci), text } })} />
     </section>
   {/each}
 </div>

@@ -244,5 +244,7 @@
   "settings.soon": "Coming in the next version. Until then: stickypane setup in a terminal.",
   "settings.about": "About",
   "settings.version": "stickypane {version}",
-  "settings.open": "Settings…"
+  "settings.open": "Settings…",
+  "checklist.add": "New item",
+  "kanban.add": "New card"
 }
