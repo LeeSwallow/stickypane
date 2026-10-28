@@ -28,7 +28,7 @@ func TestKindsPrintsOneShapeInFull(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code = %d", code)
 	}
-	for _, want := range []string{"stickypane card", "type: board", "## To do", "column", "H L"} {
+	for _, want := range []string{"stickypane card", "type: board", "## To do", "column", "H L", "--opt columns=<lines>", "To do | Doing | Done"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("kinds board should show %q:\n%s", want, out)
 		}

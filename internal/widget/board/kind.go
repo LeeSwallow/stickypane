@@ -1,6 +1,9 @@
 package board
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -20,9 +23,49 @@ var Kind = widget.Kind{
 	Template: func(title string) []byte {
 		return widget.NewFile("board", title, "## To do\n\n## Doing\n\n## Done\n")
 	},
-	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
-	Events: events,
-	Data:   data,
-	Act:    act,
-	Tend:   tend,
+	Options: []widget.Option{
+		{Name: "columns", Type: widget.OptLines, Label: "Columns", Default: "To do\nDoing\nDone"},
+		{Name: "cards", Type: widget.OptLines, Label: "First cards"},
+	},
+	Compose: compose,
+	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Events:  events,
+	Data:    data,
+	Act:     act,
+	Tend:    tend,
+}
+
+// compose writes a new board: a "## " heading for each column, and the
+// first cards under them. A card goes to the first column, or to the one
+// it names in front of it ("Doing: login API"); an @name in it stays, as
+// who has it.
+func compose(title string, opts map[string]string) ([]byte, error) {
+	titles := widget.Lines(opts["columns"])
+	if len(titles) == 0 {
+		return nil, fmt.Errorf("%w: a board needs a column", widget.ErrBadOption)
+	}
+	cards := make([][]string, len(titles))
+	for _, card := range widget.Lines(opts["cards"]) {
+		col := 0
+		if name, text, ok := strings.Cut(card, ":"); ok {
+			for i, t := range titles {
+				if strings.EqualFold(strings.TrimSpace(name), t) && strings.TrimSpace(text) != "" {
+					col, card = i, strings.TrimSpace(text)
+					break
+				}
+			}
+		}
+		cards[col] = append(cards[col], card)
+	}
+	var b strings.Builder
+	for i, t := range titles {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("## " + t + "\n")
+		for _, c := range cards[i] {
+			b.WriteString("- " + c + "\n")
+		}
+	}
+	return widget.NewFile("board", title, b.String()), nil
 }

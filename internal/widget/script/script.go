@@ -30,8 +30,19 @@ var Kind = widget.Kind{
 	Keys:     "enter space",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(string) []byte { return []byte("#!/bin/sh\n") },
-	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
-	Data:     data,
+	Options: []widget.Option{
+		{Name: "commands", Type: widget.OptLines, Label: "Commands"},
+	},
+	Compose: func(_ string, opts map[string]string) ([]byte, error) {
+		// The commands as written: indentation means something in a script.
+		file := "#!/bin/sh\n"
+		if commands := strings.Trim(opts["commands"], "\n"); strings.TrimSpace(commands) != "" {
+			file += commands + "\n"
+		}
+		return []byte(file), nil
+	},
+	Parse: func(d doc.Document) widget.Widget { return parse(d) },
+	Data:  data,
 }
 
 // Script is the widget for a script.

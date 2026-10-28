@@ -41,8 +41,14 @@ var Kind = widget.Kind{
 	Template: func(string) []byte {
 		return []byte("### Example\nGET https://httpbin.org/get\n# @assert response.statusCode == 200\n")
 	},
-	Parse: func(d doc.Document) widget.Widget { return parse(d) },
-	Data:  data,
+	Options: []widget.Option{
+		{Name: "method", Type: widget.OptChoice, Label: "Method", Choices: []string{"GET", "POST", "PUT", "PATCH", "DELETE"}, Default: "GET"},
+		{Name: "url", Type: widget.OptText, Label: "URL", Default: "https://httpbin.org/get"},
+		{Name: "status", Type: widget.OptNumber, Label: "Expected status", Default: "200"},
+	},
+	Compose: compose,
+	Parse:   func(d doc.Document) widget.Widget { return parse(d) },
+	Data:    data,
 }
 
 // API is the widget for a .http file.
@@ -275,4 +281,22 @@ func data(d doc.Document) any {
 	return struct {
 		Source string `json:"source"`
 	}{d.Body}
+}
+
+// compose writes a new .http file of one request, named by the title, with
+// a check of its status when one is given.
+func compose(title string, opts map[string]string) ([]byte, error) {
+	url := opts["url"]
+	if url == "" || strings.ContainsAny(url, " \t") {
+		return nil, fmt.Errorf("%w: url of a request: %q is not a URL", widget.ErrBadOption, url)
+	}
+	name := strings.Join(strings.Fields(title), " ")
+	if name == "" {
+		name = "Request"
+	}
+	file := "### " + name + "\n" + opts["method"] + " " + url + "\n"
+	if status := opts["status"]; status != "" {
+		file += "# @assert response.statusCode == " + status + "\n"
+	}
+	return []byte(file), nil
 }

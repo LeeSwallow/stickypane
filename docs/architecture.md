@@ -119,7 +119,7 @@ reader and a writer is laid out the same way:
 
 | File | Holds |
 | --- | --- |
-| `kind.go` | the `widget.Kind`: name, icon, keys, blurb, example, command, usage |
+| `kind.go` | the `widget.Kind`: name, icon, keys, blurb, example, command, usage; the create options and `Compose`, which writes a new file from them |
 | `format.go` | the file's grammar, shared by the reader and the writer |
 | `model.go` | the reader: what the file says, with no screen state in it |
 | `ops.go` | the writer: the `doc.Op` intents the screen and the command line apply |
@@ -134,15 +134,25 @@ To add a shape:
    implements `widget.Widget`; `widget.Clicker` if it takes the mouse.
 2. Fill in its `Kind`, including `Command` and `Usage`: `stickypane kinds`
    prints them and the agent reads them there.
-3. Add one line to `internal/kinds.Default`.
-4. If the command line should change one thing in it, add a function to
+3. Give it `Options` and `Compose` if a screen should make one from a
+   form: what to ask (text, lines, choice, number, bool), and the whole
+   new file written from the answers in the shape's own format.
+   `Kind.Make` checks the answers and fills in the defaults; the bridge's
+   `kinds.list` and `note.create` and `stickypane write --opt` use it, so
+   no screen writes a shape's format itself. An option's label is a key
+   of the "labels" in `internal/i18n/translations`.
+4. Add one line to `internal/kinds.Default`.
+5. If the command line should change one thing in it, add a function to
    `internal/api/edit.go` that applies one of its ops, and a command to the
    table in `cmd/stickypane/commands.go`.
-5. Describe it in `skills/using-the-board/references/kinds.md`.
+6. Describe it in `skills/using-the-board/references/kinds.md`.
 
 `TestEveryKindKeepsTheContract` in `internal/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
 an empty file. A new shape that passes it works on the board.
+`TestEveryKindComposesFromItsOptions` holds its options to the same:
+well formed, translated, and a note made with the defaults reads back as
+the same shape.
 
 ## The plugin
 

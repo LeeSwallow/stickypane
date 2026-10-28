@@ -1,6 +1,9 @@
 package form
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
@@ -23,9 +26,53 @@ func NewKind(render note.Renderer) widget.Kind {
 		Template: func(title string) []byte {
 			return widget.NewFile("form", title, "## Question\n- ( ) Yes\n- ( ) No\n\n[ "+defaultButton+" ]\n")
 		},
-		Parse:  func(d doc.Document) widget.Widget { return parse(d, render) },
-		Events: events,
-		Data:   data,
-		Act:    act,
+		Options: []widget.Option{
+			{Name: "question", Type: widget.OptText, Label: "Question", Default: "Question"},
+			{Name: "answer", Type: widget.OptChoice, Label: "Answer", Choices: []string{"one", "many", "text"}, Default: "one"},
+			{Name: "choices", Type: widget.OptLines, Label: "Choices", Default: "Yes\nNo"},
+			{Name: "buttons", Type: widget.OptLines, Label: "Buttons", Default: defaultButton},
+		},
+		Compose: compose,
+		Parse:   func(d doc.Document) widget.Widget { return parse(d, render) },
+		Events:  events,
+		Data:    data,
+		Act:     act,
 	}
+}
+
+// compose writes a new form of one question: its heading, then its
+// options ("- ( )" for one choice, "- [ ]" for many) or a line to fill in,
+// then the buttons.
+func compose(title string, opts map[string]string) ([]byte, error) {
+	var b strings.Builder
+	if q := opts["question"]; q != "" {
+		b.WriteString("## " + q + "\n")
+	}
+	switch opts["answer"] {
+	case "text":
+		b.WriteString(">\n")
+	default:
+		box := "- ( ) "
+		if opts["answer"] == "many" {
+			box = "- [ ] "
+		}
+		choices := widget.Lines(opts["choices"])
+		if len(choices) == 0 {
+			return nil, fmt.Errorf("%w: a question answered by choosing needs choices", widget.ErrBadOption)
+		}
+		for _, c := range choices {
+			b.WriteString(box + c + "\n")
+		}
+	}
+	var buttons []string
+	for _, label := range widget.Lines(opts["buttons"]) {
+		if strings.ContainsAny(label, "[]") {
+			return nil, fmt.Errorf("%w: buttons of a form: %q may not hold [ or ]", widget.ErrBadOption, label)
+		}
+		buttons = append(buttons, "[ "+label+" ]")
+	}
+	if len(buttons) > 0 {
+		b.WriteString("\n" + strings.Join(buttons, " ") + "\n")
+	}
+	return widget.NewFile("form", title, b.String()), nil
 }

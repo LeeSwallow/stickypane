@@ -67,7 +67,7 @@ func answer(err error) *Error {
 		return e
 	case errors.Is(err, api.ErrStale):
 		return &Error{CodeStale, err.Error()}
-	case errors.Is(err, api.ErrBadName), errors.Is(err, api.ErrUnknownType), errors.Is(err, widget.ErrUnknownAction):
+	case errors.Is(err, api.ErrBadName), errors.Is(err, api.ErrUnknownType), errors.Is(err, widget.ErrUnknownAction), errors.Is(err, widget.ErrBadOption):
 		return badRequest(err.Error())
 	case errors.Is(err, fs.ErrNotExist), errors.Is(err, doc.ErrConflict):
 		return notFound(err.Error())
@@ -91,6 +91,10 @@ type (
 		Kind  string `json:"kind"`
 		Title string `json:"title"`
 		Body  string `json:"body"`
+		// Options, when given, are the kind's create options (kinds.list
+		// says which): the kind's own code writes the note from them, in
+		// place of a body.
+		Options map[string]json.RawMessage `json:"options"`
 	}
 	noteParams struct {
 		Note string `json:"note"`
