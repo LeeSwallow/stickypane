@@ -1,122 +1,175 @@
-<script lang="ts" module>
-  export type NoteSize = 'card' | 'half' | 'page'
-</script>
-
 <script lang="ts">
-  // The head of a note: title (hand-written, in the note's colour, one line),
-  // a changed dot, the summary (3/6, 6 cards), a book's pager, and the
-  // note's controls — size ▢▭▬, pin, tear-off, more ⋯. It holds controls,
-  // so it never leans; the controls stay quiet until the note is hovered.
+  // The head of a note: what comes before the title (a way back, the kind's
+  // icon), the title (hand-written, in the note's colour, one line; a
+  // double-click renames it), a changed dot, a link mark, the summary
+  // (3/6, 6 cards), a book's pager, and the note's controls — its width as
+  // a fraction of the board stepped narrower and wider, pin, tear-off, more
+  // ⋯ and close. It holds controls, so it never leans; the controls stay
+  // quiet until the note is hovered.
+  import type { Snippet } from 'svelte'
   import { tr } from '../../i18n'
   import { look } from '../doodle/look.svelte'
+  import { FRACTIONS, nextFraction, type Fraction } from '../sizes'
   import { noteTitleColor } from '../theme/tokens'
   import IconButton from './IconButton.svelte'
+  import Icon from './icons/Icon.svelte'
   import Menu from './Menu.svelte'
   import type { MenuItem } from './menu'
-  import SegmentedControl from './SegmentedControl.svelte'
   import Toolbar from './Toolbar.svelte'
+  import Tooltip from './Tooltip.svelte'
 
   let {
     title,
     color,
     summary,
     updated = false,
-    size = $bindable('half'),
+    size = '1/2',
     pinned = false,
     book,
+    linked,
+    editable = true,
+    lead,
     menu = [],
     menuOpen = $bindable(false),
     onsize,
     onpin,
     ontearoff,
+    onrename,
     onmenu,
+    onclose,
   }: {
     title: string
     color: string
     summary?: string
     updated?: boolean
-    size?: NoteSize
+    /** the fraction of the board the note is at */
+    size?: string
     pinned?: boolean
-    book?: { page: number; total: number; onprev: () => void; onnext: () => void }
+    /** a book: its page (1-based), its count, and the names of its pages for a list */
+    book?: { page: number; total: number; onprev: () => void; onnext: () => void; names?: string[]; onpage?: (i: number) => void }
+    /** the real path of a linked file */
+    linked?: string
+    /** false: a note that cannot be read; it can only be closed */
+    editable?: boolean
+    lead?: Snippet
     menu?: MenuItem[]
     menuOpen?: boolean
-    onsize?: (s: NoteSize) => void
+    onsize?: (s: Fraction) => void
     onpin?: (on: boolean) => void
     ontearoff?: () => void
+    onrename?: (title: string) => void
     onmenu?: (id: string) => void
+    onclose?: () => void
   } = $props()
 
   const ink = $derived(look.palette ? noteTitleColor(color, look.palette, look.dark) : color)
-  const ORDER: NoteSize[] = ['card', 'half', 'page']
-  function step() {
-    size = ORDER[(ORDER.indexOf(size) + 1) % ORDER.length]
-    onsize?.(size)
+  const at = $derived(FRACTIONS.indexOf(size as Fraction))
+  const step = (dir: -1 | 1) => onsize?.(nextFraction(size, dir))
+
+  let editing = $state(false)
+  let draft = $state('')
+  function rename() {
+    if (!editable || !onrename) return
+    draft = title
+    editing = true
   }
-  const sizes = $derived([
-    { value: 'card', label: $tr('ui.size.card'), icon: 'size-card' as const },
-    { value: 'half', label: $tr('ui.size.half'), icon: 'size-half' as const },
-    { value: 'page', label: $tr('ui.size.page'), icon: 'size-page' as const },
-  ])
+  function commit() {
+    if (!editing) return
+    editing = false
+    const t = draft.trim()
+    if (t && t !== title) onrename?.(t)
+  }
 </script>
 
 <div class="wrap">
-<header class="head">
-  <h3 class="title" class:neat={look.style === 'neat'} style:color={ink} title={title}>{title}</h3>
-  {#if updated}<span class="dot" style:background={color} role="img" aria-label={$tr('ui.updated')}></span>{/if}
-  {#if summary}<span class="summary">{summary}</span>{/if}
-  <span class="grow"></span>
-  {#if book}
-    <span class="pager">
-      <IconButton icon="book-prev" size="sm" label={$tr('ui.page.prev')} shortcut="[" disabled={book.page <= 1} onclick={book.onprev} />
-      <span class="page" aria-label={$tr('ui.page.of', { n: book.page, total: book.total })}>{book.page} / {book.total}</span>
-      <IconButton icon="book-next" size="sm" label={$tr('ui.page.next')} shortcut="]" disabled={book.page >= book.total} onclick={book.onnext} />
-    </span>
-  {/if}
-  <span class="tools">
-    <Toolbar label={$tr('ui.noteActions')}>
-      <span class="sizes wide">
-        <SegmentedControl options={sizes} bind:value={size} label={$tr('ui.size')} iconOnly size="sm" onchange={(v) => onsize?.(v as NoteSize)} />
-      </span>
-      <!-- in a narrow note the three become one button that steps card → half → page -->
-      <span class="sizes narrow">
-        <IconButton icon={`size-${size}`} size="sm" label="{$tr('ui.size')}: {$tr(`ui.size.${size}`)}" shortcut="=" onclick={step} />
-      </span>
-      <IconButton
-        icon="pin"
-        size="sm"
-        label={pinned ? $tr('ui.unpin') : $tr('ui.pin')}
-        pressed={pinned}
-        crayon={pinned}
-        onclick={() => onpin?.(!pinned)}
+  <header class="head">
+    {@render lead?.()}
+    {#if editing}
+      <!-- svelte-ignore a11y_autofocus -->
+      <input
+        class="title edit"
+        class:neat={look.style === 'neat'}
+        aria-label={$tr('note.rename')}
+        bind:value={draft}
+        autofocus
+        onkeydown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            editing = false
+          }
+        }}
+        onblur={commit}
       />
-      <IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} onclick={ontearoff} />
-      <span class="anchor">
-        <IconButton icon="more" size="sm" label={$tr('ui.more')} aria-haspopup="menu" aria-expanded={menuOpen} align="end" onclick={() => (menuOpen = !menuOpen)} />
-        <Menu items={menu} bind:open={menuOpen} label={$tr('ui.noteActions')} onselect={onmenu} />
+    {:else}
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <h3
+        class="title"
+        class:neat={look.style === 'neat'}
+        style:color={ink}
+        title={editable && onrename ? `${title} · ${$tr('note.rename')}` : title}
+        ondblclick={rename}
+      >
+        {title}
+      </h3>
+    {/if}
+    {#if updated}<span class="dot" style:background={color} role="img" aria-label={$tr('ui.updated')}></span>{/if}
+    {#if linked}
+      <Tooltip text={$tr('note.linked', { target: linked })} mono>
+        <span class="link" role="img" aria-label={$tr('note.linked', { target: linked })}><Icon name="link" size={14} /></span>
+      </Tooltip>
+    {/if}
+    {#if summary}<span class="summary">{summary}</span>{/if}
+    <span class="grow"></span>
+    {#if book && book.total > 1}
+      <span class="pager">
+        <IconButton icon="book-prev" size="sm" label={$tr('ui.page.prev')} shortcut="[" disabled={book.page <= 1} onclick={book.onprev} />
+        {#if book.names && book.onpage}
+          <select class="page" aria-label={$tr('note.pages')} value={book.page - 1} onchange={(e) => book.onpage?.(Number(e.currentTarget.value))}>
+            {#each book.names as n, i (i)}<option value={i}>{i + 1} / {book.total} · {n}</option>{/each}
+          </select>
+        {:else}
+          <span class="page" aria-label={$tr('ui.page.of', { n: book.page, total: book.total })}>{book.page} / {book.total}</span>
+        {/if}
+        <IconButton icon="book-next" size="sm" label={$tr('ui.page.next')} shortcut="]" disabled={book.page >= book.total} onclick={book.onnext} />
       </span>
-    </Toolbar>
-  </span>
-</header>
+    {/if}
+    <span class="tools">
+      <Toolbar label={$tr('ui.noteActions')}>
+        {#if editable}
+          <span class="size" role="group" aria-label={$tr('ui.size')}>
+            <IconButton icon="minimise" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} />
+            <span class="frac" aria-label={$tr('ui.size.now', { size })}>{size}</span>
+            <IconButton icon="plus" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} />
+          </span>
+          <IconButton
+            icon="pin"
+            size="sm"
+            label={pinned ? $tr('note.unpin') : $tr('note.pin')}
+            pressed={pinned}
+            crayon={pinned}
+            onclick={() => onpin?.(!pinned)}
+          />
+          <IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} disabled={!ontearoff} onclick={ontearoff} />
+        {/if}
+        {#if menu.length}
+          <span class="anchor">
+            <IconButton icon="more" size="sm" label={$tr('ui.more')} aria-haspopup="menu" aria-expanded={menuOpen} align="end" onclick={() => (menuOpen = !menuOpen)} />
+            <Menu items={menu} bind:open={menuOpen} label={$tr('ui.noteActions')} onselect={onmenu} />
+          </span>
+        {/if}
+        {#if onclose}
+          <IconButton icon="close" size="sm" label={$tr('ui.close')} align="end" onclick={onclose} />
+        {/if}
+      </Toolbar>
+    </span>
+  </header>
 </div>
 
 <style>
   .wrap {
     container-type: inline-size;
     min-width: 0;
-  }
-  .sizes {
-    display: inline-flex;
-  }
-  .narrow {
-    display: none;
-  }
-  @container (max-width: 460px) {
-    .wide {
-      display: none;
-    }
-    .narrow {
-      display: inline-flex;
-    }
   }
   .head {
     display: flex;
@@ -127,7 +180,7 @@
   }
   .title {
     flex: 0 1 auto;
-    min-width: min(9em, 45%);
+    min-width: min(6em, 40%);
     margin: 0;
     overflow: hidden;
     white-space: nowrap;
@@ -137,11 +190,25 @@
   .title.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
   }
+  .title.edit {
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--space-1);
+    color: var(--ink);
+    background: var(--surface);
+    border: var(--stroke-hairline) solid var(--focus);
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
   .dot {
     width: 6px;
     height: 6px;
     flex: none;
     border-radius: 50%;
+  }
+  .link {
+    display: inline-flex;
+    color: var(--ink-3);
   }
   .summary {
     flex: none;
@@ -160,6 +227,25 @@
   }
   .page {
     min-width: 36px;
+    max-width: 12em;
+    text-align: center;
+    color: var(--ink-2);
+    font: var(--weight-mono-sm) var(--text-mono-sm) / 1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  select.page {
+    height: var(--control-sm);
+    padding: 0 var(--space-1);
+    border: var(--stroke-hairline) solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  .size {
+    display: inline-flex;
+    align-items: center;
+  }
+  .frac {
+    min-width: 28px;
     text-align: center;
     color: var(--ink-2);
     font: var(--weight-mono-sm) var(--text-mono-sm) / 1 var(--font-mono);
@@ -177,5 +263,11 @@
   .anchor {
     position: relative;
     display: inline-flex;
+  }
+  /* a narrow note keeps the size and the close; the rest is in ⋯ or a key away */
+  @container (max-width: 300px) {
+    .summary {
+      display: none;
+    }
   }
 </style>

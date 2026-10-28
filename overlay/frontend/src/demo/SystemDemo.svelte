@@ -38,6 +38,7 @@
   import Tooltip from '../lib/ui/Tooltip.svelte'
   import { windowMenu, type WindowActions } from '../lib/ui/chrome'
   import { THEMES } from '../lib/theme/palettes'
+  import { FRACTIONS } from '../lib/sizes'
   import appIcon from '../../../build/appicon.png?url'
 
   const params = new URLSearchParams(location.search)
@@ -67,7 +68,7 @@
 
   // the composed board
   let tab = $state('work')
-  let size = $state<'card' | 'half' | 'page'>('half')
+  let size = $state<string>('1/2')
   let pinned = $state(true)
   let view = $state('grid')
   const noteMenu = $derived<MenuItem[]>([
@@ -139,7 +140,7 @@
         <div class="board">
           <div class="note-wrap">
             <NoteFrame color={palette.notes[0]} id="release">
-              <NoteHeader title="릴리스 체크 — v0.2 macOS build and the cask" color={palette.notes[0]} summary="1/3" bind:size {pinned} updated menu={noteMenu} book={{ page: 2, total: 5, onprev: () => {}, onnext: () => {} }} onpin={(v) => (pinned = v)} />
+              <NoteHeader title="릴리스 체크 — v0.2 macOS build and the cask" color={palette.notes[0]} summary="1/3" {size} onsize={(s) => (size = s)} {pinned} updated menu={noteMenu} book={{ page: 2, total: 5, onprev: () => {}, onnext: () => {} }} onpin={(v) => (pinned = v)} />
               <ul class="items">
                 <li><Check checked seed={3} /><s>write tests</s></li>
                 <li><Check seed={4} />update README</li>
@@ -149,7 +150,7 @@
           </div>
           <div class="note-wrap">
             <NoteFrame color={palette.notes[3]} id="sprint">
-              <NoteHeader title="Auth sprint" color={palette.notes[3]} summary="3 cards" size="half" menu={noteMenu} />
+              <NoteHeader title="Auth sprint" color={palette.notes[3]} summary="3 cards" size="1/2" menu={noteMenu} />
               <div class="cards">
                 <div class="col"><span class="colh">Doing <Badge count={2} /></span>
                   <Sheet color={agentColor('claude', palette.notes)} id="c1">login form<small>@claude · 4m</small></Sheet>
@@ -277,7 +278,7 @@
               <div class="row"><Toggle label={$tx('ui.pin')} checked /><Toggle label="Reduce motion" /><Toggle label="Off and disabled" disabled /></div>
               <div class="row">
                 <SegmentedControl label={$tx('ui.view')} bind:value={view} options={[{ value: 'grid', label: $tx('ui.view.grid'), icon: 'grid' }, { value: 'canvas', label: $tx('ui.view.canvas'), icon: 'canvas' }]} />
-                <SegmentedControl label={$tx('ui.size')} bind:value={size} iconOnly options={[{ value: 'card', label: $tx('ui.size.card'), icon: 'size-card' }, { value: 'half', label: $tx('ui.size.half'), icon: 'size-half' }, { value: 'page', label: $tx('ui.size.page'), icon: 'size-page' }]} />
+                <SegmentedControl label={$tx('ui.size')} bind:value={size} size="sm" options={FRACTIONS.map((f) => ({ value: f, label: f }))} />
               </div>
               <Tabs label="demo tabs" value="notes" tabs={[{ id: 'work', label: 'work' }, { id: 'notes', label: 'notes', count: 12 }, { id: 'archive', label: 'archive' }]} />
             </div>
@@ -317,8 +318,8 @@
           <div>
             <h3>NoteHeader <span class="cap">no tilt — it holds controls</span></h3>
             <div class="stack">
-              <div class="nh"><NoteHeader title="Plain" color={palette.notes[2]} size="card" menu={noteMenu} /></div>
-              <div class="nh"><NoteHeader title="A very long note title that is cut with an ellipsis instead of wrapping" color={palette.notes[4]} summary="12/40" size="page" pinned updated menu={noteMenu} /></div>
+              <div class="nh"><NoteHeader title="Plain" color={palette.notes[2]} size="1/4" menu={noteMenu} /></div>
+              <div class="nh"><NoteHeader title="A very long note title that is cut with an ellipsis instead of wrapping" color={palette.notes[4]} summary="12/40" size="1" pinned updated menu={noteMenu} /></div>
               <div class="nh"><NoteHeader title="책 · Book" color={palette.notes[5]} summary="p.1" book={{ page: 1, total: 3, onprev: () => {}, onnext: () => {} }} menu={noteMenu} /></div>
             </div>
           </div>

@@ -68,10 +68,21 @@ test('a note that cannot be read offers no rename, size, pin or colour', () => {
   const bad = { ...base, name: 'bad.md', title: 'Bad', kind: 'note', version: '', data: null, error: 'invalid front matter' } as unknown as Note
   const { body } = render(NoteFrame, { props: { note: bad }, context: ctx() })
   expect(body).toContain('invalid front matter')
-  expect(body).not.toMatch(/aria-label="(Small \(card\)|Half width|Full width \(page\)|Pin first|Unpin|Colour)"/)
+  expect(body).not.toMatch(/aria-label="(Narrower|Wider|Width [^"]*|Pin first|Unpin|Colour)"/)
   expect(body).not.toContain('Double-click to rename')
-  expect(body).not.toContain('class="edge"')
+  expect(body).not.toMatch(/class="edge\b/)
   expect(body).toMatch(/aria-label="Close"/) // it can still be put away
+})
+
+test('a note says its width as a fraction of the board; old names and cards read as one', () => {
+  const at = (size: string, width: number) =>
+    render(NoteFrame, { props: { note: { ...base, size, name: 'a.md', title: 'A', kind: 'note', data: { markdown: '' } } as unknown as Note, width }, context: ctx() }).body
+  expect(at('1/3', 1200)).toMatch(/aria-label="Width 1\/3"/)
+  expect(at('half', 1200)).toMatch(/aria-label="Width 1\/2"/)
+  expect(at('page', 1200)).toMatch(/aria-label="Width 1"/)
+  expect(at('card', 960)).toMatch(/aria-label="Width 1\/3"/) // the narrowest a card fits in
+  expect(at('1/2', 1200)).toMatch(/aria-label="Narrower"/)
+  expect(at('1/2', 1200)).toMatch(/class="edge side\b/) // the right edge drags the width
 })
 
 test('the bottom edge gives rows on release, nothing when cancelled or unchanged', () => {

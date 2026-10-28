@@ -19,7 +19,7 @@
   import Grid from './Grid.svelte'
   import { connect } from './session'
   import { frameOf, keyAction } from './keys'
-  import { columnsFor, nextSize, shift } from './layout'
+  import { columnsFor, shift, stepSize } from './layout'
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
@@ -39,6 +39,8 @@
   let filter = $state<string | null>(null)
   let now = $state(new Date())
   let width = $state(1000)
+  // the grid's own width: what a note's fraction is a fraction of
+  let gridWidth = $state(1000)
   let mode = $state<Mode>('system')
   let systemDark = $state(false)
   let hotkey = $state('')
@@ -161,6 +163,7 @@
     },
     filter: () => filter,
     now: () => now,
+    edit: (name) => void api.open(name).catch((err) => (failed = String(err))),
   }
   setContext(boardContext, ctx)
 
@@ -189,7 +192,7 @@
         break
       case 'size':
         if (!note || note.error) return
-        ctx.arrange(note.name, { size: nextSize(note.size, a.dir) })
+        ctx.arrange(note.name, { size: stepSize(note.size, gridWidth, a.dir) })
         break
       case 'page':
         if (!note?.pages?.length) return
@@ -221,7 +224,7 @@
       }
       case 'edit':
         if (!note || note.pages) return
-        api.open(note.name).catch((err) => (failed = String(err)))
+        ctx.edit?.(note.name)
         break
     }
     e.preventDefault()
@@ -297,12 +300,14 @@
           <!-- a click on the paper around a zoomed note goes back; Esc does too -->
           <main class="zoom" role="presentation" onclick={(e) => e.target === e.currentTarget && ctx.back()}>
             {#key zoomed.name}
-              <NoteFrame note={zoomed} zoomed narrow={columns === 1} />
+              <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} />
             {/key}
           </main>
         {:else if open.length}
           <main class="notes">
-            <Grid notes={open} {columns} />
+            <div bind:clientWidth={gridWidth}>
+              <Grid notes={open} width={gridWidth} />
+            </div>
           </main>
         {:else}
           <p class="state">{$tr(tab && tab.notes.length ? 'board.noneOpen' : 'board.empty')}</p>

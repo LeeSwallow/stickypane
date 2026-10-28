@@ -90,11 +90,11 @@ test('ticking sends toggle with the item\'s place in the file', () => {
 
 test('300 notes render under 1s', () => {
   const notes = Array.from({ length: 300 }, (_, i) => ({
-    ...base, name: `n${i}.md`, title: `Note ${i}`, kind: 'checklist', size: i % 5 === 0 ? 'page' : 'half',
+    ...base, name: `n${i}.md`, title: `Note ${i}`, kind: 'checklist', size: i % 5 === 0 ? '1' : '1/2',
     data: { items: [{ text: 'a', checked: false }, { text: 'b', checked: true }], prose: [], done: 1, total: 2 },
   })) as unknown as Note[]
   const t0 = performance.now()
-  const { body } = render(Grid, { props: { notes, columns: 2 }, context: ctx() })
+  const { body } = render(Grid, { props: { notes, width: 1200 }, context: ctx() })
   const took = performance.now() - t0
   expect((body.match(/data-frame="/g) ?? []).length).toBe(300)
   expect(took).toBeLessThan(1000)

@@ -19,6 +19,7 @@ import Input from './Input.svelte'
 import { nextIndex } from './keys'
 import Menu from './Menu.svelte'
 import NoteHeader from './NoteHeader.svelte'
+import { nextFraction } from '../sizes'
 import SegmentedControl from './SegmentedControl.svelte'
 import Tabs from './Tabs.svelte'
 import TextArea from './TextArea.svelte'
@@ -239,5 +240,28 @@ describe('keys', () => {
     expect(nextIndex('End', 0, 3)).toBe(2)
     expect(nextIndex('ArrowDown', 0, 3)).toBeNull()
     expect(nextIndex('a', 0, 3)).toBeNull()
+  })
+})
+
+describe('the note header steps the size through the fractions', () => {
+  const head = (size: string) => html(NoteHeader, { title: 'Plan', color: '#8FD694', size })
+  const button = (out: string, label: string) => out.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0] ?? ''
+  test('it shows the fraction the note is at, between narrower and wider', () => {
+    const out = head('1/2')
+    expect(out).toMatch(/aria-label="Width 1\/2"[^>]*>1\/2</)
+    expect(button(out, 'Narrower')).not.toContain('disabled')
+    expect(button(out, 'Wider')).not.toContain('disabled')
+    expect(out).not.toMatch(/size-(card|half|page)/)
+  })
+  test('the ends cannot be stepped past', () => {
+    expect(button(head('1/4'), 'Narrower')).toContain('disabled')
+    expect(button(head('1/4'), 'Wider')).not.toContain('disabled')
+    expect(button(head('1'), 'Wider')).toContain('disabled')
+  })
+  test('it asks for the next fraction', () => {
+    expect(nextFraction('1/2', 1)).toBe('2/3')
+    expect(nextFraction('1/2', -1)).toBe('1/3')
+    expect(nextFraction('1', 1)).toBe('1')
+    expect(nextFraction('1/4', -1)).toBe('1/4')
   })
 })

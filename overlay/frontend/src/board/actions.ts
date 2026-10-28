@@ -50,7 +50,7 @@ export async function arrange(api: BoardApi, note: string, p: ArrangePatch, upda
   await api.arrange({ note, ...p })
 }
 
-/** setSize is the ▢ ▭ ▬ buttons and the - = keys. */
+/** setSize is the size stepper, the dragged right edge and the - = keys: a fraction (layout.ts). */
 export const setSize = (api: BoardApi, note: string, size: string, update: Update) => arrange(api, note, { size }, update)
 
 /** setRows is the bottom edge, dragged (0: as tall as the content). */

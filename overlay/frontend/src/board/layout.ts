@@ -1,13 +1,27 @@
-// Where notes go on the two-column grid (03 §3.6) and what a size or a
-// dragged height comes to (03 §3.7). Pure: the Grid component draws what
-// place() says, so another layout (a free canvas) can stand in for it.
+// Where notes go on the grid (03 §3.6) and what a size or a dragged edge
+// comes to (03 §3.7). Pure: the Grid component draws what place() says, so
+// another layout (a free canvas) can stand in for it.
+//
+// A note's size is a fraction of the board's width, as on the terminal
+// (internal/widget/size.go): 1/4 1/3 1/2 2/3 3/4 1. The old names are
+// still read: page is 1, half is 1/2, and card is the narrowest fraction a
+// card fits in. The grid has 12 columns, so every fraction is whole.
 
-import type { Size } from './model'
+import { FRACTIONS, isFraction, type Fraction } from '../lib/sizes'
 
-export const SIZES: Size[] = ['card', 'half', 'page']
+export { FRACTIONS, type Fraction }
+
+/** GRID is the number of columns of a wide window. */
+export const GRID = 12
 
 /** NARROW is the width below which the grid has one column. */
 export const NARROW = 720
+
+/** CARD_PX is the width of one card: what "card" asks for (the terminal's 36 cells). */
+export const CARD_PX = 300
+
+/** MIN_PX is the narrowest a note is drawn: a narrower fraction takes the next one (the terminal's 20 cells). */
+export const MIN_PX = 240
 
 /** ROW_PX is the height of one terminal row on the window (13px body text at 1.55, plus spacing). */
 export const ROW_PX = 22
@@ -15,14 +29,120 @@ export const ROW_PX = 22
 /** MIN_ROWS is the shortest a dragged note gets. */
 export const MIN_ROWS = 3
 
-export const columnsFor = (width: number): number => (width < NARROW ? 1 : 2)
+export const columnsFor = (width: number): number => (width < NARROW ? 1 : GRID)
 
-const sizeOf = (s: string): Size => (SIZES.includes(s as Size) ? (s as Size) : 'half')
+const ALIASES: Record<string, Fraction | 'card'> = { page: '1', half: '1/2', card: 'card' }
 
-/** nextSize is the size one step smaller (-1, the `-` key) or bigger (+1, `=`), stopping at the ends. */
-export function nextSize(size: string, dir: -1 | 1): Size {
-  const i = SIZES.indexOf(sizeOf(size)) + dir
-  return SIZES[Math.max(0, Math.min(SIZES.length - 1, i))]
+/** normalSize is a size as the board writes it (a fraction, or card), or null when it is not one. */
+export function normalSize(s: string): Fraction | 'card' | null {
+  const k = s.trim().toLowerCase()
+  if (k in ALIASES) return ALIASES[k]
+  return isFraction(k) ? k : null
+}
+
+/** share is a fraction of n, rounded down. */
+function share(f: Fraction, n: number): number {
+  const [num, den] = f.includes('/') ? f.split('/').map(Number) : [1, 1]
+  return Math.floor((n * num) / den)
+}
+
+/** colsOf is how many of the 12 columns a fraction takes. */
+export const colsOf = (f: Fraction): number => share(f, GRID)
+
+/** step is where a size is among FRACTIONS on a board width px wide; a card is the narrowest it fits in, nonsense the whole width. */
+function step(size: string, width: number): number {
+  const s = normalSize(size)
+  if (s === 'card') {
+    const i = FRACTIONS.findIndex((f) => share(f, width) >= CARD_PX)
+    return i < 0 ? FRACTIONS.length - 1 : i
+  }
+  return s ? FRACTIONS.indexOf(s) : FRACTIONS.length - 1
+}
+
+/** sizeShown is the fraction a note is at: what its header says. */
+export const sizeShown = (size: string, width: number): Fraction => FRACTIONS[step(size, width)]
+
+/** stepSize is the size one step narrower (-1, the `-` key) or wider (+1, `=`), stopping at the ends. */
+export function stepSize(size: string, width: number, dir: -1 | 1): Fraction {
+  return FRACTIONS[Math.max(0, Math.min(FRACTIONS.length - 1, step(size, width) + dir))]
+}
+
+/** drawnStep is the step a size is drawn at: its own, or the next one that is not narrower than MIN_PX. */
+function drawnStep(size: string, width: number): number {
+  for (let i = step(size, width); i < FRACTIONS.length; i++) if (share(FRACTIONS[i], width) >= MIN_PX) return i
+  return FRACTIONS.length - 1
+}
+
+/** spanOf is how many of the 12 columns a note of that size asks for on a board width px wide. */
+export const spanOf = (size: string, width: number): number => colsOf(FRACTIONS[drawnStep(size, width)])
+
+/**
+ * snapSize is the size a dragged right edge lands on: the step from was
+ * at, until the width (px) passes the middle between it and the next step
+ * either way, so an edge moved a little does not change the size.
+ */
+export function snapSize(from: string, px: number, width: number): Fraction {
+  const w = (i: number) => share(FRACTIONS[drawnStep(FRACTIONS[i], width)], width)
+  let i = step(from, width)
+  while (i < FRACTIONS.length - 1 && 2 * px > w(i) + w(i + 1)) i++
+  while (i > 0 && 2 * px < w(i - 1) + w(i)) i--
+  return FRACTIONS[i]
+}
+
+/** A cell is a place across the grid: its row, where it starts and how wide it is (0-based). */
+export interface Cell {
+  row: number
+  x: number
+  w: number
+}
+
+/**
+ * rows puts items of the given widths side by side, in order, starting a
+ * new row when the next one does not fit, and stretches each row to the
+ * full width, every item growing in proportion to its width. The columns
+ * rounding leaves over go one each to the items that lost the most to it,
+ * the first of equals first. A port of internal/layout.Rows.
+ */
+export function rows(total: number, widths: number[]): Cell[] {
+  const cells: Cell[] = []
+  const stretch = (from: number) => {
+    const row = cells.slice(from)
+    const sum = row.reduce((n, c) => n + c.w, 0)
+    if (!row.length || sum <= 0) return
+    const lost = row.map((c) => (c.w * total) % sum)
+    let left = total
+    for (const c of row) {
+      c.w = Math.floor((c.w * total) / sum)
+      left -= c.w
+    }
+    for (; left > 0; left--) {
+      let most = 0
+      for (let i = 0; i < row.length; i++) if (lost[i] > lost[most]) most = i
+      row[most].w++
+      lost[most] = -1
+    }
+    let x = 0
+    for (const c of row) {
+      c.x = x
+      x += c.w
+    }
+  }
+  let row = 0
+  let start = 0
+  let used = 0
+  for (const raw of widths) {
+    const w = Math.max(Math.min(raw, total), 1)
+    if (used > 0 && used + w > total) {
+      stretch(start)
+      row++
+      start = cells.length
+      used = 0
+    }
+    cells.push({ row, x: 0, w })
+    used += w
+  }
+  stretch(start)
+  return cells
 }
 
 export interface Placement {
@@ -32,35 +152,21 @@ export interface Placement {
   row: number
   /** how many columns it spans */
   span: number
-  /** a card: drawn small */
+  /** narrow (a quarter, a third, a card): drawn small */
   small: boolean
 }
 
 /**
  * place puts the notes, in the order given (the terminal's: pinned first,
- * then the user's order, then by name), row by row: a page spans every
- * column, a half or a card one. Nothing is moved up to fill a gap, so the
- * order on the screen is the order of the board.
+ * then the user's order, then by name), on a board width px wide: side by
+ * side on 12 columns, each row filled. Nothing is moved up to fill a gap,
+ * so the order on the screen is the order of the board. Below NARROW every
+ * note has a row of its own.
  */
-export function place(notes: { name: string; size: string }[], columns: number): Placement[] {
-  const out: Placement[] = []
-  let row = 1
-  let col = 1
-  for (const n of notes) {
-    const size = sizeOf(n.size)
-    const span = size === 'page' ? columns : 1
-    if (col + span - 1 > columns) {
-      row++
-      col = 1
-    }
-    out.push({ name: n.name, column: col, row, span, small: size === 'card' })
-    col += span
-    if (col > columns) {
-      row++
-      col = 1
-    }
-  }
-  return out
+export function place(notes: { name: string; size: string }[], width: number): Placement[] {
+  if (columnsFor(width) === 1) return notes.map((n, i) => ({ name: n.name, column: 1, row: i + 1, span: 1, small: false }))
+  const asked = notes.map((n) => spanOf(n.size, width))
+  return rows(GRID, asked).map((c, i) => ({ name: notes[i].name, column: c.x + 1, row: c.row + 1, span: c.w, small: asked[i] <= 4 }))
 }
 
 /** rowsFromHeight is the rows a dragged body height (px) comes to. */

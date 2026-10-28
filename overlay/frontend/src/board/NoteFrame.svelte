@@ -1,20 +1,38 @@
 <script lang="ts">
   // One note on the board (03 §3.6–3.8, 10 §10.1): its frame, its header
-  // (title, changed dot, link, summary, book pages, size, pin, colour,
-  // close, zoom or back) and its body, which the shape draws. The bottom
-  // edge drags the height (rows). Everything it does goes through the
-  // board context, so the same frame works zoomed, on a canvas or alone.
+  // (the design system's NoteHeader: a way back when zoomed, the title with
+  // rename, the changed dot, the link, the summary, a book's pages, the
+  // width as a fraction, pin, ⋯ with zoom, colour and the editor, close)
+  // and its body, which the shape draws. The bottom edge drags the height
+  // (rows), the right edge the width (it lands on the nearest fraction).
+  // Everything it does goes through the board context, so the same frame
+  // works zoomed, on a canvas or alone.
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
+  import IconButton from '../lib/ui/IconButton.svelte'
+  import NoteHeader from '../lib/ui/NoteHeader.svelte'
+  import type { MenuItem } from '../lib/ui/menu'
   import { tr } from '../i18n'
   import Shape from '../shapes/Shape.svelte'
   import { noteHex, useBoard } from './context'
-  import { HeightDrag, heightOfRows, SIZES } from './layout'
+  import { HeightDrag, heightOfRows, sizeShown, snapSize, type Fraction } from './layout'
   import type { Note } from './model'
 
-  let { note, zoomed = false, small = false, narrow = false }: { note: Note; zoomed?: boolean; small?: boolean; narrow?: boolean } =
-    $props()
+  let {
+    note,
+    zoomed = false,
+    small = false,
+    narrow = false,
+    width = 1200,
+  }: {
+    note: Note
+    zoomed?: boolean
+    small?: boolean
+    narrow?: boolean
+    /** the board's width in px: what a fraction is a fraction of */
+    width?: number
+  } = $props()
   const board = useBoard()
 
   const pages = $derived(note.pages ?? [])
@@ -22,49 +40,82 @@
   const shown = $derived(pages.length ? pages[page] : note)
   const color = $derived(noteHex(note.color, look.palette))
   const changed = $derived(board.changed(note) || pages.some((p) => board.changed(p)))
-  // a note that cannot be read can only be closed (10 §10.1)
+  // a note that cannot be read can only be zoomed and closed (10 §10.1)
   const readable = $derived(!note.error)
-  const sizeIcon: Record<string, string> = { card: '▢', half: '▭', page: '▬' }
+  const size = $derived(sizeShown(note.size, width))
 
   // the height being dragged, in px; null when not dragging
   let dragH: number | null = $state(null)
+  // the width being dragged, in px, and the fraction it lands on
+  let dragW: number | null = $state(null)
+  let landing: Fraction | null = $state(null)
+  let frame: HTMLElement | undefined = $state()
   let body: HTMLElement | undefined = $state()
   const fixed = $derived(zoomed ? null : (dragH ?? heightOfRows(note.rows)))
 
-  let editing = $state(false)
-  let draft = $state('')
   let colours = $state(false)
 
-  function startDrag(e: PointerEvent) {
-    if (!body) return
+  const menu = $derived<MenuItem[]>([
+    ...(zoomed ? [] : [{ id: 'zoom', label: $tr('note.zoom'), icon: 'zoom' as const, shortcut: '↵' }]),
+    ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
+    ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
+  ])
+
+  function choose(id: string) {
+    if (id === 'zoom') board.zoom(note.name)
+    else if (id === 'color') colours = !colours
+    else if (id === 'edit') board.edit?.(note.name)
+  }
+
+  /** drag follows a pointer on an edge until it is let go (save) or taken away (cancel). */
+  function drag(e: PointerEvent, move: (m: PointerEvent) => void, done: (save: boolean) => void) {
     e.preventDefault()
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
-    const drag = new HeightDrag(body.clientHeight, e.clientY, note.rows)
-    const move = (m: PointerEvent) => (dragH = drag.move(m.clientY))
     const end = (save: boolean) => () => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
       el.removeEventListener('pointercancel', cancel)
-      dragH = null
-      const rows = save ? drag.release() : drag.cancel()
-      if (rows !== null) board.arrange(note.name, { rows })
+      done(save)
     }
     const up = end(true)
-    const cancel = end(false) // the system took the pointer: keep the height it had
+    const cancel = end(false) // the system took the pointer: keep what it had
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', cancel)
   }
 
-  function rename() {
-    draft = note.title
-    editing = true
+  function startHeight(e: PointerEvent) {
+    if (!body) return
+    const d = new HeightDrag(body.clientHeight, e.clientY, note.rows)
+    drag(
+      e,
+      (m) => (dragH = d.move(m.clientY)),
+      (save) => {
+        dragH = null
+        const rows = save ? d.release() : d.cancel()
+        if (rows !== null) board.arrange(note.name, { rows })
+      },
+    )
   }
-  function commit() {
-    editing = false
-    const t = draft.trim()
-    if (t && t !== note.title) board.arrange(note.name, { title: t })
+
+  function startWidth(e: PointerEvent) {
+    if (!frame) return
+    const start = frame.getBoundingClientRect().width
+    const x0 = e.clientX
+    drag(
+      e,
+      (m) => {
+        dragW = Math.max(0, start + m.clientX - x0)
+        landing = snapSize(size, dragW, width)
+      },
+      (save) => {
+        const to = landing
+        dragW = null
+        landing = null
+        if (save && to && to !== size) board.arrange(note.name, { size: to })
+      },
+    )
   }
 
   // a double-click on the note (not on its controls or its title) zooms it
@@ -80,6 +131,9 @@
   class="frame"
   class:zoomed
   class:small
+  class:sizing={dragW !== null}
+  bind:this={frame}
+  style:width={dragW !== null ? `${dragW}px` : null}
   data-frame={note.name}
   tabindex="0"
   role="group"
@@ -89,83 +143,54 @@
   onpointerenter={() => board.seen(shown.name)}
 >
   <NoteFrame {color} id={note.name}>
-    <header>
-      {#if zoomed && board.canBack()}
-        <button class="ctl" title={$tr('board.back')} aria-label={$tr('board.back')} onclick={() => board.back()}>←</button>
-      {/if}
-      <span class="icon" aria-hidden="true">{note.icon}</span>
-      {#if editing}
-        <!-- svelte-ignore a11y_autofocus -->
-        <input
-          class="title"
-          bind:value={draft}
-          autofocus
-          onkeydown={(e) => {
-            if (e.key === 'Enter') commit()
-            if (e.key === 'Escape') {
-              e.stopPropagation()
-              editing = false
-            }
-          }}
-          onblur={commit}
-        />
-      {:else}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <span class="title" style:color title={readable ? $tr('note.rename') : null} ondblclick={() => readable && rename()}>{note.title}</span>
-      {/if}
-      {#if changed}<span class="changed" title={$tr('note.changed')} aria-label={$tr('note.changed')}>•</span>{/if}
-      {#if note.linked}<span class="linked" title={$tr('note.linked', { target: note.target ?? '' })}>🔗</span>{/if}
-      <span class="summary">{shown.summary}</span>
-      {#if pages.length > 1}
-        <span class="pages">
-          <button class="ctl" disabled={page === 0} title={$tr('note.pagePrev')} aria-label={$tr('note.pagePrev')} onclick={() => board.flip(note.name, -1)}>‹</button>
-          <select aria-label={$tr('note.pages')} value={page} onchange={(e) => board.flip(note.name, 0, Number(e.currentTarget.value))}>
-            {#each pages as p, i (p.name)}<option value={i}>{$tr('note.page', { n: i + 1, m: pages.length })} · {p.title}</option>{/each}
-          </select>
-          <button class="ctl" disabled={page === pages.length - 1} title={$tr('note.pageNext')} aria-label={$tr('note.pageNext')} onclick={() => board.flip(note.name, 1)}>›</button>
-        </span>
-      {/if}
-      <span class="tools">
-        {#if readable}
-        {#each SIZES as s (s)}
-          <button
-            class="ctl"
-            aria-pressed={note.size === s}
-            title={$tr(`note.size.${s}`)}
-            aria-label={$tr(`note.size.${s}`)}
-            onclick={() => board.arrange(note.name, { size: s })}>{sizeIcon[s]}</button
-          >
-        {/each}
-        <button
-          class="ctl"
-          aria-pressed={note.pinned}
-          title={$tr(note.pinned ? 'note.unpin' : 'note.pin')}
-          aria-label={$tr(note.pinned ? 'note.unpin' : 'note.pin')}
-          onclick={() => board.arrange(note.name, { pin: !note.pinned })}>📌</button
-        >
-        <button class="ctl dot" style:color title={$tr('note.color')} aria-label={$tr('note.color')} aria-expanded={colours} onclick={() => (colours = !colours)}>●</button>
+    <NoteHeader
+      title={note.title}
+      {color}
+      summary={shown.summary}
+      updated={changed}
+      {size}
+      pinned={note.pinned}
+      linked={note.linked ? (note.target ?? '') : undefined}
+      editable={readable}
+      book={pages.length > 1
+        ? {
+            page: page + 1,
+            total: pages.length,
+            onprev: () => board.flip(note.name, -1),
+            onnext: () => board.flip(note.name, 1),
+            names: pages.map((p) => p.title),
+            onpage: (i) => board.flip(note.name, 0, i),
+          }
+        : undefined}
+      {menu}
+      onsize={(s) => board.arrange(note.name, { size: s })}
+      onpin={(on) => board.arrange(note.name, { pin: on })}
+      onrename={(title) => board.arrange(note.name, { title })}
+      onmenu={choose}
+      onclose={() => board.arrange(note.name, { open: false })}
+    >
+      {#snippet lead()}
+        {#if zoomed && board.canBack()}
+          <IconButton icon="back" size="sm" label={$tr('board.back')} shortcut="Esc" align="start" onclick={() => board.back()} />
         {/if}
-        {#if !zoomed}
-          <button class="ctl" title={$tr('note.zoom')} aria-label={$tr('note.zoom')} onclick={() => board.zoom(note.name)}>⤢</button>
-        {/if}
-        <button class="ctl" title={$tr('note.close')} aria-label={$tr('note.close')} onclick={() => board.arrange(note.name, { open: false })}>×</button>
-      </span>
-    </header>
+        {#if note.icon}<span class="icon" aria-hidden="true">{note.icon}</span>{/if}
+      {/snippet}
+    </NoteHeader>
     {#if colours && readable}
-      <div class="swatches" role="menu">
+      <div class="swatches" role="menu" aria-label={$tr('note.color')}>
         {#each NOTE_NAMES as c (c)}
           <button
-            class="ctl"
+            class="swatch"
             role="menuitemradio"
             aria-checked={note.color === c}
-            style:color={noteHex(c, look.palette)}
+            style:--swatch={noteHex(c, look.palette)}
             title={$tr(`note.color.${c}`)}
             aria-label={$tr(`note.color.${c}`)}
             onclick={() => {
               colours = false
               board.arrange(note.name, { color: c })
-            }}>●</button
-          >
+            }}
+          ></button>
         {/each}
       </div>
     {/if}
@@ -176,19 +201,27 @@
     </div>
     {#if !zoomed && readable}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="edge" title={$tr('note.height')} onpointerdown={startDrag} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
+      <div class="edge" title={$tr('note.height')} onpointerdown={startHeight} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
+      {#if !narrow}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="edge side" title={$tr('note.width')} onpointerdown={startWidth}></div>
+      {/if}
     {/if}
   </NoteFrame>
+  {#if landing}<span class="landing" role="status">{landing}</span>{/if}
 </div>
 
 <style>
   .frame {
     position: relative;
     outline: none;
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
   }
   .frame:focus-visible {
-    box-shadow: 0 0 0 2px var(--accent);
+    box-shadow: 0 0 0 var(--focus-width) var(--focus);
+  }
+  .frame.sizing {
+    z-index: var(--z-ring);
   }
   .frame.zoomed {
     height: 100%;
@@ -205,90 +238,34 @@
     min-height: 0;
     flex: 1;
   }
-  header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-1) var(--space-2);
-    margin-bottom: var(--space-2);
-  }
   .icon {
-    color: var(--pencil);
-  }
-  .title {
-    font: 700 var(--hand-title) var(--font-hand);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  input.title {
-    color: var(--ink);
-    background: var(--paper);
-    border: var(--stroke) solid var(--accent);
-    border-radius: var(--radius);
-  }
-  .small .title {
-    font-size: var(--hand-lg);
-  }
-  .changed {
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .summary {
-    margin-left: auto;
-    color: var(--pencil);
-    font: 700 var(--hand-md) var(--font-hand);
-    font-variant-numeric: tabular-nums;
-  }
-  .pages,
-  .tools {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-  }
-  .pages select {
-    font: var(--text-sm) var(--font-mono);
-    color: var(--ink);
-    background: var(--paper);
-    border: var(--stroke) solid var(--grid-major);
-    border-radius: var(--radius);
-    max-width: 14em;
-  }
-  .ctl {
-    min-width: var(--control);
-    height: var(--control);
-    padding: 0 var(--space-1);
-    border: var(--stroke) solid transparent;
-    border-radius: var(--radius);
-    background: none;
-    color: var(--pencil);
-    font: var(--text-md) var(--font-body);
-    cursor: pointer;
-  }
-  .ctl:hover:not(:disabled),
-  .ctl:focus-visible {
-    border-color: var(--grid-major);
-    color: var(--ink);
-  }
-  .ctl[aria-pressed='true'] {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-  .ctl:disabled {
-    opacity: var(--dim);
-    cursor: default;
-  }
-  .dot {
-    font-size: var(--hand-md);
+    flex: none;
+    color: var(--ink-3);
+    font: var(--weight-body-md) var(--text-body-md) / 1 var(--font-body);
   }
   .swatches {
     display: flex;
-    gap: var(--space-1);
-    margin: 0 0 var(--space-2);
+    gap: var(--space-2);
+    margin: var(--space-1) 0 var(--space-2);
   }
-  .swatches .ctl {
-    font-size: var(--hand-lg);
+  .swatch {
+    width: var(--control-sm);
+    height: var(--control-sm);
+    padding: 0;
+    border: var(--stroke-hairline) solid var(--line);
+    border-radius: 50%;
+    background: var(--swatch);
+    cursor: pointer;
+  }
+  .swatch[aria-checked='true'] {
+    box-shadow: 0 0 0 var(--focus-offset) var(--paper), 0 0 0 calc(var(--focus-offset) + var(--stroke-emphasis)) var(--swatch);
+  }
+  .swatch:focus-visible {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+  .body {
+    margin-top: var(--space-2);
   }
   .body.fixed {
     overflow: auto;
@@ -303,11 +280,36 @@
     left: 0;
     right: 0;
     bottom: calc(-1 * var(--space-3));
-    height: var(--edge);
+    height: var(--space-2);
     cursor: ns-resize;
     touch-action: none;
   }
   .edge:hover {
-    border-bottom: var(--stroke) dashed var(--accent);
+    border-bottom: var(--stroke-hairline) dashed var(--accent);
+  }
+  .edge.side {
+    left: auto;
+    top: 0;
+    bottom: 0;
+    right: calc(-1 * var(--space-3));
+    width: var(--space-2);
+    height: auto;
+    cursor: ew-resize;
+  }
+  .edge.side:hover {
+    border-bottom: 0;
+    border-right: var(--stroke-hairline) dashed var(--accent);
+  }
+  .landing {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: var(--z-tooltip);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--tip);
+    color: var(--tip-ink);
+    font: var(--weight-mono-md) var(--text-mono-md) / var(--leading-mono-md) var(--font-mono);
+    pointer-events: none;
   }
 </style>

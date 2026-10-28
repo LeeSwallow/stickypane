@@ -30,6 +30,8 @@ export interface BoardCtx {
   /** the @name the Glance line filters by, or null */
   filter(): string | null
   now(): Date
+  /** note.open: the note's file in the person's editor (E, "편집기로 열기") */
+  edit?(name: string): void
 }
 
 export const useBoard = (): BoardCtx => getContext<BoardCtx>(boardContext)

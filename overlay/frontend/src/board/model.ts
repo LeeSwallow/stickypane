@@ -1,8 +1,6 @@
 // What board.load answers (internal/bridge/load.go), as the window reads it,
 // and the few pure helpers on it. The window never reads a note's file.
 
-export type Size = 'card' | 'half' | 'page'
-
 export interface Card {
   text: string
   who: string[]
@@ -42,6 +40,7 @@ export interface Note {
   kind: string
   icon: string
   open: boolean
+  /** a fraction of the board (1/4 … 1), or card; old names are read too (layout.ts) */
   size: string
   rows: number
   color: string
