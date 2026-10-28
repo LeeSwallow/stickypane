@@ -110,7 +110,14 @@ type Kind struct {
 	// Size returns the default size for a note: one of Sizes, or SizeCard.
 	Size     func(d doc.Document) string
 	Template func(title string) []byte
-	Parse    func(d doc.Document) Widget
+	// Options are what a screen may fill in to make a note of this kind,
+	// and Compose writes the new note's whole file from them, as Template
+	// does from a title alone. Compose is handed every option, checked
+	// and with its default where none was given; Make is how it is called.
+	// A kind without Compose takes no options.
+	Options []Option
+	Compose func(title string, opts map[string]string) ([]byte, error)
+	Parse   func(d doc.Document) Widget
 	// Tend, when set, returns what stickypane writes into a note of this
 	// kind by itself after the note changed from before to after at the
 	// time changed, or nil when nothing is missing: the time an item was

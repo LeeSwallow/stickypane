@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -42,7 +43,7 @@ func open(e env, create bool) (*api.API, error) {
 	if changes[e.cmd] {
 		registry.Touch(filepath.Dir(dir), e.cmd)
 	}
-	return api.New(store.Open(dir), kinds.Default(note.Plain)), nil
+	return api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), e.now), nil
 }
 
 // printJSON writes v as JSON without escaping HTML.
@@ -107,6 +108,21 @@ func writeCmd(e env, args []string) error {
 	fs.StringVar(&opts.Title, "title", "", "the note's title")
 	fs.StringVar(&opts.Size, "size", "", "the width: 1/4, 1/3, 1/2, 2/3, 3/4 or 1 of the screen (or card, half, page)")
 	fs.BoolVar(&opts.Open, "open", false, "put the note on the screen now")
+	var given map[string]string
+	fs.Func("opt", "a create option of the shape, name=value; the shape writes the note and nothing is read from standard input", func(v string) error {
+		name, value, ok := strings.Cut(v, "=")
+		if !ok || name == "" {
+			return errors.New("an option is name=value")
+		}
+		if given == nil {
+			given = map[string]string{}
+		}
+		if before, ok := given[name]; ok {
+			value = before + "\n" + value // repeated, it is several lines
+		}
+		given[name] = value
+		return nil
+	})
 	words, err := parse(fs, "write", args, 1, 1)
 	if err != nil {
 		return err
@@ -115,11 +131,25 @@ func writeCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	body, err := io.ReadAll(e.stdin)
-	if err != nil {
+	name := words[0]
+	var body []byte
+	if given != nil {
+		var ext string
+		if body, ext, err = a.Make(opts.Type, opts.Title, given); err != nil {
+			return err
+		}
+		if ext != ".md" {
+			// A file of its own, a script or a page: its extension says
+			// what it is, and it has no front matter for a type or title.
+			if filepath.Ext(name) == "" {
+				name += ext
+			}
+			opts.Type, opts.Title = "", ""
+		}
+	} else if body, err = io.ReadAll(e.stdin); err != nil {
 		return err
 	}
-	file, err := a.Write(words[0], opts, body)
+	file, err := a.Write(name, opts, body)
 	if err != nil {
 		return err
 	}
@@ -187,7 +217,7 @@ func mcpCmd(e env, args []string) error {
 	// command line does, and one that reads it says there is none.
 	a, err := open(e, false)
 	if errors.Is(err, errNoBoard) {
-		a, err = api.New(nil, kinds.Default(note.Plain)), nil
+		a, err = api.NewWithClock(nil, kinds.Default(note.Plain), e.now), nil
 	}
 	if err != nil {
 		return err

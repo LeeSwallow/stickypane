@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -81,6 +82,51 @@ func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
 				if _, err := k.Act(d, widget.Action{Name: "no-such"}); !errors.Is(err, widget.ErrUnknownAction) {
 					t.Errorf("Act(no-such) = %v, want ErrUnknownAction", err)
 				}
+			}
+		})
+	}
+}
+
+// Every shape can be made from a screen's options: what it asks is well
+// formed and translated, and what it makes with no option given is a note
+// of the same shape.
+func TestEveryKindComposesFromItsOptions(t *testing.T) {
+	ko, err := i18n.Load("ko")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg := Default(note.Plain)
+	for _, k := range reg {
+		t.Run(k.Name, func(t *testing.T) {
+			seen := map[string]bool{}
+			for _, o := range k.Options {
+				if o.Name == "" || seen[o.Name] || o.Label == "" {
+					t.Errorf("option %+v: needs a name of its own and a label", o)
+				}
+				seen[o.Name] = true
+				if o.Type == widget.OptChoice && len(o.Choices) == 0 {
+					t.Errorf("option %s: a choice needs choices", o.Name)
+				}
+				if _, err := o.Check(o.Default); err != nil {
+					t.Errorf("option %s: the default %q is not a value: %v", o.Name, o.Default, err)
+				}
+				if ko.Labels[o.Label] == "" {
+					t.Errorf("option %s: label %q has no Korean in labels", o.Name, o.Label)
+				}
+			}
+			if len(k.Options) > 0 && k.Compose == nil {
+				t.Error("a kind with options needs Compose")
+			}
+			b, err := k.Make("Made here", nil)
+			if err != nil {
+				t.Fatalf("Make with the defaults: %v", err)
+			}
+			ext := k.New
+			if ext == "" {
+				ext = ".md"
+			}
+			if got := reg.For("made-here"+ext, doc.Parse(b)); got.Name != k.Name {
+				t.Errorf("made %q, which reads as a %s", b, got.Name)
 			}
 		})
 	}

@@ -27,9 +27,19 @@ var Kind = widget.Kind{
 	Rows:     rows,
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("log", title, "") },
-	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
-	Events:   events,
-	Data:     data,
+	Options: []widget.Option{
+		{Name: "entries", Type: widget.OptLines, Label: "First entries"},
+	},
+	Compose: func(title string, opts map[string]string) ([]byte, error) {
+		body := strings.Join(widget.Lines(opts["entries"]), "\n")
+		if body != "" {
+			body += "\n"
+		}
+		return widget.NewFile("log", title, body), nil
+	},
+	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
+	Events: events,
+	Data:   data,
 }
 
 // Log is the widget for a log note.

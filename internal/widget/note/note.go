@@ -39,8 +39,18 @@ func NewKind(render Renderer) widget.Kind {
 		Example:  "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
 		Size:     size,
 		Template: func(title string) []byte { return widget.NewFile("note", title, "") },
-		Parse:    func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
-		Data:     data,
+		Options: []widget.Option{
+			{Name: "text", Type: widget.OptLines, Label: "Text"},
+		},
+		Compose: func(title string, opts map[string]string) ([]byte, error) {
+			body := opts["text"]
+			if body != "" && !strings.HasSuffix(body, "\n") {
+				body += "\n"
+			}
+			return widget.NewFile("note", title, body), nil
+		},
+		Parse: func(d doc.Document) widget.Widget { return newNote(d.Body, render) },
+		Data:  data,
 	}
 }
 

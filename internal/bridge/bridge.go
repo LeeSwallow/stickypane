@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
@@ -41,7 +40,7 @@ import (
 
 // server is one bridge session.
 type server struct {
-	api *api.API
+	api *api.API // its clock, api.Now, is the session's: a note named for the time, a script's start
 	reg widget.Registry
 
 	ctx  context.Context // the session: a request that outlives a line ends with it
@@ -340,6 +339,9 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 			return nil, notFound(fmt.Sprintf("there is no tab %q", tab))
 		}
 	}
+	if p.Options != nil && p.Body != "" {
+		return nil, badRequest("note.create takes a body or options, not both")
+	}
 	kind := p.Kind
 	if kind == "note" {
 		kind = ""
@@ -360,11 +362,27 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 			}
 		}
 	}
+	if p.Options != nil {
+		// The shape writes its own file from the options: one writer of
+		// each format, for the terminal and every other screen.
+		name := kind
+		if name == "" {
+			name = "note"
+		}
+		k, _ := s.kindNamed(name)
+		given, err := optionValues(p.Options)
+		if err != nil {
+			return nil, err
+		}
+		if body, err = k.Make(p.Title, given); err != nil {
+			return nil, badRequest(err.Error())
+		}
+	}
 	text := p.Title
-	if strings.TrimSpace(text) == "" {
+	if strings.TrimSpace(text) == "" && p.Options == nil {
 		text, _, _ = strings.Cut(strings.TrimSpace(p.Body), "\n")
 	}
-	stem := store.Slug(text, time.Now())
+	stem := store.Slug(text, s.api.Now())
 	if tab != "" {
 		stem = tab + "/" + stem
 	}
@@ -388,6 +406,38 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 		return map[string]string{"note": file}, nil
 	}
 	return nil, &Error{CodeFailed, fmt.Sprintf("there are %d notes called %q already", maxSameName, stem)}
+}
+
+// optionValues reads the options of note.create as Kind.Make takes them:
+// a string as it is, a number or a boolean as JSON writes it, a list of
+// strings as its lines; a null is an option not given.
+func optionValues(raw map[string]json.RawMessage) (map[string]string, error) {
+	out := map[string]string{}
+	for name, v := range raw {
+		var (
+			text  string
+			lines []string
+			num   json.Number
+			b     bool
+		)
+		dec := json.NewDecoder(bytes.NewReader(v))
+		dec.UseNumber()
+		switch {
+		case string(v) == "null":
+			continue
+		case json.Unmarshal(v, &text) == nil:
+			out[name] = text
+		case json.Unmarshal(v, &b) == nil:
+			out[name] = fmt.Sprint(b)
+		case dec.Decode(&num) == nil:
+			out[name] = num.String()
+		case json.Unmarshal(v, &lines) == nil:
+			out[name] = strings.Join(lines, "\n")
+		default:
+			return nil, badRequest(fmt.Sprintf("option %q is %s: give a string, a number, true or false, or a list of strings", name, v))
+		}
+	}
+	return out, nil
 }
 
 // kindNamed finds a kind by its name, including those that are files of
@@ -457,7 +507,7 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "script" {
 		return nil, badRequest(fmt.Sprintf("%s is not a script", p.Note))
 	}
-	r, err := runner.StartGroup(s.api.Store(), n.Name, time.Now)
+	r, err := runner.StartGroup(s.api.Store(), n.Name, s.api.Now)
 	if err != nil {
 		return nil, err
 	}

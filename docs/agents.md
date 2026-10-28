@@ -96,7 +96,14 @@ stickypane wait deploy --timeout 10m         # the same, once a button is presse
 `wait` exits with code 3 when its time runs out. Both take `--json`.
 `write` replaces the whole note, exactly as overwriting the file would, so
 read a note before rewriting it. A name may point into a book
-(`docs/intro`) or at a log (`build.log`).
+(`docs/intro`) or at a log (`build.log`). With `--opt`, `write` reads
+nothing from standard input: the shape writes the note from its create
+options, the same ones the desktop app's create form shows
+(`stickypane kinds board` lists them):
+
+```sh
+stickypane write sprint --type board --opt columns=Backlog --opt columns=Done --opt "cards=Backlog: login API @codex-1"
+```
 
 **Small changes without reading the note.** An agent that ticks an item by
 rewriting the whole checklist has to read it first, and may write it back

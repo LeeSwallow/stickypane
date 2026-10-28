@@ -116,9 +116,9 @@ func helpOn(w io.Writer, s i18n.Strings, want string) error {
 	}
 	if k, f, ok := findShape(want); ok {
 		if k != nil {
-			printShape(w, s, k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(*k))
+			printShape(w, s, k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(*k), optionsOf(*k))
 		} else {
-			printShape(w, s, f.name, f.blurb, f.command, f.usage, f.example, "")
+			printShape(w, s, f.name, f.blurb, f.command, f.usage, f.example, "", "")
 		}
 		return nil
 	}

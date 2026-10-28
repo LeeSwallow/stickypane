@@ -74,7 +74,7 @@ func (a *API) Changes(before, after store.Board) []Event {
 		case !hadB:
 			out = append(out, Event{Time: n.ModTime, Note: name, Kind: a.reg.For(name, n.Doc).Name, Event: widget.Event{Type: "note.created"}})
 		case !hasN:
-			out = append(out, Event{Time: time.Now(), Note: name, Kind: a.reg.For(name, b.Doc).Name, Event: widget.Event{Type: "note.removed"}})
+			out = append(out, Event{Time: a.now(), Note: name, Kind: a.reg.For(name, b.Doc).Name, Event: widget.Event{Type: "note.removed"}})
 		case string(b.Doc.Bytes()) != string(n.Doc.Bytes()):
 			k := a.reg.For(name, n.Doc)
 			var evs []widget.Event

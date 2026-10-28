@@ -54,9 +54,9 @@ func kindsCmd(e env, args []string) error {
 	want := strings.ToLower(strings.TrimSpace(args[0]))
 	if k, f, ok := findShape(want); ok {
 		if k != nil {
-			printShape(stdout, i18n.English(), k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(*k))
+			printShape(stdout, i18n.English(), k.Name, k.Blurb, k.Command, k.Usage, k.ExampleFile(), keysOf(*k), optionsOf(*k))
 		} else {
-			printShape(stdout, i18n.English(), f.name, f.blurb, f.command, f.usage, f.example, "")
+			printShape(stdout, i18n.English(), f.name, f.blurb, f.command, f.usage, f.example, "", "")
 		}
 		return nil
 	}
@@ -79,9 +79,27 @@ func keysOf(k widget.Kind) string {
 	return strings.Join(parts, " · ")
 }
 
+// optionsOf spells out a kind's create options, one a line, as `write
+// --opt` takes them: "--opt view=bar|spark|heat  default: bar".
+func optionsOf(k widget.Kind) string {
+	var lines []string
+	for _, o := range k.Options {
+		value := "<" + o.Type + ">"
+		if o.Type == widget.OptChoice {
+			value = strings.Join(o.Choices, "|")
+		}
+		line := "--opt " + o.Name + "=" + value
+		if o.Default != "" {
+			line += "  default: " + strings.ReplaceAll(o.Default, "\n", " | ")
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n  ")
+}
+
 // printShape prints a shape in full; the same text answers `kinds <shape>`
 // and `help <shape>`, the headings in the language of s.
-func printShape(w io.Writer, s i18n.Strings, name, blurb, command, usage, example, keys string) {
+func printShape(w io.Writer, s i18n.Strings, name, blurb, command, usage, example, keys, options string) {
 	fmt.Fprintf(w, "%s: %s\n\n%s:\n  %s\n\n%s:\n", name, blurb, s.T("shape.make", "Make one"), command, s.T("shape.file", "The file"))
 	for _, l := range strings.Split(strings.TrimRight(example, "\n"), "\n") {
 		fmt.Fprintln(w, "  "+l)
@@ -89,6 +107,9 @@ func printShape(w io.Writer, s i18n.Strings, name, blurb, command, usage, exampl
 	fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.behaves", "How it behaves"), usage)
 	if keys != "" {
 		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.keys", "Keys on the board"), keys)
+	}
+	if options != "" {
+		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.options", "Make one from options (write --type, the desktop app)"), options)
 	}
 }
 

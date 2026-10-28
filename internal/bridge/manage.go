@@ -320,6 +320,9 @@ type kindInfo struct {
 	Blurb   string          `json:"blurb"`
 	Example string          `json:"example"`
 	Data    json.RawMessage `json:"data"`
+	// Options are what note.create takes for this shape, so a screen
+	// draws its create form from them: [] when it takes none.
+	Options []widget.Option `json:"options"`
 }
 
 // kindsList is the catalog: every shape, in the registry's order.
@@ -327,7 +330,8 @@ func (s *server) kindsList(json.RawMessage) (any, error) {
 	out := []kindInfo{}
 	for _, k := range s.reg {
 		example := k.ExampleFile()
-		info := kindInfo{Name: k.Name, Icon: k.Icon, Label: k.Label, Blurb: k.Blurb, Example: example, Data: json.RawMessage("null")}
+		info := kindInfo{Name: k.Name, Icon: k.Icon, Label: k.Label, Blurb: k.Blurb, Example: example, Data: json.RawMessage("null"), Options: []widget.Option{}}
+		info.Options = append(info.Options, k.Options...)
 		if k.Data != nil {
 			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example))))
 		}

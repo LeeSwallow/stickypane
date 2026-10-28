@@ -8,10 +8,10 @@ import (
 	"os"
 	osexec "os/exec"
 	"strings"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	environment "github.com/LeeSwallow/stickypane/internal/env"
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 // errEnough ends a watch that has what it waited for.
@@ -74,7 +74,7 @@ func watchCmd(e env, args []string) error {
 
 // describe writes an event for a person: when, where, what.
 func describe(ev api.Event) string {
-	line := ev.Time.Local().Format("15:04:05") + "  " + ev.Note + "  " + ev.Type
+	line := when.Second(ev.Time.Local()) + "  " + ev.Note + "  " + ev.Type
 	if ev.Item != "" {
 		line += "  " + ev.Item
 	}
@@ -101,7 +101,7 @@ func react(e env, line string, ev api.Event) {
 		"STICKY_ITEM="+ev.Item,
 		"STICKY_FROM="+ev.From,
 		"STICKY_TO="+ev.To,
-		"STICKY_TIME="+ev.Time.Format(time.RFC3339),
+		"STICKY_TIME="+ev.Time.Format(when.Moment),
 	)
 	if err := c.Run(); err != nil {
 		fmt.Fprintf(e.stderr, "stickypane: %s: %v\n", line, err)
