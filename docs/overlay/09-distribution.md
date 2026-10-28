@@ -24,7 +24,7 @@
 
 라이선스 전문도 앱과 함께 간다. macOS는 `Contents/Resources/`, Linux는 압축 폴더 맨 위에 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`를 둔다. `licenses/stickypane-app.txt`는 `overlay/scripts/licenses.sh --write`가 앱에 링크된 Go 모듈과 번들된 npm 패키지(글꼴의 OFL-1.1 포함)의 라이선스 파일을 그대로 모은 것이고, `licenses/stickypane.txt`는 `scripts/licenses.sh`가 번들 CLI의 모듈로 만든 것이다. robust-predicates(mermaid → d3-delaunay, Unlicense)도 목록에 그대로 둔다([미결정]: 뺄지).
 
-본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
+본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다(CGO와 WebKit 때문에 macOS·Linux 러너에서 따로 빌드한다. 릴리스 워크플로 연결은 [미결정]). 그 전까지 `overlay/`나 `scripts/overlay-*.sh`를 건드린 PR마다 `.github/workflows/overlay.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
 ## 9.2 DMG 설치 화면
 
@@ -106,4 +106,4 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 | 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
-| Linux | CI(ubuntu)에서 빌드와 Go 테스트. 실기 실행은 [미검증] |
+| Linux | CI(ubuntu)에서 빌드와 Go 테스트, PR이면 tar.gz를 만들어 산출물로 올린다. 실기 실행은 [미검증] |
