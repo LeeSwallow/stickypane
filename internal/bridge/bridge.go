@@ -346,8 +346,21 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if kind == "note" {
 		kind = ""
 	}
-	if kind != "" && s.reg.Lookup(kind).Name != kind {
-		return nil, badRequest(fmt.Sprintf("there is no kind %q a screen can make", p.Kind))
+	// A shape that is a file of its own (a script, a page) is made as the
+	// catalog makes it: its own extension, and the given body or else its
+	// template; it has no front matter for a type or a title.
+	ext, opts, body := ".md", api.Options{Type: kind, Title: p.Title}, []byte(p.Body)
+	if kind != "" {
+		k, ok := s.kindNamed(kind)
+		if !ok {
+			return nil, badRequest(fmt.Sprintf("there is no kind %q a screen can make", p.Kind))
+		}
+		if k.New != "" {
+			ext, opts = k.New, api.Options{}
+			if p.Body == "" {
+				body = k.Template(p.Title)
+			}
+		}
 	}
 	text := p.Title
 	if strings.TrimSpace(text) == "" {
@@ -360,11 +373,11 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	// Each name is made exclusively: a file that appears between one try
 	// and the next is not written over, the next name is tried.
 	for i := 1; i <= maxSameName; i++ {
-		name := stem + ".md"
+		name := stem + ext
 		if i > 1 {
-			name = fmt.Sprintf("%s-%d.md", stem, i)
+			name = fmt.Sprintf("%s-%d%s", stem, i, ext)
 		}
-		file, err := s.api.Create(name, api.Options{Type: kind, Title: p.Title}, []byte(p.Body))
+		file, err := s.api.Create(name, opts, body)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
@@ -377,6 +390,17 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 		return map[string]string{"note": file}, nil
 	}
 	return nil, &Error{CodeFailed, fmt.Sprintf("there are %d notes called %q already", maxSameName, stem)}
+}
+
+// kindNamed finds a kind by its name, including those that are files of
+// their own, which Lookup leaves to the plain note.
+func (s *server) kindNamed(name string) (widget.Kind, bool) {
+	for _, k := range s.reg {
+		if k.Name == name {
+			return k, true
+		}
+	}
+	return widget.Kind{}, false
 }
 
 // maxSameName is how many notes of one title note.create makes before it

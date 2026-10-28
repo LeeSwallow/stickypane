@@ -610,3 +610,27 @@ func TestBridgeLoadsAnHTMLNote(t *testing.T) {
 		}
 	}
 }
+
+// A shape that is a file of its own, a script or a page, is made as the
+// catalog makes it: its own extension, its template or the given body.
+func TestBridgeCreatesFileTypeNotes(t *testing.T) {
+	dir := board(t, map[string]string{"deploy/x.md": "x\n"})
+	s := serve(t, dir)
+	var got struct{ Note string }
+	s.ok("note.create", map[string]any{"tab": "deploy", "kind": "script", "title": "Build"}, &got)
+	if got.Note != "deploy/build.sh" || read(t, dir, "deploy/build.sh") != "#!/bin/sh\n" {
+		t.Errorf("script: %q, %q", got.Note, readOrEmpty(dir, "deploy/build.sh"))
+	}
+	s.ok("note.create", map[string]any{"kind": "html", "title": "Report", "body": "<h1>Hi</h1>\n"}, &got)
+	if got.Note != "report.html" || read(t, dir, "report.html") != "<h1>Hi</h1>\n" {
+		t.Errorf("html: %q, %q", got.Note, readOrEmpty(dir, "report.html"))
+	}
+	// Again: the next name, never over the first.
+	s.ok("note.create", map[string]any{"kind": "html", "title": "Report"}, &got)
+	if got.Note != "report-2.html" || read(t, dir, "report.html") != "<h1>Hi</h1>\n" {
+		t.Errorf("second html: %q", got.Note)
+	}
+	if r := s.call("note.create", map[string]any{"kind": "nope", "title": "x"}); r.code != CodeBadRequest {
+		t.Errorf("unknown kind: %q", r.code)
+	}
+}
