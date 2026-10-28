@@ -226,7 +226,7 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 
 | 층 | 패키지 | 하는 일 |
 |---|---|---|
-| 도메인 (0) | `internal/index/model`, `internal/prefs` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. I/O 없음 |
+| 도메인 (0) | `internal/index/model`, `internal/prefs`, `internal/canvas` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. 캔버스의 노트 자리와 떼어낸 노트 창의 틀(사라진 노트 잊기, 이름 바꾸기, 겹침 순서). I/O 없음 |
 | 포트 (10) | `internal/index/ports` | 유스케이스가 바깥에 바라는 것: `ProjectRepository`·`DayRepository`·`SessionRepository`·`IngestLog`·`Store`(작업 단위), `Records`, `Boards`, `Clock`, `ProcessChecker` |
 | 유스케이스 (20) | `internal/index/service` | `Ingest`·`Prune`·`Sessions`·`Restore`·`Retitle`. 트랜잭션 경계를 여기서 정하고 포트로만 일한다 |
 | 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridge` | 포트의 구현 |

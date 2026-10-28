@@ -14,6 +14,8 @@ export interface Status {
   error?: string
   pinned: boolean
   version?: string
+  /** the note a torn-off note's window shows; none in a board's */
+  note?: string
 }
 
 export interface BoardApi {

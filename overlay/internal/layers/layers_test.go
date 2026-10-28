@@ -22,6 +22,7 @@ const module = "github.com/LeeSwallow/stickypane/overlay/"
 var rank = map[string]int{
 	// Domain: values and rules, no I/O.
 	"internal/prefs":       0,
+	"internal/canvas":      0,
 	"internal/index/model": 0,
 	// Ports: what the use cases need, as interfaces.
 	"internal/index/ports": 10,
@@ -46,6 +47,7 @@ var rank = map[string]int{
 // use cases. Each forbidden import is a prefix.
 var pure = map[string]bool{
 	"internal/prefs":         true,
+	"internal/canvas":        true,
 	"internal/index/model":   true,
 	"internal/index/ports":   true,
 	"internal/index/service": true,

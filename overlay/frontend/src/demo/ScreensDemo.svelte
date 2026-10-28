@@ -1,12 +1,14 @@
 <script lang="ts">
-  // Dev only (?demo=screens&screen=home|empty|board|zoom|create|settings
-  // &shape=board|form|chart…&mode=dark|light):
+  // Dev only (?demo=screens&screen=home|empty|board|canvas|torn|zoom|create
+  // |settings&shape=board|form|chart…&mode=dark|light):
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. Nothing here ships.
   import Board from '../board/Board.svelte'
   import { fakeProject } from './fakeProject'
   import type { Board as BoardData, Note } from '../board/model'
   import Home from '../home/Home.svelte'
+  import TornNote from '../torn/TornNote.svelte'
+  import type { Layout } from '../services/canvas'
   import type { Groups, HomeApi, Row } from '../services/home'
   import { THEMES } from '../lib/theme/palettes'
 
@@ -105,10 +107,26 @@
     settings: { theme: palette?.name ?? '', style, view: 'overlay', language: { choice: lang, resolved: lang }, tab: 'work', time: '', editor: '', stale: '2h' },
     palette,
   }
-  const boardApi = fakeProject(board, mode, lang)
+  // board: the grid; canvas: notes where they were left, one torn off;
+  // torn: that note in its own window
+  const canvasLayout: Partial<Layout> = {
+    mode: 'canvas',
+    places: {
+      'work/release.md': { x: 32, y: 40, w: 300, h: 230, tilt: -1.5, z: 3 },
+      'work/auth.md': { x: 360, y: 24, w: 470, h: 300, tilt: 0.5, z: 2 },
+      'work/notes.md': { x: 96, y: 300, w: 420, h: 290, tilt: 1, z: 4 },
+      'work/todo.md': { x: 560, y: 352, w: 260, h: 170, tilt: -1, z: 5 },
+    },
+    torn: { 'work/ideas.md': { screenX: 1200, screenY: 80, w: 320, h: 260, pinned: true } },
+  }
+  const layout = screen === 'canvas' || screen === 'torn' ? canvasLayout : { mode: 'grid' as const }
+  const boardApi = fakeProject(board, mode, lang, layout, screen === 'torn' ? (q.get('note') ?? 'work/release.md') : '')
+  const quietBus = { on: () => () => {} }
 </script>
 
-{#if screen === 'board' || screen === 'zoom' || screen === 'create' || screen === 'settings'}
+{#if screen === 'torn'}
+  <TornNote api={boardApi} bus={quietBus} note={q.get('note') ?? 'work/release.md'} />
+{:else if screen === 'board' || screen === 'canvas' || screen === 'zoom' || screen === 'create' || screen === 'settings'}
   <Board
     api={boardApi}
     zoom={screen === 'zoom' ? 'work/auth.md' : undefined}

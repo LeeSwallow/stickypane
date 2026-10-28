@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/LeeSwallow/stickypane/overlay/internal/canvas"
 )
 
 // DefaultHotkey toggles the last project window (ADR-0007).
@@ -38,6 +40,10 @@ type State struct {
 	// TrayHint is set once the person has been told, on closing a window,
 	// that the app stays in the tray.
 	TrayHint bool `json:"trayHint,omitempty"`
+	// Projects are where each project's notes sit on this computer: their
+	// places on the canvas and the frames of the notes torn off
+	// (docs/overlay/03 §3.6.1), by project path.
+	Projects map[string]canvas.Project `json:"projects,omitempty"`
 }
 
 // LoadState reads the state file; a missing file is the defaults.
@@ -96,6 +102,10 @@ func (s State) clone() State {
 	c.Windows = make(map[string]WindowState, len(s.Windows))
 	for k, v := range s.Windows {
 		c.Windows[k] = v
+	}
+	c.Projects = make(map[string]canvas.Project, len(s.Projects))
+	for k, v := range s.Projects {
+		c.Projects[k] = v.Clone()
 	}
 	return c
 }

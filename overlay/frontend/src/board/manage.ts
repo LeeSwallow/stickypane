@@ -89,3 +89,26 @@ export function moveTargets(tabs: { name: string }[], from: string): string[] {
   for (const x of tabs) if (x.name && x.name !== from) out.push(x.name + '/')
   return out
 }
+
+/** Asking is a delete, a run or a send waiting for its question to be answered. */
+export interface Asking {
+  what: 'trash' | 'run' | 'send'
+  note: Note
+  request?: Request
+}
+
+/** question is what the window asks before a delete, a run or a send in project. */
+export function question(a: Asking, project: string): { title: string; body: string; yes: string } {
+  const values = { title: a.note.title, name: a.note.title, project }
+  if (a.what === 'trash') return { title: t('note.confirmTrash', values), body: t('note.confirmTrashBody'), yes: t('note.trash') }
+  if (a.what === 'run') return { title: t('run.confirm', values), body: t('run.confirmBody'), yes: t('run.button') }
+  if (a.request) return { title: t('send.confirm', { ...values, name: a.request.title }), body: t('send.confirmBodyOne'), yes: t('send.button') }
+  return { title: t('send.confirm', values), body: t('send.confirmBody'), yes: t('send.button') }
+}
+
+/** answer does what was asked, once the person said yes; it says whether it was done. */
+export async function answer(d: ManageDeps, a: Asking): Promise<boolean> {
+  if (a.what === 'trash') return trash(d, a.note)
+  if (a.what === 'run') return run(d, a.note)
+  return send(d, a.note, a.request)
+}

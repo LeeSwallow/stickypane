@@ -38,6 +38,10 @@ export interface BoardCtx {
    * a .http note's own Send names the request (its place from 1 and title)
    */
   manage?(note: Note, what: Manage, request?: Request): void
+  /** tear the note off into a window of its own (the board window) */
+  tear?(name: string): void
+  /** put a torn-off note back on its board (the note's own window); its close does this */
+  putBack?(name: string): void
 }
 
 export const useBoard = (): BoardCtx => getContext<BoardCtx>(boardContext)

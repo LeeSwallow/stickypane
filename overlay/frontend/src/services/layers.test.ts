@@ -19,7 +19,7 @@ describe('layers', () => {
   })
   it('only src/services names the shell\'s services', () => {
     const out = all
-      .filter((f) => !f.path.startsWith('services/') && f.path !== 'lib/shell.ts' && /\b(home|project)\(['"][A-Z]/.test(f.text))
+      .filter((f) => !f.path.startsWith('services/') && f.path !== 'lib/shell.ts' && /\b(home|project|canvas)\(['"][A-Z]/.test(f.text))
       .map((f) => f.path)
     expect(out).toEqual([])
   })
