@@ -94,11 +94,14 @@ cp "$bg" "$stage/.background/background.tiff"
 size=$(du -sm "$stage" | cut -f1)
 hdiutil create -quiet -volname "$vol" -srcfolder "$stage" -fs HFS+ \
 	-format UDRW -size "$((size + 20))m" -ov "$work/rw.dmg"
-dev=$(hdiutil attach -readwrite -noverify -noautoopen "$work/rw.dmg" |
-	awk '/Apple_HFS/ { print $1; exit }')
+# The mount point is the one hdiutil reports (tab-separated: device, type,
+# mount point); Finder addresses the disk by name, so it must be ours.
+line=$(hdiutil attach -readwrite -noverify -noautoopen "$work/rw.dmg" | grep 'Apple_HFS' | head -n 1) ||
+	die "could not attach the image"
+dev=$(printf '%s\n' "$line" | awk '{ print $1 }')
+mnt=$(printf '%s\n' "$line" | awk -F '\t' '{ print $NF }' | sed 's/[[:space:]]*$//')
 [ -n "$dev" ] || die "could not attach the image"
-mnt="/Volumes/$vol"
-[ -d "$mnt" ] || die "the image did not mount at $mnt"
+[ "$mnt" = "/Volumes/$vol" ] || die "the image mounted at \"$mnt\", not /Volumes/$vol"
 
 # Finder lays the window out and writes it to the volume's .DS_Store.
 # The bounds are the window's frame: 660x420 of content under a title bar.
