@@ -28,7 +28,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
@@ -41,7 +40,7 @@ import (
 
 // server is one bridge session.
 type server struct {
-	api *api.API
+	api *api.API // its clock, api.Now, is the session's: a note named for the time, a script's start
 	reg widget.Registry
 
 	ctx  context.Context // the session: a request that outlives a line ends with it
@@ -364,7 +363,7 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 	if strings.TrimSpace(text) == "" {
 		text, _, _ = strings.Cut(strings.TrimSpace(p.Body), "\n")
 	}
-	stem := store.Slug(text, time.Now())
+	stem := store.Slug(text, s.api.Now())
 	if tab != "" {
 		stem = tab + "/" + stem
 	}
@@ -457,7 +456,7 @@ func (s *server) noteRun(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "script" {
 		return nil, badRequest(fmt.Sprintf("%s is not a script", p.Note))
 	}
-	r, err := runner.StartGroup(s.api.Store(), n.Name, time.Now)
+	r, err := runner.StartGroup(s.api.Store(), n.Name, s.api.Now)
 	if err != nil {
 		return nil, err
 	}
