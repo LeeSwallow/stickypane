@@ -13,6 +13,9 @@ frontend/dist/*
 frontend/bindings
 
 build/linux/appimage/build
+# Copied in by the AppImage task.
+build/linux/appimage/stickypane-app
+build/linux/appimage/stickypane.png
 
 # License-check fixtures keep their fake packages.
 !scripts/testdata/**/node_modules
