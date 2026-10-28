@@ -199,26 +199,27 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	old, err := a.st.Read(file)
-	if err == nil {
-		was := doc.Parse(old)
-		for _, key := range append([]string{"created"}, viewKeys...) {
-			if _, set := d.Get(key); set {
-				continue
+	// What is kept from the note is read in the same step that replaces
+	// it, so nothing written in between is lost.
+	err = a.st.Rewrite(file, func(old []byte, ok bool) ([]byte, error) {
+		d := d
+		var before doc.Document
+		if ok {
+			before = doc.Parse(old)
+			for _, key := range append([]string{"created"}, viewKeys...) {
+				if _, set := d.Get(key); set {
+					continue
+				}
+				if v, ok := before.Get(key); ok {
+					d = d.Set(key, v)
+				}
 			}
-			if v, ok := was.Get(key); ok {
-				d = d.Set(key, v)
-			}
+		} else if isMarkdown(file) {
+			d = created(d, a.now())
 		}
-	}
-	var before doc.Document
-	if err == nil {
-		before = doc.Parse(old)
-	} else if isMarkdown(file) {
-		d = created(d, a.now())
-	}
-	d = a.tend(file, before, d)
-	if err := a.st.Write(file, d.Bytes()); err != nil {
+		return a.tend(file, before, d).Bytes(), nil
+	})
+	if err != nil {
 		return file, err
 	}
 	_, _ = a.Derive() // charts computed from this note follow it

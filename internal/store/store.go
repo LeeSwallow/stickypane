@@ -387,22 +387,43 @@ func readEnds(path string, size int64) (head, tail []byte, err error) {
 // A note that is a symlink is edited where it really lives: replacing the
 // link itself would silently detach the note from its file.
 func (s *Store) Apply(name string, op doc.Op) error {
+	return s.Rewrite(name, func(b []byte, ok bool) ([]byte, error) {
+		if !ok {
+			return nil, doc.ErrConflict
+		}
+		out, err := op.Apply(doc.Parse(b))
+		if err != nil {
+			return nil, err
+		}
+		return out.Bytes(), nil
+	})
+}
+
+// Rewrite reads the note as it is now, hands it to change, and replaces it
+// with what change returns, in one step: Apply for a caller that works on
+// the whole file, and may make it. ok is false and old nil when there is no
+// note yet; its folder is then made. When change fails nothing is written.
+// A note that is a symlink is rewritten where it really lives.
+func (s *Store) Rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
 	path := filepath.Join(s.Dir, filepath.FromSlash(name))
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	}
-	b, err := os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return doc.ErrConflict
+	old, err := os.ReadFile(path)
+	ok := err == nil
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
 	}
+	out, err := change(old, ok)
 	if err != nil {
 		return err
 	}
-	out, err := op.Apply(doc.Parse(b))
-	if err != nil {
-		return err
+	if !ok {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err // a new page of a new book needs its folder
+		}
 	}
-	return writeAtomic(path, out.Bytes())
+	return writeAtomic(path, out)
 }
 
 // Read returns a note's bytes exactly as they are on disk.

@@ -54,31 +54,38 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 	if err != nil {
 		return "", doc.Document{}, err
 	}
-	if _, err := a.st.Read(file); errors.Is(err, fs.ErrNotExist) {
+	// The note is read, changed and written in one step, and made in that
+	// step when it is not there.
+	var after doc.Document
+	err = a.st.Rewrite(file, func(old []byte, ok bool) ([]byte, error) {
+		if ok {
+			d, err := shaped{a, file, kinds, op}.Apply(doc.Parse(old))
+			if err != nil {
+				return nil, err
+			}
+			after = doc.Parse(d.Bytes())
+			return d.Bytes(), nil
+		}
 		// Only Markdown says in front matter what it is and that it is
 		// open. Another file is what its extension makes it.
 		var d doc.Document
 		if strings.EqualFold(filepath.Ext(file), ".md") {
 			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
-			return file, d, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
+			return nil, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
-		if d, err = op.Apply(d); err != nil {
-			return file, d, err
+		d, err := op.Apply(d)
+		if err != nil {
+			return nil, err
 		}
-		d = a.tend(file, doc.Document{}, d)
-		if err := a.st.Write(file, d.Bytes()); err != nil {
-			return file, d, err
-		}
-		_, _ = a.Derive()
-		return file, d, nil
-	}
-	if err := a.st.Apply(file, shaped{a, file, kinds, op}); err != nil {
+		after = a.tend(file, doc.Document{}, d)
+		return after.Bytes(), nil
+	})
+	if err != nil {
 		return file, doc.Document{}, err
 	}
 	_, _ = a.Derive() // charts computed from this note follow it
-	b, err := a.st.Read(file)
-	return file, doc.Parse(b), err
+	return file, after, nil
 }
 
 // status is the line an edit returns: the file and its summary.
