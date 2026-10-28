@@ -67,7 +67,7 @@ scrolls up. `stickypane show logs/app.log` follows a log of the project.
 
 ## Chat
 
-For talking with the user on the board. `stickypane say chat "41/41 pass" --as claude`
+For talking with the user on the board. `stickypane say chat "41/41 pass"`
 
 A note with `type: chat`: `@name HH:MM text` lines under a `## YYYY-MM-DD`
 heading. The user presses n to answer, as themselves. To wait for the

@@ -118,7 +118,7 @@ stickypane card work move login --to Done    # work.md: 2 cards
 stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
-stickypane say chat "41/41 pass" --as claude # chat.md: 3 messages
+stickypane say chat "41/41 pass"             # chat.md: 3 messages, signed agent (--as <name>)
 stickypane set plan open=true size=1/2       # to sticky.json
 stickypane set plan title="The plan"         # to the note's front matter
 ```

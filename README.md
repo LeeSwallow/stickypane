@@ -234,7 +234,7 @@ sequenceDiagram
 | board | cards in columns | `stickypane card work add "login API" --to Doing` |
 | checklist | steps to tick off, with a progress bar | `stickypane todo plan add "write tests"` |
 | log | one entry per line, the newest in sight | `stickypane log worklog --time "tests passed"` |
-| chat | who said what and when | `stickypane say chat "41/41 pass" --as claude` |
+| chat | who said what and when | `stickypane say chat "41/41 pass"` |
 | chart | bars, a trend line, or a calendar of days | `stickypane chart tokens add input 1200` |
 | form | options, lines to fill in, buttons | `stickypane wait deploy --timeout 10m` |
 | script | a shell script with a Run button | `stickypane show deploy.sh` |

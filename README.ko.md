@@ -235,7 +235,7 @@ sequenceDiagram
 | board | 칸에 놓인 카드(칸반) | `stickypane card work add "로그인 API" --to Doing` |
 | checklist | 체크해 나가는 단계와 진행 막대 | `stickypane todo plan add "테스트 작성"` |
 | log | 한 줄에 하나, 최신 줄이 보이게 | `stickypane log worklog --time "테스트 통과"` |
-| chat | 누가 언제 무슨 말을 했는지 | `stickypane say chat "41/41 통과" --as claude` |
+| chat | 누가 언제 무슨 말을 했는지 | `stickypane say chat "41/41 통과"` |
 | chart | 막대, 추세선, 날짜 달력 | `stickypane chart tokens add input 1200` |
 | form | 고를 것, 채울 줄, 버튼 | `stickypane wait deploy --timeout 10m` |
 | script | 실행 버튼이 달린 셸 스크립트 | `stickypane show deploy.sh` |
