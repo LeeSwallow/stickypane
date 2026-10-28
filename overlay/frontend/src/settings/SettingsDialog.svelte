@@ -6,6 +6,7 @@
   // Every change shows at once.
   import { tr, type Choice, type LanguageHost } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
+  import { motion } from '../lib/motion/level.svelte'
   import type { Mode } from '../lib/theme/mode'
   import Button from '../lib/ui/Button.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -93,6 +94,17 @@
     }
   }
 
+  // how much the windows move (04 §4.6): shown at once, kept in overlay.json
+  async function setMotion(m: string) {
+    failed = ''
+    motion.setting = m === 'system' ? '' : m
+    try {
+      await setAppPref(api, { motion: motion.setting })
+    } catch (e) {
+      failed = $tr('settings.failed', { error: errorText(e) })
+    }
+  }
+
   async function saveKeys() {
     keysError = ''
     keysSaved = false
@@ -160,6 +172,20 @@
             { value: 'light', label: $tr('settings.mode.light'), icon: 'sun' },
           ]}
           onchange={(v) => setMode(v as Mode)}
+        />
+      </div>
+      <div class="row">
+        <span class="label">{$tr('settings.motion')}</span>
+        <SegmentedControl
+          label={$tr('settings.motion')}
+          size="sm"
+          value={motion.setting === 'reduce' || motion.setting === 'off' ? motion.setting : 'system'}
+          options={[
+            { value: 'system', label: $tr('settings.motion.system') },
+            { value: 'reduce', label: $tr('settings.motion.reduce') },
+            { value: 'off', label: $tr('settings.motion.off') },
+          ]}
+          onchange={setMotion}
         />
       </div>
       <form class="keys" onsubmit={(e) => (e.preventDefault(), saveKeys())}>

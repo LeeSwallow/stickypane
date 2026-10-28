@@ -6,7 +6,9 @@
   // and its body, which the shape draws. The bottom edge drags the height
   // (rows), the right edge the width (it lands on the nearest fraction).
   // Everything it does goes through the board context, so the same frame
-  // works zoomed, on a canvas or alone.
+  // works zoomed, on a canvas or alone. free: the canvas or a torn-off
+  // note's window sizes it, so it fills its box and has no edges or width
+  // steps of the grid's.
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
@@ -26,12 +28,15 @@
     zoomed = false,
     small = false,
     narrow = false,
+    free = false,
     width = 1200,
   }: {
     note: Note
     zoomed?: boolean
     small?: boolean
     narrow?: boolean
+    /** sized from outside (the canvas, a torn-off window): fills its box */
+    free?: boolean
     /** the board's width in px: what a fraction is a fraction of */
     width?: number
   } = $props()
@@ -52,7 +57,7 @@
   let dragW: number | null = $state(null)
   let landing: Fraction | null = $state(null)
   let body: HTMLElement | undefined = $state()
-  const fixed = $derived(zoomed ? null : (dragH ?? heightOfRows(note.rows)))
+  const fixed = $derived(zoomed || free ? null : (dragH ?? heightOfRows(note.rows)))
 
   let colours = $state(false)
 
@@ -66,7 +71,8 @@
   })
 
   const menu = $derived<MenuItem[]>([
-    ...(zoomed ? [] : [{ id: 'zoom', label: $tr('note.zoom'), icon: 'zoom' as const, shortcut: '↵' }]),
+    ...(zoomed || board.putBack ? [] : [{ id: 'zoom', label: $tr('note.zoom'), icon: 'zoom' as const, shortcut: '↵' }]),
+    ...(board.putBack ? [{ id: 'putBack', label: $tr('note.putBack'), icon: 'restore' as const }] : []),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
     ...(board.manage ? [{ kind: 'separator' as const, id: 'sep-manage' }, ...manageItems(note).map((m) => manageItem[m])] : []),
@@ -76,6 +82,7 @@
     if (id === 'zoom') board.zoom(note.name)
     else if (id === 'color') colours = !colours
     else if (id === 'edit') board.edit?.(note.name)
+    else if (id === 'putBack') board.putBack?.(note.name)
     else if (id in manageItem) board.manage?.(note, id as Manage)
   }
 
@@ -134,7 +141,7 @@
   // a double-click on the note (not on its controls or its title) zooms it
   function dbl(e: MouseEvent) {
     const t = e.target as HTMLElement
-    if (zoomed || t.closest('button, input, a, select, .edge, .title')) return
+    if (zoomed || board.putBack || t.closest('button, input, a, select, .edge, .title')) return
     board.zoom(note.name)
   }
 </script>
@@ -143,6 +150,7 @@
 <div
   class="frame"
   class:zoomed
+  class:free
   class:small
   class:sizing={dragW !== null}
   style:width={dragW !== null ? `${dragW}px` : null}
@@ -175,11 +183,13 @@
           }
         : undefined}
       {menu}
+      sizable={!free}
       onsize={(s) => board.arrange(note.name, { size: s })}
       onpin={(on) => board.arrange(note.name, { pin: on })}
+      ontearoff={board.tear && readable && !zoomed ? () => board.tear?.(note.name) : undefined}
       onrename={(title) => board.arrange(note.name, { title })}
       onmenu={choose}
-      onclose={() => board.arrange(note.name, { open: false })}
+      onclose={board.putBack ? () => board.putBack?.(note.name) : () => board.arrange(note.name, { open: false })}
     >
       {#snippet lead()}
         {#if zoomed && board.canBack()}
@@ -211,7 +221,7 @@
         <Shape note={shown} narrow={narrow || small} />
       {/key}
     </div>
-    {#if !zoomed && readable}
+    {#if !zoomed && !free && readable}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="edge" title={$tr('note.height')} onpointerdown={startHeight} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
       {#if !narrow}
@@ -235,16 +245,19 @@
   .frame.sizing {
     z-index: var(--z-ring);
   }
-  .frame.zoomed {
+  .frame.zoomed,
+  .frame.free {
     height: 100%;
   }
-  .frame.zoomed :global(.note) {
+  .frame.zoomed :global(.note),
+  .frame.free :global(.note) {
     height: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
   }
-  .frame.zoomed :global(.note > .body) {
+  .frame.zoomed :global(.note > .body),
+  .frame.free :global(.note > .body) {
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -282,7 +295,8 @@
   .body.fixed {
     overflow: auto;
   }
-  .zoomed .body {
+  .zoomed .body,
+  .free .body {
     flex: 1;
     min-height: 0;
     overflow: auto;

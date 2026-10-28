@@ -12,6 +12,13 @@ import (
 const (
 	KindHome    = "home"
 	KindProject = "project"
+	KindNote    = "note" // a note torn off its board (torn.go)
+)
+
+// The smallest a torn-off note's window gets.
+const (
+	NoteMinWidth  = 200
+	NoteMinHeight = 140
 )
 
 // How a frameless window gets its close, minimise and zoom buttons
@@ -130,7 +137,12 @@ func (p *Wails) NewWindow(o WindowOptions) Window {
 		// a pin can turn it off (Wails' HideOnFocusLost is fixed at creation).
 		AlwaysOnTop: o.Pinned,
 	}
-	if o.Frameless {
+	if o.Kind == KindNote {
+		// A torn-off note is a bare sticky: no title bar or traffic lights
+		// on any system; the page draws its own pin and put-back.
+		opts.URL = WithChrome(o.URL, ChromeOwn)
+		opts.MinWidth, opts.MinHeight = NoteMinWidth, NoteMinHeight
+	} else if o.Frameless {
 		chrome := ChromeFor(runtime.GOOS)
 		opts.URL = WithChrome(o.URL, chrome)
 		if chrome == ChromeMac {

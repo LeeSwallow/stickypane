@@ -38,6 +38,7 @@ func main() {
 	home := &shell.HomeService{}
 	board := &shell.ProjectService{}
 	setup := &shell.SetupService{}
+	layout := &shell.CanvasService{}
 
 	app := application.New(application.Options{
 		Name:        "stickypane",
@@ -46,6 +47,7 @@ func main() {
 			application.NewService(home),
 			application.NewService(board),
 			application.NewService(setup),
+			application.NewService(layout),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -77,7 +79,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	home.S, board.S, setup.S = s, s, s
+	home.S, board.S, setup.S, layout.S = s, s, s, s
 	platform.StartTray(s, shell.TrayIcons{Template: trayTemplate, Colour: trayColour})
 	close(ready)
 

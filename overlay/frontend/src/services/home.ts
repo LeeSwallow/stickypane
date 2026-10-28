@@ -51,11 +51,15 @@ export interface Notice {
   detail: string
 }
 
-/** The home window's settings in overlay.json: language "" | ko | en, mode "" | light | dark. */
+/**
+ * The home window's settings in overlay.json: language "" | ko | en, mode
+ * "" | light | dark, motion "" | reduce | off.
+ */
 export interface Prefs {
   hotkey: string
   language: string
   mode: string
+  motion?: string
 }
 
 export interface HomeApi {

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/overlay/internal/bridge"
+	"github.com/LeeSwallow/stickypane/overlay/internal/canvas"
 	"github.com/LeeSwallow/stickypane/overlay/internal/index"
 	"github.com/LeeSwallow/stickypane/overlay/internal/install/model"
 	installsvc "github.com/LeeSwallow/stickypane/overlay/internal/install/service"
@@ -121,6 +122,8 @@ type Status struct {
 	Error   string `json:"error,omitempty"`
 	Pinned  bool   `json:"pinned"`
 	Version string `json:"version,omitempty"` // the bridge's stickypane
+	// Note is the note a torn-off note's window shows; "" in a board's.
+	Note string `json:"note,omitempty"`
 }
 
 // project is one open project window.
@@ -133,6 +136,7 @@ type project struct {
 	ctx    context.Context // ends when the window closes
 	cancel context.CancelFunc
 	closed bool
+	torn   map[string]*tornWin // its notes torn off into windows, by note
 }
 
 // Shell is the app. Its methods are safe for concurrent use; none holds
@@ -148,10 +152,12 @@ type Shell struct {
 	home     Window
 	projects map[string]*project // by clean path
 	byWin    map[uint]*project
-	notices  []Notice
-	hotkey   string // registered accelerator, "" when none
-	hello    bridge.Hello
-	started  bool
+	// tornByWin are the windows of torn-off notes (torn.go)
+	tornByWin map[uint]*tornWin
+	notices   []Notice
+	hotkey    string // registered accelerator, "" when none
+	hello     bridge.Hello
+	started   bool
 
 	ix      Index
 	ixErr   error
@@ -216,6 +222,7 @@ func New(cfg Config) (*Shell, error) {
 		state:     st,
 		projects:  map[string]*project{},
 		byWin:     map[uint]*project{},
+		tornByWin: map[uint]*tornWin{},
 		ixReady:   make(chan struct{}),
 		quit:      make(chan struct{}),
 	}
@@ -619,7 +626,7 @@ func (s *Shell) OpenProject(path string) uint {
 		}
 		return 0 // it is being made by another caller
 	}
-	p := &project{path: path, state: StateLoading}
+	p := &project{path: path, state: StateLoading, torn: map[string]*tornWin{}}
 	s.projects[path] = p
 	ws, placed := s.state.Windows[path]
 	s.mu.Unlock()
@@ -657,6 +664,7 @@ func (s *Shell) OpenProject(path string) uint {
 	w.Show()
 	w.Focus()
 	go s.connect(ctx, p)
+	s.reopenTorn(p)
 	return id
 }
 
@@ -688,13 +696,18 @@ func (s *Shell) connect(ctx context.Context, p *project) {
 	s.hello = b.Hello()
 	s.mu.Unlock()
 	go s.refreshTray()
-	id := p.win.ID()
 	for n := range b.Notifications() {
-		switch n.Method {
-		case bridge.MethodRestarted:
-			s.cfg.Platform.Emit(RestartedEvent(id), nil)
-		default:
-			s.cfg.Platform.Emit(ChangedEvent(id), n.Params)
+		// the project's window and its torn-off notes hear the same
+		s.mu.Lock()
+		ids := s.windowIDs(p)
+		s.mu.Unlock()
+		for _, id := range ids {
+			switch n.Method {
+			case bridge.MethodRestarted:
+				s.cfg.Platform.Emit(RestartedEvent(id), nil)
+			default:
+				s.cfg.Platform.Emit(ChangedEvent(id), n.Params)
+			}
 		}
 	}
 }
@@ -708,9 +721,11 @@ func (s *Shell) setState(p *project, state, why string, b Board) bool {
 		return false
 	}
 	p.state, p.err, p.board = state, why, b
-	id := p.win.ID()
+	ids := s.windowIDs(p)
 	s.mu.Unlock()
-	s.cfg.Platform.Emit(StatusEvent(id), s.Status(id))
+	for _, id := range ids {
+		s.cfg.Platform.Emit(StatusEvent(id), s.Status(id))
+	}
 	return true
 }
 
@@ -718,11 +733,14 @@ func (s *Shell) setState(p *project, state, why string, b Board) bool {
 func (s *Shell) Status(window uint) Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	p := s.byWin[window]
+	p, tw := s.owner(window)
 	if p == nil {
 		return Status{Window: window, State: StateClosed}
 	}
 	st := Status{Window: window, Path: p.path, State: p.state, Error: p.err, Pinned: s.state.Windows[p.path].Pinned}
+	if tw != nil {
+		st.Note, st.Pinned = tw.note, s.state.Projects[p.path].Torn[tw.note].Pinned
+	}
 	if p.board != nil {
 		st.Version = p.board.Hello().Version
 	}
@@ -732,7 +750,7 @@ func (s *Shell) Status(window uint) Status {
 // Call sends one request to the bridge of a window's project.
 func (s *Shell) Call(ctx context.Context, window uint, method string, params, result any) error {
 	s.mu.Lock()
-	p := s.byWin[window]
+	p, _ := s.owner(window)
 	var b Board
 	state := StateClosed
 	if p != nil {
@@ -745,6 +763,7 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 	err := b.Call(ctx, method, params, result)
 	if err == nil && method == "board.load" {
 		s.retitle(p.path, result)
+		s.keepNotes(p, result)
 	}
 	return err
 }
@@ -775,10 +794,13 @@ func (s *Shell) retitle(path string, result any) {
 // and does not hide when it loses focus.
 func (s *Shell) SetPin(window uint, on bool) error {
 	s.mu.Lock()
-	p := s.byWin[window]
+	p, tw := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
 		return fmt.Errorf("no project window %d", window)
+	}
+	if tw != nil {
+		return s.pinTorn(tw, on) // unlocks
 	}
 	s.remember(p, func(ws *WindowState) { ws.Pinned = on })
 	w := p.win
@@ -865,6 +887,7 @@ func (s *Shell) closing(p *project) {
 	if b != nil {
 		b.Close()
 	}
+	s.closeTorn(p)
 	s.save()
 	s.trayHint(p.win)
 }
@@ -978,19 +1001,28 @@ type Prefs struct {
 	Hotkey   string `json:"hotkey"`
 	Language string `json:"language"`
 	Mode     string `json:"mode"`
+	// Motion is how much the windows move: "" as the system says,
+	// "reduce" (fades only) or "off".
+	Motion string `json:"motion"`
 }
 
 // Prefs returns the home window's settings.
 func (s *Shell) Prefs() Prefs {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode}
+	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode, Motion: s.state.Motion}
 }
 
 // SetPrefs keeps the home window's settings; a new hotkey is registered.
 func (s *Shell) SetPrefs(p Prefs) error {
 	s.mu.Lock()
 	s.state.Language, s.state.Mode = p.Language, p.Mode
+	switch p.Motion {
+	case "reduce", "off":
+		s.state.Motion = p.Motion
+	default:
+		s.state.Motion = ""
+	}
 	// A new hotkey, or the same one that could not be had: try it.
 	change := p.Hotkey != "" && p.Hotkey != s.hotkey
 	s.mu.Unlock()
@@ -1017,9 +1049,15 @@ func (s *Shell) Shutdown() {
 	var boards []Board
 	var cancels []context.CancelFunc
 	var open []*project
+	var torn []*tornWin
 	for _, p := range s.projects {
 		if p.win != nil {
 			open = append(open, p)
+		}
+		for _, tw := range p.torn {
+			if tw.win != nil && !tw.closed {
+				torn = append(torn, tw)
+			}
 		}
 		if p.board != nil {
 			boards = append(boards, p.board)
@@ -1037,6 +1075,14 @@ func (s *Shell) Shutdown() {
 			s.place(p, b)
 			s.mu.Unlock()
 		}
+	}
+	for _, tw := range torn { // and each torn-off note's, kept for the next launch
+		b := tw.win.Bounds()
+		s.mu.Lock()
+		if f, ok := s.frameOf(tw, b); ok {
+			s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+		}
+		s.mu.Unlock()
 	}
 	for _, c := range cancels {
 		c()

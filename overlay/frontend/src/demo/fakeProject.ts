@@ -4,14 +4,18 @@
 // form's errors can be seen.
 import type { Board } from '../board/model'
 import type { BoardApi } from '../services/board'
+import { layoutOf, type Layout } from '../services/canvas'
 import type { Shape } from '../services/create'
 import type { ProjectApi } from '../services/project'
 import kinds from './kinds.json'
 import { THEMES } from './themes'
 
-export function fakeProject(board: Board, mode: string, lang: string): ProjectApi {
-  const status: BoardApi['status'] = async () => ({ window: 1, path: '/Users/min/Projects/Personal/stickypane', state: 'ready', pinned: true, version: '0.4.0' })
+// The layout is kept in memory: a note torn off here shows on the shelf;
+// note is the note a torn-off window's status names.
+export function fakeProject(board: Board, mode: string, lang: string, start: Partial<Layout> = {}, note = ''): ProjectApi {
+  const status: BoardApi['status'] = async () => ({ window: 1, path: '/Users/min/Projects/Personal/stickypane', state: 'ready', pinned: true, version: '0.4.0', note })
   let prefs = { hotkey: 'Option+Space', language: lang, mode }
+  let layout = layoutOf(start)
   return {
     status,
     load: async () => board,
@@ -42,5 +46,16 @@ export function fakeProject(board: Board, mode: string, lang: string): ProjectAp
     setSettings: async () => ({}),
     appPrefs: async () => prefs,
     setAppPrefs: async (p) => void (prefs = p),
+    layout: async () => layout,
+    setMode: async (m) => void (layout = { ...layout, mode: m }),
+    setSnap: async (on) => void (layout = { ...layout, snap: on }),
+    place: async (places) => void (layout = { ...layout, places: { ...layout.places, ...places } }),
+    tearOff: async (n) => void (layout = { ...layout, torn: { ...layout.torn, [n]: { screenX: 0, screenY: 0, w: 360, h: 420, pinned: true } } }),
+    async putBack(n) {
+      const torn = { ...layout.torn }
+      delete torn[n ?? note]
+      layout = { ...layout, torn }
+    },
+    onLayout: () => () => {},
   }
 }

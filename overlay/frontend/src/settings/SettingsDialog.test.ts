@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage, t } from '../i18n'
 import type { Settings } from '../board/model'
+import { motion } from '../lib/motion/level.svelte'
 import { setAppPref, type AppPrefs, type SettingsApi } from '../services/settings'
 import SettingsDialog from './SettingsDialog.svelte'
 import { THEMES } from '../demo/themes'
@@ -80,6 +81,18 @@ describe('the settings', () => {
     await fireEvent.click(modes.getByRole('radio', { name: t('settings.mode.system') }))
     await waitFor(() => expect(saved.at(-1)?.mode).toBe(''))
     expect(board).toEqual([])
+  })
+
+  it('motion is the app\'s: less or off at once for every movement, kept in overlay.json (04 §4.6)', async () => {
+    const { api, saved } = fakeApi()
+    show(api)
+    const choices = within(screen.getByRole('radiogroup', { name: t('settings.motion') }))
+    await fireEvent.click(choices.getByRole('radio', { name: t('settings.motion.off') }))
+    expect(motion.setting).toBe('off')
+    await waitFor(() => expect(saved).toEqual([{ hotkey: 'Option+Space', language: 'ko', mode: '', motion: 'off' }]))
+    await fireEvent.click(choices.getByRole('radio', { name: t('settings.motion.system') }))
+    await waitFor(() => expect(saved.at(-1)).toEqual({ hotkey: 'Option+Space', language: 'ko', mode: '' }))
+    expect(motion.setting).toBe('')
   })
 
   it('a hotkey the system will not give is said under the field', async () => {

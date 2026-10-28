@@ -24,7 +24,7 @@
     {/if}
   </Sheet>
   {#if card.stalled}
-    <span class="ring"><Circle stroke="var(--warn)" seed={seedOf(id)} /></span>
+    <span class="ring" data-pen><Circle stroke="var(--warn)" seed={seedOf(id)} /></span>
     <span class="stalled">{ago ? $tr('badge.stale', { time: ago }) : $tr('card.stalled')}</span>
   {/if}
 </div>

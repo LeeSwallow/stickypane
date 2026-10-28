@@ -3,9 +3,9 @@
   // icon), the title (hand-written, in the note's colour, one line; a
   // double-click renames it), a changed dot, a link mark, the summary
   // (3/6, 6 cards), a book's pager, and the note's controls — its width as
-  // a fraction of the board stepped narrower and wider, pin, tear-off, more
-  // ⋯ and close. It holds controls, so it never leans; the controls stay
-  // quiet until the note is hovered.
+  // a fraction of the board stepped narrower and wider, pin, tear-off (where
+  // the window can tear it off), more ⋯ and close. It holds controls, so it
+  // never leans; the controls stay quiet until the note is hovered.
   import type { Snippet } from 'svelte'
   import { tr } from '../../i18n'
   import { look } from '../doodle/look.svelte'
@@ -29,6 +29,7 @@
     book,
     linked,
     editable = true,
+    sizable = true,
     lead,
     menu = [],
     menuOpen = $bindable(false),
@@ -52,6 +53,8 @@
     linked?: string
     /** false: a note that cannot be read; it can only be closed */
     editable?: boolean
+    /** false: something else sizes the note (the canvas); no width steps */
+    sizable?: boolean
     lead?: Snippet
     menu?: MenuItem[]
     menuOpen?: boolean
@@ -147,7 +150,7 @@
     {/if}
     <span class="tools">
       <Toolbar label={$tr('ui.noteActions')}>
-        {#if editable}
+        {#if editable && sizable}
           <span class="size" role="group" aria-label={$tr('ui.size')}>
             <span class="step"><IconButton icon="narrower" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
             <span class="frac" role="status" aria-label={$tr('ui.size.now', { size })} title={$tr('ui.size.now', { size })}>
@@ -155,6 +158,8 @@
             </span>
             <span class="step"><IconButton icon="wider" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
           </span>
+        {/if}
+        {#if editable}
           <IconButton
             icon="pin"
             size="sm"
@@ -163,7 +168,9 @@
             crayon={pinned}
             onclick={() => onpin?.(!pinned)}
           />
-          <span class="tearoff"><IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} disabled={!ontearoff} onclick={ontearoff} /></span>
+          {#if ontearoff}
+            <span class="tearoff"><IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} onclick={ontearoff} /></span>
+          {/if}
         {/if}
         {#if menu.length}
           <span class="anchor">
@@ -300,6 +307,13 @@
   @container (max-width: 400px) {
     .summary,
     .tearoff {
+      display: none;
+    }
+  }
+  /* a very narrow note gives its title the line; its controls come back
+     when it is pointed at or holds the focus */
+  @container (max-width: 320px) {
+    .head:not(:hover):not(:focus-within) .tools {
       display: none;
     }
   }

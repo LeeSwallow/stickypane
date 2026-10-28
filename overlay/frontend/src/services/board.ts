@@ -14,6 +14,8 @@ export interface Status {
   error?: string
   pinned: boolean
   version?: string
+  /** the note a torn-off note's window shows; none in a board's */
+  note?: string
 }
 
 export interface BoardApi {
@@ -26,7 +28,7 @@ export interface BoardApi {
   pin(on: boolean): Promise<unknown>
   /** makeBoard runs the app's stickypane init in a folder that had no board, and opens it */
   makeBoard(): Promise<void>
-  prefs(): Promise<{ hotkey?: string; mode?: string; language?: string }>
+  prefs(): Promise<{ hotkey?: string; mode?: string; language?: string; motion?: string }>
 }
 
 export const boardService: BoardApi = {
@@ -38,7 +40,7 @@ export const boardService: BoardApi = {
   open: (note) => Call.ByName(project('Open'), note),
   pin: (on) => Call.ByName(project('Pin'), on),
   makeBoard: () => Call.ByName(project('MakeBoard')) as Promise<void>,
-  prefs: () => Call.ByName(home('Prefs')) as Promise<{ hotkey?: string; mode?: string; language?: string }>,
+  prefs: () => Call.ByName(home('Prefs')) as Promise<{ hotkey?: string; mode?: string; language?: string; motion?: string }>,
 }
 
 /** The shell's events, by name; on returns the way to stop listening. */
