@@ -114,6 +114,20 @@
 - [ ] Step 1: 실패 테스트 — `size button sends note.view and the grid reflows`, `zoom fills the window and Esc returns`, `book pages flip with [ and ]`, `markdown renders GFM table, task list, footnote`, `markdown strips script and on* attributes`, `mermaid block becomes svg`, `math renders`, `board draws columns and stalled ring`, `glance picks the Doing card per agent`, `300 notes render under 1s`(jsdom 근사, 실패 시 가상 스크롤).
 - [ ] Step 2–4: FAIL → 구현 → PASS. Step 5: 이 Mac에서 실제 프로젝트(`stickypane` 레포 자신)를 열어 확인. Step 6: Commit `feat(overlay): draw notes, checklists and kanban boards (#10)`
 
+### Task A7b: Free canvas and torn-off notes
+
+**Spec:** 03 §3.6.1, ADR-0017.
+
+**Files:** Create `overlay/frontend/src/board/{Canvas.svelte,place.ts,LayoutToggle.svelte}`, `src/torn/TornNote.svelte`; Modify `src/board/Board.svelte`, `overlay/internal/shell/{state.go,windows.go,services.go}` (places and torn windows in overlay.json; `ProjectService.Places/SetPlace/Tear/Untear`), tests.
+
+**Interfaces:**
+- `overlay.json` `projects.<path>`: `layout: "canvas"|"grid"`, `places.<note>: {x,y,w,h,tilt,z}`, `torn.<note>: {screenX,screenY,w,h,pinned}`; saved through the existing serialized/fsynced save.
+- Canvas: drag (pointer events) moves a note; release saves; ⌘+wheel zooms 50–200%; new notes get the grid slot then keep it; z = last touched on top; reuses the Note component from A7 unchanged.
+- Tear-off: "떼어내기" in the note header (or drag out of the canvas) opens a frameless small window `?window=note&path=<p>&note=<n>` that renders the same Note component with the project's bridge client (shared, not a second bridge); its own pin; closing returns it to the canvas; window positions restored on launch.
+- Note removed → its place/torn entries pruned on the next load; `note.move` → entries renamed.
+- [ ] Step 1: failing tests — `canvas drag saves a place`, `a new note starts at its grid slot`, `layout toggle keeps both`, Go `TestPlacesRoundTripPerProject`, `TestTornWindowsReopenOnLaunch`, `TestPlacesPrunedWhenANoteDisappears`, `TestPlacesFollowARename`.
+- [ ] Step 2–4: FAIL → implement → PASS. Step 5: launch and capture canvas + a torn note over another app. Step 6: Commit `feat(overlay): stick notes anywhere, on the canvas or on the screen (#10)`
+
 ### Task A8: The rest of the shapes and the html sandbox
 
 **Files:** Create `src/shapes/{Form.svelte,Chart.svelte,Log.svelte,Script.svelte,Chat.svelte,Api.svelte,Html.svelte,htmlFrame.ts}`, `overlay/frontend/test/html-isolation/*.html`
