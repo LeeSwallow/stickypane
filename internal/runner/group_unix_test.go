@@ -5,6 +5,7 @@ package runner
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -65,28 +66,58 @@ func TestStartGroupLeadsItsOwnGroup(t *testing.T) {
 	}
 }
 
-// openFiles counts the board's open files, or skips where it cannot.
-func openFiles(t *testing.T) int {
+// holds says whether the board has the file open: whether any of its open
+// files is that file. It skips where it cannot list them.
+func holds(t *testing.T, name string) bool {
 	t.Helper()
-	fds, err := os.ReadDir("/dev/fd")
-	if err != nil {
-		t.Skip("no /dev/fd here")
+	var want syscall.Stat_t
+	if err := syscall.Stat(name, &want); err != nil {
+		t.Fatal(err)
 	}
-	return len(fds)
+	for _, dir := range []string{"/proc/self/fd", "/dev/fd"} {
+		fds, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range fds {
+			fd, err := strconv.Atoi(e.Name())
+			if err != nil {
+				continue
+			}
+			// Fstat asks the open file itself; a file closed since the
+			// listing, or one that is no file (a pidfd, a pipe), is not
+			// the log.
+			var got syscall.Stat_t
+			if syscall.Fstat(fd, &got) == nil && got.Dev == want.Dev && got.Ino == want.Ino {
+				return true
+			}
+		}
+		return false
+	}
+	t.Skip("no list of open files here")
+	return false
 }
 
 // The board lets go of the log as soon as the script has it: on Windows a
 // handle left open keeps the log from being moved or removed.
 func TestStartLeavesTheLogToTheScript(t *testing.T) {
 	st := longScript(t)
-	before := openFiles(t)
+	log := filepath.Join(st.Dir, LogOf("long.sh"))
+	f, err := os.Open(filepath.Join(st.Dir, "long.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !holds(t, f.Name()) {
+		t.Fatal("holds does not see a file the board has open")
+	}
+	f.Close()
 	r, err := Start(st, "long.sh", time.Now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer r.Wait()
 	defer r.Kill()
-	if after := openFiles(t); after != before {
-		t.Errorf("open files = %d after Start, want %d: the board still holds the log", after, before)
+	if holds(t, log) {
+		t.Error("the board still holds the log after Start")
 	}
 }

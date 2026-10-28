@@ -38,8 +38,9 @@ func (m *Model) askRun(name string) {
 
 // run writes the head of a script's log and returns the command that runs
 // the script in the project folder and waits for it. The script starts in
-// that command, as Bubble Tea runs it, so a run is always waited for. The script's output goes to its log, which starts again on
-// every run and is shown in the script's own pane, under the script.
+// that command, as Bubble Tea runs it, so a run is always waited for. The
+// script's output goes to its log, which starts again on every run and is
+// shown in the script's own pane, under the script.
 func (m *Model) run(name string) tea.Cmd {
 	log := runner.LogOf(name)
 	r, err := runner.Prepare(m.store, name, m.now)

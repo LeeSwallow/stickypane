@@ -18,7 +18,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
-// Run is a script that has been started.
+// Run is a script to run: prepared, started, or ended.
 type Run struct {
 	script   string // the script's path
 	dir      string // the project folder, where it runs
@@ -160,8 +160,8 @@ func (r *Run) Kill() {
 	_ = r.cmd.Process.Kill()
 }
 
-// Wait starts a prepared script, waits for it to end and writes how it ended as the last
-// line of its log. The error is why it could not be run at all; a script
+// Wait starts a prepared script, waits for it to end and writes how it
+// ended as the last line of its log. The error is why it could not be run at all; a script
 // that ran and failed has an exit code instead.
 func (r *Run) Wait() (code int, took time.Duration, err error) {
 	r.launch()
