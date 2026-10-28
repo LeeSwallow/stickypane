@@ -269,7 +269,7 @@ func (m *Model) useTheme(t theme.Theme) {
 // chooseTheme makes the chosen theme the one in use, remembers the choice
 // in sticky.json and says which theme that is.
 func (m *Model) chooseTheme(name string) {
-	if err := m.store.SetTheme(name); err != nil {
+	if err := m.calls().ChangeSettings(api.Setting{Key: "theme", Value: name}); err != nil {
 		m.status = say(tr.ThemeNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.useTheme(theme.Pick(name, m.dark))

@@ -31,10 +31,9 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
+	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/runner"
 	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/theme"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -567,47 +566,20 @@ func (s *server) settingsSet(params json.RawMessage) (any, error) {
 	if p.Theme == nil && p.Style == nil && p.View == nil && p.Language == nil {
 		return nil, badRequest("settings.set needs theme, style, view or language")
 	}
-	st := s.api.Store()
-	var writes []func() error
-	if p.Theme != nil {
-		name := "auto"
-		if !strings.EqualFold(strings.TrimSpace(*p.Theme), "auto") {
-			t, ok := theme.Lookup(*p.Theme)
-			if !ok {
-				return nil, badRequest(fmt.Sprintf("there is no theme %q", *p.Theme))
-			}
-			name = t.Name
+	var changes []api.Setting
+	for _, c := range []struct {
+		key   string
+		value *string
+	}{{"theme", p.Theme}, {"style", p.Style}, {"view", p.View}, {"language", p.Language}} {
+		if c.value != nil {
+			changes = append(changes, api.Setting{Key: c.key, Value: *c.value})
 		}
-		writes = append(writes, func() error { return st.SetTheme(name) })
 	}
-	if p.Style != nil {
-		if *p.Style != store.StyleDoodle && *p.Style != store.StyleNeat {
-			return nil, badRequest(fmt.Sprintf("style %q is not doodle or neat", *p.Style))
-		}
-		writes = append(writes, func() error { return st.SetStyle(*p.Style) })
-	}
-	if p.View != nil {
-		switch *p.View {
-		case store.ViewTerminal, store.ViewOverlay, store.ViewBoth:
-		default:
-			return nil, badRequest(fmt.Sprintf("view %q is not terminal, overlay or both", *p.View))
-		}
-		writes = append(writes, func() error { return st.SetViewMode(*p.View) })
-	}
-	if p.Language != nil {
-		code := strings.ToLower(strings.TrimSpace(*p.Language))
-		if code != "auto" {
-			if _, err := i18n.Load(code); err != nil || code == "" {
-				return nil, badRequest(fmt.Sprintf("there is no translation for %q: use auto, %s", *p.Language, strings.Join(i18n.Languages(), ", ")))
-			}
-		}
-		// Stored as `stickypane language` stores it.
-		writes = append(writes, func() error { return st.SetLanguage(code) })
-	}
-	for _, w := range writes {
-		if err := w(); err != nil {
-			return nil, err
-		}
+	var refused *prefs.Refused
+	if err := s.api.ChangeSettings(changes...); errors.As(err, &refused) {
+		return nil, badRequest(err.Error())
+	} else if err != nil {
+		return nil, err
 	}
 	return empty{}, nil
 }
