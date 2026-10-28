@@ -34,6 +34,7 @@ func cursorLine(lines []string, at widget.Span) int {
 }
 
 func TestDrawShowsColumnsSideBySide(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseSrc(src), 60, false)
 	want := []string{
 		"○ To do (1)         ◐ Doing (1)         ● Done (1)",
@@ -48,6 +49,7 @@ func TestDrawShowsColumnsSideBySide(t *testing.T) {
 }
 
 func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
+	t.Parallel()
 	long := "프로젝트 개념 요약이 인용 하나의 revision 이 달라도 통째로 실패함"
 	w := parseSrc("## A\n- 1\n- 2\n- 3\n- 4\n- 5\n- 6\n- " + long + "\n## B\n- x\n")
 	lines, _ := draw(w, 44, false)
@@ -74,6 +76,7 @@ func TestDrawShowsEveryCardAndWrapsLongOnes(t *testing.T) {
 }
 
 func TestCardsAreBoxes(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseSrc("## A\n- one\n- two\n"), 40, false)
 	top, bottom := "╭"+strings.Repeat("─", 36)+"╮", "╰"+strings.Repeat("─", 36)+"╯"
 	if want := []string{"○ A (2)", strings.Repeat("─", 38), top, "│ one" + strings.Repeat(" ", 31) + " │", bottom, top, "│ two" + strings.Repeat(" ", 31) + " │", bottom}; strings.Join(lines, "|") != strings.Join(want, "|") {
@@ -82,6 +85,7 @@ func TestCardsAreBoxes(t *testing.T) {
 }
 
 func TestDrawStacksColumnsWhenNarrow(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseSrc(src), 30, false)
 	rule := strings.Repeat("─", 29)
 	box := func(s string) []string {
@@ -100,6 +104,7 @@ func TestDrawStacksColumnsWhenNarrow(t *testing.T) {
 }
 
 func TestCursorShowsOnlyWhenActive(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(src)
 	if lines, cursor := draw(w, 60, false); cursor != -1 || strings.Contains(strings.Join(lines, "\n"), "›") {
 		t.Errorf("an inactive board must not show a cursor (cursor = %d):\n%s", cursor, strings.Join(lines, "\n"))
@@ -111,6 +116,7 @@ func TestCursorShowsOnlyWhenActive(t *testing.T) {
 }
 
 func TestCursorLineFollowsTheSelection(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("intro line\n\n## A\n- one\n- two\n- three\n## B\n- x\n")
 	w, _ = w.Update("j")
 	w, _ = w.Update("j")
@@ -125,6 +131,7 @@ func TestCursorLineFollowsTheSelection(t *testing.T) {
 }
 
 func TestDetailShowsUnderTheSelectedCard(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(src)
 	lines, _ := draw(w, 60, true)
 	if strings.Contains(strings.Join(lines, "\n"), "refresh token") {
@@ -138,6 +145,7 @@ func TestDetailShowsUnderTheSelectedCard(t *testing.T) {
 }
 
 func TestSpanCoversTheSelectedCardAndItsDetails(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("## A\n- a long card title that wraps onto a second line here\n  - detail one\n  - detail two\n- next\n")
 	for _, width := range []int{30, 12} { // side by side, then stacked
 		out, at := w.Draw(width, true)
@@ -153,6 +161,7 @@ func TestSpanCoversTheSelectedCardAndItsDetails(t *testing.T) {
 }
 
 func TestSpanOfAnEmptyActiveColumnIsItsHeading(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("## A\n- one\n- two\n## Empty\n## C\n- x\n")
 	w, _ = w.Update("l")
 	for _, width := range []int{60, 12} {
@@ -165,6 +174,7 @@ func TestSpanOfAnEmptyActiveColumnIsItsHeading(t *testing.T) {
 }
 
 func TestDrawShowsTheDescription(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseSrc("Sprint goal: ship login\nsecond line\n\n## A\n- x\n"), 60, false)
 	if lines[0] != "Sprint goal: ship login" || lines[1] != "second line" || lines[2] != "" {
 		t.Errorf("the description should come first, followed by a blank line: %q", lines)
@@ -172,6 +182,7 @@ func TestDrawShowsTheDescription(t *testing.T) {
 }
 
 func TestBoardWithoutColumnsStillShowsItsText(t *testing.T) {
+	t.Parallel()
 	lines, cursor := draw(parseSrc("just text\nmore text\n"), 60, true)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{`"## Name"`, "just text", "more text"} {
@@ -185,6 +196,7 @@ func TestBoardWithoutColumnsStillShowsItsText(t *testing.T) {
 }
 
 func TestLinesThatAreNotListItemsAreStillCards(t *testing.T) {
+	t.Parallel()
 	lines, _ := draw(parseSrc("## To do\nask Bob about the API\n1. first step\n- normal card\n## Done\n"), 70, false)
 	text := strings.Join(lines, "\n")
 	for _, want := range []string{"To do (3)", "ask Bob about the API", "1. first step", "normal card"} {
@@ -195,6 +207,7 @@ func TestLinesThatAreNotListItemsAreStillCards(t *testing.T) {
 }
 
 func TestDrawKeepsWidthWithWideText(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("설명 줄이 아주 길어서 줄을 바꿔야 하는 경우입니다 정말로요\n## 할 일\n- 결제 연동을 다음 주까지 마무리하기\n  - 상세 설명도 길게 적어서 줄이 바뀌어야 합니다\n## 진행 중\n- 로그인 API 📌\n## 완료\n- DB 스키마\n")
 	for _, width := range []int{1, 8, 20, 34, 60} {
 		for _, active := range []bool{false, true} {
@@ -209,6 +222,7 @@ func TestDrawKeepsWidthWithWideText(t *testing.T) {
 }
 
 func TestMoveKeyEmitsOpAndFollowsCard(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(src)
 	w, res := w.Update("l")
 	if res.Op != nil {
@@ -230,6 +244,7 @@ func TestMoveKeyEmitsOpAndFollowsCard(t *testing.T) {
 }
 
 func TestMoveKeyAtEdgeDoesNothing(t *testing.T) {
+	t.Parallel()
 	_, res := parseSrc(src).Update("H")
 	if res.Op != nil {
 		t.Errorf("H in the first column should do nothing, got %+v", res.Op)
@@ -237,6 +252,7 @@ func TestMoveKeyAtEdgeDoesNothing(t *testing.T) {
 }
 
 func TestReorderKeys(t *testing.T) {
+	t.Parallel()
 	_, res := parseSrc("## A\n- one\n- two\n").Update("J")
 	if want := (ReorderCard{Col: "A", Text: "one", Delta: 1}); res.Op != want {
 		t.Errorf("J: Op = %+v, want %+v", res.Op, want)
@@ -248,6 +264,7 @@ func TestReorderKeys(t *testing.T) {
 }
 
 func TestKeysCarryTheDuplicateIndex(t *testing.T) {
+	t.Parallel()
 	const duplicates = "## A\n- same\n  first detail\n- same\n  second detail\n- z\n## B\n"
 	w := parseSrc(duplicates)
 	w, _ = w.Update("j")
@@ -264,6 +281,7 @@ func TestKeysCarryTheDuplicateIndex(t *testing.T) {
 }
 
 func TestNewCardPrompt(t *testing.T) {
+	t.Parallel()
 	_, res := parseSrc(src).Update("n")
 	if res.Prompt == nil {
 		t.Fatal("n should ask for the card text")
@@ -277,6 +295,7 @@ func TestNewCardPrompt(t *testing.T) {
 }
 
 func TestEmptyBoardIgnoresKeys(t *testing.T) {
+	t.Parallel()
 	w := parseSrc("no columns here\n")
 	for _, key := range strings.Fields(Kind.Keys) {
 		var res widget.Result
@@ -289,6 +308,7 @@ func TestEmptyBoardIgnoresKeys(t *testing.T) {
 }
 
 func TestSyncClampsCursor(t *testing.T) {
+	t.Parallel()
 	w := parseSrc(src)
 	w, _ = w.Update("l")
 	w, _ = w.Update("l")
@@ -299,6 +319,7 @@ func TestSyncClampsCursor(t *testing.T) {
 }
 
 func TestSummaryCountsCards(t *testing.T) {
+	t.Parallel()
 	if got := parseSrc(src).Summary(); got != "3 cards" {
 		t.Errorf("Summary = %q", got)
 	}
@@ -311,6 +332,7 @@ func TestSummaryCountsCards(t *testing.T) {
 }
 
 func TestKindDescribesItself(t *testing.T) {
+	t.Parallel()
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || len(Kind.Hint) == 0 || len(Kind.Hint)%2 != 0 || Kind.Blurb == "" {
 		t.Errorf("Kind needs a one-cell icon, a key hint and a blurb: %+v", Kind)
 	}
@@ -321,6 +343,7 @@ func TestKindDescribesItself(t *testing.T) {
 }
 
 func TestKind(t *testing.T) {
+	t.Parallel()
 	got := string(Kind.Template("Auth"))
 	want := "---\ntype: board\ntitle: Auth\n---\n## To do\n\n## Doing\n\n## Done\n"
 	if got != want {

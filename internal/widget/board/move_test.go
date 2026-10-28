@@ -10,6 +10,7 @@ import (
 const moveSrc = "## To do\n- payments\n  - stripe first\n- login API\n## Doing\n## Done\n- schema\n"
 
 func TestMoveFindsTheCardAndTheColumnByName(t *testing.T) {
+	t.Parallel()
 	d, err := (Move{Card: "login", To: "doing"}).Apply(doc.Parse([]byte(moveSrc)))
 	if err != nil {
 		t.Fatal(err)
@@ -34,6 +35,7 @@ func TestMoveFindsTheCardAndTheColumnByName(t *testing.T) {
 }
 
 func TestAddPutsACardInAColumn(t *testing.T) {
+	t.Parallel()
 	d, err := (Add{Card: "refunds", To: "doing"}).Apply(doc.Parse([]byte(moveSrc)))
 	if err != nil || !strings.Contains(string(d.Bytes()), "## Doing\n- refunds\n## Done\n") {
 		t.Errorf("Add = %v\n%s", err, d.Bytes())

@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 // Pref is one setting.
@@ -78,6 +80,35 @@ func Get(set store.Settings, key string) string {
 	}
 	p, _ := find(key)
 	return p.Default
+}
+
+// StaleAfter is how long a card may stay put before the board flags it,
+// by the "stale" setting: "30m", "2h", "1d". Zero, for "off" or a value it
+// cannot read, never flags one.
+func StaleAfter(set store.Settings) time.Duration {
+	v := Get(set, "stale")
+	d, err := time.ParseDuration(strings.Replace(v, "d", "h", 1))
+	if err != nil {
+		return 0
+	}
+	if strings.HasSuffix(v, "d") {
+		d *= 24
+	}
+	return d
+}
+
+// Times is how the screen writes a time, by the "time" setting: the
+// locale's way for "auto", the neutral form for "iso", else the way of the
+// country it names.
+func Times(set store.Settings) when.Formatter {
+	switch v := Get(set, "time"); v {
+	case "auto":
+		return when.Locale(env.Detect().Locale)
+	case "iso":
+		return when.Formatter{}
+	default:
+		return when.Locale(v)
+	}
 }
 
 // Screen are the settings of how the board is shown, which the desktop app

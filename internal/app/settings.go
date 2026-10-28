@@ -2,19 +2,14 @@ package app
 
 import (
 	"fmt"
-	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
-	"github.com/LeeSwallow/stickypane/internal/when"
 	"github.com/LeeSwallow/stickypane/internal/widget"
-	"github.com/LeeSwallow/stickypane/internal/widget/board"
 )
 
 // settingsWidth is the dialog that lists the settings.
@@ -44,25 +39,10 @@ func (m *Model) applyPrefs(set store.Settings) {
 		m.themeChoice = v
 		m.useTheme(theme.Pick(v, m.dark))
 	}
-	var times when.Formatter
-	switch v := prefs.Get(set, "time"); v {
-	case "auto":
-		times = when.Locale(env.Detect().Locale)
-	case "iso":
-	default:
-		times = when.Locale(v)
-	}
-	if times != m.env.Times {
+	if times, stale := prefs.Times(set), prefs.StaleAfter(set); times != m.env.Times || stale != m.env.StaleAfter {
 		// Widgets keep the Env they were parsed with: they are made again.
-		m.env.Times = times
+		m.env.Times, m.env.StaleAfter = times, stale
 		m.items = nil
-	}
-	board.StaleAfter = 0
-	if d, err := time.ParseDuration(strings.Replace(prefs.Get(set, "stale"), "d", "h", 1)); err == nil {
-		if strings.HasSuffix(prefs.Get(set, "stale"), "d") {
-			d *= 24
-		}
-		board.StaleAfter = d
 	}
 	editorChoice = prefs.Get(set, "editor")
 	m.drawn = nil // what notes drew may say times or flags differently now

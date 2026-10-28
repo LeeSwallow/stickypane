@@ -73,9 +73,15 @@ func (b *Board) Summary() string {
 	case len(b.cols) == 0:
 		return ""
 	case n == 1:
-		return widget.T("1 card")
+		return b.env.T("1 card")
 	}
-	return fmt.Sprintf(widget.T("%d cards"), n)
+	return fmt.Sprintf(b.env.T("%d cards"), n)
+}
+
+// stalled reports whether a card outside the last column has not moved
+// for after; a zero after never flags one.
+func stalled(cd card, last bool, t time.Time, after time.Duration) bool {
+	return after > 0 && !last && !cd.moved.IsZero() && t.Sub(cd.moved) >= after
 }
 
 // cardJSON is a card as a screen other than the terminal reads it.
@@ -94,9 +100,9 @@ type columnJSON struct {
 
 // data is the columns and their cards, from the same read the board draws,
 // with the same call on which cards stalled.
-func data(d doc.Document, _ widget.Env) any {
+func data(d doc.Document, e widget.Env) any {
 	b := read(d)
-	t := now()
+	t := e.Now()
 	out := struct {
 		Desc    []string     `json:"desc"`
 		Columns []columnJSON `json:"columns"`
@@ -105,7 +111,7 @@ func data(d doc.Document, _ widget.Env) any {
 	for ci, c := range b.cols {
 		col := columnJSON{Title: c.title, Cards: []cardJSON{}}
 		for _, cd := range c.cards {
-			j := cardJSON{Text: cd.text, Who: []string{}, Detail: []string{}, Stalled: stalled(cd, ci == len(b.cols)-1, t)}
+			j := cardJSON{Text: cd.text, Who: []string{}, Detail: []string{}, Stalled: stalled(cd, ci == len(b.cols)-1, t, e.StaleAfter)}
 			j.Who = append(j.Who, cd.who...)
 			j.Detail = append(j.Detail, cd.detail...)
 			if !cd.moved.IsZero() {
