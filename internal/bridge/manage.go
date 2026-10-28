@@ -9,7 +9,6 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -264,7 +263,7 @@ type sendResult struct {
 
 // noteSend sends one request of a .http note and waits for its answer, as
 // the terminal does after the user said yes. The log is written by the
-// same function (httpfile.SendNote); the app reads it from the board.
+// same function (api.SendPart); the app reads it from the board.
 func (s *server) noteSend(params json.RawMessage) (any, error) {
 	var p sendParams
 	if err := decode(params, &p); err != nil {
@@ -286,27 +285,17 @@ func (s *server) noteSend(params json.RawMessage) (any, error) {
 	if k := s.reg.For(n.Name, n.Doc); n.Book() || k.Name != "api" {
 		return nil, badRequest(fmt.Sprintf("%s has no requests to send", p.Note))
 	}
-	st := s.api.Store()
-	data, err := st.Read(n.Name)
-	if err != nil {
-		return nil, err
-	}
-	f := httpfile.Parse(string(data))
-	titles := make([]string, len(f.Requests))
-	for i, r := range f.Requests {
-		titles[i] = r.Title()
-	}
-	part, err := widget.Pick(titles, want, "request")
+	part, err := s.api.Request(n.Name, want)
 	if err != nil {
 		return nil, badRequest(err.Error())
 	}
-	res, err := httpfile.SendNote(s.ctx, st, st.Dir, n.Name, part, "")
+	res, err := s.api.SendPart(s.ctx, n.Name, part, "")
 	if err != nil {
 		return nil, err
 	}
 	return sendResult{
-		Status: res.Status, Text: res.Text, Took: res.Took.Milliseconds(), Failed: res.Failed(),
-		End: strings.Trim(httpfile.End(res), "[]"), Log: httpfile.LogName(n.Name),
+		Status: res.Status, Text: res.Text, Took: res.Took.Milliseconds(), Failed: res.Failed,
+		End: res.End, Log: res.Log,
 	}, nil
 }
 
