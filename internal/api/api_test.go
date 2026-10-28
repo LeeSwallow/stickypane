@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,5 +186,51 @@ func TestStickypaneKeepsTheTimes(t *testing.T) {
 	infos, err := a.List()
 	if err != nil || len(infos) != 2 || infos[0].Created.IsZero() {
 		t.Errorf("list says when each note was made: %+v, %v", infos, err)
+	}
+}
+
+func TestWriteSaysWhichTypeIsUnknownWithASentinel(t *testing.T) {
+	a, _ := newAPI(t, nil)
+	_, err := a.Write("x", Options{Type: "spreadsheet"}, []byte("x\n"))
+	if !errors.Is(err, ErrUnknownType) || !strings.Contains(err.Error(), `unknown type "spreadsheet"`) {
+		t.Errorf("err = %v, want ErrUnknownType naming the type", err)
+	}
+}
+
+func TestCreateNeverWritesOverANote(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"taken.md": "mine\n"})
+	if _, err := a.Create("taken", Options{Title: "Other"}, []byte("theirs\n")); !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("Create over a note: err = %v, want fs.ErrExist", err)
+	}
+	if got := readRaw(t, dir, "taken.md"); got != "mine\n" {
+		t.Errorf("the note was written over: %q", got)
+	}
+	name, err := a.Create("fresh", Options{Type: "checklist", Title: "Fresh"}, []byte("- [ ] a\n"))
+	if err != nil || name != "fresh.md" {
+		t.Fatalf("Create = %q, %v", name, err)
+	}
+	got := readRaw(t, dir, "fresh.md")
+	for _, want := range []string{"type: checklist", "title: Fresh", "created:", "- [ ] a"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("fresh.md lacks %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestRestoreOfWhatIsNotInTheTrashIsNotFound(t *testing.T) {
+	a, _ := newAPI(t, nil)
+	if _, err := a.Restore("ghost.md"); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("err = %v, want fs.ErrNotExist", err)
+	}
+}
+
+func TestMoveToSaysWhereTheNoteWent(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"a.md": "a\n"})
+	dest, err := a.MoveTo("a", "docs/")
+	if err != nil || dest != "docs/a.md" {
+		t.Fatalf("MoveTo = %q, %v", dest, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "a.md")); err != nil {
+		t.Error(err)
 	}
 }

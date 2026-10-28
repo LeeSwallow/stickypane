@@ -79,6 +79,15 @@ func Start(st *store.Store, name string, now func() time.Time) (*Run, error) {
 	return r, nil
 }
 
+// Kill stops the script's process, for a front end that is ending while the
+// script still runs. It is harmless on a script that has ended or that
+// could not be run, and on a second call.
+func (r *Run) Kill() {
+	if r.cmd != nil && r.cmd.Process != nil {
+		_ = r.cmd.Process.Kill()
+	}
+}
+
 // Wait waits for the script to end and writes how it ended as the last
 // line of its log. The error is why it could not be run at all; a script
 // that ran and failed has an exit code instead.

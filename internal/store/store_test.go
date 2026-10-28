@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -272,5 +273,19 @@ func TestDelete(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(s.Dir, "a.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("file still exists: %v", err)
+	}
+}
+
+func TestWriteNewNeverWritesOverAFile(t *testing.T) {
+	dir := t.TempDir()
+	s := Open(dir)
+	if err := s.WriteNew("a.md", []byte("one\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.WriteNew("a.md", []byte("two\n")); !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("second WriteNew: err = %v, want fs.ErrExist", err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "a.md")); string(b) != "one\n" {
+		t.Errorf("file = %q", b)
 	}
 }

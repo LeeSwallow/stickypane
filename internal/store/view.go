@@ -337,8 +337,11 @@ const (
 
 // ViewMode returns where the board is shown: "terminal" (the default),
 // "overlay" or "both". A value it does not know reads as the default.
-func (s *Store) ViewMode() string {
-	switch v := s.one("").Root(viewModeKey); v {
+func (s *Store) ViewMode() string { return s.one("").ViewMode() }
+
+// ViewMode returns where the board is shown, as Store.ViewMode does.
+func (set Settings) ViewMode() string {
+	switch v := set.Root(viewModeKey); v {
 	case ViewOverlay, ViewBoth:
 		return v
 	}
@@ -357,8 +360,11 @@ func (s *Store) SetViewMode(mode string) error {
 }
 
 // Style returns the look of the overlay: "doodle" (the default) or "neat".
-func (s *Store) Style() string {
-	if v := s.one("").Root(styleKey); v == StyleNeat {
+func (s *Store) Style() string { return s.one("").Style() }
+
+// Style returns the look of the overlay, as Store.Style does.
+func (set Settings) Style() string {
+	if v := set.Root(styleKey); v == StyleNeat {
 		return v
 	}
 	return StyleDoodle

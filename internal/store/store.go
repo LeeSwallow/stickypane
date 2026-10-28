@@ -420,6 +420,29 @@ func (s *Store) Write(name string, content []byte) error {
 	return writeAtomic(path, content)
 }
 
+// WriteNew creates a note with content and fails with an error that is
+// fs.ErrExist if anything is at that name already: it can never write over
+// a file made a moment before, which Write would. The folder is made when
+// it is not there.
+func (s *Store) WriteNew(name string, content []byte) error {
+	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	_, werr := f.Write(content)
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		os.Remove(path) // never leave half a note
+	}
+	return werr
+}
+
 func writeAtomic(path string, data []byte) error {
 	mode := fs.FileMode(0o644)
 	if fi, err := os.Stat(path); err == nil {
