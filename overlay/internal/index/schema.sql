@@ -1,4 +1,4 @@
-CREATE TABLE project (
+CREATE TABLE IF NOT EXISTS project (
   id          INTEGER PRIMARY KEY,
   path        TEXT NOT NULL UNIQUE,
   title       TEXT,
@@ -6,7 +6,7 @@ CREATE TABLE project (
   last_seen   TEXT NOT NULL,
   removed_at  TEXT
 );
-CREATE TABLE day (
+CREATE TABLE IF NOT EXISTS day (
   project_id  INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
   date        TEXT NOT NULL,
   events      INTEGER NOT NULL DEFAULT 0,
@@ -14,7 +14,7 @@ CREATE TABLE day (
   last_at     TEXT NOT NULL,
   PRIMARY KEY (project_id, date)
 );
-CREATE TABLE session (
+CREATE TABLE IF NOT EXISTS session (
   pid         INTEGER NOT NULL,
   project_id  INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
   kind        TEXT NOT NULL,
@@ -22,8 +22,8 @@ CREATE TABLE session (
   ended_at    TEXT,
   PRIMARY KEY (pid, started_at)
 );
-CREATE TABLE ingest (
+CREATE TABLE IF NOT EXISTS ingest (
   file        TEXT PRIMARY KEY,
   offset      INTEGER NOT NULL
 );
-CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);

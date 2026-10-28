@@ -408,6 +408,78 @@ func TestProcessAliveComparesStartTimes(t *testing.T) {
 	}
 }
 
+func TestConcurrentOpenOfAFreshHomeKeepsEveryone(t *testing.T) {
+	home := newHome(t)
+	const n = 4
+	errs := make(chan error, n)
+	ixs := make(chan *Index, n)
+	for i := 0; i < n; i++ {
+		go func() {
+			ix, err := Open(home)
+			errs <- err
+			ixs <- ix
+		}()
+	}
+	for i := 0; i < n; i++ {
+		if err := <-errs; err != nil {
+			t.Error(err)
+		}
+		if ix := <-ixs; ix != nil {
+			ix.Close()
+		}
+	}
+	if broken, _ := filepath.Glob(filepath.Join(home, "stickypane.db.broken-*")); len(broken) != 0 {
+		t.Fatalf("a healthy database was moved aside: %v", broken)
+	}
+}
+
+func TestPermissionErrorIsNotCorruption(t *testing.T) {
+	home := newHome(t)
+	ix := openIdx(t, home)
+	ix.Close()
+	db := filepath.Join(home, "stickypane.db")
+	if err := os.Chmod(db, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(db, 0o644) })
+	if f, err := os.Open(db); err == nil {
+		f.Close()
+		t.Skip("file stays readable (running as root?)")
+	}
+	if _, err := Open(home); err == nil {
+		t.Fatal("expected an error")
+	}
+	if broken, _ := filepath.Glob(filepath.Join(home, "stickypane.db.broken-*")); len(broken) != 0 {
+		t.Fatalf("renamed on a permission error: %v", broken)
+	}
+	if _, err := os.Stat(db); err != nil {
+		t.Fatal("database gone")
+	}
+}
+
+func TestConcurrentIngestAppliesEachLineOnce(t *testing.T) {
+	home, p := newHome(t), board(t, "a")
+	now := time.Now()
+	var lines []string
+	for i := 0; i < 200; i++ {
+		lines = append(lines, ev(now, "project.touch", p, ""))
+	}
+	writeEvents(t, home, date(now), lines...)
+	a, b := openIdx(t, home), openIdx(t, home)
+	errs := make(chan error, 2)
+	for _, ix := range []*Index{a, b} {
+		go func() { errs <- ix.Ingest() }()
+	}
+	for i := 0; i < 2; i++ {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := dayEvents(t, a, p); n != 200 {
+		t.Fatalf("day.events = %d, want 200", n)
+	}
+}
+
 func TestTitleComesFromStickyJSONElseFolder(t *testing.T) {
 	home, p := newHome(t), oldBoard(t, "folder")
 	now := time.Now()

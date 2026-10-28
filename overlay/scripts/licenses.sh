@@ -46,10 +46,11 @@ else
 	: >"$work/npm.txt"
 fi
 
-python3 -I - "$work/go.json" "$work/npm.txt" <<'PY'
+python3 -I - "$work/go.json" "$work/npm.txt" "$go_dir" <<'PY'
 import json, os, re, sys
 
 go_json, npm_list = sys.argv[1], sys.argv[2]
+go_dir_arg = sys.argv[3] if len(sys.argv) > 3 else ""
 
 ALLOWED = {"MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "ISC", "OFL-1.1"}
 ALLOWED_EXTRA = {
@@ -132,6 +133,16 @@ def go_license(text):
     return None
 
 bad = []
+
+# The GO_TEST_ONLY exception holds only while no package of the app or of its
+# dependencies imports those modules: fail if `go list -deps` lists one.
+if go_dir_arg:
+    import subprocess
+    deps = subprocess.run(["go", "list", "-deps", "./..."], cwd=go_dir_arg,
+                          capture_output=True, text=True).stdout.split()
+    for m in GO_TEST_ONLY:
+        if any(d == m or d.startswith(m + "/") for d in deps):
+            bad.append(("go", m, "is linked into the build, so the test-only exception is void"))
 checked_go = 0
 skipped_go = []
 

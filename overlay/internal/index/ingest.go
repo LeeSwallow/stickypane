@@ -63,8 +63,15 @@ func (ix *Index) Ingest() error {
 }
 
 func (ix *Index) ingestFile(path, name string) error {
+	// The offset is read inside the write transaction (BEGIN IMMEDIATE), so
+	// two instances never apply the same lines twice.
+	tx, err := ix.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	var off int64
-	err := ix.db.QueryRow(`SELECT offset FROM ingest WHERE file=?`, name).Scan(&off)
+	err = tx.QueryRow(`SELECT offset FROM ingest WHERE file=?`, name).Scan(&off)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -73,6 +80,8 @@ func (ix *Index) ingestFile(path, name string) error {
 		return nil // removed since the listing
 	}
 	defer f.Close()
+	// Known limit: a file truncated and then grown past its old offset is
+	// not noticed, and the bytes before the offset are never re-read.
 	if fi, err := f.Stat(); err == nil && fi.Size() < off {
 		off = 0 // a different, shorter file under the same name
 	}
@@ -87,11 +96,6 @@ func (ix *Index) ingestFile(path, name string) error {
 	if end == 0 {
 		return nil
 	}
-	tx, err := ix.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 	skipped := 0
 	for _, line := range bytes.Split(data[:end-1], []byte{'\n'}) {
 		if len(bytes.TrimSpace(line)) == 0 {
@@ -156,6 +160,9 @@ func applyEvent(tx *sql.Tx, e event, at time.Time) error {
 		}
 	}
 
+	// Known limit: the day is the local date of the event time in the zone
+	// in force now; an event written in the repeated hour of a DST change
+	// can fall on the neighbouring date.
 	date := at.In(time.Local).Format("2006-01-02")
 	var n int
 	var first, last string
