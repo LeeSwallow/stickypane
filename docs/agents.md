@@ -73,7 +73,10 @@ nothing in its file, since the plugin teaches it. `init` works outside a
 git repository too, but not in the home folder or the root, where every
 project below would find the board; it is safe to run again. `--view app` (or `both`)
 shows the board in the desktop app, and `--style neat` gives the app its
-neat look; both go to `sticky.json`. With `app`, a plain `stickypane` in
+neat look; both go to `sticky.json`. `--language ko` sets the board's
+language there too. The welcome note is written in the board's language:
+`--language`, else the board's setting, else what `STICKYPANE_LANG`, `LANG`
+and the system say. With `app`, a plain `stickypane` in
 the project opens the board in the app (or in the terminal, saying how to
 get the app, when it is not installed); with `both`, in the app and the
 terminal. `--skill` writes the skill

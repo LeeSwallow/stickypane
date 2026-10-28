@@ -174,7 +174,7 @@
     "start": "처음 시작하기\n\n1. 에이전트를 연결합니다. 한 번이면 됩니다.\n     stickypane setup\n   (Claude Code와 Codex에 보드 플러그인을 설치합니다. setup --mcp는 MCP도 등록)\n2. 프로젝트에 보드를 만듭니다.\n     stickypane init\n   (플러그인이 없는 에이전트에게는 CLAUDE.md나 AGENTS.md에 짧은 안내문을 남깁니다)\n3. 에이전트 옆 창에 보드를 띄웁니다.\n     stickypane\n   (내 터미널에서 띄우는 법은 stickypane env가 압니다)\n\n이제 에이전트에게 보드에 띄워 달라고 하거나, 직접 메모를 붙여 보세요.\n     echo \"- [ ] 보드 써 보기\" | stickypane write plan --type checklist --open\n(어떤 모양이 있는지는 stickypane kinds에서)\n\n다음: stickypane help, 그다음 stickypane help <명령>.",
     "init.brief": "보드를 만들고 에이전트에게 알립니다",
     "init.what": "이 폴더에 .sticky/를 만들고, 에이전트가 읽는 곳(CLAUDE.md, AGENTS.md, .claude 스킬)에 안내문을 넣습니다. 다시 실행해도 안전합니다.",
-    "init.args": "--skill          안내문 파일 대신 Claude Code 스킬로\n--no-agent-docs  폴더만 만듭니다\n--view V         보드를 보일 곳: terminal, app(데스크톱 앱), both\n--style S        앱의 모양: doodle, neat",
+    "init.args": "--skill          안내문 파일 대신 Claude Code 스킬로\n--no-agent-docs  폴더만 만듭니다\n--view V         보드를 보일 곳: terminal, app(데스크톱 앱), both\n--style S        앱의 모양: doodle, neat\n--language L     보드의 언어. 환영 노트도 이 언어로 씁니다: ko, en, auto",
     "setup.brief": "Claude Code와 Codex에 보드 플러그인을 설치합니다",
     "setup.what": "각 에이전트 자체 명령으로 보드 플러그인을 설치합니다. 터미널에서는 먼저 묻습니다. 보드는 만들지 않습니다. 프로젝트에서 stickypane init을 실행하거나, git 저장소라면 에이전트가 처음 바꿀 때 만들어집니다.",
     "setup.args": "--scope S    user, project, local (Claude Code)\n--mcp        MCP 서버로도 등록합니다\n--agents L   claude, codex 또는 둘 다 (기본: 찾은 것)\n--command P  MCP 서버가 실행할 stickypane의 전체 경로\n--undo       플러그인을 지웁니다 (--mcp를 붙이면 MCP 서버도)\n--dry-run    계획만 출력하고 아무것도 실행하지 않습니다\n--yes        묻지 않고 실행합니다",

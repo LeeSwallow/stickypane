@@ -10,7 +10,94 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/filelock"
+	"github.com/LeeSwallow/stickypane/internal/i18n"
 )
+
+// The welcome note is written in the board's language: the one init was
+// given, else the environment's.
+func TestWelcomeNoteIsInTheBoardsLanguage(t *testing.T) {
+	welcome := func(root string) doc.Document {
+		t.Helper()
+		return doc.Parse([]byte(read(t, filepath.Join(root, ".sticky", "welcome.md"))))
+	}
+	korean := func(d doc.Document) bool {
+		title, _ := d.Get("title")
+		return strings.Contains(title, "환영") && strings.Contains(d.Body, "+ 새 노트") && strings.Contains(d.Body, "터미널과 에이전트")
+	}
+
+	t.Setenv("STICKYPANE_LANG", "ko")
+	root := t.TempDir()
+	run(t, root, Options{NoAgentDocs: true})
+	if w := welcome(root); !korean(w) || !w.Pinned() {
+		t.Errorf("the environment asks for Korean, so the welcome note is Korean and pinned: %q", w.Body)
+	}
+	root = t.TempDir()
+	run(t, root, Options{NoAgentDocs: true, Language: "en"})
+	if w := welcome(root); korean(w) || !strings.Contains(w.Body, "+ New note") {
+		t.Errorf("--language en wins over the environment: %q", w.Body)
+	}
+
+	t.Setenv("STICKYPANE_LANG", "en")
+	root = t.TempDir()
+	run(t, root, Options{NoAgentDocs: true, Language: "ko"})
+	if w := welcome(root); !korean(w) {
+		t.Errorf("--language ko wins over the environment: %q", w.Body)
+	}
+	root = t.TempDir()
+	run(t, root, Options{NoAgentDocs: true, Language: "auto"})
+	if w := welcome(root); korean(w) {
+		t.Errorf("--language auto follows the environment (English): %q", w.Body)
+	}
+}
+
+func TestLanguagePrefersTheChoiceThenTheBoardThenTheEnvironment(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	dir := filepath.Join(t.TempDir(), ".sticky")
+	if got := Language(dir, ""); got != "en" {
+		t.Errorf("no board, no choice: the environment's, got %q", got)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sticky.json"), []byte(`{"language": "ko"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := Language(dir, ""); got != "ko" {
+		t.Errorf("the board's setting wins over the environment, got %q", got)
+	}
+	if got := Language(dir, "en"); got != "en" {
+		t.Errorf("a choice wins over the board's setting, got %q", got)
+	}
+	if got := Language(dir, "xx"); got != "en" {
+		t.Errorf("a choice with no translation follows the environment, got %q", got)
+	}
+}
+
+// Every welcome note says the same things as the English one: the same
+// front matter, and the same keys, buttons and agents.
+func TestEveryWelcomeMatchesTheEnglish(t *testing.T) {
+	en := doc.Parse([]byte(Welcome("en")))
+	for _, lang := range i18n.Languages() {
+		w := doc.Parse([]byte(Welcome(lang)))
+		if title, _ := w.Get("title"); title == "" || !w.Pinned() || strings.TrimSpace(w.Body) == "" {
+			t.Errorf("%s: the welcome note needs a title, a pin and a body", lang)
+		}
+		for _, key := range []string{"open", "color"} {
+			a, _ := en.Get(key)
+			if b, _ := w.Get(key); a != b {
+				t.Errorf("%s: %s = %q, the English has %q", lang, key, b, a)
+			}
+		}
+		for _, k := range []string{"**tab**", "**enter**", "**N**", "**a**", "**o**", "**?**", "**×**", "`.sticky/`", "Claude Code", "Codex"} {
+			if !strings.Contains(w.Body, k) {
+				t.Errorf("%s: the welcome note should name %s", lang, k)
+			}
+		}
+	}
+	if Welcome("xx") != Welcome("en") {
+		t.Error("a language without a welcome note gets the English one")
+	}
+}
 
 func read(t *testing.T, path string) string {
 	t.Helper()
@@ -46,6 +133,7 @@ func TestGuideIsShortAndCoversEveryShape(t *testing.T) {
 }
 
 func TestRunCreatesBoardWelcomeNoteAndAgentsFile(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
 	root := t.TempDir()
 	out := run(t, root, Options{})
 	welcome := doc.Parse([]byte(read(t, filepath.Join(root, ".sticky", "welcome.md"))))
