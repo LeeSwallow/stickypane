@@ -11,11 +11,18 @@ import (
 // negative matches a word that is a negative number, not a flag.
 var negative = regexp.MustCompile(`^-[0-9][0-9,_.]*$`)
 
+// flagsMade, when set, is handed every flag set newFlags makes, so a test
+// can hold a command's help to the flags it really reads.
+var flagsMade func(*flag.FlagSet)
+
 // newFlags returns a flag set for a command that reports nothing itself:
 // errors come back to exitCode, which prints them with the usage.
 func newFlags(cmd string) *flag.FlagSet {
 	fs := flag.NewFlagSet("stickypane "+cmd, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	if flagsMade != nil {
+		flagsMade(fs)
+	}
 	return fs
 }
 

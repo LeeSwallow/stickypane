@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"flag"
 	"os"
 	"regexp"
 	"slices"
@@ -124,13 +127,27 @@ func TestHelpOverviewNamesEveryCommand(t *testing.T) {
 }
 
 // Every command has help, in a known group, with a usage line that agrees
-// with the usage text, and at least one example.
+// with the usage text and with the flags the command really reads, and at
+// least one example. Every flag the arguments name, in English and in
+// Korean, is one of those flags, and a flag with a default says it.
 func TestEveryCommandHasHelp(t *testing.T) {
+	english(t)
+	t.Chdir(t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	ko, err := i18n.Load("ko")
+	if err != nil {
+		t.Fatal(err)
+	}
 	groups := map[string]bool{}
 	for _, g := range helpGroups {
 		groups[g.key] = true
 	}
-	flag := regexp.MustCompile(`--[a-z-]+`)
+	flagRe := regexp.MustCompile(`--[a-z][a-z-]*`)
+	names := func(s string) []string {
+		out := flagRe.FindAllString(s, -1)
+		slices.Sort(out)
+		return slices.Compact(out)
+	}
 	for _, c := range commands {
 		name, h := c.names[0], c.help
 		if !groups[h.group] || h.brief == "" || h.what == "" || len(h.examples) == 0 {
@@ -139,16 +156,29 @@ func TestEveryCommandHasHelp(t *testing.T) {
 		if h.syntax != "stickypane "+name && !strings.HasPrefix(h.syntax, "stickypane "+name+" ") {
 			t.Errorf("%s: syntax %q", name, h.syntax)
 		}
-		// The flags of the help and of the usage text are the same.
-		got := flag.FindAllString(h.syntax, -1)
-		want := flag.FindAllString(usageOf(name), -1)
-		if name == "help" || name == "version" {
-			continue
+		real := realFlags(t, c)
+		var have []string
+		real.VisitAll(func(f *flag.Flag) { have = append(have, "--"+f.Name) })
+		slices.Sort(have)
+		if got := names(h.syntax); !slices.Equal(got, have) {
+			t.Errorf("%s: help has flags %v, the command %v", name, got, have)
 		}
-		slices.Sort(got)
-		slices.Sort(want)
-		if !slices.Equal(slices.Compact(got), slices.Compact(want)) {
+		if got, want := names(h.syntax), names(usageOf(name)); !slices.Equal(got, want) {
 			t.Errorf("%s: help has flags %v, the usage text %v", name, got, want)
+		}
+		for lang, args := range map[string]string{"en": h.args, "ko": ko.CLI[name+".args"]} {
+			if got := names(args); !slices.Equal(got, have) {
+				t.Errorf("%s: the %s arguments name %v, the command has %v", name, lang, got, have)
+			}
+			for _, line := range strings.Split(args, "\n") {
+				f := real.Lookup(strings.TrimPrefix(flagRe.FindString(line), "--"))
+				if f == nil || slices.Contains([]string{"", "false", "0", "0s"}, f.DefValue) {
+					continue
+				}
+				if !strings.Contains(line, f.DefValue) {
+					t.Errorf("%s: the %s line %q does not give the default %q", name, lang, line, f.DefValue)
+				}
+			}
 		}
 		for _, r := range h.related {
 			if _, ok := lookup(r); !ok && r != "start" && !isShape(r) {
@@ -156,6 +186,23 @@ func TestEveryCommandHasHelp(t *testing.T) {
 			}
 		}
 	}
+}
+
+// realFlags is the flag set a command reads: the command is run with a
+// flag nobody has, which every command refuses before it does anything,
+// and the last flag set it made is kept. A command that makes none has
+// an empty one.
+func realFlags(t *testing.T, c command) *flag.FlagSet {
+	t.Helper()
+	var made *flag.FlagSet
+	flagsMade = func(fs *flag.FlagSet) { made = fs }
+	defer func() { flagsMade = nil }()
+	var out bytes.Buffer
+	_ = c.run(env{ctx: context.Background(), stdin: strings.NewReader(""), stdout: &out, stderr: &out, cmd: c.names[0]}, []string{"--no-such-flag-here"})
+	if made == nil {
+		return flag.NewFlagSet(c.names[0], flag.ContinueOnError)
+	}
+	return made
 }
 
 func isShape(name string) bool {
