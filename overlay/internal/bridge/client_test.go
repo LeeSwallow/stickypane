@@ -186,23 +186,14 @@ func TestClientGivesUpAfterThreeRestarts(t *testing.T) {
 }
 
 func TestFindLooksBeyondTheGUIPath(t *testing.T) {
-	name := "stickypane"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
 	empty, first, second := t.TempDir(), t.TempDir(), t.TempDir()
+	log := filepath.Join(t.TempDir(), "runs.log")
 	put := func(dir string) string {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte("#!/bin/sh\n"), 0o755); err != nil {
-			t.Fatal(err)
-		}
+		p := fakeStickypane(t, dir, "0.2.0", true, log)
+		resetProbes()
 		return p
 	}
-	old := searchDirs
-	searchDirs = func() []string { return []string{filepath.Join(empty, "nope"), first, second} }
-	t.Cleanup(func() { searchDirs = old })
-	t.Setenv("STICKYPANE_BIN", "")
-	t.Setenv("PATH", empty)
+	isolate(t, empty, filepath.Join(empty, "nope"), first, second)
 
 	if _, err := Find(); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)

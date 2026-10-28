@@ -1,0 +1,103 @@
+package bridge
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+// fakeStickypane writes a stickypane into dir that answers help and
+// version as a release of the given version would, and logs every
+// argument list it is run with to log.
+func fakeStickypane(t *testing.T, dir, version string, hasBridge bool, log string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("shell scripts")
+	}
+	usage := `  stickypane init        make .sticky/`
+	if hasBridge {
+		usage += "\n  stickypane bridge              serve the board to the desktop app"
+	}
+	script := "#!/bin/sh\n" +
+		"echo \"$@\" >> '" + log + "'\n" +
+		"case \"$1\" in\n" +
+		"help) /bin/cat <<'EOF'\nstickypane - a note board\n\nUsage:\n" + usage + "\nEOF\n;;\n" +
+		"version) echo 'stickypane " + version + "' ;;\n" +
+		"esac\n"
+	p := filepath.Join(dir, "stickypane")
+	if err := os.WriteFile(p, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func isolate(t *testing.T, path string, dirs ...string) {
+	t.Helper()
+	old := searchDirs
+	searchDirs = func() []string { return dirs }
+	t.Cleanup(func() { searchDirs = old })
+	t.Setenv("STICKYPANE_BIN", "")
+	t.Setenv("PATH", path)
+	resetProbes()
+}
+
+func TestFindPrefersAStickypaneWithTheBridge(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "runs.log")
+	brew, gobin := t.TempDir(), t.TempDir()
+	fakeStickypane(t, brew, "0.1.1", false, log)
+	want := fakeStickypane(t, gobin, "0.2.0", true, log)
+	isolate(t, brew, gobin) // the old one is first on PATH
+
+	got, err := Find()
+	if err != nil || got != want {
+		t.Fatalf("Find = %q, %v; want %q", got, err, want)
+	}
+	c := Probe(got)
+	if !c.Bridge || c.Version != "0.2.0" {
+		t.Errorf("Probe = %+v", c)
+	}
+	runs, _ := os.ReadFile(log)
+	if strings.Contains(string(runs), "bridge") {
+		t.Errorf("an old stickypane was run with bridge:\n%s", runs)
+	}
+}
+
+func TestFindRefusesAStickypaneTooOldForTheBridge(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "runs.log")
+	brew := t.TempDir()
+	old := fakeStickypane(t, brew, "0.1.1", false, log)
+	isolate(t, brew)
+
+	_, err := Find()
+	if !errors.Is(err, ErrTooOld) {
+		t.Fatalf("err = %v, want ErrTooOld", err)
+	}
+	var too *TooOldError
+	if !errors.As(err, &too) || len(too.Found) != 1 || too.Found[0].Path != old || too.Found[0].Version != "0.1.1" {
+		t.Fatalf("found %+v", too)
+	}
+	for _, w := range []string{old, "0.1.1", "too old", "bridge", "Update stickypane"} {
+		if !strings.Contains(err.Error(), w) {
+			t.Errorf("the error does not say %q: %s", w, err)
+		}
+	}
+	runs, _ := os.ReadFile(log)
+	if strings.Contains(string(runs), "bridge") {
+		t.Errorf("an old stickypane was run with bridge:\n%s", runs)
+	}
+}
+
+func TestOldStickypaneBinIsPassedOver(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "runs.log")
+	a, b := t.TempDir(), t.TempDir()
+	old := fakeStickypane(t, a, "0.1.1", false, log)
+	want := fakeStickypane(t, b, "0.2.0", true, log)
+	isolate(t, "", b)
+	t.Setenv("STICKYPANE_BIN", old)
+	if got, err := Find(); err != nil || got != want {
+		t.Fatalf("Find = %q, %v; want %q", got, err, want)
+	}
+}

@@ -9,8 +9,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -459,45 +457,6 @@ func (p *proc) fail() {
 func (p *proc) kill() {
 	p.stdin.Close()
 	p.cmd.Process.Kill()
-}
-
-// searchDirs are where Find looks after PATH: a GUI app does not get the
-// shell's PATH, so the usual homes of a command line program are tried.
-var searchDirs = func() []string {
-	dirs := []string{"/opt/homebrew/bin", "/usr/local/bin"}
-	if home, err := os.UserHomeDir(); err == nil {
-		dirs = append(dirs, filepath.Join(home, "go", "bin"))
-	}
-	return dirs
-}
-
-// Find returns the path of the stickypane program: STICKYPANE_BIN if set,
-// else PATH, /opt/homebrew/bin, /usr/local/bin, ~/go/bin.
-func Find() (string, error) {
-	if p := os.Getenv("STICKYPANE_BIN"); p != "" {
-		if isExecutable(p) {
-			return p, nil
-		}
-		return "", fmt.Errorf("%w: STICKYPANE_BIN=%s", ErrNotFound, p)
-	}
-	if p, err := exec.LookPath("stickypane"); err == nil {
-		return p, nil
-	}
-	name := "stickypane"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
-	for _, d := range searchDirs() {
-		if p := filepath.Join(d, name); isExecutable(p) {
-			return p, nil
-		}
-	}
-	return "", ErrNotFound
-}
-
-func isExecutable(p string) bool {
-	fi, err := os.Stat(p)
-	return err == nil && fi.Mode().IsRegular() && (runtime.GOOS == "windows" || fi.Mode().Perm()&0o111 != 0)
 }
 
 // tail keeps the last bytes written to it: the end of the bridge's stderr.
