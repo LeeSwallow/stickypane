@@ -1,6 +1,8 @@
 package checklist
 
 import (
+	"strings"
+
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -18,9 +20,19 @@ var Kind = widget.Kind{
 	Keys:     "j k up down space n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
 	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
-	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
-	Events:   events,
-	Data:     data,
-	Act:      act,
-	Tend:     tend,
+	Options: []widget.Option{
+		{Name: "items", Type: widget.OptLines, Label: "Items"},
+	},
+	Compose: func(title string, opts map[string]string) ([]byte, error) {
+		var b strings.Builder
+		for _, item := range widget.Lines(opts["items"]) {
+			b.WriteString("- [ ] " + item + "\n")
+		}
+		return widget.NewFile("checklist", title, b.String()), nil
+	},
+	Parse:  func(d doc.Document) widget.Widget { return parse(d) },
+	Events: events,
+	Data:   data,
+	Act:    act,
+	Tend:   tend,
 }
