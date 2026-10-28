@@ -166,6 +166,7 @@ var methods = map[string]func(s *server, params json.RawMessage) (any, error){
 	"note.trash":   (*server).noteTrash,
 	"note.restore": (*server).noteRestore,
 	"kinds.list":   (*server).kindsList,
+	"themes.list":  (*server).themesList,
 	"board.index":  (*server).boardIndex,
 	"note.open":    (*server).noteOpen,
 	"settings.get": (*server).settingsGet,

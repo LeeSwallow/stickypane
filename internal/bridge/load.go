@@ -304,8 +304,10 @@ func resolve(choice string) string {
 
 // palette is the colors of the chosen theme. The bridge has no terminal
 // to ask whether its background is dark, so "auto" is the dark default.
-func palette(choice string) Palette {
-	t := theme.Pick(choice, true)
+func palette(choice string) Palette { return paletteOf(theme.Pick(choice, true)) }
+
+// paletteOf is a theme's colors in the shape a screen reads.
+func paletteOf(t theme.Theme) Palette {
 	return Palette{
 		Name: t.Name, Dark: t.Dark, Base: t.Base, Text: t.Text, Muted: t.Muted,
 		Accent: t.Accent, Select: t.Select, Good: t.Good, Warn: t.Warn, Bad: t.Bad,
