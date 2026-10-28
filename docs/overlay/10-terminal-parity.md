@@ -86,7 +86,7 @@
 | (overlay만) view | terminal · overlay · both | overlay 설정과 `init` |
 | `ignore` | 손으로만 | 손으로만(설정 화면에 넣지 않는다) |
 
-앱의 설정 창(`⌘,`, ⋯ → 설정…)은 두 칸으로 나뉜다. "이 보드"(테마·스타일·언어)는 아래처럼 `sticky.json`에, "이 컴퓨터"(모드 시스템·다크·라이트, 움직임 시스템·줄이기·끄기, 단축키)는 `~/.stickypane/overlay.json`에 쓴다. "터미널 명령 설치"·"에이전트 연결"은 #22에서 채운다.
+앱의 설정 창(`⌘,`, ⋯ → 설정…)은 탭 넷이다: **이 보드 · 이 컴퓨터 · 터미널과 에이전트 · 정보**. 탭은 화살표·Home·End로 옮기고, Tab으로 그 탭의 칸에 들어간다. 탭 안이 창보다 길면 그 탭만 스크롤하고 아래 끝이 흐려져 더 있다는 걸 보인다. "이 보드"(테마·스타일·보드 언어)는 아래처럼 `sticky.json`에, "이 컴퓨터"(앱 언어, 모드 시스템·다크·라이트, 움직임 시스템·줄이기·끄기, 단축키)는 `~/.stickypane/overlay.json`에 쓴다. "터미널 명령 설치"·"에이전트 연결"은 #22에서 채운다.
 
 설정은 모두 루트 `sticky.json`에 쓰여 터미널과 overlay가 같은 값을 본다. bridge: `settings.get`(`time`·`editor`·`stale`도 읽는다) / `settings.set {theme|language|style|view}`. **미구현**: `settings.set`의 `time`·`editor`·`stale`(지금은 터미널 `S`나 `stickypane config`로만 바꾼다).
 

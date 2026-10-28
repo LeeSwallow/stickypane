@@ -51,6 +51,9 @@ const show = (api: SettingsApi, over: Record<string, unknown> = {}) => {
   return { onmode, onchanged }
 }
 
+/** tab opens one of the settings' tabs, as a click would */
+const tab = (name: string) => fireEvent.click(screen.getByRole('tab', { name: t(name) }))
+
 describe('setAppPref', () => {
   it('changes one of the app\'s settings and keeps the rest', async () => {
     const { api, saved } = fakeApi()
@@ -74,6 +77,7 @@ describe('the settings', () => {
   it('light or dark is the app\'s, shown at once and kept in overlay.json', async () => {
     const { api, board, saved } = fakeApi()
     const { onmode } = show(api)
+    await tab('settings.app')
     const modes = within(screen.getByRole('radiogroup', { name: t('settings.mode') }))
     await fireEvent.click(modes.getByRole('radio', { name: t('settings.mode.dark') }))
     expect(onmode).toHaveBeenCalledWith('dark')
@@ -86,6 +90,7 @@ describe('the settings', () => {
   it('motion is the app\'s: less or off at once for every movement, kept in overlay.json (04 §4.6)', async () => {
     const { api, saved } = fakeApi()
     show(api)
+    await tab('settings.app')
     const choices = within(screen.getByRole('radiogroup', { name: t('settings.motion') }))
     await fireEvent.click(choices.getByRole('radio', { name: t('settings.motion.off') }))
     expect(motion.setting).toBe('off')
@@ -107,6 +112,7 @@ describe('the settings', () => {
     await waitFor(() => expect(board).toEqual([{ language: 'ko' }]))
     expect(saved).toEqual([])
 
+    await tab('settings.app')
     const appLang = within(screen.getByRole('radiogroup', { name: t('settings.appLanguage') }))
     expect(appLang.getByRole('radio', { name: t('settings.language.ko') }).getAttribute('aria-checked')).toBe('true')
     await fireEvent.click(appLang.getByRole('radio', { name: t('settings.language.en') }))
@@ -118,6 +124,7 @@ describe('the settings', () => {
   it('a hotkey the system will not give is said under the field', async () => {
     const { api } = fakeApi({ setAppPrefs: async () => Promise.reject(new Error('Error: Cmd+Q is taken')) })
     show(api)
+    await tab('settings.app')
     const field = screen.getByLabelText(t('settings.hotkey'))
     await fireEvent.input(field, { target: { value: 'Cmd+Q' } })
     await fireEvent.click(screen.getByRole('button', { name: t('settings.save') }))
@@ -127,9 +134,33 @@ describe('the settings', () => {
 
   it('names the bridge\'s version, and offers the terminal command and the agents', async () => {
     show(fakeApi().api)
+    await tab('settings.about')
     expect(document.body.textContent).toContain('stickypane 0.4.0')
+    await tab('settings.terminal')
     await waitFor(() => expect(screen.getByRole('button', { name: t('cli.install') })).toBeTruthy())
     expect((screen.getByRole('button', { name: t('settings.connectAgents') }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('is four tabs, the board first; arrow keys move between them and each names its panel', async () => {
+    show(fakeApi().api)
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs.map((b) => b.textContent?.trim())).toEqual([t('settings.board'), t('settings.app'), t('settings.terminal'), t('settings.about')])
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true')
+    const panel = screen.getByRole('tabpanel')
+    expect(panel.getAttribute('aria-labelledby')).toBe(tabs[0].id)
+    expect(tabs[0].getAttribute('aria-controls')).toBe(panel.id)
+    expect(panel.getAttribute('tabindex')).toBe('0')
+    expect(screen.queryByRole('radiogroup', { name: t('settings.mode') })).toBeNull()
+
+    tabs[0].focus()
+    await fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
+    const now = screen.getAllByRole('tab')
+    expect(now[1].getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(now[1])
+    expect(screen.getByRole('radiogroup', { name: t('settings.mode') })).toBeTruthy()
+    await fireEvent.keyDown(now[1], { key: 'End' })
+    expect(screen.getAllByRole('tab')[3].getAttribute('aria-selected')).toBe('true')
+    expect(document.body.textContent).toContain('stickypane 0.4.0')
   })
 
   it('lists the themes the bridge gives, and keeps the chosen one when it gives none', async () => {

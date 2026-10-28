@@ -319,5 +319,6 @@
   "settings.boardLanguage.auto": "Same as app",
   "settings.boardLanguage.hint": "When unset, the board follows this computer's app language.",
   "settings.appLanguage": "App language",
-  "settings.appLanguage.hint": "The home window and boards with no language of their own use it."
+  "settings.appLanguage.hint": "The home window and boards with no language of their own use it.",
+  "settings.sections": "Settings sections"
 }

@@ -319,5 +319,6 @@
   "settings.boardLanguage.auto": "앱 따라",
   "settings.boardLanguage.hint": "정하지 않으면 이 컴퓨터의 앱 언어를 따라요.",
   "settings.appLanguage": "앱 언어",
-  "settings.appLanguage.hint": "홈 창과, 언어를 정하지 않은 보드가 이 언어를 써요."
+  "settings.appLanguage.hint": "홈 창과, 언어를 정하지 않은 보드가 이 언어를 써요.",
+  "settings.sections": "설정 묶음"
 }
