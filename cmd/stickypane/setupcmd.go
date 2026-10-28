@@ -64,6 +64,15 @@ func setupCmd(e env, args []string) error {
 	if root == "" {
 		root = "."
 	}
+	wanted := opts.Agents
+	if len(wanted) == 0 {
+		wanted = []string{"claude", "codex"}
+	}
+	found := slices.ContainsFunc(wanted, func(a string) bool { _, err := setupLook(a); return err == nil })
+	if !found {
+		fmt.Fprintf(e.stdout, "No agent found: no %s command on the PATH. Install Claude Code or Codex first, or give any other agent the guide with `stickypane init` in a project.\n", strings.Join(wanted, " or "))
+		return nil
+	}
 	steps := initcmd.PlanSetup(opts, setupLook, setupHas(root))
 	if len(steps) == 0 {
 		fmt.Fprintln(e.stdout, "Nothing to do: the board plugin is set up for every agent found.")

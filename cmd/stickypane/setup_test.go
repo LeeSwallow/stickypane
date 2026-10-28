@@ -81,3 +81,21 @@ func TestSetupMakesNoBoard(t *testing.T) {
 		t.Errorf("setup should say how to make a board:\n%s", out)
 	}
 }
+
+// With no agent on the PATH nothing is set up, and setup says so rather
+// than that every agent found is set up.
+func TestSetupSaysWhenNoAgentIsFound(t *testing.T) {
+	t.Chdir(t.TempDir())
+	stubSetup(t)
+	for _, args := range [][]string{{"setup", "--yes"}, {"setup", "--undo", "--yes"}, {"setup", "--agents", "codex", "--yes"}} {
+		code, out, _ := exec(t, args...)
+		if code != 0 || strings.Contains(out, "every agent found") || !strings.Contains(out, "No agent found") {
+			t.Errorf("%q: code %d\n%s", args, code, out)
+		}
+	}
+	stubSetup(t, "claude")
+	setupHas = func(string) func() (bool, bool) { return func() (bool, bool) { return true, true } }
+	if code, out, _ := exec(t, "setup", "--yes"); code != 0 || !strings.Contains(out, "Nothing to do") {
+		t.Errorf("all set up: code %d\n%s", code, out)
+	}
+}

@@ -144,7 +144,8 @@ stickypane env         # the system, shell, pane tool, locale and editor it foun
 
 Update the way you installed it: `brew upgrade --cask stickypane`, a newer
 archive, or `go install ...@latest` again. To remove it, run
-`stickypane setup --undo` if you installed the plugin, then
+`stickypane setup --undo` if you installed the plugin (with the same
+`--scope`, and `--mcp` if you registered the MCP server), then
 `brew uninstall --cask stickypane` or delete the program. Your notes stay
 in each project's `.sticky/` folder; they are plain files, yours to keep or
 delete.
@@ -210,8 +211,13 @@ the plugin now teaches.
 ```sh
 stickypane setup                       # asks, then installs for Claude Code and Codex
 stickypane setup --scope project --mcp --yes
-stickypane setup --undo                # takes it out again
+stickypane setup --undo                # uninstalls the plugin again
 ```
+
+`--undo` uninstalls the plugin from each agent found (from Claude Code at
+the `--scope` given, `user` unless you say). With `--mcp` it also removes
+the `stickypane` MCP server. It leaves the marketplace entry, the boards
+and any guide `init` wrote in place.
 
 `--scope` is where Claude Code installs it: `user` (every project, the
 default), `project` (this repository, shared with the team) or `local`
