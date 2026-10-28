@@ -125,7 +125,7 @@ goes to `deploy.log`, which opens and follows. It never runs without a yes.
 
 For a page to look at, not to change: `report.html` in `.sticky/`. The terminal
 shows its text, without tags, scripts or styles, and says the page can be
-seen drawn in the overlay. Nothing on it can be changed from a screen.
+seen drawn in the desktop app. Nothing on it can be changed from a screen.
 
 ## API requests (exp)
 

@@ -116,12 +116,12 @@ func Times(set store.Settings) when.Formatter {
 var Screen = []Pref{
 	{
 		Key: "view", Label: "View", Default: store.ViewTerminal,
-		Help:   "where the board is shown: the terminal, the desktop overlay, or both",
+		Help:   "where the board is shown: the terminal, the desktop app, or both",
 		Values: func() []string { return []string{store.ViewTerminal, store.ViewOverlay, store.ViewBoth} },
 	},
 	{
 		Key: "style", Label: "Style", Default: store.StyleDoodle,
-		Help:   "how the overlay draws its notes",
+		Help:   "how the app draws its notes",
 		Values: func() []string { return []string{store.StyleDoodle, store.StyleNeat} },
 	},
 }

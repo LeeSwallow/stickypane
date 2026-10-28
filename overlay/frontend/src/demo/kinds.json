@@ -364,7 +364,7 @@
   "name": "html",
   "icon": "⌗",
   "label": "HTML (view only)",
-  "blurb": "A web page. The terminal shows its text; the overlay draws it.",
+  "blurb": "A web page. The terminal shows its text; the app draws it.",
   "example": "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n",
   "data": {
    "html": "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n"
