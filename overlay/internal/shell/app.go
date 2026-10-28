@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -22,6 +21,8 @@ import (
 
 	"github.com/LeeSwallow/stickypane/overlay/internal/bridge"
 	"github.com/LeeSwallow/stickypane/overlay/internal/index"
+	"github.com/LeeSwallow/stickypane/overlay/internal/install/model"
+	installsvc "github.com/LeeSwallow/stickypane/overlay/internal/install/service"
 )
 
 // Sizes of the windows (08 §8.1).
@@ -37,10 +38,11 @@ const (
 const (
 	StateLoading = "loading" // the bridge is starting
 	StateReady   = "ready"
-	StateMissing = "missing" // no stickypane program was found
-	StateTooOld  = "too_old" // stickypane was found, but none has the bridge
-	StateFailed  = "failed"  // it was found but its bridge would not start
-	StateClosed  = "closed"  // no such window
+	StateMissing = "missing"  // no stickypane program was found
+	StateTooOld  = "too_old"  // stickypane was found, but none has the bridge
+	StateFailed  = "failed"   // it was found but its bridge would not start
+	StateNoBoard = "no_board" // the folder has no .sticky/: the window offers to make one
+	StateClosed  = "closed"   // no such window
 )
 
 // NoticeHotkey: the global hotkey could not be registered.
@@ -90,6 +92,18 @@ type Config struct {
 	Start         func(ctx context.Context, bin, project string) (Board, error)
 	OpenIndex     func(home string) (Index, error)
 	IndexDeadline time.Duration // how long Sessions waits for the index to open
+	// Install puts the app's stickypane on the PATH, connects the agents
+	// and makes boards (install/service); a test passes a fake.
+	Install Installer
+}
+
+// Installer is the install use cases: *installsvc.Service.
+type Installer interface {
+	Command(ctx context.Context) installsvc.CommandState
+	Install(ctx context.Context, t model.Target, replace bool) (installsvc.CommandState, error)
+	Uninstall(ctx context.Context) (installsvc.CommandState, error)
+	Connect(ctx context.Context, dry, mcp bool) (installsvc.Result, error)
+	Init(ctx context.Context, dir string) (installsvc.Result, error)
 }
 
 // Notice is a line for the home window. Code is translated there; Detail
@@ -116,6 +130,7 @@ type project struct {
 	board  Board
 	state  string
 	err    string
+	ctx    context.Context // ends when the window closes
 	cancel context.CancelFunc
 	closed bool
 }
@@ -186,6 +201,9 @@ func New(cfg Config) (*Shell, error) {
 			}
 			return ix, nil
 		}
+	}
+	if cfg.Install == nil {
+		cfg.Install = defaultInstaller(cfg.Find)
 	}
 	if cfg.IndexDeadline == 0 {
 		cfg.IndexDeadline = 10 * time.Second
@@ -488,23 +506,52 @@ func refuseInit(dir string) error {
 	return nil
 }
 
-// InitProject makes a board in dir with `stickypane init`.
+// InitProject makes a board in dir with the app's own `stickypane init`.
 func (s *Shell) InitProject(dir string) error {
 	if err := refuseInit(dir); err != nil {
 		return err
 	}
-	bin, err := s.cfg.Find()
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	_, err := s.cfg.Install.Init(ctx, dir)
+	return err
+}
+
+// MakeBoard makes a board in the folder of a window that found none
+// (StateNoBoard), and starts its bridge again.
+func (s *Shell) MakeBoard(window uint) error {
+	s.mu.Lock()
+	p := s.byWin[window]
+	s.mu.Unlock()
+	if p == nil {
+		return fmt.Errorf("no project window %d", window)
+	}
+	if err := s.InitProject(p.path); err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, bin, "init")
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("stickypane init: %v: %s", err, strings.TrimSpace(string(out)))
+	if !s.setState(p, StateLoading, "", nil) {
+		return nil
 	}
+	go s.connect(p.ctx, p)
 	return nil
+}
+
+// InitHere runs `stickypane init` again in a window's project: it puts the
+// agent guide where agents read it, or takes it out where the plugin
+// teaches them now. It is safe to run again.
+func (s *Shell) InitHere(window uint) (installsvc.Result, error) {
+	s.mu.Lock()
+	p := s.byWin[window]
+	s.mu.Unlock()
+	if p == nil {
+		return installsvc.Result{}, fmt.Errorf("no project window %d", window)
+	}
+	if err := refuseInit(p.path); err != nil {
+		return installsvc.Result{}, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	return s.cfg.Install.Init(ctx, p.path)
 }
 
 // PickFolder asks for a folder.
@@ -599,7 +646,7 @@ func (s *Shell) OpenProject(path string) uint {
 	id := w.ID()
 	ctx, cancel := context.WithCancel(context.Background())
 	s.mu.Lock()
-	p.win, p.cancel = w, cancel
+	p.win, p.ctx, p.cancel = w, ctx, cancel
 	s.byWin[id] = p
 	s.mu.Unlock()
 
@@ -626,7 +673,11 @@ func (s *Shell) connect(ctx context.Context, p *project) {
 	}
 	b, err := s.cfg.Start(ctx, bin, p.path)
 	if err != nil {
-		s.setState(p, StateFailed, err.Error(), nil)
+		state := StateFailed
+		if fi, serr := os.Stat(p.path); serr == nil && fi.IsDir() && !s.Inspect(p.path).Exists {
+			state = StateNoBoard // a folder, but no board in it
+		}
+		s.setState(p, state, err.Error(), nil)
 		return
 	}
 	if !s.setState(p, StateReady, "", b) { // closed meanwhile

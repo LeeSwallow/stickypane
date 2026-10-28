@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/LeeSwallow/stickypane/overlay/internal/index"
+	installsvc "github.com/LeeSwallow/stickypane/overlay/internal/install/service"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -145,6 +146,26 @@ func (p *ProjectService) Pin(ctx context.Context, on bool) error {
 		return err
 	}
 	return p.S.SetPin(id, on)
+}
+
+// MakeBoard makes a board in the window's folder, which had none, with
+// the app's own stickypane init, and opens it.
+func (p *ProjectService) MakeBoard(ctx context.Context) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return p.S.MakeBoard(id)
+}
+
+// InitHere runs stickypane init again in the window's project (the agent
+// guide, after connecting the agents) and answers what it printed.
+func (p *ProjectService) InitHere(ctx context.Context) (installsvc.Result, error) {
+	id, err := window(ctx)
+	if err != nil {
+		return installsvc.Result{}, err
+	}
+	return p.S.InitHere(id)
 }
 
 // Load is board.load.

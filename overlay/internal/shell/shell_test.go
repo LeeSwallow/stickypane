@@ -252,11 +252,12 @@ type rig struct {
 	s     *Shell
 	board *fakeBoard
 	ix    *fakeIndex
+	inst  *fakeInstaller
 }
 
 func newRig(t *testing.T, mod ...func(*Config)) *rig {
 	t.Helper()
-	r := &rig{t: t, home: t.TempDir(), p: &fakePlatform{}, board: newFakeBoard(), ix: &fakeIndex{}}
+	r := &rig{t: t, home: t.TempDir(), p: &fakePlatform{}, board: newFakeBoard(), ix: &fakeIndex{}, inst: &fakeInstaller{}}
 	cfg := Config{
 		Home:     r.home,
 		Platform: r.p,
@@ -266,6 +267,7 @@ func newRig(t *testing.T, mod ...func(*Config)) *rig {
 		},
 		OpenIndex:     func(string) (Index, error) { return r.ix, nil },
 		IndexDeadline: time.Second,
+		Install:       r.inst,
 	}
 	for _, m := range mod {
 		m(&cfg)
