@@ -9,6 +9,7 @@ import (
 )
 
 func TestDataOfTheExample(t *testing.T) {
+	t.Parallel()
 	b, err := json.Marshal(Kind.Data(doc.Parse([]byte(Kind.Example)), widget.DefaultEnv()))
 	if err != nil {
 		t.Fatal(err)

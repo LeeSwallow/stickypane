@@ -25,6 +25,7 @@ GET {{base}}/me
 `
 
 func TestDrawAndSend(t *testing.T) {
+	t.Parallel()
 	var w widget.Widget = Kind.Parse(doc.Document{Body: file}, widget.DefaultEnv())
 	out, at := w.Draw(60, true)
 	plain := ansi.Strip(out)
@@ -45,6 +46,7 @@ func TestDrawAndSend(t *testing.T) {
 }
 
 func TestSetEnv(t *testing.T) {
+	t.Parallel()
 	d, _ := SetEnv{Name: "prod"}.Apply(doc.Document{Body: file})
 	if !strings.HasPrefix(d.Body, "# @env prod\n@base") {
 		t.Fatalf("%q", d.Body)
@@ -60,6 +62,7 @@ func TestSetEnv(t *testing.T) {
 }
 
 func TestAWebSocketAndAGRPCCallShowTheirProtocol(t *testing.T) {
+	t.Parallel()
 	src := "### Chat\n# @ws send hi\n# @ws close\nGET ws://localhost/chat\n\n### Get user\n# @grpc users.v1.Users/Get\nGRPC localhost:9090\n\n{\"id\": 7}\n"
 	out, _ := Kind.Parse(doc.Document{Body: src}, widget.DefaultEnv()).Draw(80, false)
 	plain := ansi.Strip(out)
