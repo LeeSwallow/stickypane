@@ -7,8 +7,6 @@
 package i18n
 
 import (
-	"github.com/LeeSwallow/stickypane/internal/env"
-
 	"bytes"
 	"embed"
 	"encoding/json"
@@ -260,9 +258,11 @@ func Load(code string) (Strings, error) {
 
 // Pick returns the strings for a choice: a language code, or "auto" (or
 // nothing) for what the environment says. A choice without a translation
-// follows the environment too.
-func Pick(choice string) Strings {
-	s, _ := Load(Resolve(choice))
+// follows the environment too. locale is the locale the environment names
+// (env.Detect().Locale): the caller reads it, so this package reads
+// nothing outside itself.
+func Pick(choice, locale string) Strings {
+	s, _ := Load(Resolve(choice, locale))
 	return s
 }
 
@@ -270,8 +270,8 @@ func Pick(choice string) Strings {
 // choice when there is a translation for it, else what the environment
 // asks for when there is one for that, else English. It is the one rule;
 // the terminal speaks it (Pick) and the bridge reports it.
-func Resolve(choice string) string {
-	for _, c := range []string{normalize(choice), Detect()} {
+func Resolve(choice, locale string) string {
+	for _, c := range []string{normalize(choice), Detect(locale)} {
 		if c == "" || c == "auto" {
 			continue
 		}
@@ -282,12 +282,13 @@ func Resolve(choice string) string {
 	return "en"
 }
 
-// Detect returns the language the environment asks for, as "ko" or "en":
-// STICKYPANE_LANG, then LC_ALL, LC_MESSAGES and LANG, then what the system
-// itself is set to (macOS's and Windows' own locale, for a terminal that
-// sets no variable). Nothing usable means English.
-func Detect() string {
-	if code := normalize(env.Detect().Locale); code != "" {
+// Detect returns the language a locale asks for, as "ko" or "en". The
+// locale is the environment's, as env.Detect reads it: STICKYPANE_LANG,
+// then LC_ALL, LC_MESSAGES and LANG, then what the system itself is set to
+// (macOS's and Windows' own locale, for a terminal that sets no variable).
+// Nothing usable means English.
+func Detect(locale string) string {
+	if code := normalize(locale); code != "" {
 		return code
 	}
 	return "en"

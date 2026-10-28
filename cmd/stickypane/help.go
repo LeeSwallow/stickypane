@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	environment "github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -70,7 +71,7 @@ func helpStrings() i18n.Strings {
 	if dir, err := store.Resolve("."); err == nil {
 		choice = store.Open(dir).Language()
 	}
-	return i18n.Pick(choice)
+	return i18n.Pick(choice, environment.Detect().Locale)
 }
 
 // hasBoard says whether there is a board here or above.

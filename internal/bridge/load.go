@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/arrange"
+	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/store"
@@ -265,7 +266,7 @@ func settingsOf(set store.Settings) Settings {
 	}
 	return Settings{
 		Theme: th, Style: set.Style(), View: set.ViewMode(),
-		Language: Language{lang, i18n.Resolve(lang)},
+		Language: Language{lang, i18n.Resolve(lang, env.Detect().Locale)},
 		Tab:      set.Tab(),
 		Time:     prefs.Get(set, "time"),
 		Editor:   prefs.Get(set, "editor"),

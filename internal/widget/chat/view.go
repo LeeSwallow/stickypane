@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
-	"github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
@@ -60,7 +59,7 @@ func (c *Chat) Update(key string) (widget.Widget, widget.Result) {
 	if key != "n" && key != "enter" {
 		return c, widget.Result{}
 	}
-	who := env.Detect().User()
+	who := c.env.Who()
 	return c, widget.Result{Prompt: &widget.Prompt{
 		Label: "Say",
 		Submit: func(text string) doc.Op {

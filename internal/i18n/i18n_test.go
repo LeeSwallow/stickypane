@@ -96,30 +96,30 @@ func TestDetectReadsTheEnvironment(t *testing.T) {
 	if want == "" {
 		want = "en"
 	}
-	if got := Detect(); got != want {
+	if got := Detect(here()); got != want {
 		t.Errorf("nothing set = %q, want the system's %q", got, want)
 	}
 	t.Setenv("LANG", "ko_KR.UTF-8")
-	if got := Detect(); got != "ko" {
+	if got := Detect(here()); got != "ko" {
 		t.Errorf("LANG=ko_KR.UTF-8 = %q", got)
 	}
 	t.Setenv("LC_ALL", "C")
-	if got := Detect(); got != "ko" {
+	if got := Detect(here()); got != "ko" {
 		t.Errorf("C is not a language and does not hide LANG: %q", got)
 	}
 	t.Setenv("LC_ALL", "en_US.UTF-8")
-	if got := Detect(); got != "en" {
+	if got := Detect(here()); got != "en" {
 		t.Errorf("LC_ALL wins over LANG: %q", got)
 	}
 	t.Setenv("STICKYPANE_LANG", "Ko-KR")
-	if got := Detect(); got != "ko" {
+	if got := Detect(here()); got != "ko" {
 		t.Errorf("STICKYPANE_LANG wins over all: %q", got)
 	}
-	if Pick("auto").NothingOpen != Pick("ko").NothingOpen || Pick("nope").NothingOpen != Pick("ko").NothingOpen || Pick("").NothingOpen != Pick("ko").NothingOpen {
+	if Pick("auto", here()).NothingOpen != Pick("ko", here()).NothingOpen || Pick("nope", here()).NothingOpen != Pick("ko", here()).NothingOpen || Pick("", here()).NothingOpen != Pick("ko", here()).NothingOpen {
 		t.Error("Pick: auto, nothing and an unknown code all follow the environment")
 	}
 	t.Setenv("STICKYPANE_LANG", "en")
-	if Pick("ko").NothingOpen == English().NothingOpen {
+	if Pick("ko", here()).NothingOpen == English().NothingOpen {
 		t.Error("a chosen language wins over the environment")
 	}
 }
@@ -140,16 +140,16 @@ func TestResolveIsTheChoiceThenTheEnvironmentThenEnglish(t *testing.T) {
 		{"", "ko"},
 		{"tlh", "ko"}, // no translation: the environment's
 	} {
-		if got := Resolve(c.choice); got != c.want {
+		if got := Resolve(c.choice, here()); got != c.want {
 			t.Errorf("Resolve(%q) = %q, want %q", c.choice, got, c.want)
 		}
 		want, _ := Load(c.want)
-		if got := Pick(c.choice); got.NothingOpen != want.NothingOpen {
+		if got := Pick(c.choice, here()); got.NothingOpen != want.NothingOpen {
 			t.Errorf("Pick(%q) does not speak %q", c.choice, c.want)
 		}
 	}
 	t.Setenv("STICKYPANE_LANG", "fr") // no translation either: English
-	if got := Resolve("tlh"); got != "en" {
+	if got := Resolve("tlh", here()); got != "en" {
 		t.Errorf("Resolve with nothing translated = %q, want en", got)
 	}
 }
@@ -162,3 +162,6 @@ func TestFillLeavesABrokenTemplateReadable(t *testing.T) {
 		t.Errorf("a broken template is returned as it is: %q", got)
 	}
 }
+
+// here is the locale the environment names, read as the callers read it.
+func here() string { return env.Detect().Locale }

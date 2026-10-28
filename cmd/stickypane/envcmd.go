@@ -36,7 +36,7 @@ func envCmd(e env, args []string) error {
 		Shell:      d.Shell.Name,
 		Pane:       d.Pane.Name,
 		Split:      d.Pane.Split("stickypane"),
-		Language:   i18n.Detect(),
+		Language:   i18n.Detect(d.Locale),
 		LocaleFrom: d.LocaleFrom,
 		Locale:     d.Locale,
 		Scripts:    map[string]string{},

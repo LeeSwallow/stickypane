@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/api"
+	environment "github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/prefs"
 	"github.com/LeeSwallow/stickypane/internal/theme"
@@ -88,7 +89,7 @@ func languageCmd(e env, args []string) error {
 	return choice{
 		cmd: "language",
 		list: func(w io.Writer, mark func(string) string) {
-			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect())
+			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect(environment.Detect().Locale))
 			for _, code := range i18n.Languages() {
 				fmt.Fprintf(w, "%s%s\n", mark(code), code)
 			}

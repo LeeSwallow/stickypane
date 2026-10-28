@@ -67,12 +67,12 @@ func Welcome(lang string) string {
 // turns each into a language there is a translation for.
 func Language(dir, choice string) string {
 	if c := strings.TrimSpace(choice); c != "" && !strings.EqualFold(c, "auto") {
-		return i18n.Resolve(c)
+		return i18n.Resolve(c, env.Detect().Locale)
 	}
 	if _, err := os.Stat(dir); err == nil {
-		return i18n.Resolve(store.Open(dir).Settings().Language())
+		return i18n.Resolve(store.Open(dir).Settings().Language(), env.Detect().Locale)
 	}
-	return i18n.Resolve("")
+	return i18n.Resolve("", env.Detect().Locale)
 }
 
 // The guide lives between these markers so that a later run can replace it.

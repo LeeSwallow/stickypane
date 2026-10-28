@@ -31,6 +31,9 @@ type Env struct {
 	// Embed finds the note a ![[name]] line shows: its title and its
 	// widget, drawn read only. Nil draws an embed as a link.
 	Embed func(name string) (title string, w Widget, ok bool)
+	// User is the name the user writes as (env.Detect().User()), asked
+	// when a widget says something as the user. Nil is no name.
+	User func() string
 }
 
 // DefaultEnv is the Env of a screen that has not been told otherwise: the
@@ -46,6 +49,14 @@ func (e Env) Now() time.Time {
 		return time.Now()
 	}
 	return e.Clock()
+}
+
+// Who is the name the user writes as, by the Env's User.
+func (e Env) Who() string {
+	if e.User == nil {
+		return ""
+	}
+	return e.User()
 }
 
 // T translates a phrase a widget shows.

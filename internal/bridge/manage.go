@@ -11,6 +11,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/api"
 	"github.com/LeeSwallow/stickypane/internal/arrange"
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	environment "github.com/LeeSwallow/stickypane/internal/env"
 	"github.com/LeeSwallow/stickypane/internal/i18n"
 	"github.com/LeeSwallow/stickypane/internal/widget"
 )
@@ -255,7 +256,7 @@ func (s *server) kindsList(params json.RawMessage) (any, error) {
 	if choice == "" {
 		choice = s.api.Store().Settings().Language()
 	}
-	words := i18n.Pick(choice)
+	words := i18n.Pick(choice, environment.Detect().Locale)
 	env := s.api.Env()
 	env.Translate = words.L
 	out := []kindInfo{}

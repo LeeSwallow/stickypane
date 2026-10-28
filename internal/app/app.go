@@ -76,7 +76,7 @@ func say(s string, values map[string]any) string { return i18n.Fill(s, values) }
 // "auto") from now on. Widgets are told through the Env; the caller makes
 // them again.
 func (m *Model) useLanguage(choice string) {
-	m.tr = i18n.Pick(choice)
+	m.tr = i18n.Pick(choice, env.Detect().Locale)
 	m.env.Translate = m.tr.L
 }
 
@@ -250,7 +250,8 @@ func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.
 	m.peek, m.anchors = map[string]bool{}, map[string]anchor{}
 	m.offsets, m.reveal = map[string]int{}, revealNote
 	m.tabFocus = map[string]string{}
-	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter, Embed: m.embed}
+	m.env = widget.Env{Clock: func() time.Time { return m.now() }, StaleAfter: widget.StaleAfter, Embed: m.embed,
+		User: func() string { return env.Detect().User() }}
 
 	m.language = st.Language()
 	m.useLanguage(m.language)
