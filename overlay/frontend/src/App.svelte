@@ -1,10 +1,17 @@
 <script lang="ts">
   import { appName } from './lib/app'
+  // TEMPORARY: the look demo, at ?demo=look. Removed when the real screens exist.
+  import LookDemo from './demo/LookDemo.svelte'
+  const demo = new URLSearchParams(location.search).get('demo')
 </script>
 
-<main>
-  <h1>{appName}</h1>
-</main>
+{#if demo === 'look'}
+  <LookDemo />
+{:else}
+  <main>
+    <h1>{appName}</h1>
+  </main>
+{/if}
 
 <style>
   main {

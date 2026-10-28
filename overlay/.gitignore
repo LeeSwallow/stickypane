@@ -16,3 +16,4 @@ build/linux/appimage/build
 
 # License-check fixtures keep their fake packages.
 !scripts/testdata/**/node_modules
+frontend/.vitest
