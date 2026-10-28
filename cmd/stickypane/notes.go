@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"text/tabwriter"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
 	"github.com/LeeSwallow/stickypane/internal/mcp"
+	"github.com/LeeSwallow/stickypane/internal/registry"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 )
@@ -35,6 +37,9 @@ func open(e env, create bool) (*api.API, error) {
 	}
 	if err != nil {
 		return nil, err
+	}
+	if changes[e.cmd] {
+		registry.Touch(filepath.Dir(dir), e.cmd)
 	}
 	return api.New(store.Open(dir), kinds.Default(note.Plain)), nil
 }
@@ -180,6 +185,7 @@ func mcpCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer live("mcp")()
 	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: fullVersion()}
 	return server.Serve(e.ctx, e.stdin, e.stdout)
 }

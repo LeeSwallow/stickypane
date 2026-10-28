@@ -39,6 +39,7 @@ func watchCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer live("watch")()
 	ctx := e.ctx
 	if *timeout > 0 {
 		var cancel context.CancelFunc
