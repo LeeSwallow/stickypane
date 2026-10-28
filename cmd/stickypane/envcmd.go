@@ -5,8 +5,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	environment "github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
+	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
 // envReport is what `stickypane env` found, as --json prints it.

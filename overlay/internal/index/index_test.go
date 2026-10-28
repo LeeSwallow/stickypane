@@ -342,7 +342,7 @@ func TestDeletedEventFileForgetsItsOffset(t *testing.T) {
 }
 
 // The app deletes nothing in ~/.stickypane: stickypane prunes its own old
-// events and dead run files (internal/registry Prune). Changed in #24: the
+// events and dead run files (internal/adapter/registry Prune). Changed in #24: the
 // app used to remove events older than 90 days and dead run files itself.
 func TestPruneLeavesTheRecordsToStickypane(t *testing.T) {
 	home, p := newHome(t), board(t, "a")

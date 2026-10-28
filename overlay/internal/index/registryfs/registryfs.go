@@ -1,9 +1,9 @@
 // Package registryfs reads the records stickypane keeps in its home folder
 // (~/.stickypane: events/*.jsonl and run/*.json) for the index: the
 // ports.Records adapter. It never writes or deletes there; stickypane
-// alone does (internal/registry, which prunes its own old events and dead
+// alone does (internal/adapter/registry, which prunes its own old events and dead
 // run files). The records' form is the main module's, pinned by
-// internal/registry/testdata/home, which this package's tests read.
+// internal/adapter/registry/testdata/home, which this package's tests read.
 package registryfs
 
 import (

@@ -83,7 +83,7 @@ describe('mode pairs the colour theme', () => {
 })
 
 describe('agentColor matches the Go hash for 10 names', () => {
-  // computed by running internal/bridge's color() (fnv-1a 32 mod 6) in Go
+  // computed by running internal/surface/bridge's color() (fnv-1a 32 mod 6) in Go
   const golden: [string, number][] = [
     ['claude', 3], ['codex', 0], ['sam', 2], ['gpt-5', 4], ['reviewer', 4],
     ['한글', 1], ['api.md', 4], ['README.md', 4], ['todo', 1], ['build-bot', 3],

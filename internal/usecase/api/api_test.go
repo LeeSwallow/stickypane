@@ -1,0 +1,236 @@
+package api
+
+import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
+)
+
+func newAPI(t *testing.T, files map[string]string) (*API, string) {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), store.DirName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return New(store.Open(dir), kinds.Default(note.Plain)), dir
+}
+
+// read returns a note's text without the times stickypane keeps in it;
+// readRaw returns it as it is.
+func read(t *testing.T, dir, name string) string {
+	t.Helper()
+	return plain(readRaw(t, dir, name))
+}
+
+func readRaw(t *testing.T, dir, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+func TestListDescribesEveryNote(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{
+		"b.md": "---\ntype: board\ntitle: Auth\nopen: true\npin: true\n---\n## To do\n",
+		"a.md": "one line\n",
+		"c.md": "---\ntype: checklist\nsize: page\n---\n- [ ] x\n",
+	})
+	got, err := a.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Info{
+		{Name: "a.md", Title: "a", Type: "note", Open: false, Size: "card", Pinned: false},
+		{Name: "b.md", Title: "Auth", Type: "board", Open: true, Size: "1", Pinned: true},
+		{Name: "c.md", Title: "c", Type: "checklist", Open: false, Size: "1", Pinned: false},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d notes, want %d: %+v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i].Modified.IsZero() {
+			t.Errorf("note %d has no modified time", i)
+		}
+		got[i].Modified, got[i].Created = time.Time{}, time.Time{} // checked by their own tests
+		if got[i] != want[i] {
+			t.Errorf("note %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestShowReturnsTheFile(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{"a.md": "---\ntitle: T\n---\nbody\n"})
+	for _, name := range []string{"a.md", "a"} {
+		got, err := a.Cat(name)
+		if err != nil || string(got) != "---\ntitle: T\n---\nbody\n" {
+			t.Errorf("Show(%q) = %q, %v", name, got, err)
+		}
+	}
+	if _, err := a.Cat("missing"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("Show(missing): err = %v, want not-exist", err)
+	}
+}
+
+func TestWriteCreatesAndReplaces(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	name, err := a.Write("plan", Options{Type: "checklist", Title: "Release plan", Open: true, Size: "half"}, []byte("- [ ] build\n"))
+	if err != nil || name != "plan.md" {
+		t.Fatalf("Write = %q, %v", name, err)
+	}
+	want := "---\ntype: checklist\ntitle: Release plan\nopen: true\nsize: 1/2\n---\n- [ ] build\n"
+	if got := read(t, dir, "plan.md"); got != want {
+		t.Errorf("file = %q\nwant  %q", got, want)
+	}
+	if _, err := a.Write("plan.md", Options{}, []byte("just text\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, dir, "plan.md"); got != "---\nopen: true\nsize: 1/2\n---\njust text\n" {
+		t.Errorf("a rewrite replaces the content but keeps how the user arranged the note, got %q", got)
+	}
+}
+
+func TestWriteKeepsFrontMatterGivenInTheBody(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	body := "---\ntype: board\ncolor: blue\n---\n## To do\n"
+	if _, err := a.Write("b", Options{Open: true}, []byte(body)); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, dir, "b.md"); got != "---\ntype: board\ncolor: blue\nopen: true\n---\n## To do\n" {
+		t.Errorf("file = %q", got)
+	}
+}
+
+func TestRewriteKeepsTheUsersArrangement(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{
+		"c.md": "---\ntype: checklist\nopen: true\nsize: page\nrows: 8\ncolor: blue\npin: true\n---\n- [ ] a\n",
+	})
+	if _, err := a.Write("c", Options{}, []byte("---\ntype: checklist\ncolor: pink\n---\n- [x] a\n")); err != nil {
+		t.Fatal(err)
+	}
+	want := "---\ntype: checklist\ncolor: pink\nopen: true\nsize: page\nrows: 8\npin: true\n---\n- [x] a\n"
+	if got := read(t, dir, "c.md"); got != want {
+		t.Errorf("file = %q\nwant  %q", got, want)
+	}
+}
+
+func TestBadNamesAreRejected(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	for _, name := range []string{"", "../escape", "a/b/c/note", `sub\note`, ".hidden", "sub/.hidden", "archive/x.md", "note.png", "two\nlines", "tab\there"} {
+		if _, err := a.Write(name, Options{}, []byte("x\n")); !errors.Is(err, ErrBadName) {
+			t.Errorf("Write(%q): err = %v, want ErrBadName", name, err)
+		}
+		if _, err := a.Cat(name); !errors.Is(err, ErrBadName) {
+			t.Errorf("Show(%q): err = %v, want ErrBadName", name, err)
+		}
+	}
+	if _, err := a.Write("x", Options{Size: "huge"}, []byte("x\n")); err == nil {
+		t.Error("an unknown size should be rejected")
+	}
+	if _, err := a.Write("x", Options{Type: "spreadsheet"}, []byte("x\n")); err == nil {
+		t.Error("an unknown type should be rejected")
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+		t.Errorf("nothing should have been written: %v", entries)
+	}
+	if entries, _ := os.ReadDir(filepath.Dir(dir)); len(entries) != 1 {
+		t.Errorf("nothing may be written outside the notes folder: %v", entries)
+	}
+}
+
+// list says when each note last changed, for agents that want to know
+// what moved since they looked.
+func TestListSaysWhenANoteChanged(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"a.md": "a\n"})
+	at := time.Date(2026, 10, 3, 14, 2, 0, 0, time.UTC)
+	if err := os.Chtimes(filepath.Join(dir, "a.md"), at, at); err != nil {
+		t.Fatal(err)
+	}
+	infos, err := a.List()
+	if err != nil || len(infos) != 1 || !infos[0].Modified.Equal(at) {
+		t.Errorf("List = %+v, %v", infos, err)
+	}
+}
+
+// A note stickypane makes says when it was made, and list says it; an item
+// ticked in a note written whole gets its time too.
+func TestStickypaneKeepsTheTimes(t *testing.T) {
+	a, dir := newAPI(t, nil)
+	if _, err := a.Todo("plan", "add", "tests"); err != nil {
+		t.Fatal(err)
+	}
+	if got := readRaw(t, dir, "plan.md"); !strings.Contains(got, "\ncreated: ") {
+		t.Errorf("a new note says when it was made:\n%s", got)
+	}
+	if _, err := a.Write("done", Options{Type: "checklist"}, []byte("- [x] shipped\n")); err != nil {
+		t.Fatal(err)
+	}
+	got := readRaw(t, dir, "done.md")
+	if !strings.Contains(got, "\ncreated: ") || !strings.Contains(got, "- [x] shipped ✅ ") {
+		t.Errorf("write keeps the times:\n%s", got)
+	}
+	infos, err := a.List()
+	if err != nil || len(infos) != 2 || infos[0].Created.IsZero() {
+		t.Errorf("list says when each note was made: %+v, %v", infos, err)
+	}
+}
+
+func TestWriteSaysWhichTypeIsUnknownWithASentinel(t *testing.T) {
+	a, _ := newAPI(t, nil)
+	_, err := a.Write("x", Options{Type: "spreadsheet"}, []byte("x\n"))
+	if !errors.Is(err, ErrUnknownType) || !strings.Contains(err.Error(), `unknown type "spreadsheet"`) {
+		t.Errorf("err = %v, want ErrUnknownType naming the type", err)
+	}
+}
+
+func TestCreateNeverWritesOverANote(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"taken.md": "mine\n"})
+	if _, err := a.Create("taken", Options{Title: "Other"}, []byte("theirs\n")); !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("Create over a note: err = %v, want fs.ErrExist", err)
+	}
+	if got := readRaw(t, dir, "taken.md"); got != "mine\n" {
+		t.Errorf("the note was written over: %q", got)
+	}
+	name, err := a.Create("fresh", Options{Type: "checklist", Title: "Fresh"}, []byte("- [ ] a\n"))
+	if err != nil || name != "fresh.md" {
+		t.Fatalf("Create = %q, %v", name, err)
+	}
+	got := readRaw(t, dir, "fresh.md")
+	for _, want := range []string{"type: checklist", "title: Fresh", "created:", "- [ ] a"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("fresh.md lacks %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestRestoreOfWhatIsNotInTheTrashIsNotFound(t *testing.T) {
+	a, _ := newAPI(t, nil)
+	if _, err := a.Restore("ghost.md"); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("err = %v, want fs.ErrNotExist", err)
+	}
+}
+
+func TestMoveSaysWhereTheNoteWent(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"a.md": "a\n"})
+	got, err := a.Move("a", "docs/")
+	if err != nil || got.To != "docs/a.md" {
+		t.Fatalf("Move = %+v, %v", got, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "docs", "a.md")); err != nil {
+		t.Error(err)
+	}
+}

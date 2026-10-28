@@ -1,0 +1,179 @@
+package arrange
+
+import (
+	"testing"
+
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/doc"
+	"github.com/LeeSwallow/stickypane/internal/core/theme"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+)
+
+func yes() *bool { b := true; return &b }
+func no() *bool  { b := false; return &b }
+
+func front(src string) doc.Document { return doc.Parse([]byte(src)) }
+
+func TestTheUsersChoiceWinsOverTheNoteAndTheKind(t *testing.T) {
+	agent := front("---\nopen: true\nsize: card\nrows: 5\npin: true\ncolor: pink\ntitle: Plan\n---\nx\n")
+	user := store.View{Open: no(), Size: "page", Rows: 9, Pin: no(), Color: "blue", Title: "Mine"}
+	kind := widget.Kind{Rows: 3, Size: func(doc.Document) string { return widget.SizeHalf }}
+
+	if open, said := Open(user, agent); open || !said {
+		t.Errorf("Open = %v, %v; sticky.json closes it", open, said)
+	}
+	if got := Size(user, agent, kind, agent); got != "1" {
+		t.Errorf("Size = %q; the old name page reads as 1", got)
+	}
+	if got := Rows(user, agent, kind); got != 9 {
+		t.Errorf("Rows = %d", got)
+	}
+	if Pinned(user, agent) {
+		t.Error("Pinned: sticky.json unpins it")
+	}
+	if got := Color(user, agent); got != "blue" {
+		t.Errorf("Color = %q", got)
+	}
+	if got := Title(user, agent, "plan.md"); got != "Mine" {
+		t.Errorf("Title = %q", got)
+	}
+}
+
+func TestTheNoteProposesWhenTheUserSaidNothing(t *testing.T) {
+	agent := front("---\nopen: TRUE\nsize: Card\nrows: 5\npin: true\ncolor: pink\ntitle: Plan\n---\nx\n")
+	kind := widget.Kind{Rows: 3, Size: func(doc.Document) string { return widget.SizeHalf }}
+	var none store.View
+
+	if open, said := Open(none, agent); !open || !said {
+		t.Errorf("Open = %v, %v", open, said)
+	}
+	if got := Size(none, agent, kind, agent); got != "card" {
+		t.Errorf("Size = %q", got)
+	}
+	if got := Rows(none, agent, kind); got != 5 {
+		t.Errorf("Rows = %d", got)
+	}
+	if !Pinned(none, agent) || Color(none, agent) != "pink" || Title(none, agent, "plan.md") != "Plan" {
+		t.Error("pin, color and title come from the front matter")
+	}
+}
+
+func TestContentRowsWinOverTheNoteAndTheKind(t *testing.T) {
+	kind := widget.Kind{Rows: 10}
+	if got := Rows(store.View{Rows: store.ContentRows}, front("---\nrows: 5\n---\n"), kind); got != 0 {
+		t.Errorf("Rows = %d; the user asked for the content height", got)
+	}
+}
+
+func TestTheKindDecidesLast(t *testing.T) {
+	var none store.View
+	plain := front("just text\n")
+	kind := widget.Kind{Rows: 10, Size: func(d doc.Document) string { return widget.SizeCard }}
+
+	if open, said := Open(none, plain); open || said {
+		t.Errorf("Open = %v, %v; nothing says", open, said)
+	}
+	if got := Size(none, front("---\nsize: huge\n---\n"), kind, plain); got != "card" {
+		t.Errorf("an invalid size falls through to the kind: %q", got)
+	}
+	if got := Size(none, plain, widget.Kind{}, plain); got != widget.SizeFull {
+		t.Errorf("a kind without a size takes the page: %q", got)
+	}
+	if got := Rows(none, front("---\nrows: lots\n---\n"), kind); got != 10 {
+		t.Errorf("Rows = %d", got)
+	}
+	if Pinned(none, plain) || Color(none, plain) != "" {
+		t.Error("nothing pins or colors a plain note")
+	}
+	if got := Title(none, plain, "docs/02-usage.md"); got != "usage" {
+		t.Errorf("Title = %q; the file name without folder, extension and order number", got)
+	}
+}
+
+func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
+	var v store.View
+	for _, kv := range [][2]string{{"open", "true"}, {"pin", "False"}, {"size", "half"}, {"rows", "12"}, {"color", "Blue"}} {
+		change, ok, err := Change(kv[0], kv[1])
+		if !ok || err != nil {
+			t.Fatalf("Change(%q, %q) = %v, %v", kv[0], kv[1], ok, err)
+		}
+		change(&v)
+	}
+	if v.Open == nil || !*v.Open || v.Pin == nil || *v.Pin || v.Size != "1/2" || v.Rows != 12 || v.Color != "blue" {
+		t.Errorf("view = %+v; size=half is written as 1/2", v)
+	}
+	for in, want := range map[string]string{"1/3": "1/3", "3/4": "3/4", "1": "1", "Page": "1", "card": "card"} {
+		change, ok, err := Change("size", in)
+		if !ok || err != nil {
+			t.Fatalf("Change(size, %q) = %v, %v", in, ok, err)
+		}
+		change(&v)
+		if v.Size != want {
+			t.Errorf("size=%s writes %q, want %q", in, v.Size, want)
+		}
+	}
+	change, _, _ := Change("open", "")
+	change(&v)
+	if v.Open != nil {
+		t.Error("an empty value takes the key back out")
+	}
+	if _, ok, _ := Change("title", "x"); ok {
+		t.Error("title is not about the arrangement")
+	}
+	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"size", "2/5"}, {"rows", "0"}, {"color", "teal"}} {
+		if _, ok, err := Change(kv[0], kv[1]); !ok || err == nil {
+			t.Errorf("Change(%q, %q) should be refused", kv[0], kv[1])
+		}
+	}
+}
+
+func TestTheOldSizeNamesReadAsFractions(t *testing.T) {
+	var none store.View
+	plain := front("x\n")
+	for in, want := range map[string]string{"half": "1/2", "page": "1", "card": "card", "1/3": "1/3", "2/3": "2/3"} {
+		if got := Size(store.View{Size: in}, plain, widget.Kind{}, plain); got != want {
+			t.Errorf("sticky.json size %q reads as %q, want %q", in, got, want)
+		}
+		if got := Size(none, front("---\nsize: "+in+"\n---\n"), widget.Kind{}, plain); got != want {
+			t.Errorf("front matter size %q reads as %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestFileTitleDropsTheNumberThatOrdersNotes(t *testing.T) {
+	for name, want := range map[string]string{
+		"04-chat.md":        "chat",
+		"deploy/10_plan.md": "plan",
+		"05 parallel.md":    "parallel",
+		"plan.md":           "plan",
+		"2026-10-03.md":     "2026-10-03", // a date is a name, not an order
+		"42.md":             "42",
+		"build.log":         "build",
+	} {
+		if got := FileTitle(name); got != want {
+			t.Errorf("FileTitle(%q) = %q, want %q", name, got, want)
+		}
+	}
+}
+
+// A note's color is the one chosen, in any case, else one its name picks,
+// the same on every screen and in every run.
+func TestColorNameIsTheChoiceOrTheNames(t *testing.T) {
+	for _, c := range []struct{ name, chosen, want string }{
+		{"plan.md", "", "orange"},
+		{"todo.md", "", "yellow"},
+		{"docs", "", "yellow"},
+		{"deploy/build.log", "", "pink"},
+		{"회의.md", "", "blue"},
+		{"a", "", "purple"},
+		{"plan.md", "Green", "green"},
+		{"plan.md", "teal", "orange"}, // not a note color: the name picks
+	} {
+		if got := ColorName(c.name, c.chosen); got != c.want {
+			t.Errorf("ColorName(%q, %q) = %q, want %q", c.name, c.chosen, got, c.want)
+		}
+		if got := theme.NoteNames[ColorIndex(c.name, c.chosen)]; got != c.want {
+			t.Errorf("ColorIndex(%q, %q) is %q, want %q", c.name, c.chosen, got, c.want)
+		}
+	}
+}

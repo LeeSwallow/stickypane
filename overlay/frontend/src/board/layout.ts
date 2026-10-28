@@ -3,7 +3,7 @@
 // another layout (a free canvas) can stand in for it.
 //
 // A note's size is a fraction of the board's width, as on the terminal
-// (internal/widget/size.go): 1/4 1/3 1/2 2/3 3/4 1. The old names are
+// (internal/core/widget/size.go): 1/4 1/3 1/2 2/3 3/4 1. The old names are
 // still read: page is 1, half is 1/2, and card is the narrowest fraction a
 // card fits in. The grid has 12 columns, so every fraction is whole.
 
@@ -112,7 +112,7 @@ export interface Cell {
  * new row when the next one does not fit, and stretches each row to the
  * full width, every item growing in proportion to its width. The columns
  * rounding leaves over go one each to the items that lost the most to it,
- * the first of equals first. A port of internal/layout.Rows.
+ * the first of equals first. A port of internal/core/layout.Rows.
  */
 export function rows(total: number, widths: number[]): Cell[] {
   const cells: Cell[] = []

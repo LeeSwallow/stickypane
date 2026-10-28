@@ -1,0 +1,169 @@
+package app
+
+import (
+	"image/color"
+	"strings"
+
+	"charm.land/lipgloss/v2"
+
+	"github.com/LeeSwallow/stickypane/internal/core/theme"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+)
+
+// palette is the names of the note colors, in the order "c" cycles
+// through them. The colors themselves come from the theme.
+var palette = theme.NoteNames
+
+// noteColor returns the theme's color for a note color index.
+func (m *Model) noteColor(i int) color.Color {
+	return lipgloss.Color(m.theme.Get().Notes[i%len(palette)])
+}
+
+// accent is the color of what has the focus and of what can be pressed.
+func (m *Model) accent() color.Color { return lipgloss.Color(m.theme.Get().Accent) }
+
+// box is everything a frame shows.
+type box struct {
+	title   string // in the top border, after the icon
+	icon    string // one cell, before the title
+	summary string // at the right end of the top border, such as "2/3"
+	body    string
+	width   int
+	color   color.Color
+	focused bool
+	plain   bool         // a dialog of the screen's own, not a note: its title is plain
+	styles  theme.Styles // the theme's text styles: the border, the summary
+	// When the body is a window on more lines than it shows, offset is its
+	// first line and total how many there are. The right border then
+	// carries a scroll bar.
+	offset, total int
+}
+
+// thumb returns which lines of a window of rows lines the scroll bar's
+// thumb covers, as [from, to). With nothing to scroll it covers none.
+func thumb(offset, total, rows int) (from, to int) {
+	if rows <= 0 || total <= rows {
+		return 0, 0
+	}
+	size := max(rows*rows/total, 1)
+	from = offset * (rows - size) / (total - rows)
+	from = max(min(from, rows-size), 0)
+	return from, from + size
+}
+
+// frame draws a box. An unfocused note has a thin, muted border with its
+// title in the note's color; the focused one has a double border in that
+// color, so focus shows without color too and the screen is calm where the
+// focus is not. The top border carries the icon, the title and, when there
+// is room, the summary. Every line is exactly width cells wide.
+func frame(b box) string {
+	width := max(b.width, 8)
+	tl, tr, bl, br, hz, vt := "╭", "╮", "╰", "╯", "─", "│"
+	st := b.styles.Faint
+	titled := lipgloss.NewStyle().Foreground(b.color).Bold(true)
+	if b.focused {
+		tl, tr, bl, br, hz, vt = "╔", "╗", "╚", "╝", "═", "║"
+		st = lipgloss.NewStyle().Foreground(b.color)
+	}
+	if b.plain {
+		titled = b.styles.Bold
+	}
+
+	// The label is "icon title"; either part may be missing.
+	label := strings.TrimSpace(b.icon + " " + b.title)
+	summary := b.summary
+	// Corners, a space on each side of the label, and at least one border
+	// cell after it; the summary needs a space on each side as well.
+	room := width - 5
+	if summary != "" && widget.Width(label)+widget.Width(summary)+2 > room {
+		summary = ""
+	}
+	if summary != "" {
+		room -= widget.Width(summary) + 2
+	}
+	label = widget.Truncate(label, room)
+
+	var top strings.Builder
+	used := 1
+	top.WriteString(st.Render(tl))
+	if label != "" {
+		top.WriteString(" " + titled.Render(label) + " ")
+		used += widget.Width(label) + 2
+	}
+	tail := tr
+	if summary != "" {
+		tail = " " + summary + " " + tr
+	}
+	fill := max(width-used-widget.Width(tail), 0)
+	top.WriteString(st.Render(strings.Repeat(hz, fill)))
+	if summary != "" {
+		top.WriteString(" " + b.styles.Faint.Render(summary) + " ")
+	}
+	top.WriteString(st.Render(tr))
+
+	lines := []string{top.String()}
+	body := strings.Split(b.body, "\n")
+	from, to := thumb(b.offset, b.total, len(body))
+	for i, l := range body {
+		right := st.Render(vt)
+		if i >= from && i < to {
+			right = b.styles.Accent.Render("█")
+		}
+		lines = append(lines, st.Render(vt)+" "+widget.Pad(l, width-4)+" "+right)
+	}
+	lines = append(lines, st.Render(bl+strings.Repeat(hz, width-2)+br))
+	return strings.Join(lines, "\n")
+}
+
+// dialog frames body in a box boxW wide and centers it in an area w wide and
+// h tall, a little above the middle. Without room for the frame it returns
+// the body as it is, so small panes still show the content.
+func (m *Model) dialog(title string, body []string, boxW, w, h int, accent color.Color) []string {
+	boxW = min(boxW, w)
+	if boxW < 12 || h < len(body)+2 {
+		return body
+	}
+	framed := strings.Split(frame(box{styles: m.env.Styles, title: title, body: strings.Join(body, "\n"), width: boxW, color: accent, focused: true, plain: true}), "\n")
+	left := strings.Repeat(" ", (w-boxW)/2)
+	out := make([]string, (h-len(framed))/3, h)
+	for _, l := range framed {
+		out = append(out, left+l)
+	}
+	return out
+}
+
+// hints draws the bottom line's key guide from alternating keys and labels:
+// the key stands out and what it does steps back. The most important pairs
+// come first; one that does not fit in width is left out whole, along with
+// everything after it, so the line never ends in half a word.
+func (m *Model) hints(width int, pairs ...string) string {
+	var parts []string
+	used := 0
+	for i := 0; i+1 < len(pairs); i += 2 {
+		w := widget.Width(pairs[i]) + 1 + widget.Width(pairs[i+1])
+		if len(parts) > 0 {
+			w += 2
+		}
+		if used+w > width {
+			break
+		}
+		used += w
+		parts = append(parts, m.env.Styles.Accent.Bold(true).Render(pairs[i])+" "+m.env.Styles.Faint.Render(m.tr.L(pairs[i+1])))
+	}
+	return strings.Join(parts, "  ")
+}
+
+// hintsThen draws pairs like hints but always ends with one last pair, for
+// which it keeps room: the way out, such as "? help", must not be the thing
+// a narrow pane drops.
+func (m *Model) hintsThen(width int, lastKey, lastLabel string, pairs ...string) string {
+	last := m.hints(width, lastKey, lastLabel)
+	if last == "" {
+		return ""
+	}
+	body := m.hints(width-widget.Width(lastKey)-widget.Width(lastLabel)-3, pairs...)
+	if body == "" {
+		return last
+	}
+	return body + "  " + last
+}

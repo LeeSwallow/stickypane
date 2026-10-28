@@ -22,55 +22,55 @@ const module = "github.com/LeeSwallow/stickypane/"
 // decide where it belongs.
 var rank = map[string]int{
 	// Leaves: they know nothing of the board.
-	"internal/doc":             0,
-	"internal/theme":           0,
-	"internal/env":             0, // the system, shell, pane tool and locale
-	"internal/when":            0, // how times are written and read
-	"internal/atomicfile":      0, // the one way a file is replaced
-	"internal/filelock":        0, // the lock writers take around a read, change and write
-	"internal/i18n":            0, // the words; the caller hands it the locale
-	".":                        0, // the plugin's files, carried in the program
-	"internal/harness":         5, // the plugin's skills, read for MCP and guide
-	"internal/httpfile":        5, // .http files: send, check; writes times with when
-	"internal/httpfile/syntax": 0, // .http files read, with nothing sent: what the board draws
-	"internal/registry":        5, // which boards are used on this machine; writes times with when
-	"internal/layout":          0,
-	"internal/editor":          0,
-	"internal/lineedit":        0, // the one-line editor of the bottom line
-	"internal/markdown":        0, // Markdown drawn for the terminal
-	"internal/wsock":           0, // a WebSocket client on the standard library
-	"internal/proto":           0, // protocol buffers without generated code
-	"internal/proto/prototest": 1, // a descriptor for tests
-	"internal/rpc":             3, // a gRPC client on the standard library
-	"internal/rpc/rpctest":     2, // a gRPC server for tests
+	"internal/core/doc":                0,
+	"internal/core/theme":              0,
+	"internal/adapter/env":             0, // the system, shell, pane tool and locale
+	"internal/core/when":               0, // how times are written and read
+	"internal/adapter/atomicfile":      0, // the one way a file is replaced
+	"internal/adapter/filelock":        0, // the lock writers take around a read, change and write
+	"internal/core/i18n":               0, // the words; the caller hands it the locale
+	".":                                0, // the plugin's files, carried in the program
+	"internal/usecase/harness":         5, // the plugin's skills, read for MCP and guide
+	"internal/adapter/httpfile":        5, // .http files: send, check; writes times with when
+	"internal/core/httpfile/syntax":    0, // .http files read, with nothing sent: what the board draws
+	"internal/adapter/registry":        5, // which boards are used on this machine; writes times with when
+	"internal/core/layout":             0,
+	"internal/surface/editor":          0,
+	"internal/surface/lineedit":        0, // the one-line editor of the bottom line
+	"internal/core/markdown":           0, // Markdown drawn for the terminal
+	"internal/adapter/wsock":           0, // a WebSocket client on the standard library
+	"internal/adapter/proto":           0, // protocol buffers without generated code
+	"internal/adapter/proto/prototest": 1, // a descriptor for tests
+	"internal/adapter/rpc":             3, // a gRPC client on the standard library
+	"internal/adapter/rpc/rpctest":     2, // a gRPC server for tests
 	// The notes folder.
-	"internal/store": 10,
+	"internal/adapter/store": 10,
 	// Running a script and keeping its log, for every front end.
-	"internal/runner": 12,
+	"internal/adapter/runner": 12,
 	// What a user may change, each with a default.
-	"internal/prefs": 15,
+	"internal/usecase/prefs": 15,
 	// What a note is and how it is drawn: the contract, then the shapes.
-	"internal/widget":           20,
-	"internal/widget/note":      21, // the form draws its prose as a note does
-	"internal/widget/board":     22,
-	"internal/widget/chart":     22,
-	"internal/widget/checklist": 22,
-	"internal/widget/form":      22,
-	"internal/widget/logview":   22,
-	"internal/widget/chat":      22,
-	"internal/widget/script":    22,
-	"internal/widget/api":       22,
-	"internal/widget/html":      22,
+	"internal/core/widget":           20,
+	"internal/core/widget/note":      21, // the form draws its prose as a note does
+	"internal/core/widget/board":     22,
+	"internal/core/widget/chart":     22,
+	"internal/core/widget/checklist": 22,
+	"internal/core/widget/form":      22,
+	"internal/core/widget/logview":   22,
+	"internal/core/widget/chat":      22,
+	"internal/core/widget/script":    22,
+	"internal/core/widget/api":       22,
+	"internal/core/widget/html":      22,
 	// The registry of shapes, and how a note is arranged.
-	"internal/kinds":   30,
-	"internal/arrange": 30,
+	"internal/core/kinds":      30,
+	"internal/usecase/arrange": 30,
 	// What the command line and agents call.
-	"internal/api":     40,
-	"internal/initcmd": 40,
+	"internal/usecase/api":     40,
+	"internal/usecase/initcmd": 40,
 	// The front ends over it.
-	"internal/mcp":    50,
-	"internal/app":    50,
-	"internal/bridge": 50, // the desktop app's, over standard input/output
+	"internal/surface/mcp":    50,
+	"internal/surface/app":    50,
+	"internal/surface/bridge": 50, // the desktop app's, over standard input/output
 	// The program.
 	"cmd/stickypane": 60,
 }

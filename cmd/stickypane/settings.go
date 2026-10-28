@@ -6,11 +6,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	environment "github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/prefs"
-	"github.com/LeeSwallow/stickypane/internal/theme"
+	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/theme"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
 )
 
 // choice is a setting of the root sticky.json the user picks from a list:

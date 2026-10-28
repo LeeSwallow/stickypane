@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/registry"
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 )
 
 // appHome makes the folder the app would make and points the registry at it.

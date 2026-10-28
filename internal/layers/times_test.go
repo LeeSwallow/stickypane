@@ -14,7 +14,7 @@ import (
 
 // layoutOwner is the one package that holds time layouts: every other
 // package asks it, so that a time is written the same way wherever it is.
-const layoutOwner = "internal/when"
+const layoutOwner = "internal/core/when"
 
 // layoutParts are what a Go layout of a date or a clock holds.
 var layoutParts = []string{"2006", "15:04", "04:05"}
@@ -28,7 +28,7 @@ var layoutNames = map[string]bool{
 	"DateTime": true, "DateOnly": true, "TimeOnly": true,
 }
 
-// A time layout outside internal/when, a string such as "2006-01-02" or a
+// A time layout outside internal/core/when, a string such as "2006-01-02" or a
 // name such as time.RFC3339, fails: the layout belongs in when, with a name.
 func TestTimeLayoutsLiveInWhen(t *testing.T) {
 	root, err := filepath.Abs("../..")
@@ -45,7 +45,7 @@ func TestTimeLayoutsLiveInWhen(t *testing.T) {
 				return filepath.SkipDir
 			}
 			// A nested module (overlay/) keeps its own times: it cannot
-			// import this module's internal/when.
+			// import this module's internal/core/when.
 			if path != root {
 				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
 					return filepath.SkipDir

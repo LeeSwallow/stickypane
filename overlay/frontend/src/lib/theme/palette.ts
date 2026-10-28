@@ -1,5 +1,5 @@
 // Palette is the bridge's `palette`: the colours of the chosen colour theme,
-// by role (internal/theme.Theme). The screen has no colours of its own.
+// by role (internal/core/theme.Theme). The screen has no colours of its own.
 export interface Palette {
   name: string
   dark: boolean

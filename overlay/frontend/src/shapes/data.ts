@@ -1,10 +1,10 @@
 // What board.load says of the shapes this folder draws beyond note,
 // checklist and board (board/model.ts has those): each shape's Kind.Data
-// as JSON (internal/widget/*/model.go). The app reads these and never the
+// as JSON (internal/core/widget/*/model.go). The app reads these and never the
 // note's file; what it changes goes back as note.act, note.run or
 // note.send.
 
-/** A form's line (internal/widget/form Line). */
+/** A form's line (internal/core/widget/form Line). */
 export interface FormLine {
   kind: 'text' | 'option' | 'detail' | 'field' | 'buttons'
   text: string

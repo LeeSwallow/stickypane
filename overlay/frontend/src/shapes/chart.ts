@@ -1,5 +1,5 @@
 // What a chart draws, as numbers: the same three views as the terminal's
-// (internal/widget/chart/view.go) — bars scaled to the largest value, a
+// (internal/core/widget/chart/view.go) — bars scaled to the largest value, a
 // trend line with its range and latest value, a calendar of days shaded
 // by rank — so the app and the terminal say the same of the same file.
 // Pure: Chart.svelte turns these into SVG.

@@ -56,7 +56,7 @@ func (h *HomeService) Prefs() Prefs           { return h.S.Prefs() }
 func (h *HomeService) SetPrefs(p Prefs) error { return h.S.SetPrefs(p) }
 
 // The parameters of the bridge's methods (docs/overlay/10 §10.7), mirrored
-// from the main module's internal/bridge, which this one cannot import.
+// from the main module's internal/surface/bridge, which this one cannot import.
 type (
 	ActParams struct {
 		Note    string          `json:"note"`

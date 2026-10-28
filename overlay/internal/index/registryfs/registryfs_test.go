@@ -10,9 +10,9 @@ import (
 )
 
 // golden is the home folder stickypane's own tests write and pin
-// (internal/registry/testdata/home in the main module). Reading it here is
+// (internal/adapter/registry/testdata/home in the main module). Reading it here is
 // what keeps the two modules' idea of the records the same.
-const golden = "../../../../internal/registry/testdata/home"
+const golden = "../../../../internal/adapter/registry/testdata/home"
 
 func TestReadsTheGoldenHome(t *testing.T) {
 	h := Home(golden)

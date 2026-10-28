@@ -1,5 +1,5 @@
 // A note's width is a fraction of the board, as on the terminal
-// (internal/widget/size.go): these are the steps, narrowest first. The
+// (internal/core/widget/size.go): these are the steps, narrowest first. The
 // board's layout (board/layout.ts) places them; the note header steps them.
 
 export const FRACTIONS = ['1/4', '1/3', '1/2', '2/3', '3/4', '1'] as const

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // write --opt has the shape write the note from its create options, as

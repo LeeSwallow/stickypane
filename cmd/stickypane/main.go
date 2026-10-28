@@ -22,12 +22,12 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/LeeSwallow/stickypane/internal/app"
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
-	"github.com/LeeSwallow/stickypane/internal/registry"
-	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/theme"
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/theme"
+	"github.com/LeeSwallow/stickypane/internal/surface/app"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 // version is set by the release build.

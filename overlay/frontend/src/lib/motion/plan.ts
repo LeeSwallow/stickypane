@@ -16,7 +16,7 @@ export interface ChangeEvent {
   time?: string
 }
 
-/** The board.changed notification's params (internal/bridge changes). */
+/** The board.changed notification's params (internal/surface/bridge changes). */
 export interface Change {
   notes?: Note[]
   removed?: string[]

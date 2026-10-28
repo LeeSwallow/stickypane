@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 // The agents' commands and records, replaced in tests.

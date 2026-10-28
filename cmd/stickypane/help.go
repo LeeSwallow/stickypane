@@ -5,17 +5,17 @@ import (
 	"io"
 	"strings"
 
-	environment "github.com/LeeSwallow/stickypane/internal/env"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
-	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/widget"
-	"github.com/LeeSwallow/stickypane/internal/widget/note"
+	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
 )
 
 // helpText is what `stickypane help <command>` says about one command. It
 // sits in the command table beside the command, in English; a language
-// overlays it in internal/i18n under the keys "<name>.brief", "<name>.what"
+// overlays it in internal/core/i18n under the keys "<name>.brief", "<name>.what"
 // and "<name>.args". Examples are command lines, never translated, and a
 // test runs each one.
 type helpText struct {

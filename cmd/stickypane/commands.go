@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/api"
-	"github.com/LeeSwallow/stickypane/internal/i18n"
-	"github.com/LeeSwallow/stickypane/internal/initcmd"
-	"github.com/LeeSwallow/stickypane/internal/kinds"
-	"github.com/LeeSwallow/stickypane/internal/prefs"
-	"github.com/LeeSwallow/stickypane/internal/registry"
-	"github.com/LeeSwallow/stickypane/internal/store"
-	"github.com/LeeSwallow/stickypane/internal/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
 )
 
 // env is what every command gets: the context, which ends when the user

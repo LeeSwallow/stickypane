@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/LeeSwallow/stickypane/internal/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
 var hangul = regexp.MustCompile(`[\x{AC00}-\x{D7A3}]`)

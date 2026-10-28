@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/when"
+	"github.com/LeeSwallow/stickypane/internal/core/when"
 )
 
 // editCmd runs a command that changes one thing in a note: todo, card,

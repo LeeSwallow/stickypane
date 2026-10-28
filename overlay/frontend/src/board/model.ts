@@ -1,4 +1,4 @@
-// What board.load answers (internal/bridge/load.go), as the window reads it,
+// What board.load answers (internal/surface/bridge/load.go), as the window reads it,
 // and the few pure helpers on it. The window never reads a note's file.
 
 export interface Card {
@@ -160,7 +160,7 @@ const ext = (f: string) => {
 
 /**
  * resolveLink finds the note a [[link]] names among the board's files, as
- * internal/api.Resolve does: the name itself, with ".md", or the one file
+ * internal/usecase/api.Resolve does: the name itself, with ".md", or the one file
  * whose name without folder and extension it is; "" when none or several.
  */
 export function resolveLink(target: string, files: string[]): string {

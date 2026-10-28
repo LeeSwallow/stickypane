@@ -1,7 +1,7 @@
 // Package bridge is the app's client for `stickypane bridge`: it runs the
 // program as a child, speaks protocol 1 with it over standard input and
 // output (one JSON object a line), and starts it again when it dies. The
-// types mirror the main module's internal/bridge, which this module cannot
+// types mirror the main module's internal/surface/bridge, which this module cannot
 // import.
 package bridge
 

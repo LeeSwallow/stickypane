@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Checks the plugin's own files: manifests parse, scripts are valid shell,
 # every skill has a name and a description and every command a description.
-# The Go tests check the rest (go test ./internal/initcmd/). Exit code 1 when
+# The Go tests check the rest (go test ./internal/usecase/initcmd/). Exit code 1 when
 # any check fails.
 set -u
 here="$(cd "$(dirname "$0")/.." && pwd)"

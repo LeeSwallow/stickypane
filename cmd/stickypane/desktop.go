@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/LeeSwallow/stickypane/internal/store"
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // The desktop app (overlay/): its bundle id on macOS and its program on
