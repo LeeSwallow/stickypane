@@ -373,7 +373,7 @@ func TestKoreanHelpKeysAreReal(t *testing.T) {
 	for _, g := range helpGroups {
 		known["group."+g.key] = true
 	}
-	for _, k := range []string{"make", "file", "behaves", "keys"} {
+	for _, k := range []string{"make", "file", "behaves", "keys", "options"} {
 		known["shape."+k] = true
 	}
 	for _, c := range commands {

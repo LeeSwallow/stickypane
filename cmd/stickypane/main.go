@@ -91,8 +91,9 @@ For scripts and agents that would rather not edit the files themselves:
                                  folder of the project is linked onto the board
   stickypane hide <name>         fold a note away
   stickypane cat <name>          print a note's file
-  stickypane write <name> [--type T] [--title X] [--open] [--size S]
-                                 create or replace a note from standard input
+  stickypane write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]
+                                 create or replace a note from standard input,
+                                 or from the shape's create options
   stickypane todo <name> add|check|uncheck <item>
   stickypane card <name> add|move <card> [--to <column>]
   stickypane chart <name> set|add <label> <number>
