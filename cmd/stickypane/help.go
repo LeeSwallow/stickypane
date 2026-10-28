@@ -40,19 +40,19 @@ var helpGroups = []struct{ key, title string }{
 // startText is the first steps, in English.
 const startText = `Getting started
 
-1. Give the project a board, and tell your agents it is there:
+1. Connect your agents, once:
+     stickypane setup
+   (Claude Code and Codex get the board plugin; setup --mcp adds MCP)
+2. Give the project a board:
      stickypane init
-2. Pin something up. Agents and scripts write files; so can you:
-     echo "- [ ] try the board" | stickypane write plan --type checklist --open
-   (stickypane kinds shows every shape a note can take)
+   (an agent without the plugin gets a short guide in CLAUDE.md or AGENTS.md)
 3. Open the board in a pane beside your agent:
      stickypane
    (not sure how in your terminal? stickypane env knows)
-4. Hook up your agent, once:
-     stickypane setup
-   (or setup --mcp, or the lines init left in CLAUDE.md / AGENTS.md)
-5. Rather see it outside the terminal? The desktop app shows the
-   same board and starts stickypane bridge on its own.
+
+Then ask your agent to put something on the board, or pin a note yourself:
+     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+(stickypane kinds lists the shapes a note can take)
 
 Next: stickypane help, then stickypane help <command>.`
 
