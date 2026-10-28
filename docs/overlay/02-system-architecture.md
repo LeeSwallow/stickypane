@@ -129,14 +129,24 @@ type Action struct {
 
 | 방향 | 메시지 | 내용 |
 |---|---|---|
-| → | `board.load` | 탭·노트 목록, 각 노트의 kind·크기(`size`, `rows`)·색·고정·버전·`Data`. 책은 `pages`(같은 형식의 노트 목록, 파일 이름순) |
-| → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과로 새 버전 |
-| → | `note.create` `{tab, kind, title, body}` | "+ 생성"(카탈로그에서 모양과 제목을 고른 뒤). `api.Write`와 같은 경로 |
-| → | `note.view` `{note, size?, rows?, open?, pin?}` | 노트의 보기 설정(`sticky.json`)을 `store.SetView`로 바꾼다. 터미널 배치도 같이 바뀐다 |
+| → | `hello` | `{protocol, version, project}`. 프로토콜 버전이 다르면 앱이 업데이트 안내를 띄운다 |
+| → | `board.load` | `{title, tabs, settings, palette}`. 노트는 터미널이 그리는 순서(고정 먼저, `tab.order`, 이름순). 노트마다 `name`·`tab`·`title`·`kind`·`icon`·`open`·`size`·`rows`·`color`·`pinned`·`version`·`summary`·`data`·`modTime`, 심볼릭 링크면 `linked`와 `target`, 읽을 수 없으면 `error`. 책은 `pages`(같은 형식). `settings`는 `{theme, style, view, language:{choice, resolved}, tab, time, editor, stale}`, `palette`는 고른 테마의 색 |
+| → | `board.index` | `{entries}`: `api.Index`와 같다. 노트마다 `tab`·`name`·`kind`·`icon`·`title`·`summary`·`gist`·`open`·`modified`·`links`·`backlinks` |
+| → | `kinds.list` | 카탈로그. 모양마다 `{name, icon, label, blurb, example, data}`. `example`은 예시 파일 전체, `data`는 그 예시의 `Kind.Data` |
+| → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과 `{version}`. 버전이 다르면 `stale`. chat의 `say`는 `who`가 비면 터미널과 같은 규칙(`$STICKYPANE_USER` → git `user.name` → 로그인)으로 채운다 |
+| → | `note.create` `{tab, kind, title, body}` | "+ 생성". `api.Create`: 파일을 배타적으로 만들어, 같은 이름이 생기면 덮어쓰지 않고 `-2`, `-3`을 붙인다. 결과 `{note}` |
+| → | `note.arrange` `{note, open?, size?, rows?, pin?, color?, title?}` | `stickypane set`과 같은 길(`api.Set`, `arrange.Change`). 빈 `size`·`color`·`title`과 `rows: 0`은 선택을 되돌린다. 책의 페이지는 책의 배치를 따르고 제목만 자기 것이다. `note.view`를 대체했다(제거됨) |
+| → | `tab.order` `{tab, order[]}` | 탭의 노트 순서(전체 이름). 터미널 `{` `}`가 쓰는 `store.SetOrder`. 그 탭의 노트만, 중복 없이 |
+| → | `note.move` `{note, to}` | `api.MoveTo`(= `api.Move`). `to`는 `"."`(최상위), `"폴더/"`(책), 새 이름. 결과 `{note}`는 옮겨진 이름 |
+| → | `note.archive` / `note.trash` / `note.restore` `{note}` | `api.Archive` / `api.Remove` / `api.Restore`(책은 `store`로 직접). restore는 휴지통에 없으면 `not_found` |
+| → | `note.run` `{note}` | 스크립트를 실행하고 끝나면 `{code, took}`(밀리초). 확인은 앱이 이미 받았다. 세션이 끝나면 실행 중인 스크립트는 중단된다 |
+| → | `note.send` `{note, request}` | `.http` 노트의 요청 하나를 보낸다(`httpfile.SendNote`, 터미널과 같다). `request`는 제목 또는 1부터 센 번호. 끝나면 `{status, text, took, failed, end, log}` |
 | → | `note.open` `{note}` | 편집기로 연다(O2). bridge는 GUI 앱의 자식이라 터미널이 없다: `$VISUAL`이 GUI 편집기(`code`, `zed`, `subl` 등 `env`가 아는 목록)면 그것으로, 아니면 macOS `open -t`, Linux `xdg-open`. 기다리지 않는다. 바뀐 내용은 watch로 돌아온다 |
-| → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `store.SetTheme` / `SetRoot` / 기존 language 저장 |
-| ← | `board.changed` `{notes:[...]}` | `store.Watch` 신호마다, 바뀐 노트만 다시 읽어 `Data`와 `Kind.Events`의 사건을 함께 |
-| ← | `error` | 버전 불일치, 알 수 없는 행동 등 |
+| → | `settings.get` / `settings.set` `{theme \| style \| view \| language}` | `settings.get`은 `board.load`의 `settings`. `settings.set`은 값을 모두 검사한 뒤에야 쓴다 |
+| ← | `board.changed` `{notes, removed, events, settings?, palette?}` | `store.Watch` 신호마다. 바뀐 노트(`board.load` 모양)·사라진 이름·`Kind.Events`의 사건. 루트 `sticky.json`의 설정이 바뀌었으면(에이전트의 `show`가 바꾼 `tab`, 터미널에서 고른 테마·언어 등) `settings` 전체를, 테마가 바뀌었으면 `palette`도 |
+| ← | 오류 응답 | `{id, error:{code, message}}`. `code`는 `bad_request` · `not_found` · `stale` · `failed` |
+
+모든 변경 뒤 bridge는 `api.Derive`를 불러 파생 차트를 터미널처럼 갱신한다. 세션은 입력이 닫히거나 컨텍스트가 끝나면 끝나고, 그때 실행 중인 스크립트를 중단한다(스크립트가 bridge를 붙들고 있지 않는다).
 
 사건(`Kind.Events`)을 함께 보내는 이유: "카드가 Doing에서 Review로 갔다"를 화면이 직접 비교해 추측하지 않고, `stickypane watch --json`과 같은 사건을 그대로 받아 Motion을 고른다([04](04-motion.md)).
 
@@ -207,7 +217,7 @@ overlay 앱이 이미 떠 있으면 같은 프로세스에 창만 하나 더 연
 
 주의할 점 두 가지(구현자 확인 필요):
 
-- 스크립트 실행은 지금 `internal/app`(50)에 있다. bridge도 50이라 import할 수 없다. 실행 부분을 낮은 레이어(예: `internal/env` 옆 새 패키지)로 내리는 리팩터가 먼저 필요하다.
+- 스크립트 실행은 `internal/runner`(12)로 내려가 있다(Task 9). 요청 보내기는 처음부터 `internal/httpfile`(5)에 있어 옮길 필요가 없었다.
 - `Kind.Tend`(완료 시각 기록)는 지금 `api`가 부른다. `api.Apply`도 같은 경로를 타야 한다. 시각은 `internal/when`으로만 쓴다(AGENTS.md).
 
 ## 2.7 HTML 노트 격리
