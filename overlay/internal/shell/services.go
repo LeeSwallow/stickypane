@@ -24,6 +24,9 @@ func (h *HomeService) Restore(id int64) error { return h.S.Restore(id) }
 // PickFolder asks for a folder; "" when the person cancelled.
 func (h *HomeService) PickFolder() (string, error) { return h.S.PickFolder() }
 
+// Inspect says whether dir already has a board; it changes nothing.
+func (h *HomeService) Inspect(dir string) Inspection { return h.S.Inspect(dir) }
+
 // InitProject makes a board in dir and opens its window.
 func (h *HomeService) InitProject(dir string) error {
 	if err := h.S.InitProject(dir); err != nil {

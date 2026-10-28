@@ -22,6 +22,9 @@
   let failure = $state('')
   let status = $state<StickypaneState | null>(null)
   let notices = $state<Notice[]>([])
+  // lines of the window's own (a failed call), apart from the shell's
+  let local = $state<Notice[]>([])
+  let confirming = $state('')
   let prefs = $state<Prefs>({ hotkey: '', language: '', mode: '' })
   let systemDark = $state(false)
   let busy = $state(false)
@@ -56,6 +59,7 @@
   const lang = $derived<Choice>(prefs.language === 'ko' || prefs.language === 'en' ? prefs.language : 'auto')
   $effect(() => setLanguage(lang === 'auto' ? resolveAuto() : lang))
 
+  const shown = $derived([...notices, ...local])
   const removed = $derived((groups?.Removed ?? []).filter((p) => !dismissed.includes(p.ID)))
   const count = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
   const setup = $derived(status && !status.found ? 'install' : status && !status.bridge ? 'update' : null)
@@ -82,20 +86,44 @@
     }
     await Promise.all([
       loadSessions(),
-      api.status().then((s) => (status = s), () => {}),
-      api.notices().then((n) => (notices = n ?? []), () => {}),
+      api.status().then((s) => (status = s), (e) => warn('status_failed', e)),
+      api.notices().then((n) => (notices = n ?? []), (e) => warn('notices_failed', e)),
     ])
   }
 
+  function warn(code: string, e: unknown) {
+    local = [...local.filter((n) => n.code !== code), { code, detail: String((e as Error)?.message ?? e) }]
+  }
+
+  // pick asks for a folder; a folder with a board opens, any other asks first.
   async function pick() {
     busy = true
     try {
       const dir = await api.pickFolder()
       if (!dir) return
+      const found = await api.inspect(dir)
+      if (found.exists) {
+        await api.openProject(found.path)
+        await loadSessions()
+      } else {
+        confirming = found.path
+      }
+    } catch (e) {
+      warn('init_failed', e)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function create() {
+    const dir = confirming
+    confirming = ''
+    busy = true
+    try {
       await api.initProject(dir)
       await loadSessions()
     } catch (e) {
-      notices = [...notices.filter((n) => n.code !== 'init_failed'), { code: 'init_failed', detail: String((e as Error)?.message ?? e) }]
+      warn('init_failed', e)
     } finally {
       busy = false
     }
@@ -103,7 +131,9 @@
 
   async function undo() {
     const ids = removed.map((p) => p.ID)
-    await Promise.all(ids.map((id) => api.restore(id).catch(() => {})))
+    const results = await Promise.allSettled(ids.map((id) => api.restore(id)))
+    const bad = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined
+    if (bad) warn('restore_failed', bad.reason)
     await loadSessions()
   }
 
@@ -141,17 +171,27 @@
       <Logo size={34} />
       <span class="brand">{$tr('home.title')}</span>
       {#if count > 0}
-        <button type="button" class="add" onclick={pick} disabled={busy || status?.found === false}>{$tr('home.addProject')}</button>
+        <button type="button" class="add" onclick={pick} disabled={busy || status?.found !== true}>{$tr('home.addProject')}</button>
       {/if}
     </header>
 
-    {#if notices.length || failure}
+    {#if shown.length || failure || confirming}
       <div class="notices">
-        {#each notices as n (n.code)}
+        {#each shown as n (n.code)}
           <div role="status" class="notice">
             <NoteFrame color={look.palette?.warn ?? 'currentColor'} id={'notice-' + n.code}>{noticeText(n)}</NoteFrame>
           </div>
         {/each}
+        {#if confirming}
+          <div role="dialog" aria-label={$tr('home.confirmInit')} class="notice">
+            <NoteFrame color={look.palette?.accent ?? 'currentColor'} id="confirm-init">
+              <p class="ask">{$tr('home.confirmInit')}</p>
+              <p class="where">{confirming}</p>
+              <button type="button" onclick={create}>{$tr('home.create')}</button>
+              <button type="button" onclick={() => (confirming = '')}>{$tr('home.cancel')}</button>
+            </NoteFrame>
+          </div>
+        {/if}
         {#if failure}
           <div role="alert" class="notice">
             <NoteFrame color={look.palette?.bad ?? 'currentColor'} id="notice-index">{$tr('notice.index', { detail: failure })}</NoteFrame>
@@ -166,7 +206,7 @@
       {/if}
       <Sessions {groups} now={at} open={(p) => void api.openProject(p)} />
     {:else if groups && !failure}
-      <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found !== false} />
+      <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found === true} />
     {/if}
 
     {#if removed.length}
@@ -225,6 +265,25 @@
   .notice {
     font-family: var(--font-hand);
     font-size: 18px;
+  }
+  .ask {
+    margin: 0;
+  }
+  .where {
+    margin: 2px 0 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .notice button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1.5px solid currentColor;
+    border-radius: 8px;
+    padding: 0 12px;
+    margin-right: 8px;
+    cursor: pointer;
   }
   .setup {
     margin-bottom: 18px;

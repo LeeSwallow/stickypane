@@ -27,6 +27,7 @@ function fakeApi(groups: Groups, over: Partial<HomeApi> = {}): HomeApi {
     sessions: vi.fn(async () => groups),
     restore: vi.fn(async () => {}),
     pickFolder: vi.fn(async () => ''),
+    inspect: vi.fn(async (dir: string) => ({ exists: false, path: dir })),
     initProject: vi.fn(async () => {}),
     openProject: vi.fn(async () => 1),
     status: vi.fn(async () => ({ found: true, bridge: true, version: '0.2.0' })),
@@ -93,7 +94,99 @@ describe('home', () => {
     const buttons = screen.getAllByRole('button').filter((b) => !b.closest('.language'))
     expect(buttons.map((b) => b.textContent?.trim())).toEqual(['폴더 고르기'])
     await fireEvent.click(buttons[0])
+    // no board is made until the person says so
+    const ask = await screen.findByRole('dialog')
+    expect(within(ask).getByText('이 폴더에 보드를 만들까요?')).toBeTruthy()
+    expect(within(ask).getByText('/home/min/new')).toBeTruthy()
+    expect(api.initProject).not.toHaveBeenCalled()
+    await fireEvent.click(within(ask).getByRole('button', { name: '만들기' }))
     await waitFor(() => expect(api.initProject).toHaveBeenCalledWith('/home/min/new'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('cancelling the confirm makes nothing', async () => {
+    const api = fakeApi(empty, { pickFolder: vi.fn(async () => '/home/min/new') })
+    mount(api)
+    await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
+    const ask = await screen.findByRole('dialog')
+    await fireEvent.click(within(ask).getByRole('button', { name: '취소' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(api.initProject).not.toHaveBeenCalled()
+    expect(api.openProject).not.toHaveBeenCalled()
+  })
+
+  it('a folder that already has a board opens without init', async () => {
+    const api = fakeApi(empty, {
+      pickFolder: vi.fn(async () => '/home/min/has'),
+      inspect: vi.fn(async (dir: string) => ({ exists: true, path: dir })),
+    })
+    mount(api)
+    await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
+    await waitFor(() => expect(api.openProject).toHaveBeenCalledWith('/home/min/has'))
+    expect(api.initProject).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('a failed init shows a notice', async () => {
+    const api = fakeApi(empty, {
+      pickFolder: vi.fn(async () => '/home/min/new'),
+      initProject: vi.fn(async () => {
+        throw new Error('refused')
+      }),
+    })
+    mount(api)
+    await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
+    await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '만들기' }))
+    expect(await screen.findByText('보드를 만들지 못했어요 · refused')).toBeTruthy()
+  })
+
+  it('a failed undo shows a notice', async () => {
+    const api = fakeApi(
+      { Active: null, Days: null, Removed: [{ ID: 7, Path: '/gone/a', Title: 'a' }] },
+      {
+        restore: vi.fn(async () => {
+          throw new Error('locked')
+        }),
+      },
+    )
+    mount(api)
+    await fireEvent.click(await screen.findByRole('button', { name: '되돌리기' }))
+    expect(await screen.findByText('되돌리지 못했어요 · locked')).toBeTruthy()
+  })
+
+  it('a failed status check shows a notice and keeps the folder button off', async () => {
+    const api = fakeApi(empty, {
+      status: vi.fn(async () => {
+        throw new Error('no shell')
+      }),
+    })
+    mount(api)
+    expect(await screen.findByText('stickypane을 확인하지 못했어요 · no shell')).toBeTruthy()
+    expect((screen.getByRole('button', { name: '폴더 고르기' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('a failed notices read shows a notice', async () => {
+    const api = fakeApi(empty, {
+      notices: vi.fn(async () => {
+        throw new Error('gone')
+      }),
+    })
+    mount(api)
+    expect(await screen.findByText('알림을 읽지 못했어요 · gone')).toBeTruthy()
+  })
+
+  it('the x hides the removed note and it stays hidden', async () => {
+    const groups: Groups = { Active: null, Days: null, Removed: [{ ID: 7, Path: '/gone/a', Title: 'a' }] }
+    localStorage.clear()
+    mount(fakeApi(groups))
+    await screen.findByText('사라진 프로젝트 1개를 정리했어요')
+    await fireEvent.click(screen.getByRole('button', { name: '닫기' }))
+    expect(screen.queryByText('사라진 프로젝트 1개를 정리했어요')).toBeNull()
+    cleanup()
+    mount(fakeApi(groups))
+    await screen.findByText('아직 붙은 보드가 없어요')
+    expect(screen.queryByText('사라진 프로젝트 1개를 정리했어요')).toBeNull()
+    localStorage.clear()
   })
 
   it('a cancelled folder pick does nothing', async () => {

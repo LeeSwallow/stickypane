@@ -62,6 +62,8 @@ export interface HomeApi {
   sessions(): Promise<Groups>
   restore(id: number): Promise<void>
   pickFolder(): Promise<string>
+  /** inspect says whether dir has a .sticky; it changes nothing. */
+  inspect(dir: string): Promise<{ exists: boolean; path: string }>
   initProject(dir: string): Promise<void>
   openProject(path: string): Promise<unknown>
   status(): Promise<StickypaneState>
@@ -80,6 +82,7 @@ export const realApi: HomeApi = {
   sessions: () => call('Sessions'),
   restore: (id) => call('Restore', id),
   pickFolder: () => call('PickFolder'),
+  inspect: (dir) => call('Inspect', dir),
   initProject: (dir) => call('InitProject', dir),
   openProject: (path) => call('OpenProject', path),
   status: () => call('StickypaneStatus'),

@@ -68,5 +68,12 @@
   "home.dismiss": "닫기",
   "notice.hotkey_failed": "단축키를 등록하지 못했어요 · {detail}",
   "notice.state_unreadable": "저장된 창 위치를 읽지 못했어요 · {detail}",
-  "notice.index": "보드 목록을 읽지 못했어요 · {detail}"
+  "notice.index": "보드 목록을 읽지 못했어요 · {detail}",
+  "home.confirmInit": "이 폴더에 보드를 만들까요?",
+  "home.create": "만들기",
+  "home.cancel": "취소",
+  "notice.init_failed": "보드를 만들지 못했어요 · {detail}",
+  "notice.restore_failed": "되돌리지 못했어요 · {detail}",
+  "notice.status_failed": "stickypane을 확인하지 못했어요 · {detail}",
+  "notice.notices_failed": "알림을 읽지 못했어요 · {detail}"
 }

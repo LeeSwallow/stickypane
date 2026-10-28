@@ -68,5 +68,12 @@
   "home.dismiss": "Dismiss",
   "notice.hotkey_failed": "Could not register the hotkey · {detail}",
   "notice.state_unreadable": "Could not read the saved window places · {detail}",
-  "notice.index": "Could not read the list of boards · {detail}"
+  "notice.index": "Could not read the list of boards · {detail}",
+  "home.confirmInit": "Make a board in this folder?",
+  "home.create": "Create",
+  "home.cancel": "Cancel",
+  "notice.init_failed": "Could not make the board · {detail}",
+  "notice.restore_failed": "Could not undo · {detail}",
+  "notice.status_failed": "Could not check stickypane · {detail}",
+  "notice.notices_failed": "Could not read the notices · {detail}"
 }

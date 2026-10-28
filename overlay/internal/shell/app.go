@@ -439,8 +439,37 @@ func (s *Shell) StickypaneStatus() StickypaneState {
 	return st
 }
 
+// Inspection says whether a folder already has a board.
+type Inspection struct {
+	Exists bool   `json:"exists"` // dir has a .sticky/
+	Path   string `json:"path"`   // dir, cleaned
+}
+
+// Inspect looks at dir without changing anything.
+func (s *Shell) Inspect(dir string) Inspection {
+	dir = filepath.Clean(dir)
+	fi, err := os.Stat(filepath.Join(dir, ".sticky"))
+	return Inspection{Exists: err == nil && fi.IsDir(), Path: dir}
+}
+
+// refuseInit stops a board being made in the home folder or the root, where
+// every project below would find it.
+func refuseInit(dir string) error {
+	d := filepath.Clean(dir)
+	if d == string(filepath.Separator) {
+		return errors.New("will not make a board in the root folder")
+	}
+	if h, err := os.UserHomeDir(); err == nil && d == filepath.Clean(h) {
+		return errors.New("will not make a board in the home folder: every project below it would find it")
+	}
+	return nil
+}
+
 // InitProject makes a board in dir with `stickypane init`.
 func (s *Shell) InitProject(dir string) error {
+	if err := refuseInit(dir); err != nil {
+		return err
+	}
 	bin, err := s.cfg.Find()
 	if err != nil {
 		return err
