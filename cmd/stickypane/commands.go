@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/registry"
+	"github.com/LeeSwallow/stickypane/internal/store"
 )
 
 // env is what every command gets: the context, which ends when the user
@@ -15,6 +18,7 @@ type env struct {
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
+	cmd    string // the word of the command line that chose the command
 }
 
 // command is one word of the command line. Its usage is the lines of the
@@ -66,6 +70,7 @@ func init() {
 		{[]string{"api"}, apiCmd},
 		{[]string{"watch"}, watchCmd},
 		{[]string{"mcp"}, mcpCmd},
+		{[]string{"bridge"}, bridgeCmd},
 	}
 }
 
@@ -89,5 +94,29 @@ func initCmd(e env, args []string) error {
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
 		return err
 	}
-	return initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout)
+	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout); err != nil {
+		return err
+	}
+	if dir, err := store.Resolve("."); err == nil {
+		registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+	}
+	return nil
+}
+
+// changes are the commands that change a board; each one notes its project
+// in the registry, once a minute, as soon as open has found it.
+var changes = map[string]bool{
+	"write": true, "todo": true, "card": true, "chart": true, "log": true,
+	"say": true, "set": true, "mv": true, "link": true, "rm": true,
+	"restore": true, "archive": true, "show": true, "hide": true,
+}
+
+// live records that this command works on the project here until it ends:
+// defer live(kind)(). It does nothing where there is no board.
+func live(kind string) (end func()) {
+	dir, err := store.Resolve(".")
+	if err != nil {
+		return func() {}
+	}
+	return registry.Live(filepath.Dir(dir), kind)
 }

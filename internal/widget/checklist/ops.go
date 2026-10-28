@@ -1,6 +1,8 @@
 package checklist
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -141,4 +143,36 @@ func tend(_, d doc.Document, changed time.Time) doc.Op {
 		}
 	}
 	return nil
+}
+
+// act is the checklist's Kind.Act: "toggle" with i, the item's position
+// from zero, and "add" with text. The time of a ticked item is not written
+// here; tend writes it.
+func act(d doc.Document, a widget.Action) (doc.Op, error) {
+	switch a.Name {
+	case "toggle":
+		i, err := strconv.Atoi(a.Args["i"])
+		if err != nil {
+			return nil, fmt.Errorf("toggle: i must be a number, not %q", a.Args["i"])
+		}
+		c := read(d)
+		if i < 0 || i >= len(c.items) {
+			return nil, fmt.Errorf("toggle: no item %d, the list has %d", i, len(c.items))
+		}
+		it := c.entries[c.items[i]]
+		nth := 0
+		for _, j := range c.items[:i] {
+			if c.entries[j].text == it.text {
+				nth++
+			}
+		}
+		return Toggle{Text: it.text, Checked: !it.checked, Nth: nth}, nil
+	case "add":
+		text := strings.TrimSpace(a.Args["text"])
+		if text == "" || strings.ContainsAny(text, "\r\n") {
+			return nil, fmt.Errorf("add: text must be one line, not empty")
+		}
+		return AddItem{Text: text}, nil
+	}
+	return nil, fmt.Errorf("%w: %q", widget.ErrUnknownAction, a.Name)
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/app"
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/kinds"
+	"github.com/LeeSwallow/stickypane/internal/registry"
 	"github.com/LeeSwallow/stickypane/internal/store"
 	"github.com/LeeSwallow/stickypane/internal/theme"
 )
@@ -122,6 +123,10 @@ For scripts and agents that would rather not edit the files themselves:
                                  form.submitted, log.appended, chart.changed...;
                                  --exec runs CMD for each, with STICKY_* set
   stickypane mcp                 serve the notes over MCP on standard input/output
+  stickypane bridge              serve the board to the desktop app: JSON lines on
+                                 standard input/output; ends, and kills the scripts it
+                                 started with their children (unix), when the app
+                                 closes its input
 `
 
 // waitEvery is how often wait looks at the form's file.
@@ -161,6 +166,7 @@ func runCtx(ctx context.Context, args []string, stdin io.Reader, stdout, stderr 
 	e := env{ctx: ctx, stdin: stdin, stdout: stdout, stderr: stderr}
 	if len(args) > 0 {
 		if c, ok := lookup(args[0]); ok {
+			e.cmd = args[0]
 			return exitCode(c.run(e, args[1:]), stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
@@ -189,6 +195,9 @@ func openBoard(e env, start string) error {
 			return err
 		}
 		dir, err = store.Resolve(root)
+		if err == nil {
+			registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+		}
 	}
 	if err != nil {
 		return err
@@ -196,13 +205,19 @@ func openBoard(e env, start string) error {
 	// What was set up, without the last line: the next step was this one.
 	lines := strings.Split(strings.TrimRight(setup.String(), "\n"), "\n")
 	done := strings.Join(lines[:len(lines)-1], " ")
-	if err := runBoard(e.ctx, dir, done); err != nil {
+	if err := runBoardLive(e, dir, done); err != nil {
 		return err
 	}
 	if done != "" {
 		_, err = io.WriteString(e.stdout, strings.Join(lines[:len(lines)-1], "\n")+"\n")
 	}
 	return err
+}
+
+// runBoardLive runs the board as a session of its project.
+func runBoardLive(e env, dir, status string) error {
+	defer registry.Live(filepath.Dir(dir), "tui")()
+	return runBoard(e.ctx, dir, status)
 }
 
 // runBoard is the terminal UI; tests put a stand-in here.

@@ -14,6 +14,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/widget/chat"
 	"github.com/LeeSwallow/stickypane/internal/widget/checklist"
 	"github.com/LeeSwallow/stickypane/internal/widget/form"
+	"github.com/LeeSwallow/stickypane/internal/widget/html"
 	"github.com/LeeSwallow/stickypane/internal/widget/logview"
 	"github.com/LeeSwallow/stickypane/internal/widget/note"
 	"github.com/LeeSwallow/stickypane/internal/widget/script"
@@ -32,6 +33,7 @@ func Default(render note.Renderer) widget.Registry {
 		form.NewKind(render),
 		script.Kind,
 		api.Kind,
+		html.Kind,
 	}
 }
 

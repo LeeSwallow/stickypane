@@ -321,6 +321,66 @@ func (s *Store) SetRoot(key, value string) error {
 	return s.setString("", key, value)
 }
 
+// How the board is shown, and in which style. Each is a root key that
+// leaves no trace while it is at its default.
+const (
+	viewModeKey = "view"
+	styleKey    = "style"
+
+	ViewTerminal = "terminal"
+	ViewOverlay  = "overlay"
+	ViewBoth     = "both"
+
+	StyleDoodle = "doodle"
+	StyleNeat   = "neat"
+)
+
+// ViewMode returns where the board is shown: "terminal" (the default),
+// "overlay" or "both". A value it does not know reads as the default.
+func (s *Store) ViewMode() string { return s.one("").ViewMode() }
+
+// ViewMode returns where the board is shown, as Store.ViewMode does.
+func (set Settings) ViewMode() string {
+	switch v := set.Root(viewModeKey); v {
+	case ViewOverlay, ViewBoth:
+		return v
+	}
+	return ViewTerminal
+}
+
+// SetViewMode writes where the board is shown; "terminal" takes the key out.
+func (s *Store) SetViewMode(mode string) error {
+	switch mode {
+	case ViewTerminal:
+		return s.SetRoot(viewModeKey, "")
+	case ViewOverlay, ViewBoth:
+		return s.SetRoot(viewModeKey, mode)
+	}
+	return fmt.Errorf("view %q is not terminal, overlay or both", mode)
+}
+
+// Style returns the look of the overlay: "doodle" (the default) or "neat".
+func (s *Store) Style() string { return s.one("").Style() }
+
+// Style returns the look of the overlay, as Store.Style does.
+func (set Settings) Style() string {
+	if v := set.Root(styleKey); v == StyleNeat {
+		return v
+	}
+	return StyleDoodle
+}
+
+// SetStyle writes the look of the overlay; "doodle" takes the key out.
+func (s *Store) SetStyle(style string) error {
+	switch style {
+	case StyleDoodle:
+		return s.SetRoot(styleKey, "")
+	case StyleNeat:
+		return s.SetRoot(styleKey, style)
+	}
+	return fmt.Errorf("style %q is not doodle or neat", style)
+}
+
 // Theme returns the name of the theme the user chose, or "" for none.
 func (s *Store) Theme() string { return s.one("").Theme() }
 

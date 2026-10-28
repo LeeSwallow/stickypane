@@ -1,6 +1,8 @@
 package kinds
 
 import (
+	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -54,6 +56,31 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 				t.Error("an empty file must still give a widget")
 			} else {
 				empty.Draw(20, true)
+			}
+		})
+	}
+}
+
+// Every shape says what it holds, for a screen that is not a terminal, and
+// a shape that takes actions refuses the ones it does not know.
+func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
+	for _, k := range Default(note.Plain) {
+		t.Run(k.Name, func(t *testing.T) {
+			if k.Data == nil {
+				t.Fatal("a kind needs Data")
+			}
+			d := doc.Parse(widget.NewFile(k.Name, "", k.Example))
+			if k.New != "" {
+				d = doc.Document{Body: k.Example}
+			}
+			b, err := json.Marshal(k.Data(d))
+			if err != nil || string(b) == "null" {
+				t.Errorf("Data of the example = %s, %v", b, err)
+			}
+			if k.Act != nil {
+				if _, err := k.Act(d, widget.Action{Name: "no-such"}); !errors.Is(err, widget.ErrUnknownAction) {
+					t.Errorf("Act(no-such) = %v, want ErrUnknownAction", err)
+				}
 			}
 		})
 	}

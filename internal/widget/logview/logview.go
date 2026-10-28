@@ -29,6 +29,7 @@ var Kind = widget.Kind{
 	Template: func(title string) []byte { return widget.NewFile("log", title, "") },
 	Parse:    func(d doc.Document) widget.Widget { return parse(d) },
 	Events:   events,
+	Data:     data,
 }
 
 // Log is the widget for a log note.
@@ -90,4 +91,19 @@ type Append struct{ Line string }
 func (o Append) Apply(d doc.Document) (doc.Document, error) {
 	d.Body = doc.AppendLine(d.Body, doc.OneLine(o.Line))
 	return d, nil
+}
+
+// maxLines is how many of a log's last lines Data carries; the rest of a
+// long log stays in its file.
+const maxLines = 1000
+
+// data is the lines of the log as the board shows them, the last maxLines.
+func data(d doc.Document) any {
+	lines := parse(d).lines
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return struct {
+		Lines []string `json:"lines"`
+	}{append([]string{}, lines...)}
 }

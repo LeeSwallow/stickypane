@@ -25,6 +25,10 @@ import (
 // ErrBadName rejects names that are not a note in the notes folder.
 var ErrBadName = errors.New(`a note name is a file name such as "plan", "build.log" or, for a page of a book, "docs/plan"`)
 
+// ErrUnknownType is what Write and Create answer for a type that is not a
+// shape of note. The message names the type.
+var ErrUnknownType = errors.New("unknown type")
+
 // waitRetries is how many failed looks in a row Wait rides out.
 const waitRetries = 10
 
@@ -162,24 +166,9 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d := doc.Parse(body)
-	if opts.Type != "" {
-		if a.reg.Lookup(opts.Type).Name != opts.Type {
-			return "", fmt.Errorf("unknown type %q", opts.Type)
-		}
-		d = d.Set("type", opts.Type)
-	}
-	if opts.Title != "" {
-		d = d.Set("title", opts.Title)
-	}
-	if opts.Open {
-		d = d.Set("open", "true")
-	}
-	if opts.Size != "" {
-		if !arrange.ValidSize(opts.Size) {
-			return "", fmt.Errorf("unknown size %q: use page, half or card", opts.Size)
-		}
-		d = d.Set("size", opts.Size)
+	d, err := a.shape(doc.Parse(body), opts)
+	if err != nil {
+		return "", err
 	}
 	old, err := a.st.Read(file)
 	if err == nil {
@@ -201,6 +190,53 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	}
 	d = a.tend(file, before, d)
 	if err := a.st.Write(file, d.Bytes()); err != nil {
+		return file, err
+	}
+	_, _ = a.Derive() // charts computed from this note follow it
+	return file, nil
+}
+
+// shape sets the front matter keys opts asks for.
+func (a *API) shape(d doc.Document, opts Options) (doc.Document, error) {
+	if opts.Type != "" {
+		if a.reg.Lookup(opts.Type).Name != opts.Type {
+			return d, fmt.Errorf("%w %q", ErrUnknownType, opts.Type)
+		}
+		d = d.Set("type", opts.Type)
+	}
+	if opts.Title != "" {
+		d = d.Set("title", opts.Title)
+	}
+	if opts.Open {
+		d = d.Set("open", "true")
+	}
+	if opts.Size != "" {
+		if !arrange.ValidSize(opts.Size) {
+			return d, fmt.Errorf("unknown size %q: use page, half or card", opts.Size)
+		}
+		d = d.Set("size", opts.Size)
+	}
+	return d, nil
+}
+
+// Create makes a new note and returns its file name. It is Write for a
+// name nobody has: where a file is already, nothing is written and the
+// error is fs.ErrExist, even if the file came a moment ago, so that two
+// callers choosing the same name never write over each other.
+func (a *API) Create(name string, opts Options, body []byte) (string, error) {
+	file, err := fileName(name)
+	if err != nil {
+		return "", err
+	}
+	d, err := a.shape(doc.Parse(body), opts)
+	if err != nil {
+		return "", err
+	}
+	if isMarkdown(file) {
+		d = created(d)
+	}
+	d = a.tend(file, doc.Document{}, d)
+	if err := a.st.WriteNew(file, d.Bytes()); err != nil {
 		return file, err
 	}
 	_, _ = a.Derive() // charts computed from this note follow it

@@ -25,5 +25,7 @@ func NewKind(render note.Renderer) widget.Kind {
 		},
 		Parse:  func(d doc.Document) widget.Widget { return parse(d, render) },
 		Events: events,
+		Data:   data,
+		Act:    act,
 	}
 }

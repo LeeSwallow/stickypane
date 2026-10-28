@@ -377,7 +377,7 @@ func (a *API) Restore(name string) (string, error) {
 		}
 	}
 	if !ok {
-		return "", fmt.Errorf("there is no %s in the trash", file)
+		return "", missing(fmt.Sprintf("there is no %s in the trash", file))
 	}
 	if err := a.st.Restore(from, file); err != nil {
 		return "", err
@@ -405,31 +405,51 @@ func (a *API) Archive(name string) (string, error) {
 // a page of that book, or a new name. A new name without an extension
 // keeps the note's. A note that is moved keeps where it was on the screen.
 func (a *API) Move(name, to string) (string, error) {
-	file, book, err := a.target(name)
+	file, dest, err := a.move(name, to)
 	if err != nil {
 		return "", err
+	}
+	return fmt.Sprintf("moved %s to %s", file, dest), nil
+}
+
+// MoveTo is Move that answers where the note went instead of saying so.
+func (a *API) MoveTo(name, to string) (string, error) {
+	_, dest, err := a.move(name, to)
+	return dest, err
+}
+
+// missing is an error that is fs.ErrNotExist, with its own words.
+type missing string
+
+func (m missing) Error() string        { return string(m) }
+func (m missing) Is(target error) bool { return target == fs.ErrNotExist }
+
+// move does what Move says and returns the names it moved from and to.
+func (a *API) move(name, to string) (from, dest string, err error) {
+	file, book, err := a.target(name)
+	if err != nil {
+		return "", "", err
 	}
 	to = strings.TrimSpace(to)
 	base := filepath.Base(file)
 	into := strings.TrimSuffix(to, "/")
 	dir, isDir, _ := a.target(into)
-	var dest string
 	switch {
 	case to == "":
-		return "", errors.New("say where to move the note: a folder, a new name, or . for the top level")
+		return "", "", errors.New("say where to move the note: a folder, a new name, or . for the top level")
 	case to == ".":
 		dest = base
 	case !book && (isDir || strings.HasSuffix(to, "/")):
 		if !isDir {
 			if dir, err = fileName(into + "/x"); err != nil {
-				return "", err
+				return "", "", err
 			}
 			dir = into
 		}
 		dest = dir + "/" + base
 	case book:
 		if strings.ContainsAny(to, `/\.`) || to == store.ArchiveDir {
-			return "", fmt.Errorf("a book is a folder: %q is not a folder name", to)
+			return "", "", fmt.Errorf("a book is a folder: %q is not a folder name", to)
 		}
 		dest = to
 	default:
@@ -437,13 +457,13 @@ func (a *API) Move(name, to string) (string, error) {
 			to += filepath.Ext(file)
 		}
 		if dest, err = fileName(to); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 	if err := a.st.Move(file, dest); errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("there is no note %s", file)
+		return "", "", fmt.Errorf("there is no note %s", file)
 	} else if err != nil {
-		return "", err
+		return "", "", err
 	}
 	// What was arranged for the old name now belongs to the new one. A
 	// page has no arrangement of its own: its book has.
@@ -452,7 +472,7 @@ func (a *API) Move(name, to string) (string, error) {
 			_ = a.st.SetView(dest, func(n *store.View) { *n = v })
 		}
 	}
-	return fmt.Sprintf("moved %s to %s", file, dest), nil
+	return file, dest, nil
 }
 
 // Link shows a file or a folder of the project on the board without

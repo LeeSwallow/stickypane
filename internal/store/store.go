@@ -48,7 +48,10 @@ var (
 
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
-var extensions = map[string]bool{".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true, ".http": true, ".rest": true}
+var extensions = map[string]bool{
+	".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true,
+	".http": true, ".rest": true, ".html": true, ".htm": true,
+}
 
 // Linked reports whether the note is a symbolic link to a file elsewhere.
 // Such a file belongs to the project, not to the board: what the board
@@ -418,6 +421,51 @@ func (s *Store) Write(name string, content []byte) error {
 		return err // a new page of a new book needs its folder
 	}
 	return writeAtomic(path, content)
+}
+
+// WriteNew creates a note with content and fails with an error that is
+// fs.ErrExist if anything is at that name already: it can never write over
+// a file made a moment before, which Write would. The folder is made when
+// it is not there.
+func (s *Store) WriteNew(name string, content []byte) error {
+	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	// Written whole to a temporary file, then linked to its name: the link
+	// fails if the name is taken, and the name never shows half a note.
+	tmp, err := os.CreateTemp(filepath.Dir(path), tmpPrefix+"*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	_, werr := tmp.Write(content)
+	if cerr := tmp.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		return werr
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	err = os.Link(tmp.Name(), path)
+	if err == nil || errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	// No hard links here (some file systems): create exclusively and write.
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	_, werr = f.Write(content)
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		os.Remove(path)
+	}
+	return werr
 }
 
 func writeAtomic(path string, data []byte) error {

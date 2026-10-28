@@ -123,6 +123,13 @@ type Kind struct {
 	// moved. `stickypane watch` and the MCP server hand them to whatever
 	// reacts to the board.
 	Events func(before, after doc.Document) []Event
+	// Data says what a note of this kind holds, as a value that encodes to
+	// JSON, so that a screen other than the terminal can draw it.
+	Data func(d doc.Document) any
+	// Act turns an action from such a screen into the Op that does it, or
+	// answers ErrUnknownAction. Like every change to a note, the Op is
+	// applied by the store.
+	Act func(d doc.Document, a Action) (doc.Op, error)
 }
 
 // Event is one thing that happened in a note: Type names it, such as

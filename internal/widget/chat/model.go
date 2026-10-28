@@ -49,3 +49,22 @@ func (c *Chat) Summary() string {
 		return fmt.Sprintf(widget.T("%d messages"), n)
 	}
 }
+
+// said is a message as a screen other than the terminal reads it.
+type said struct {
+	Day   string `json:"day"`
+	Who   string `json:"who"`
+	Clock string `json:"clock"`
+	Text  string `json:"text"`
+}
+
+// data is the messages in order, from the same read the board draws.
+func data(d doc.Document) any {
+	out := struct {
+		Messages []said `json:"messages"`
+	}{Messages: []said{}}
+	for _, m := range read(d) {
+		out.Messages = append(out.Messages, said{m.day, m.who, m.clock, m.text})
+	}
+	return out
+}

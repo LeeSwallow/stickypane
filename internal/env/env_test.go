@@ -193,3 +193,27 @@ func TestEveryEditorOpensAndWaits(t *testing.T) {
 		t.Errorf("on Windows without EDITOR, notepad: %q", got)
 	}
 }
+
+func TestOpenCommandUsesAGUIEditorOrTheSystem(t *testing.T) {
+	for _, c := range []struct {
+		visual, goos, want string
+	}{
+		{"code", "darwin", "code plan.md"},
+		{"/Applications/Cursor.app/bin/cursor -n", "darwin", "/Applications/Cursor.app/bin/cursor -n plan.md"},
+		{"zed", "linux", "zed plan.md"},
+		{"subl", "linux", "subl plan.md"},
+		{"mate", "darwin", "mate plan.md"},
+		{"gedit", "linux", "gedit plan.md"},
+		{"kate", "linux", "kate plan.md"},
+		{"nvim", "darwin", "open -t plan.md"},
+		{"", "darwin", "open -t plan.md"},
+		{"vim", "linux", "xdg-open plan.md"},
+		{"emacs -nw", "linux", "xdg-open plan.md"},
+		{"", "windows", ""},
+	} {
+		e := detect(vars("VISUAL", c.visual, "EDITOR", "code"), c.goos, func() string { return "" })
+		if got := strings.Join(e.OpenCommand("plan.md"), " "); got != c.want {
+			t.Errorf("VISUAL=%q on %s: %q, want %q", c.visual, c.goos, got, c.want)
+		}
+	}
+}

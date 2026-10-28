@@ -2,6 +2,8 @@ package board
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -257,4 +259,103 @@ func tend(before, after doc.Document, changed time.Time) doc.Op {
 		return nil
 	}
 	return StampMoved{At: changed, Moved: moved}
+}
+
+// MoveCardAt moves a card to column To as MoveCard does, then up to place
+// At (from zero) in it; At at or past the end leaves it last.
+type MoveCardAt struct {
+	From, To, Text string
+	Nth, At        int
+}
+
+// Apply implements doc.Op.
+func (o MoveCardAt) Apply(d doc.Document) (doc.Document, error) {
+	d, err := MoveCard{From: o.From, To: o.To, Text: o.Text, Nth: o.Nth}.Apply(d)
+	if err != nil {
+		return d, err
+	}
+	cols := scan(doc.Lines(d.Body))
+	col := cols[findCol(cols, o.To)]
+	last := len(col.cards) - 1
+	nth := 0 // among the cards with this text, the moved one is the last
+	for _, c := range col.cards[:last] {
+		if c.text == o.Text {
+			nth++
+		}
+	}
+	for at := last; at > o.At && at > 0; at-- {
+		if d, err = (ReorderCard{Col: o.To, Text: o.Text, Nth: nth, Delta: -1}).Apply(d); err != nil {
+			return d, err
+		}
+		// The card passed one above it; if that had the same text, it is
+		// now one earlier among them.
+		if col.cards[at-1].text == o.Text {
+			nth--
+		}
+	}
+	return d, nil
+}
+
+// act is the board's Kind.Act: "move" with col, i (the card's place in it,
+// from zero), to (the column it goes to) and at (its place there, from
+// zero; the end when the argument is absent, an error when it is not
+// a number or is past the column), and "add" with col and text. Columns count
+// from zero, in the order of the Data. When a card moved is not written
+// here; tend writes it.
+func act(d doc.Document, a widget.Action) (doc.Op, error) {
+	cols := scan(doc.Lines(d.Body))
+	index := func(verb, name string, n int) (int, error) {
+		v, err := strconv.Atoi(a.Args[name])
+		if err != nil {
+			return 0, fmt.Errorf("%s: %s must be a number, not %q", verb, name, a.Args[name])
+		}
+		if v < 0 || v >= n {
+			return 0, fmt.Errorf("%s: no %s %d, there are %d", verb, name, v, n)
+		}
+		return v, nil
+	}
+	switch a.Name {
+	case "move":
+		from, err := index("move", "col", len(cols))
+		if err != nil {
+			return nil, err
+		}
+		i, err := index("move", "i", len(cols[from].cards))
+		if err != nil {
+			return nil, err
+		}
+		to, err := index("move", "to", len(cols))
+		if err != nil {
+			return nil, err
+		}
+		room := len(cols[to].cards) // places in the column once the card is in it
+		if from != to {
+			room++
+		}
+		at := room - 1
+		if _, ok := a.Args["at"]; ok {
+			if at, err = index("move", "at", room); err != nil {
+				return nil, err
+			}
+		}
+		text := cols[from].cards[i].text
+		nth := 0
+		for _, c := range cols[from].cards[:i] {
+			if c.text == text {
+				nth++
+			}
+		}
+		return MoveCardAt{From: cols[from].title, To: cols[to].title, Text: text, Nth: nth, At: at}, nil
+	case "add":
+		ci, err := index("add", "col", len(cols))
+		if err != nil {
+			return nil, err
+		}
+		text := strings.TrimSpace(a.Args["text"])
+		if text == "" || strings.ContainsAny(text, "\r\n") {
+			return nil, fmt.Errorf("add: text must be one line, not empty")
+		}
+		return AddCard{Col: cols[ci].title, Text: text}, nil
+	}
+	return nil, fmt.Errorf("%w: %q", widget.ErrUnknownAction, a.Name)
 }

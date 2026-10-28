@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 type entry struct {
@@ -59,4 +60,37 @@ func (c list) Summary() string {
 		return ""
 	}
 	return fmt.Sprintf("%d/%d", done, total)
+}
+
+// thing is an item as a screen other than the terminal reads it.
+type thing struct {
+	Text    string `json:"text"`
+	Checked bool   `json:"checked"`
+	Done    string `json:"done,omitempty"` // RFC 3339, when the line says
+}
+
+// data is the items and the lines between them, from the same read the
+// board draws.
+func data(d doc.Document) any {
+	c := read(d)
+	out := struct {
+		Items []thing  `json:"items"`
+		Prose []string `json:"prose"`
+		Done  int      `json:"done"`
+		Total int      `json:"total"`
+	}{Items: []thing{}, Prose: []string{}}
+	for _, e := range c.entries {
+		switch {
+		case e.item:
+			t := thing{Text: e.text, Checked: e.checked}
+			if !e.done.IsZero() {
+				t.Done = e.done.Format(when.Moment)
+			}
+			out.Items = append(out.Items, t)
+		case e.text != "":
+			out.Prose = append(out.Prose, e.text)
+		}
+	}
+	out.Done, out.Total = c.counts()
+	return out
 }

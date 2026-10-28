@@ -29,6 +29,7 @@ var rank = map[string]int{
 	".":                        0, // the plugin's files, carried in the program
 	"internal/harness":         5, // the plugin's skills, read for MCP and guide
 	"internal/httpfile":        5, // .http files: read, send, check; writes times with when
+	"internal/registry":        5, // which boards are used on this machine; writes times with when
 	"internal/layout":          0,
 	"internal/editor":          0,
 	"internal/lineedit":        0, // the one-line editor of the bottom line
@@ -40,6 +41,8 @@ var rank = map[string]int{
 	"internal/rpc/rpctest":     2, // a gRPC server for tests
 	// The notes folder.
 	"internal/store": 10,
+	// Running a script and keeping its log, for every front end.
+	"internal/runner": 12,
 	// What a user may change, each with a default.
 	"internal/prefs": 15,
 	// What a note is and how it is drawn: the contract, then the shapes.
@@ -53,15 +56,17 @@ var rank = map[string]int{
 	"internal/widget/chat":      22,
 	"internal/widget/script":    22,
 	"internal/widget/api":       22,
+	"internal/widget/html":      22,
 	// The registry of shapes, and how a note is arranged.
 	"internal/kinds":   30,
 	"internal/arrange": 30,
 	// What the command line and agents call.
 	"internal/api":     40,
 	"internal/initcmd": 40,
-	// The two front ends over it.
-	"internal/mcp": 50,
-	"internal/app": 50,
+	// The front ends over it.
+	"internal/mcp":    50,
+	"internal/app":    50,
+	"internal/bridge": 50, // the desktop app's, over standard input/output
 	// The program.
 	"cmd/stickypane": 60,
 }

@@ -2,6 +2,7 @@ package chart
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -96,4 +97,42 @@ func Value(d doc.Document, label string) (string, bool) {
 		return lines[i][from:to], true
 	}
 	return "", false
+}
+
+// Data is what a chart holds, for a screen other than the terminal. Value
+// is null for a number that is not finite, which JSON cannot carry.
+type Data struct {
+	View   string      `json:"view"`
+	Prose  []string    `json:"prose"`
+	Points []DataPoint `json:"points"`
+}
+
+// DataPoint is one value of a chart: its label, the number as written and
+// as a number.
+type DataPoint struct {
+	Label string   `json:"label"`
+	Text  string   `json:"text"`
+	Value *float64 `json:"value"`
+}
+
+// data reads the chart with the same parse the board draws from. A view
+// the board does not know is drawn as bars, so it is said as "bar".
+func data(d doc.Document) any {
+	c := parse(d)
+	out := Data{View: c.view, Prose: []string{}, Points: []DataPoint{}}
+	// The view the terminal draws: a calendar with values but no day among
+	// them is drawn as bars (see Draw).
+	if out.View != "spark" && out.View != "heat" || out.View == "heat" && len(c.points) > 0 && len(c.days()) == 0 {
+		out.View = "bar"
+	}
+	out.Prose = append(out.Prose, c.prose...)
+	for _, p := range c.points {
+		dp := DataPoint{Label: p.label, Text: p.text}
+		if !math.IsInf(p.value, 0) && !math.IsNaN(p.value) {
+			v := p.value
+			dp.Value = &v
+		}
+		out.Points = append(out.Points, dp)
+	}
+	return out
 }

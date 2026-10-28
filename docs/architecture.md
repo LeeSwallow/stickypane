@@ -13,13 +13,15 @@ layer, fails the build.
 | Layer | Packages | Is |
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
-| 50 | `internal/app`, `internal/mcp` | the two front ends: the terminal UI and the MCP server |
+| 50 | `internal/app`, `internal/mcp`, `internal/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
 | 40 | `internal/api`, `internal/initcmd` | what the command line and agents call; setting a project up |
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |
+| 12 | `internal/runner` | running a script and keeping its log, for every front end |
 | 10 | `internal/store` | the notes folder: files, sticky.json, watching |
 | 5 | `internal/harness` | the plugin's skills, read for MCP and `stickypane guide` |
 | 5 | `internal/i18n`, `internal/httpfile` | the screen's words, in the language the locale asks for; reading and sending `.http` requests |
+| 5 | `internal/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it |
 | 3 | `internal/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `internal/wsock`, `internal/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
@@ -112,7 +114,7 @@ reader and a writer is laid out the same way:
 | `view.go` | the screen: drawing, keys, clicks, the cursor |
 | `events.go` | what happened between two versions of the file, for `stickypane watch` |
 
-Small shapes (`note`, `logview`, `script`) stay in one file.
+Small shapes (`note`, `logview`, `script`) stay in one file. `html` is view-only, so its `ops.go` and `events.go` hold only a comment.
 
 To add a shape:
 

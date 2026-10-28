@@ -87,3 +87,29 @@ func (e Env) WithEditor(cmd string) Env {
 	}
 	return e
 }
+
+// guiEditors are the editors that open a window of their own, so a program
+// without a terminal, such as the bridge under the desktop app, can start
+// them.
+var guiEditors = []string{"code", "cursor", "zed", "subl", "mate", "gedit", "kate"}
+
+// OpenCommand is the command that shows file in an editor for a program
+// that has no terminal and does not wait: $VISUAL when it names a GUI
+// editor, else the system's own way to open a text file (macOS `open -t`,
+// Linux `xdg-open`). A terminal editor is never chosen, and nil means the
+// system has no such way.
+func (e Env) OpenCommand(file string) []string {
+	if cmd := strings.Fields(e.getenv("VISUAL")); len(cmd) > 0 {
+		name := strings.ToLower(path.Base(strings.ReplaceAll(cmd[0], `\`, "/")))
+		if slices.Contains(guiEditors, strings.TrimSuffix(name, ".exe")) {
+			return append(cmd, file)
+		}
+	}
+	switch e.OS {
+	case "darwin":
+		return []string{"open", "-t", file}
+	case "linux":
+		return []string{"xdg-open", file}
+	}
+	return nil
+}

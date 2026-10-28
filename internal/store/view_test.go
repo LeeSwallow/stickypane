@@ -134,6 +134,64 @@ func TestATitleAndAnIgnoreListLiveInStickyJSON(t *testing.T) {
 	}
 }
 
+func TestViewModeDefaultsToTerminalAndLeavesNoTrace(t *testing.T) {
+	s := newStore(t)
+	if got := s.ViewMode(); got != "terminal" {
+		t.Fatalf("default ViewMode = %q, want terminal", got)
+	}
+	if err := s.SetViewMode("overlay"); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.ViewMode(); got != "overlay" {
+		t.Fatalf("ViewMode = %q, want overlay", got)
+	}
+	if err := s.SetViewMode("terminal"); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, ViewFile); strings.Contains(got, `"view"`) {
+		t.Fatalf("the default left a trace:\n%s", got)
+	}
+}
+
+func TestSetViewModeRejectsUnknownValues(t *testing.T) {
+	s := newStore(t)
+	if err := s.SetViewMode("floating"); err == nil {
+		t.Fatal("SetViewMode(floating) = nil, want an error")
+	}
+	if got := s.ViewMode(); got != "terminal" {
+		t.Fatalf("ViewMode = %q after a rejected value", got)
+	}
+}
+
+func TestStyleDefaultsToDoodleAndLeavesNoTrace(t *testing.T) {
+	s := newStore(t)
+	if got := s.Style(); got != "doodle" {
+		t.Fatalf("default Style = %q, want doodle", got)
+	}
+	if err := s.SetStyle("neat"); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Style(); got != "neat" {
+		t.Fatalf("Style = %q, want neat", got)
+	}
+	if err := s.SetStyle("doodle"); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, ViewFile); strings.Contains(got, `"style"`) {
+		t.Fatalf("the default left a trace:\n%s", got)
+	}
+}
+
+func TestSetStyleRejectsUnknownValues(t *testing.T) {
+	s := newStore(t)
+	if err := s.SetStyle("fancy"); err == nil {
+		t.Fatal("SetStyle(fancy) = nil, want an error")
+	}
+	if got := s.Style(); got != "doodle" {
+		t.Fatalf("Style = %q after a rejected value", got)
+	}
+}
+
 func TestTheThemeIsKeptInStickyJSON(t *testing.T) {
 	s := newStore(t)
 	if got := s.Theme(); got != "" {

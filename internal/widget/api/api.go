@@ -42,6 +42,7 @@ var Kind = widget.Kind{
 		return []byte("### Example\nGET https://httpbin.org/get\n# @assert response.statusCode == 200\n")
 	},
 	Parse: func(d doc.Document) widget.Widget { return parse(d) },
+	Data:  data,
 }
 
 // API is the widget for a .http file.
@@ -266,4 +267,12 @@ func (o SetEnv) Apply(d doc.Document) (doc.Document, error) {
 		d.Body = "# @env " + o.Name + "\n" + d.Body
 	}
 	return d, nil
+}
+
+// data is the requests file as written. Its structure is left to the
+// screen for now.
+func data(d doc.Document) any {
+	return struct {
+		Source string `json:"source"`
+	}{d.Body}
 }

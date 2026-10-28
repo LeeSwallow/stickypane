@@ -280,3 +280,21 @@ func TestLanguageCommand(t *testing.T) {
 		t.Errorf("auto: code = %d, out = %q", code, out)
 	}
 }
+
+// An html page is a note to every command: listed, shown and printed.
+func TestHTMLNotesAreNotes(t *testing.T) {
+	root := project(t)
+	page := "<h1>Bench</h1>\n"
+	if err := os.WriteFile(filepath.Join(root, ".sticky", "report.html"), []byte(page), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, _ := exec(t, "list"); code != 0 || !strings.Contains(out, "report.html") || !strings.Contains(out, "html") {
+		t.Errorf("list: code = %d, out = %q", code, out)
+	}
+	if code, out, _ := exec(t, "cat", "report.html"); code != 0 || out != page {
+		t.Errorf("cat: code = %d, out = %q", code, out)
+	}
+	if code, out, errOut := exec(t, "show", "report.html"); code != 0 || out != "showing report.html\n" {
+		t.Errorf("show: code = %d, out = %q, stderr = %q", code, out, errOut)
+	}
+}
