@@ -502,17 +502,17 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 			return "", "", err
 		}
 	}
-	if err := a.st.Move(file, dest); errors.Is(err, fs.ErrNotExist) {
+	// What was arranged for the old name now belongs to the new one, in
+	// the same step as the move. A page has no arrangement of its own: its
+	// book has.
+	move := a.st.MoveArranged
+	if strings.Contains(dest, "/") {
+		move = a.st.Move
+	}
+	if err := move(file, dest); errors.Is(err, fs.ErrNotExist) {
 		return "", "", fmt.Errorf("there is no note %s", file)
 	} else if err != nil {
 		return "", "", err
-	}
-	// What was arranged for the old name now belongs to the new one. A
-	// page has no arrangement of its own: its book has.
-	if views, err := a.st.Views(); err == nil {
-		if v, ok := views[file]; ok && !strings.Contains(dest, "/") {
-			_ = a.st.SetView(dest, func(n *store.View) { *n = v })
-		}
 	}
 	return file, dest, nil
 }

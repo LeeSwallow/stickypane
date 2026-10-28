@@ -626,6 +626,30 @@ func (s *Store) Move(name, to string) error {
 	return nil
 }
 
+// MoveArranged moves a note as Move does, and gives the new name what
+// sticky.json arranged for the old one. It is all or nothing: when the
+// arrangement cannot be written, the note is moved back and the error
+// returned. A note with nothing arranged, or whose tab's file cannot be
+// read, is only moved.
+func (s *Store) MoveArranged(name, to string) error {
+	tab, inside := s.split(name)
+	_, views, err := s.readViews(tab)
+	v, had := views[inside]
+	if err := s.Move(name, to); err != nil {
+		return err
+	}
+	if err != nil || !had {
+		return nil
+	}
+	if err := s.SetView(to, func(n *View) { *n = v }); err != nil {
+		if back := s.Move(to, name); back != nil {
+			return fmt.Errorf("%w; and %s could not be moved back from %s: %v", err, name, to, back)
+		}
+		return err
+	}
+	return nil
+}
+
 // Delete removes a note for good.
 func (s *Store) Delete(name string) error {
 	return os.Remove(filepath.Join(s.Dir, filepath.FromSlash(name)))
