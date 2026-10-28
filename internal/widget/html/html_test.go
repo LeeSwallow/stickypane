@@ -66,3 +66,29 @@ func TestHTMLIsViewOnly(t *testing.T) {
 		t.Error("an html note has no Act and no Events")
 	}
 }
+
+func TestHTMLTextSurvivesOddSource(t *testing.T) {
+	for name, tc := range map[string]struct{ src, want string }{
+		"unclosed script":     {"<script>İİİ", ""},
+		"unclosed script 2":   {"hi<SCRIPT>İ alert(1)", "hi"},
+		"upper script, style": {"<SCRIPT>a()</SCRIPT>x<Style>b{}</STYLE>y", "xy"},
+		"non-ascii before":    {"İİİ<script>a()</script>ok", "İİİok"},
+		"comment":             {"a<!-- İ hidden -->b", "ab"},
+		"unclosed comment":    {"a<!-- İ", "a"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := text(tc.src); got != tc.want {
+				t.Errorf("text(%q) = %q, want %q", tc.src, got, tc.want)
+			}
+		})
+	}
+}
+
+// A '>' inside a quoted attribute ends the tag early, so the rest of the
+// attribute shows as text. A text preview may leak it; the overlay draws the
+// page properly.
+func TestHTMLQuotedGreaterThanMayLeak(t *testing.T) {
+	if got := text(`<a title="x>y">z</a>`); got != `y">z` {
+		t.Errorf("text = %q", got)
+	}
+}

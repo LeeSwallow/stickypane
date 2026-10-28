@@ -15,6 +15,9 @@ var blocks = map[string]bool{
 	"title": true,
 }
 
+// A '>' inside a quoted attribute ends its tag early, so the rest of the
+// attribute shows as text: a preview may leak it.
+
 // text is what a page says: no tags, no comments, nothing inside script or
 // style, entities decoded, and no more than one blank line in a row.
 func text(src string) string {
@@ -42,7 +45,7 @@ func text(src string) string {
 		name := tagName(rest[1:end])
 		i += end + 1
 		if name == "script" || name == "style" {
-			i += skipPast(strings.ToLower(src[i:]), "</"+name)
+			i += skipPastFold(src[i:], "</"+name)
 			if k := strings.IndexByte(src[i:], '>'); k >= 0 {
 				i += k + 1
 			} else {
@@ -73,6 +76,18 @@ func text(src string) string {
 func skipPast(s, end string) int {
 	if i := strings.Index(s, end); i >= 0 {
 		return i + len(end)
+	}
+	return len(s)
+}
+
+// skipPastFold is skipPast for an end that is lower-case ASCII, found in s
+// whatever the case of its letters. It compares bytes of s itself, so an
+// offset is always an offset in s.
+func skipPastFold(s, end string) int {
+	for i := 0; i+len(end) <= len(s); i++ {
+		if s[i] == '<' && strings.EqualFold(s[i:i+len(end)], end) {
+			return i + len(end)
+		}
 	}
 	return len(s)
 }
