@@ -17,3 +17,19 @@ func TestDataOfTheExample(t *testing.T) {
 		t.Errorf("Data = %s, want %s", b, want)
 	}
 }
+
+// A calendar with no dated value is drawn as bars, and Data says so, so
+// the overlay draws what the terminal draws.
+func TestDataSaysBarWhenAHeatHasNoDays(t *testing.T) {
+	for src, want := range map[string]string{
+		"---\nview: heat\n---\napp: 3\nboard: 4\n":  "bar",
+		"---\nview: heat\n---\n2026-10-01: 3\n":     "heat",
+		"---\nview: heat\n---\n":                    "heat",
+		"---\nview: spark\n---\napp: 3\n":           "spark",
+		"---\nview: nonsense\n---\n2026-10-01: 3\n": "bar",
+	} {
+		if got := Kind.Data(doc.Parse([]byte(src))).(Data).View; got != want {
+			t.Errorf("%q: view %q, want %q", src, got, want)
+		}
+	}
+}

@@ -120,7 +120,9 @@ type DataPoint struct {
 func data(d doc.Document) any {
 	c := parse(d)
 	out := Data{View: c.view, Prose: []string{}, Points: []DataPoint{}}
-	if out.View != "spark" && out.View != "heat" {
+	// The view the terminal draws: a calendar with values but no day among
+	// them is drawn as bars (see Draw).
+	if out.View != "spark" && out.View != "heat" || out.View == "heat" && len(c.points) > 0 && len(c.days()) == 0 {
 		out.View = "bar"
 	}
 	out.Prose = append(out.Prose, c.prose...)
