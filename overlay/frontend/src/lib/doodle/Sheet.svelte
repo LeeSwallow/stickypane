@@ -1,13 +1,14 @@
 <script lang="ts">
-  // A crayon-filled card (a memo sheet): wash, hatching, outline, and a tilt of up to 2 degrees.
+  // A crayon-filled card (a memo sheet): wash, hatching, outline, and a tilt of at most MAX_TILT (1.5°).
   import type { Snippet } from 'svelte'
+  import { tiltOf } from '../theme/scale'
   import { seedOf } from '../theme/tokens'
   import Crayon from './Crayon.svelte'
   import { look } from './look.svelte'
 
   let { color, id = 'sheet', children }: { color: string; id?: string; children?: Snippet } = $props()
   const seed = $derived(seedOf(id))
-  const tilt = $derived(look.style === 'neat' ? 0 : ((seed % 9) - 4) * 0.45)
+  const tilt = $derived(tiltOf(seed, look.style))
   const neat = $derived(look.style === 'neat')
 </script>
 

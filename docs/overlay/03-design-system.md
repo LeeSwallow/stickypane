@@ -52,7 +52,7 @@ flowchart LR
 
 | | 손그림 doodle | 단정 neat |
 |---|---|---|
-| 선 | rough.js `roughness≈1.3`, 메모지마다 ±2° 기울기 | 직선, 기울기 없음 |
+| 선 | rough.js(노트 0.8, 카드 1.1), 카드만 ±1.5° 기울기 (§3.11.3) | 직선, 기울기 없음 |
 | 채우기 | 옅은 바탕 + 크레용 빗금(−41°) | 단색 옅은 바탕 |
 | 장식 | 테이프, 손으로 그린 밑줄·형광펜·동그라미 | 없음 |
 | 제목 글꼴 | Gaegu Bold | Pretendard SemiBold |
@@ -191,3 +191,105 @@ flowchart LR
 - 키보드: 탭 이동(`Tab`), 노트 사이(`←→↑↓`), 체크(`Space`), 크게 보기(`Enter`), 편집기로 열기(`E`), 크기(`-` / `=`), 페이지(`[` / `]`), 생성(`A`, 터미널의 `a`와 같은 카탈로그), 돌아가기·숨기기(`Esc`). 터미널의 키와 겹치게 고른다.
 - 손글씨가 읽기 어려운 사람을 위해 단정 스타일이 있다.
 - `prefers-reduced-motion`은 [04 §4.6](04-motion.md#46-동작-줄이기).
+
+## 3.11 시스템: 크기·규칙·컴포넌트·아이콘
+
+[사용자 결정] 색과 손그림 부품(3.3–3.4.1)만으로는 "시스템이 없는" 화면이 됐다(이름이 두 줄로 꺾이고, 긴 경로가 제목줄을 차지하고, 모든 테두리가 기울고 떨리고, 버튼이 없었다). 그래서 크기 토큰, 손그림을 쓰는 곳의 규칙, 컴포넌트, 아이콘을 하나로 정한다. 기준은 Linear·Raycast·Things의 단정한 크롬 위에 Excalidraw 같은 노트다. 견본 페이지는 개발 빌드의 `?demo=system`(`?mode=light|dark`, `?style=neat`, `?lang=en`, `?density=compact`, `?theme=`).
+
+### 3.11.1 크기 토큰
+
+`src/lib/theme/scale.ts`가 원본이고 `applyScale()`이 CSS 변수로 쓴다(`main.ts`가 시작할 때 한 번). 색은 여기 없다.
+
+| 묶음 | 값 | 변수 |
+|---|---|---|
+| 손글씨(Gaegu) | display 30/36 · title 22/28 · label 18/24, 모두 700 | `--text-hand-*`, `--leading-hand-*`, `--weight-hand-*` |
+| 본문(Pretendard) | lg 15/22 · md 13/20 · sm 12/16 · xs 11/14 | `--text-body-*` … |
+| 고정폭(JetBrains Mono) | md 12/18 · sm 11/16, 숫자는 tabular | `--text-mono-*` … |
+| 간격 | 4px 격자: 4 8 12 16 20 24 32 40 48 64 | `--space-1` … `--space-10` |
+| 모서리 | sm 4 · md 6 · lg 10 · xl 12 · window 16 · pill | `--radius-*` (노트는 종이라 0) |
+| 선 | hairline 1 · ui 1.75 · note 2 · emphasis 2.4 | `--stroke-*` |
+| 거칠기(손그림만) | note 0.8 · card 1.1 · check 1 · mark 1.6, 단정은 0 | `ROUGH` |
+| 높이(그림자) | flat · taped · lifted(끄는 카드, 메뉴, 토스트) · floating(창, 대화상자) | `--elev-*`, 색은 `--shadow-rgb` |
+| 층 | paper 0 · note 1 · tape 2 · ring 3 · chrome 10 · menu 100 · tooltip 200 · toast 300 · scrim 390 · dialog 400 | `--z-*` |
+| 포커스 | 2px `--focus` 외곽선, 2px 띄움, `:focus-visible`만 | `--focus-width`, `--focus-offset` |
+| 움직임 | 04 §4.2 그대로 | `--t-short` … `--ease`, `--slap`, `--exit` |
+| 밀도 | comfortable: 컨트롤 24/28/32, 제목줄 44, 줄 32 · compact: 20/24/28, 36, 28 | `--control-sm/md/lg`, `--titlebar-h`, `--row-h` |
+
+검사: 간격은 4의 배수이고 커진다, 글자 크기는 묶음마다 단조, 줄 높이 ≥ 글자 크기, 밀도는 compact가 더 작다(`scale.test.ts`).
+
+### 3.11.2 크롬의 색
+
+`deriveTokens`가 3.4.1의 색에 크롬 색을 더한다(`chromeTokens`). 화면은 여전히 자기 색이 없다.
+
+| 토큰 | 쓰임 |
+|---|---|
+| `--chrome` | 제목줄·Glance 줄·탭 줄 바탕 |
+| `--surface` / `--surface-sunk` | 메뉴·토스트·대화상자·보조 버튼 / 입력칸·분절 컨트롤 바탕 |
+| `--line` / `--line-strong` | 머리카락 선 / 컨트롤 테두리 |
+| `--hover` / `--press` | 글자색을 7%/12%(다크) 섞은 덧칠 |
+| `--ink` · `--ink-2` · `--ink-3` | 본문 · 보조 글자(4.5:1이 되도록 `Muted`를 글자 쪽으로) · 자리표시·비활성(대비 예외) |
+| `--accent-text` · `--good-text` · `--warn-text` · `--danger-text` | 글자로 쓰는 강조·상태색, 모든 바탕에서 4.5:1 |
+| `--accent-fill`/`--accent-ink`, `--danger-fill`/`--danger-ink` | 주 버튼·위험 버튼과 그 위 글자 |
+| `--*-wash` | 상태 배지·눌린 토글의 옅은 바탕 |
+| `--tip`/`--tip-ink` | 툴팁 |
+| `--focus` | 포커스 링(바탕과 3:1) |
+
+모든 테마 × 두 모드에서 글자 토큰이 쓰이는 모든 바탕 위 4.5:1을 넘는지 테스트한다(`TEXT_PAIRS`). 노트 제목은 노트 색을 쓰되 종이 위에서 큰 글자 기준 3:1이 되도록 필요한 만큼 글자색 쪽으로 옮긴다(`noteTitleColor`).
+
+### 3.11.3 손그림은 어디에
+
+| | 규칙 |
+|---|---|
+| **거친 선** | 노트 테두리, 카드(빗금), 체크·라디오, 형광펜·밑줄, 정체 동그라미, 빈 화면 그림, 크레용 아이콘, 활성 탭의 밑줄(하이라이트 표시 하나) |
+| **반듯한 선** | 제목줄, 도구줄, 메뉴, 입력칸, 탭 글자, 토스트, 대화상자의 컨트롤, 모든 글자 |
+| **기울기** | 최대 1.5°(`MAX_TILT`, `tiltOf`), 카드·스티커만. 컨트롤이 있는 것(노트 머리, 노트 전체, 대화상자)은 기울지 않는다. `NoteFrame`은 기본 0°, `lean`일 때만 |
+| **글자** | 떨리는 선 위에 글자를 두지 않는다. 손글씨는 이름·제목·열 제목·카드에만 |
+| **단정** | 거칠기 0, 기울기 0, 테이프 없음, 크레용 아이콘은 단색 채움 + 반듯한 외곽선, 제목은 Pretendard SemiBold |
+
+### 3.11.4 컴포넌트
+
+`src/lib/ui/`(Svelte 5, 타입이 있는 props, 색은 모두 토큰, 두 스타일 × 두 모드). 보이는 글은 모두 `t()`.
+
+| 컴포넌트 | 상태·접근성 |
+|---|---|
+| TitleBar | 드래그 영역, 로고, 프로젝트 이름 한 줄(넘치면 …), 경로는 이름의 툴팁(줄로 꺾이지 않음), 단축키, 동작, ⋯ 메뉴(끝에 "창 닫기"·"stickypane 종료"), chrome에 따라 신호등 자리 또는 최소화·닫기 |
+| Toolbar · Separator | `role=toolbar`, 화살표로 이동 |
+| IconButton (+Tooltip) | label이 이름이자 툴팁(필수), 토글이면 `aria-pressed`, 눌린 상태는 accent wash(손그림이면 빗금, 핀은 크레용 아이콘), danger, disabled, sm/md |
+| Button | primary·secondary·ghost·danger × sm/md/lg; default/hover/focus/active/disabled/loading(돌지 않는 점선 고리 + `aria-busy`) |
+| Tabs | `role=tablist`, 화살표로 선택, 개수 배지 |
+| Chip | 에이전트 이름표: 색 점 + @이름 + 하는 일 + 시간, 정체는 경고 테두리 + 아이콘 + 경고색 시간, 누르면 필터(`aria-pressed`) |
+| Badge | 개수(고정폭) / 상태(점 + 낱말) × neutral·accent·good·warn·bad |
+| Menu | 트리거 아래 또는 좌표(컨텍스트 메뉴), 화살표·Home/End·Enter·Esc, 바깥 클릭으로 닫고 포커스를 돌려줌, 위험 항목, 단축키 |
+| Input · TextArea | 라벨, 도움말, 오류(`aria-invalid` + `aria-describedby`), 비활성 |
+| Toggle · SegmentedControl | `role=switch` / `role=radiogroup`(그리드 ↔ 캔버스, 카드 ▢ · 반 ▭ · 페이지 ▬) |
+| Toast | 동작 하나(되돌리기·종료), 시간이 지나면 닫힘(가리키는 동안은 멈춤), 오류는 `role=alert` |
+| Dialog · Confirm | 테이프로 붙인 메모지(손그림) / 카드(단정), 기울지 않음, 포커스 가둠, Esc·바깥으로 닫음, 위험한 확인은 포커스가 취소에서 시작 |
+| EmptyState | 아이콘의 세 장 그림 + 제목 + 한 줄 + 동작 |
+| NoteHeader | 제목(한 줄, 노트 색), 바뀜 점, 요약, 책 넘김 `‹ 2 / 5 ›`, 크기 ▢▭▬(좁은 노트에서는 한 버튼으로 차례로), 핀, 떼어 보기, ⋯ |
+
+강제 상태: 견본 페이지는 `data-state="hover|focus|active"`로 상태를 고정해 보여 준다.
+
+### 3.11.5 아이콘
+
+두 단계, 한 가족(`src/lib/ui/icons/`).
+
+| 단계 | 그림 | 이름 |
+|---|---|---|
+| **크레용**(혼자 뜻을 갖는 것) | 앱 아이콘처럼: 옅은 wash + −41° 크레용 빗금 + 굵은 외곽선(1.9), 노트 색. 다크에서는 옅은 테두리를 한 겹 둘러 어두운 종이 위에서도 보인다. 단정이면 단색 채움 + 반듯한 외곽선 | pin, tear-off, plus(생성), run, trash, archive, settings, search, sun, moon |
+| **선**(컨트롤·글줄 안) | 20px, 선 1.75, 둥근 끝, `currentColor`. 손그림이면 모든 직선이 살짝 휜다(최대 0.45px), 단정이면 그대로 | pin, pin-off, tear-off, back, close, minimise, more, plus, size-card/half/page, zoom, grid, canvas, run, send, edit-external, search, settings, sun, moon, auto, tab, book-prev, book-next, archive, trash, restore, link, check, chevron-down, warn |
+
+선과 빗금은 아이콘 이름에서 나온 seed로 그려 다시 그려도 같다. 크레용 아이콘은 툴바에 늘어놓지 않는다: 눌린 핀, 빈 화면, 생성 같은 홀로 선 자리에만 쓴다(조용한 관제판, D4).
+
+### 3.11.6 창 버튼과 종료
+
+[사용자 결정] 창에 닫기·최소화가 보여야 하고, 앱을 끝내는 길이 있어야 한다.
+
+| | macOS | Linux |
+|---|---|---|
+| 창 버튼 | 숨긴 inset 제목줄(`MacTitleBarHiddenInset`)로 시스템 신호등이 우리 제목줄 왼쪽 위에 놓인다. 제목줄은 52px, 왼쪽 76px를 비운다 | 프레임 없는 창, 제목줄 오른쪽에 최소화·닫기 IconButton(같은 아이콘 가족) |
+| 알리는 법 | 셸이 창 URL에 `?chrome=mac` | `?chrome=own` |
+
+- 홈·프로젝트·떼어 낸 노트 창 모두 같은 제목줄을 쓴다(홈도 프레임 없는 창이 됐다).
+- **닫기**는 그 창만 닫는다. 앱은 트레이에 남는다. 홈은 닫으면 숨는다.
+- **종료**: 제목줄 ⋯ 메뉴와 트레이 메뉴 끝의 "stickypane 종료", macOS 앱 메뉴의 Quit(⌘Q).
+- 처음 창을 닫을 때 한 번만 "트레이에 남아 있어요 · stickypane 종료" 토스트(알림 코드 `stayInTray`). 본 것은 `overlay.json`의 `trayHint`에 남는다. 남은 창이 없으면 홈이 나와서 말한다.

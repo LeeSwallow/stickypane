@@ -34,6 +34,9 @@ type State struct {
 	Mode     string                 `json:"mode,omitempty"`     // the home window's: "", "light", "dark"
 	Last     string                 `json:"last,omitempty"`     // the project the hotkey toggles
 	Windows  map[string]WindowState `json:"windows,omitempty"`  // by project path
+	// TrayHint is set once the person has been told, on closing a window,
+	// that the app stays in the tray.
+	TrayHint bool `json:"trayHint,omitempty"`
 }
 
 // LoadState reads the state file; a missing file is the defaults.

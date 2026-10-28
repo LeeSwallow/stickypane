@@ -49,9 +49,9 @@ func trayOf(g index.Groups) Tray {
 // trayWords are the tray menu's two words, in the home window's language.
 func trayWords(lang string) (home, quit string) {
 	if lang == "ko" {
-		return "홈 열기", "종료"
+		return "홈 열기", "stickypane 종료"
 	}
-	return "Open Home", "Quit"
+	return "Open Home", "Quit stickypane"
 }
 
 // wailsTray is the tray of a Wails app.
@@ -98,7 +98,7 @@ func (w *wailsTray) set(t Tray) {
 		m.AddSeparator()
 	}
 	m.Add(home).OnClick(func(*application.Context) { s.ShowHome() })
-	m.Add(quit).OnClick(func(*application.Context) { s.cfg.Platform.Quit() })
+	m.Add(quit).OnClick(func(*application.Context) { s.Quit() })
 	w.tray.SetMenu(m)
 	label := ""
 	if t.Active > 0 {

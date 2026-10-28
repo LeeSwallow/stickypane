@@ -534,8 +534,10 @@ func TestHomeWindowIsOneAndSized(t *testing.T) {
 	if hs[0].bounds.Width != 860 || hs[0].bounds.Height != 620 {
 		t.Errorf("home %dx%d, want 860x620", hs[0].bounds.Width, hs[0].bounds.Height)
 	}
-	if hs[0].opts.Frameless {
-		t.Error("the home window has a frame")
+	// Changed in A5c: the home draws its own title bar like a project window;
+	// on macOS the platform keeps the native traffic lights (hidden-inset).
+	if !hs[0].opts.Frameless {
+		t.Error("the home window draws its own title bar")
 	}
 }
 

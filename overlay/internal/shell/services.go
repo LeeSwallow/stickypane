@@ -46,6 +46,9 @@ func (h *HomeService) StickypaneStatus() StickypaneState { return h.S.Stickypane
 // registered, say).
 func (h *HomeService) Notices() []Notice { return h.S.Notices() }
 
+// Quit ends the app (the title bar's menu: "Quit stickypane").
+func (h *HomeService) Quit() { h.S.Quit() }
+
 // Prefs and SetPrefs are the home window's settings in overlay.json.
 func (h *HomeService) Prefs() Prefs           { return h.S.Prefs() }
 func (h *HomeService) SetPrefs(p Prefs) error { return h.S.SetPrefs(p) }
@@ -100,6 +103,9 @@ type (
 // board of the window that called it. Answers are the bridge's JSON as it
 // is; the frontend reads them with its own types.
 type ProjectService struct{ S *Shell }
+
+// Quit ends the app (the title bar's menu: "Quit stickypane").
+func (p *ProjectService) Quit() { p.S.Quit() }
 
 // window is the id of the window a call came from.
 func window(ctx context.Context) (uint, error) {

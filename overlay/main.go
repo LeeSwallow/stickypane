@@ -59,6 +59,9 @@ func main() {
 		},
 	})
 
+	// The menu bar: the app menu's Quit (Cmd+Q) ends the app, not a window.
+	app.Menu.Set(shell.AppMenu())
+
 	platform := shell.NewWails(app)
 	var err error
 	s, err = shell.New(shell.Config{Home: shell.DefaultHome(), Platform: platform})

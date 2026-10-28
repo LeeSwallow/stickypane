@@ -520,6 +520,8 @@ func (s *Shell) ShowHome() {
 			Title:  "stickypane",
 			URL:    "/",
 			Bounds: Rect{Width: HomeWidth, Height: HomeHeight},
+			// our title bar, with the OS's window buttons (03 §3.11.6)
+			Frameless: true,
 		})
 		s.mu.Lock()
 		if s.home == nil {
@@ -529,6 +531,10 @@ func (s *Shell) ShowHome() {
 		s.mu.Unlock()
 		if w != nw { // another caller made it first
 			nw.Close()
+		} else {
+			// The home hides when closed; the first time, it says (in itself,
+			// shown again) that the app stays in the tray.
+			nw.OnClosing(func() { go s.trayHint(nw) })
 		}
 	}
 	w.Show()
@@ -781,7 +787,45 @@ func (s *Shell) closing(p *project) {
 		b.Close()
 	}
 	s.save()
+	s.trayHint(p.win)
 }
+
+// NoticeStayInTray tells the home window that a closed window left the app
+// running in the tray (shown once, with a Quit action).
+const NoticeStayInTray = "stayInTray"
+
+// trayHint says once, the first time a window is closed, that the app
+// stays in the tray. If no window is left to say it in, the home window
+// comes forward to say it.
+func (s *Shell) trayHint(closing Window) {
+	s.mu.Lock()
+	if s.stopped || s.state.TrayHint {
+		s.mu.Unlock()
+		return
+	}
+	s.state.TrayHint = true
+	var wins []Window
+	if s.home != nil {
+		wins = append(wins, s.home)
+	}
+	for _, p := range s.projects {
+		if p.win != nil {
+			wins = append(wins, p.win)
+		}
+	}
+	s.mu.Unlock()
+	s.save()
+	s.notice(Notice{Code: NoticeStayInTray})
+	for _, w := range wins { // asked outside the lock
+		if w != closing && w.Visible() {
+			return
+		}
+	}
+	s.ShowHome()
+}
+
+// Quit ends the app: every window, every bridge, the tray.
+func (s *Shell) Quit() { s.cfg.Platform.Quit() }
 
 // Toggle is the hotkey: it hides the last project window when it is in
 // front, and otherwise brings it forward (opening it again if it was

@@ -121,9 +121,118 @@ export const cardColors = (p: Palette, i: number, dark: boolean): CardColors & {
   return { ...c, hatchSeen: hatched(c.wash, c.hatch) }
 }
 
+/**
+ * reach moves a text colour toward `to`, as little as it takes, until it
+ * reaches the ratio on every ground (used for secondary and status text).
+ */
+function reach(ink: string, to: string, grounds: string[], ratio: number): string {
+  for (let t = 0; t <= 1.0001; t += 0.02) {
+    const out = mix(ink, to, t)
+    if (grounds.every((g) => contrast(out, g) >= ratio)) return out
+  }
+  return to
+}
+
+const rgbOf = (h: string) => bytes(h).join(' ')
+const alpha = (h: string, a: number) => `rgb(${rgbOf(h)} / ${a})`
+
+/** inkOn is the text on a filled ground: the theme's base or text, whichever is clearer, if it reaches 4.5:1. */
+function inkOn(ground: string, p: Palette): string {
+  const by = (cs: string[]) => [...cs].sort((a, b) => contrast(b, ground) - contrast(a, ground))[0]
+  const own = by([p.base, p.text])
+  return contrast(own, ground) >= MIN_CONTRAST ? own : by(['#ffffff', '#111111'])
+}
+
+/** fillFor darkens a colour just enough that text on it reaches 4.5:1 (a filled button). */
+function fillFor(c: string, p: Palette): string {
+  for (let t = 0; t <= 1.0001; t += 0.02) {
+    const g = mix(c, '#000000', t)
+    if (contrast(inkOn(g, p), g) >= MIN_CONTRAST) return g
+  }
+  return c
+}
+
+/** The grounds chrome text sits on, for a palette and mode. */
+export function chromeGrounds(p: Palette, dark: boolean) {
+  const paper = dark ? mix(p.base, '#000000', 0.06) : mix(p.base, '#ffffff', 0.5)
+  return {
+    paper,
+    chrome: dark ? mix(p.base, '#000000', 0.2) : mix(paper, p.text, 0.035),
+    surface: dark ? mix(p.base, p.text, 0.07) : mix(p.base, '#ffffff', 0.9),
+    sunk: dark ? mix(p.base, '#000000', 0.32) : mix(paper, p.text, 0.06),
+  }
+}
+
+/**
+ * chromeTokens are the colours of the crisp chrome (03 §3.11.2): surfaces,
+ * hairlines, hover, the text ramp, and text on filled controls. Every text
+ * token reaches 4.5:1 on every ground it is used on.
+ */
+export function chromeTokens(p: Palette, dark: boolean): Record<string, string> {
+  const g = chromeGrounds(p, dark)
+  const grounds = [g.paper, g.chrome, g.surface, g.sunk]
+  const toward = dark ? p.text : '#000000'
+  const tip = dark ? mix(p.base, p.text, 0.16) : mix(p.text, '#000000', 0.15)
+  const accentFill = fillFor(p.accent, p)
+  const dangerFill = fillFor(p.bad, p)
+  return {
+    '--chrome': g.chrome,
+    '--surface': g.surface,
+    '--surface-sunk': g.sunk,
+    '--line': mix(p.base, p.text, dark ? 0.13 : 0.12),
+    '--line-strong': mix(p.base, p.text, dark ? 0.24 : 0.26),
+    '--hover': alpha(p.text, dark ? 0.07 : 0.05),
+    '--press': alpha(p.text, dark ? 0.12 : 0.09),
+    '--ink-2': reach(p.muted, p.text, grounds, MIN_CONTRAST),
+    '--ink-3': p.muted,
+    '--accent-text': reach(p.accent, toward, grounds, MIN_CONTRAST),
+    '--accent-wash': alpha(p.accent, dark ? 0.16 : 0.1),
+    '--accent-fill': accentFill,
+    '--accent-ink': inkOn(accentFill, p),
+    '--danger-fill': dangerFill,
+    '--danger-ink': inkOn(dangerFill, p),
+    '--danger-text': reach(p.bad, toward, grounds, MIN_CONTRAST),
+    '--danger-wash': alpha(p.bad, dark ? 0.16 : 0.1),
+    '--good-text': reach(p.good, toward, grounds, MIN_CONTRAST),
+    '--good-wash': alpha(p.good, dark ? 0.16 : 0.12),
+    '--warn-text': reach(p.warn, toward, grounds, MIN_CONTRAST),
+    '--warn-wash': alpha(p.warn, dark ? 0.16 : 0.12),
+    '--tip': tip,
+    '--tip-ink': dark ? p.text : reach(p.base, '#ffffff', [tip], MIN_CONTRAST),
+    '--focus': p.accent,
+    '--scrim': dark ? 'rgb(0 0 0 / .5)' : alpha(p.text, 0.22),
+    '--shadow-rgb': dark ? '0 0 0' : rgbOf(mix(p.text, '#000000', 0.4)),
+    '--shadow-k': dark ? '2.2' : '1',
+  }
+}
+
+/**
+ * noteTitleColor is a note's title in its own colour, moved toward the ink
+ * just enough to read as large text (3:1) on the paper: the yellow of a
+ * light theme would otherwise vanish.
+ */
+export function noteTitleColor(color: string, p: Palette, dark: boolean): string {
+  const g = chromeGrounds(p, dark)
+  return reach(color, dark ? p.text : '#000000', [g.paper], 3)
+}
+
+/** TEXT_PAIRS lists each text token with the grounds it must reach 4.5:1 on (tested). */
+export const TEXT_PAIRS: [text: string, grounds: string[]][] = [
+  ['--ink', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--ink-2', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--accent-text', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--danger-text', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--good-text', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--warn-text', ['--paper', '--chrome', '--surface', '--surface-sunk']],
+  ['--accent-ink', ['--accent-fill']],
+  ['--danger-ink', ['--danger-fill']],
+  ['--tip-ink', ['--tip']],
+]
+
 /** deriveTokens is every CSS variable the screen uses, for a palette. */
 export function deriveTokens(p: Palette, dark: boolean): Record<string, string> {
   const t: Record<string, string> = {
+    ...chromeTokens(p, dark),
     '--paper': dark ? mix(p.base, '#000000', 0.06) : mix(p.base, '#ffffff', 0.5),
     '--base': p.base,
     '--ink': p.text,

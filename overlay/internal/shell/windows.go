@@ -1,6 +1,9 @@
 package shell
 
 import (
+	"net/url"
+	"runtime"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
@@ -10,6 +13,47 @@ const (
 	KindHome    = "home"
 	KindProject = "project"
 )
+
+// How a frameless window gets its close, minimise and zoom buttons
+// (docs/overlay/03 §3.11.6). The page reads it from ?chrome= to leave room
+// for them or to draw its own.
+const (
+	ChromeMac = "mac" // macOS: the native traffic lights over our title bar (hidden-inset)
+	ChromeOwn = "own" // elsewhere: the title bar draws close and minimise itself
+)
+
+// ChromeFor is the chrome of frameless windows on an OS (runtime.GOOS).
+func ChromeFor(goos string) string {
+	if goos == "darwin" {
+		return ChromeMac
+	}
+	return ChromeOwn
+}
+
+// WithChrome adds chrome=<c> to a window's page URL.
+func WithChrome(page, chrome string) string {
+	u, err := url.Parse(page)
+	if err != nil {
+		return page
+	}
+	q := u.Query()
+	q.Set("chrome", chrome)
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// AppMenuRoles are the macOS menu bar's menus: the app menu carries
+// "Quit" with Cmd+Q; Edit makes copy and paste work in text fields.
+var AppMenuRoles = []application.Role{application.AppMenu, application.EditMenu, application.WindowMenu}
+
+// AppMenu is the menu bar of the app.
+func AppMenu() *application.Menu {
+	m := application.NewMenu()
+	for _, r := range AppMenuRoles {
+		m.AddRole(r)
+	}
+	return m
+}
 
 // Rect is a window's place and size, in the screen's points.
 type Rect struct {
@@ -85,6 +129,17 @@ func (p *Wails) NewWindow(o WindowOptions) Window {
 		// Pin is AlwaysOnTop; hiding on focus loss is the shell's, so that
 		// a pin can turn it off (Wails' HideOnFocusLost is fixed at creation).
 		AlwaysOnTop: o.Pinned,
+	}
+	if o.Frameless {
+		chrome := ChromeFor(runtime.GOOS)
+		opts.URL = WithChrome(o.URL, chrome)
+		if chrome == ChromeMac {
+			// A titled window with a transparent, hidden-inset title bar: the
+			// traffic lights stay, the page draws everything else and is the
+			// drag region (--wails-draggable).
+			opts.Frameless = false
+			opts.Mac.TitleBar = application.MacTitleBarHiddenInset
+		}
 	}
 	if o.Placed {
 		opts.InitialPosition = application.WindowXY
