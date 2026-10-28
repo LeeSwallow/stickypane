@@ -7,7 +7,7 @@ import { HeightDrag, ROW_PX } from './layout'
 import type { Board, Note } from './model'
 import NoteFrame from './NoteFrame.svelte'
 import { look } from '../lib/doodle/look.svelte'
-import { THEMES } from '../lib/theme/palettes'
+import { THEMES } from '../demo/themes'
 
 look.palette = THEMES[0]
 

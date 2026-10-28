@@ -86,7 +86,18 @@
       return null
     }
   })
-  const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark) : null)
+  // every theme, from the bridge's themes.list once it is up: the other half of a pair
+  let themes = $state<Palette[]>([])
+  let themesAsked = false
+  $effect(() => {
+    if (status?.state !== 'ready' || themesAsked) return
+    themesAsked = true
+    api.themes().then(
+      (t) => (themes = t),
+      () => {}, // an older bridge: the chosen theme's colours stay
+    )
+  })
+  const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
 
   $effect(() => {
     if (!palette) return

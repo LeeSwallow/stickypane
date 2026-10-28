@@ -1,12 +1,11 @@
 // Command palettes prints the main module's built-in colour themes as JSON,
-// in the shape of the bridge's palette, so the frontend's mirror
-// (frontend/src/lib/theme/palettes.ts) can be checked against them. This
-// module cannot import the main one's internal/theme, so it reads the Go
-// source: the `all` table in palettes.go and the string constants it uses.
+// in the shape of the bridge's palette: the fixture the dev pages and the
+// tests draw with (frontend/src/demo/themes.json). The app itself asks the
+// bridge's themes.list. This module cannot import the main one's
+// internal/theme, so it reads the Go source: the `all` table in
+// palettes.go and the string constants it uses.
 //
-//	go run ./scripts/palettes ../internal/theme > frontend/src/lib/theme/palettes.golden.json
-//
-// Task A11 replaces the mirror with a bridge `themes.list`; this goes then.
+//	go run ./scripts/palettes ../internal/theme > frontend/src/demo/themes.json
 package main
 
 import (

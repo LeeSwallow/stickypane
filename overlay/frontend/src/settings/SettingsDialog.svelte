@@ -7,7 +7,6 @@
   import { tr, type Choice, type LanguageHost } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import type { Mode } from '../lib/theme/mode'
-  import { THEMES } from '../lib/theme/palettes'
   import Button from '../lib/ui/Button.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
   import Input from '../lib/ui/Input.svelte'
@@ -53,7 +52,21 @@
     }
   })
 
-  const themes = ['auto', ...THEMES.map((t) => t.name)]
+  // the bridge's themes.list; until it answers (or from an older bridge),
+  // the one chosen is the only one offered besides auto
+  let names = $state<string[]>([])
+  $effect(() => {
+    if (!open) return
+    api.themes().then(
+      (list) => (names = list.map((t) => t.name)),
+      () => (names = []),
+    )
+  })
+  const themes = $derived.by(() => {
+    const out = ['auto', ...names]
+    const now = settings.theme || 'auto'
+    return out.includes(now) ? out : [...out, now]
+  })
 
   async function board(p: BoardSettingsPatch) {
     failed = ''

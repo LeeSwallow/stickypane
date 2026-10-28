@@ -37,7 +37,7 @@
   import Toggle from '../lib/ui/Toggle.svelte'
   import Tooltip from '../lib/ui/Tooltip.svelte'
   import { windowMenu, type WindowActions } from '../lib/ui/chrome'
-  import { THEMES } from '../lib/theme/palettes'
+  import { THEMES } from './themes'
   import { FRACTIONS } from '../lib/sizes'
   import appIcon from '../../../build/appicon.png?url'
 

@@ -7,6 +7,7 @@ import type { BoardApi } from '../services/board'
 import type { Shape } from '../services/create'
 import type { ProjectApi } from '../services/project'
 import kinds from './kinds.json'
+import { THEMES } from './themes'
 
 export function fakeProject(board: Board, mode: string, lang: string): ProjectApi {
   const status: BoardApi['status'] = async () => ({ window: 1, path: '/Users/min/Projects/Personal/stickypane', state: 'ready', pinned: true, version: '0.4.0' })
@@ -35,6 +36,7 @@ export function fakeProject(board: Board, mode: string, lang: string): ProjectAp
       if (r.kind === 'api' && typeof s === 'string') throw new Error(`bad option: status of a api: "${s}" is not a number`)
       return { note: `${r.tab ? r.tab + '/' : ''}${r.title || 'note'}.md` }
     },
+    themes: async () => THEMES,
     settings: async () => board.settings,
     setSettings: async () => ({}),
     appPrefs: async () => prefs,

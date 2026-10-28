@@ -2,8 +2,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage } from '../i18n'
-import { THEMES } from '../lib/theme/palettes'
-import { STICKYPANE_DARK, STICKYPANE_LIGHT } from '../lib/theme/fallback'
 import type { Groups, HomeApi, Row } from '../services/home'
 import Home from './Home.svelte'
 
@@ -304,9 +302,3 @@ describe('home', () => {
   })
 })
 
-describe('fallback palettes', () => {
-  it('match the stickypane pair of the theme list', () => {
-    expect(THEMES[0]).toBe(STICKYPANE_DARK)
-    expect(THEMES[1]).toBe(STICKYPANE_LIGHT)
-  })
-})

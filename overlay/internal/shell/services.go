@@ -233,6 +233,11 @@ func (p *ProjectService) Kinds(ctx context.Context) (json.RawMessage, error) {
 	return p.call(ctx, "kinds.list", nil)
 }
 
+// Themes is themes.list: every theme's palette.
+func (p *ProjectService) Themes(ctx context.Context) (json.RawMessage, error) {
+	return p.call(ctx, "themes.list", nil)
+}
+
 // Index is board.index.
 func (p *ProjectService) Index(ctx context.Context) (json.RawMessage, error) {
 	return p.call(ctx, "board.index", nil)

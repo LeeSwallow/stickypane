@@ -5,6 +5,7 @@ import { setLanguage, t } from '../i18n'
 import type { Settings } from '../board/model'
 import { setAppPref, type AppPrefs, type SettingsApi } from '../services/settings'
 import SettingsDialog from './SettingsDialog.svelte'
+import { THEMES } from '../demo/themes'
 
 const settings: Settings = {
   theme: 'nord', style: 'doodle', view: 'both', language: { choice: 'en', resolved: 'en' }, tab: '', time: '', editor: '', stale: '2h',
@@ -15,6 +16,7 @@ function fakeApi(over: Partial<SettingsApi> = {}) {
   let prefs: AppPrefs = { hotkey: 'Option+Space', language: 'ko', mode: '' }
   const saved: AppPrefs[] = []
   const api: SettingsApi = {
+    themes: vi.fn(async () => THEMES),
     settings: vi.fn(async () => settings),
     setSettings: vi.fn(async (p) => void board.push(p)),
     appPrefs: vi.fn(async () => prefs),
@@ -93,5 +95,15 @@ describe('the settings', () => {
     show(fakeApi().api)
     expect(document.body.textContent).toContain('stickypane 0.4.0')
     expect((screen.getByRole('button', { name: t('settings.installCli') }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('lists the themes the bridge gives, and keeps the chosen one when it gives none', async () => {
+    show(fakeApi().api)
+    const select = screen.getByLabelText(t('settings.theme')) as HTMLSelectElement
+    await waitFor(() => expect(select.options.length).toBe(THEMES.length + 1))
+    cleanup()
+    show(fakeApi({ themes: async () => Promise.reject(new Error('there is no method "themes.list"')) }).api)
+    const old = screen.getByLabelText(t('settings.theme')) as HTMLSelectElement
+    await waitFor(() => expect([...old.options].map((o) => o.value)).toEqual(['auto', 'nord']))
   })
 })

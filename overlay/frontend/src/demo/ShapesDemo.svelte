@@ -9,7 +9,7 @@
   // Nothing here ships.
   import Board from '../board/Board.svelte'
   import type { Board as BoardData, Note } from '../board/model'
-  import { THEMES } from '../lib/theme/palettes'
+  import { THEMES } from './themes'
   import { fixture } from '../shapes/fixtures/fixtures'
   import { fakeProject } from './fakeProject'
   import { probePage } from './probe'

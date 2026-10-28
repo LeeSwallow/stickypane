@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { THEMES } from './palettes'
+import { THEMES } from '../../demo/themes'
 import { resolveThemeName } from './mode'
 import { DENSITY, ELEVATION, MAX_TILT, MOTION, RADIUS, SPACE, STROKE, TYPE, Z, scaleVars, tiltOf } from './scale'
 import { chromeGrounds, contrast, deriveTokens, MIN_CONTRAST, noteTitleColor, TEXT_PAIRS } from './tokens'

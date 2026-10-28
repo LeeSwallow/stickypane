@@ -1,7 +1,7 @@
 import { createRawSnippet, type Component } from 'svelte'
 import { render } from 'svelte/server'
 import { afterEach, describe, expect, test } from 'vitest'
-import { THEMES } from '../theme/palettes'
+import { THEMES } from '../../demo/themes'
 import { setLanguage } from '../../i18n'
 import { look } from '../doodle/look.svelte'
 import Badge from './Badge.svelte'

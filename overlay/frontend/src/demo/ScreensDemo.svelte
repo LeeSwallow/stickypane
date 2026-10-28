@@ -8,7 +8,7 @@
   import type { Board as BoardData, Note } from '../board/model'
   import Home from '../home/Home.svelte'
   import type { Groups, HomeApi, Row } from '../services/home'
-  import { THEMES } from '../lib/theme/palettes'
+  import { THEMES } from './themes'
 
   const q = new URLSearchParams(location.search)
   const screen = q.get('screen') ?? 'home'

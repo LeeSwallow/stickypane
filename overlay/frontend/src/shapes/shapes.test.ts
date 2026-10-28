@@ -6,7 +6,7 @@ import Grid from '../board/Grid.svelte'
 import { boardContext, type BoardCtx } from '../board/context'
 import { itemOrder, type Note } from '../board/model'
 import { look } from '../lib/doodle/look.svelte'
-import { THEMES } from '../lib/theme/palettes'
+import { THEMES } from '../demo/themes'
 
 look.palette = THEMES[0]
 

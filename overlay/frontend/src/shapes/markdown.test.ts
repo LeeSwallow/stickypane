@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { THEMES } from '../lib/theme/palettes'
+import { THEMES } from '../demo/themes'
 import { mermaidConfig, mermaidRenderer, render } from './markdown'
 
 const plain = { highlight: false }

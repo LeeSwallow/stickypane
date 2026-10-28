@@ -7,6 +7,7 @@
 import { Call } from '@wailsio/runtime'
 import { home, project } from '../lib/shell'
 import type { Settings } from '../board/model'
+import { normalizePalette, type Palette } from '../lib/theme/palette'
 
 /** What settings.set changes; a field left out stays. */
 export interface BoardSettingsPatch {
@@ -24,13 +25,31 @@ export interface AppPrefs {
 }
 
 export interface SettingsApi {
+  /** themes.list: every theme's palette, in the terminal's order */
+  themes(): Promise<Palette[]>
   settings(): Promise<Partial<Settings>>
   setSettings(p: BoardSettingsPatch): Promise<unknown>
   appPrefs(): Promise<AppPrefs>
   setAppPrefs(p: AppPrefs): Promise<void>
 }
 
+/** readThemes reads themes.list's answer; a palette it cannot read is left out. */
+export function readThemes(raw: unknown): Palette[] {
+  const list = (raw as { themes?: unknown[] } | null)?.themes
+  if (!Array.isArray(list)) return []
+  const out: Palette[] = []
+  for (const t of list) {
+    try {
+      out.push(normalizePalette(t))
+    } catch {
+      // a theme the app cannot draw is not offered
+    }
+  }
+  return out
+}
+
 export const settingsService: SettingsApi = {
+  themes: async () => readThemes(await Call.ByName(project('Themes'))),
   settings: () => Call.ByName(project('Settings')) as Promise<Partial<Settings>>,
   setSettings: (p) => Call.ByName(project('SetSetting'), p),
   appPrefs: () => Call.ByName(home('Prefs')) as Promise<AppPrefs>,
