@@ -1,0 +1,54 @@
+name: overlay
+
+on:
+  push:
+    branches: [main]
+    paths: ['overlay/**', '.github/workflows/overlay.yml']
+  pull_request:
+    paths: ['overlay/**', '.github/workflows/overlay.yml']
+
+env:
+  WAILS_VERSION: v3.0.0
+
+jobs:
+  overlay:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: overlay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: overlay/go.mod
+          cache-dependency-path: overlay/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: overlay/frontend/package-lock.json
+      - name: Linux webview libraries
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+      - name: Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+      - run: npm ci
+        working-directory: overlay/frontend
+      - run: npm run check
+        working-directory: overlay/frontend
+      - run: npm test
+        working-directory: overlay/frontend
+      # The build generates the bindings and frontend/dist that Go embeds.
+      - run: wails3 build
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go test -race ./...
+      - run: go mod download
+      - run: sh scripts/licenses_test.sh
+      - run: sh scripts/licenses.sh

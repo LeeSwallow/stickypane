@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -85,6 +86,12 @@ func TestPackagesDependDownwardOnly(t *testing.T) {
 			name := d.Name()
 			if path != root && (strings.HasPrefix(name, ".") || name == "testdata" || name == "dist") {
 				return filepath.SkipDir
+			}
+			// A nested module (overlay/) is not part of this one's layers.
+			if path != root {
+				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
+					return filepath.SkipDir
+				}
 			}
 			return nil
 		}

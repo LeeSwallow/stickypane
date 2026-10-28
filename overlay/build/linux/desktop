@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Stickypane Overlay
+Comment=A Stickypane_Overlay application
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/stickypane_overlay %u
+Terminal=false
+Type=Application
+Icon=stickypane_overlay
+Categories=Utility;
+StartupWMClass=stickypane_overlay
+
+ 
