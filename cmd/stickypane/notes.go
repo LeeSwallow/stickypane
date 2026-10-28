@@ -208,6 +208,7 @@ func bridgeCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
+	prune()
 	defer live("bridge")()
 	bridge.Version = fullVersion()
 	return bridge.Serve(e.ctx, a, kinds.Default(note.Plain), e.stdin, e.stdout)

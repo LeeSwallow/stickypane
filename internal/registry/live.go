@@ -15,32 +15,37 @@ import (
 // touchEvery is how long a project's touch marker silences further touches.
 const touchEvery = time.Minute
 
-// Live records that this process has started working on project, as kind
-// ("tui", "bridge", "mcp", "watch"): a session.start event and a file
+// Live records, through Default, that this process works on project.
+func Live(project, kind string) (end func()) { return Default().Live(project, kind) }
+
+// Touch records, through Default, that a command changed project.
+func Touch(project, cmd string) { Default().Touch(project, cmd) }
+
+// Live records that the process w.PID has started working on project, as
+// kind ("tui", "bridge", "mcp", "watch"): a session.start event and a file
 // run/<pid>.json that says so while the process lives. The returned end
 // records session.end and removes the file; call it on a normal exit. A
-// process that dies leaves its file behind, which the app tells by the
-// process no longer being alive.
-func Live(project, kind string) (end func()) {
-	if !Enabled() {
+// process that dies leaves its file behind, which Prune removes once the
+// process is no longer alive.
+func (w Writer) Live(project, kind string) (end func()) {
+	if !exists(w.Home) {
 		return func() {}
 	}
-	pid := os.Getpid()
-	file := filepath.Join(Home(), "run", strconv.Itoa(pid)+".json")
+	file := filepath.Join(w.Home, "run", strconv.Itoa(w.PID)+".json")
 	if os.MkdirAll(filepath.Dir(file), 0o755) == nil {
-		b, err := json.Marshal(map[string]any{
-			"pid":     pid,
-			"project": project,
-			"kind":    kind,
-			"started": time.Now().Format(when.Moment),
+		b, err := json.Marshal(Run{
+			Kind:    kind,
+			PID:     w.PID,
+			Project: project,
+			Started: w.now().Format(when.Moment),
 		})
 		if err == nil {
 			writeAtomic(file, b)
 		}
 	}
-	Append(Event{Type: "session.start", Project: project, PID: pid, Kind: kind})
+	w.Append(Event{Type: "session.start", Project: project, PID: w.PID, Kind: kind})
 	return func() {
-		Append(Event{Type: "session.end", Project: project, PID: pid})
+		w.Append(Event{Type: "session.end", Project: project, PID: w.PID})
 		os.Remove(file)
 	}
 }
@@ -49,25 +54,28 @@ func Live(project, kind string) (end func()) {
 // project and command are recorded at most once a minute: the app wants to
 // know a board is in use, not each keystroke of it. The minute is kept in
 // the modification time of run/touch-<hash of project and command>, which
-// is shared by every process.
-func Touch(project, cmd string) {
-	if !Enabled() {
+// is shared by every process and set from w's clock.
+func (w Writer) Touch(project, cmd string) {
+	if !exists(w.Home) {
 		return
 	}
+	now := w.now()
 	sum := sha1.Sum([]byte(project + "\x00" + cmd))
-	marker := filepath.Join(Home(), "run", "touch-"+hex.EncodeToString(sum[:])[:12])
-	if fi, err := os.Stat(marker); err == nil && time.Since(fi.ModTime()) < touchEvery {
+	marker := filepath.Join(w.Home, "run", touchPrefix+hex.EncodeToString(sum[:])[:12])
+	if fi, err := os.Stat(marker); err == nil && now.Sub(fi.ModTime()) < touchEvery {
 		return
 	}
 	if os.MkdirAll(filepath.Dir(marker), 0o755) != nil {
 		return
 	}
-	// Writing the file sets its modification time to now.
-	if os.WriteFile(marker, nil, 0o644) != nil {
+	if os.WriteFile(marker, nil, 0o644) != nil || os.Chtimes(marker, now, now) != nil {
 		return
 	}
-	Append(Event{Type: "project.touch", Project: project, Cmd: cmd})
+	w.Append(Event{Type: "project.touch", Project: project, Cmd: cmd})
 }
+
+// touchPrefix begins the name of a touch marker in run/.
+const touchPrefix = "touch-"
 
 // writeAtomic writes b to path through a temporary file in the same folder
 // and a rename, so that the app, which reads run/, never sees half a file.

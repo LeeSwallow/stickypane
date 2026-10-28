@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/initcmd"
 	"github.com/LeeSwallow/stickypane/internal/registry"
@@ -322,6 +323,15 @@ var changes = map[string]bool{
 	"write": true, "todo": true, "card": true, "chart": true, "log": true,
 	"say": true, "set": true, "mv": true, "link": true, "rm": true,
 	"restore": true, "archive": true, "show": true, "hide": true,
+}
+
+// prune clears the registry of records nobody needs any more: the files of
+// sessions whose process has died, events older than 90 days. It runs when
+// a person opens the board, in the terminal or the desktop app: once a
+// session, a few files listed, never on the commands an agent runs many
+// times a minute, and before the app reads run/ to list live boards.
+func prune() {
+	registry.Prune(registry.Home(), time.Now())
 }
 
 // live records that this command works on the project here until it ends:
