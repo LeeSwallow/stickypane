@@ -1,11 +1,13 @@
 package chat
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/when"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 // Say adds a message from Who at At, under the heading of its day, which
@@ -34,4 +36,21 @@ func (o Say) Apply(d doc.Document) (doc.Document, error) {
 	who := strings.TrimPrefix(strings.Join(strings.Fields(o.Who), ""), "@")
 	d.Body = doc.AppendLine(d.Body, "@"+who+" "+o.At.Format(when.Clock)+" "+doc.OneLine(o.Text))
 	return d, nil
+}
+
+// act is the chat's Kind.Act: "say" with text and who, the author, which
+// is "agent" when left out. The time is the board's, from now.
+func act(_ doc.Document, a widget.Action) (doc.Op, error) {
+	if a.Name != "say" {
+		return nil, fmt.Errorf("%w: %q", widget.ErrUnknownAction, a.Name)
+	}
+	text := strings.Join(strings.Fields(a.Args["text"]), " ")
+	if text == "" {
+		return nil, fmt.Errorf("say: text must not be empty")
+	}
+	who := strings.TrimSpace(a.Args["who"])
+	if who == "" {
+		who = "agent"
+	}
+	return Say{Who: who, Text: text, At: now()}, nil
 }
