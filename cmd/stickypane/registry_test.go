@@ -126,3 +126,27 @@ func TestCommandsSucceedWhenTheHomeIsReadOnly(t *testing.T) {
 		}
 	}
 }
+
+// TestEveryCommandIsSortedIntoChanges makes the commands that only read
+// say so; any other command is taken to change a board and must be in
+// changes, so a new command cannot be forgotten.
+func TestEveryCommandIsSortedIntoChanges(t *testing.T) {
+	reads := map[string]bool{
+		"init": true, "setup": true, "theme": true, "language": true,
+		"config": true, "kinds": true, "env": true, "guide": true,
+		"version": true, "help": true, "list": true, "index": true,
+		"cat": true, "answers": true, "wait": true, "api": true,
+		"watch": true, "mcp": true,
+	}
+	for _, c := range commands {
+		name := c.names[0]
+		if reads[name] == changes[name] {
+			t.Errorf("%s: it must be in exactly one of the read-only list and changes", name)
+		}
+	}
+	for name := range changes {
+		if _, ok := lookup(name); !ok {
+			t.Errorf("changes names %s, which is no command", name)
+		}
+	}
+}
