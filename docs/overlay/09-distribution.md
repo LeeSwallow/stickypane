@@ -120,3 +120,74 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
 | Linux | CI(ubuntu)에서 빌드와 Go 테스트, PR이면 tar.gz를 만들어 산출물로 올린다. 실기 실행은 [미검증] |
+
+### 9.6.1 사람이 이 Mac에서 하는 점검표
+
+자동 검사가 닿지 않는 것만 남겼습니다. 위에서부터 차례로 하면 첫 사용자가 겪는 순서와 같습니다. 각 줄을 해 보고 체크하고, 다르면 무엇을 봤는지 옆에 적어 주세요. 시작 전에 기존 상태를 적어 둡니다: `ls -la ~/.local/bin/stickypane /usr/local/bin/stickypane; which -a stickypane; claude plugin list 2>/dev/null | grep -i sticky`.
+
+**준비: DMG 만들기**
+
+- [ ] `cd overlay && wails3 package`가 `overlay/bin/stickypane-app.app`을 만든다.
+- [ ] `sh scripts/overlay-dmg.sh overlay/bin/stickypane-app.app /tmp/qa/stickypane-0.1.0-arm64.dmg`가 끝나고, 마운트된 볼륨이 남지 않는다(`ls /Volumes`).
+
+**1. DMG 설치와 Gatekeeper**
+
+- [ ] DMG를 더블클릭하면 모눈종이 배경의 창에 `Stickypane`과 `Applications`가 나란히 보인다.
+- [ ] `Stickypane`을 `Applications`로 끌어 놓으면 복사된다. 볼륨을 꺼낸다.
+- [ ] 내려받은 것과 같게 격리 표시를 붙인다: `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /Applications/Stickypane.app`
+- [ ] Launchpad나 Finder에서 열면 "확인되지 않은 개발자" 경고가 뜨고 열리지 않는다.
+- [ ] **시스템 설정 → 개인정보 보호 및 보안**의 아래쪽에 Stickypane이 보이고, **그래도 열기**를 누르고 암호(또는 Touch ID)를 넣으면 앱이 열린다. 다음부터는 묻지 않는다.
+
+**2. 첫 실행 (번들 CLI, 격리된 상태)**
+
+- [ ] 홈 창이 "아직 보드가 없어요"와 **폴더 고르기** 하나로 뜬다. 언어가 시스템 언어다.
+- [ ] 시험용 빈 폴더(예: `mkdir -p /tmp/qa/my-app`)를 고르면 "이 폴더에 보드를 만들까요?"에 `.sticky/` 설명과 경로가 보이고, **보드 만들기**를 누르면 보드 창이 열린다. 홈 폴더를 고르면 거절한다.
+- [ ] 보드 창의 환영 노트에 "In the app: + New note …" 줄이 있다.
+- [ ] 보드를 연 bridge가 앱 안의 CLI다: `ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/Applications/Stickypane.app/Contents/Helpers/stickypane bridge`를 가리킨다.
+- [ ] **+ 새 노트** → 체크리스트, 제목과 항목 두 줄 → **만들기**: 노트가 왼쪽 위 빈자리에 붙고 "'…' 노트를 만들었어요"가 잠깐 보인다.
+
+**3. 트레이**
+
+- [ ] 메뉴 막대에 세 장 메모지 아이콘이 있고, 밝은·어두운 메뉴 막대 모두에서 보인다(템플릿 이미지).
+- [ ] 아이콘 메뉴에서 홈 창을 열고, **stickypane 종료**로 앱이 끝난다(트레이 아이콘이 사라진다).
+- [ ] 보드 창과 홈 창을 다 닫아도 앱은 남고, 처음 한 번 "창을 닫아도 stickypane은 계속 실행돼요"가 보인다.
+
+**4. 단축키와 항상 위**
+
+- [ ] 다른 앱에 있을 때 `⌥ Space`를 누르면 마지막 보드가 앞으로 오고, 다시 누르면 숨는다.
+- [ ] 설정에서 단축키를 바꾸고 저장하면 새 키가 되고 옛 키는 아무것도 하지 않는다. 다시 `Option+Space`로 돌린다.
+- [ ] 제목줄의 핀(**창을 항상 위에**)을 켜면 다른 앱을 눌러도 창이 위에 남고, 끄면 포커스를 잃을 때 숨는다.
+
+**5. 떼어낸 노트 (macOS 창)**
+
+- [ ] 캔버스에서 노트의 **따로 떼어 보기**를 누르면 작은 창이 따로 뜨고, 보드에는 "떼어낸 노트" 선반에 그 이름이 남는다.
+- [ ] 떼어낸 창이 다른 앱 위에 떠 있고, 끌어 옮기고 크기를 바꿀 수 있다. 앱을 끝내고 다시 열면 같은 자리에 다시 뜬다.
+- [ ] 터미널에서 `stickypane todo <그 노트> add "x"`를 하면 떼어낸 창에도 1초 안에 보인다.
+- [ ] ↶(보드에 다시 붙이기)를 누르면 창이 닫히고 노트가 보드로 돌아온다.
+- [ ] HTML 격리를 WebKit에서 본다: 시험 보드에 `overlay/frontend/src/demo/probe.ts`의 페이지를 `.sticky/probe.html`로 두고(주소는 `python3 -m http.server 8765`), 노트에 "The page's own script did not run."이 보이고 서버 로그에 요청이 하나도 없다.
+
+**6. 터미널 명령 (암호 대화상자 포함)**
+
+- [ ] 설정 → **터미널과 에이전트** → **터미널 명령 설치**: `~/.local/bin/stickypane`이 앱 안의 것을 가리키는 링크가 된다(`ls -l ~/.local/bin/stickypane`). `~/.local/bin`이 PATH에 없으면 넣을 줄이 보인다.
+- [ ] 새 터미널에서 `stickypane version`이 앱 버전을 말한다. Homebrew 등 옛 사본이 PATH 앞에 있으면 앱이 그 경로와 지우는 방법을 보여 준다.
+- [ ] **대신 /usr/local/bin에 설치 (암호를 물어요)**: macOS 암호 대화상자가 뜬다. 취소하면 "암호를 넣지 않아 바뀐 것이 없어요"가 보이고 아무것도 바뀌지 않는다. 다시 해서 암호를 넣으면 `/usr/local/bin/stickypane`이 링크가 된다.
+- [ ] 이 앱이 두지 않은 `stickypane`이 그 자리에 있으면 바꾸기 전에 묻는다.
+- [ ] **터미널 명령 제거**가 앱이 만든 링크만 지운다. 시작 전에 적어 둔 상태로 되돌린다.
+
+**7. 에이전트 연결 (실제 `setup --yes`)**
+
+이 단계는 실제 `~/.claude`·`~/.codex` 설정을 바꿉니다. 원하지 않으면 계획(--dry-run)까지만 봅니다.
+
+- [ ] **에이전트 연결**을 누르면 실행할 명령(`stickypane setup --scope user … --dry-run`의 계획)이 먼저 보이고, 아직 아무것도 바뀌지 않는다.
+- [ ] **실행**을 누르면 `setup --yes`가 돌고 "연결했어요."가 보인다. `claude plugin list`에 board 플러그인이 있다. **MCP 서버로도 등록**을 켰다면 `claude mcp list`에 stickypane이 앱 안의 CLI 전체 경로로 있다.
+- [ ] Claude Code를 이 시험 폴더에서 열고 "보드에 체크리스트 하나 붙여 줘"라고 하면 앱 창에 노트가 나타난다.
+- [ ] 되돌리기: `stickypane setup --undo`(또는 시작 전 상태 메모대로).
+
+**8. `stickypane`에서 앱 띄우기**
+
+- [ ] 시험 폴더에서 `stickypane init --view app` 뒤 `stickypane`을 치면 앱의 그 보드 창이 열리고(앱이 꺼져 있으면 켜지고), 터미널 보드는 뜨지 않는다.
+- [ ] `--view both`면 앱 창과 터미널 보드가 둘 다 뜬다. `--view terminal`로 되돌린다.
+- [ ] 앱을 `Applications`에서 잠시 다른 곳으로 옮기면, `stickypane`이 앱을 받을 곳을 말하고 터미널 보드를 연다. 앱을 제자리로 돌린다.
+
+**마무리**: 시험 폴더(`/tmp/qa`)를 지우고, 0단계에서 적은 링크·플러그인 상태와 같은지 본다.
+
