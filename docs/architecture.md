@@ -143,6 +143,19 @@ reader and a writer is laid out the same way:
 | `events.go` | what happened between two versions of the file, for `stickypane watch` |
 
 Small shapes (`note`, `logview`, `script`) stay in one file. `html` is view-only, so its `ops.go` and `events.go` hold only a comment.
+Only `view.go` imports lipgloss or bubbletea, and no widget imports the
+network, `os/exec` or `internal/httpfile` (the API note reads its file with
+`internal/httpfile/syntax`); `internal/layers` checks both.
+
+**The Env.** A widget keeps no package variables. What it reads that is not
+in its file comes in a `widget.Env`, handed to `Kind.Parse`, `Kind.Data` and
+`Kind.Act`: the clock, the translator, the theme's styles, how long a card
+may stall, how a time is written (`when.Formatter`) and how to find the
+note a `![[name]]` line shows. The screen makes one from its own clock and
+settings and makes its widgets again when it changes; the command line and
+the bridge use the API's (`api.NewWithEnv`, `API.Env`), so what an action
+writes carries the API's clock. Tests hand a widget an Env with a stopped
+clock and run in parallel.
 
 To add a shape:
 
