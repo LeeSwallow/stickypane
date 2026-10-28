@@ -21,18 +21,22 @@ const module = "github.com/LeeSwallow/stickypane/overlay/"
 // packages of a lower rank. A new package must be given one here.
 var rank = map[string]int{
 	// Domain: values and rules, no I/O.
-	"internal/prefs":       0,
-	"internal/index/model": 0,
+	"internal/prefs":         0,
+	"internal/index/model":   0,
+	"internal/install/model": 0,
 	// Ports: what the use cases need, as interfaces.
-	"internal/index/ports": 10,
+	"internal/index/ports":   10,
+	"internal/install/ports": 10,
 	// Use cases: orchestration and transactions, through the ports only.
-	"internal/index/service": 20,
+	"internal/index/service":   20,
+	"internal/install/service": 20,
 	// Adapters: the database, the files, the processes, the bridge.
 	"internal/index/gormstore":  30,
 	"internal/index/registryfs": 30,
 	"internal/index/boardfs":    30,
 	"internal/index/procs":      30,
 	"internal/bridge":           30,
+	"internal/install/osys":     30,
 	// Wiring of the index's parts.
 	"internal/index": 40,
 	// Screen: the Wails shell and the program.
@@ -45,10 +49,13 @@ var rank = map[string]int{
 // pure are the packages that may not touch the world: the domain and the
 // use cases. Each forbidden import is a prefix.
 var pure = map[string]bool{
-	"internal/prefs":         true,
-	"internal/index/model":   true,
-	"internal/index/ports":   true,
-	"internal/index/service": true,
+	"internal/prefs":           true,
+	"internal/index/model":     true,
+	"internal/index/ports":     true,
+	"internal/index/service":   true,
+	"internal/install/model":   true,
+	"internal/install/ports":   true,
+	"internal/install/service": true,
 }
 
 var forbidden = []string{
