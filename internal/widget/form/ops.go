@@ -1,9 +1,13 @@
 package form
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
+	"github.com/LeeSwallow/stickypane/internal/widget"
 )
 
 // unsubmit takes the submission back: the answers are changing again.
@@ -105,4 +109,72 @@ func (o Submit) Apply(d doc.Document) (doc.Document, error) {
 		}
 	}
 	return d, doc.ErrConflict
+}
+
+// pick reads the args' line as a position in the lines Data lists and
+// returns the form read and that position.
+func pick(d doc.Document, verb string, a widget.Action) (content, int, error) {
+	i, err := strconv.Atoi(a.Args["line"])
+	if err != nil {
+		return content{}, 0, fmt.Errorf("%s: line must be a number, not %q", verb, a.Args["line"])
+	}
+	c := read(d)
+	if i < 0 || i >= len(c.lines) {
+		return c, 0, fmt.Errorf("%s: no line %d, the form has %d", verb, i, len(c.lines))
+	}
+	return c, i, nil
+}
+
+// act is the form's Kind.Act: "choose" with line, a position in the lines
+// of Data, which flips that option as enter does; "fill" with line and
+// text; "submit" with label, a button of the form. The time of a submit is
+// the board's, as when a button is pressed on the terminal.
+func act(d doc.Document, a widget.Action) (doc.Op, error) {
+	switch a.Name {
+	case "choose":
+		c, i, err := pick(d, a.Name, a)
+		if err != nil {
+			return nil, err
+		}
+		l := c.lines[i]
+		if l.kind != option {
+			return nil, fmt.Errorf("choose: line %d is not an option", i)
+		}
+		nth := 0
+		for _, e := range c.lines[:i] {
+			if e.kind == option && e.text == l.text {
+				nth++
+			}
+		}
+		return Choose{Text: l.text, Nth: nth, On: !l.on}, nil
+	case "fill":
+		c, i, err := pick(d, a.Name, a)
+		if err != nil {
+			return nil, err
+		}
+		l := c.lines[i]
+		if l.kind != field {
+			return nil, fmt.Errorf("fill: line %d is not a field", i)
+		}
+		text, ok := a.Args["text"]
+		if !ok || strings.ContainsAny(text, "\r\n") {
+			return nil, fmt.Errorf("fill: text must be one line")
+		}
+		nth := 0
+		for _, e := range c.lines[:i] {
+			if e.kind == field {
+				nth++
+			}
+		}
+		return Fill{Nth: nth, Old: l.text, Text: strings.TrimSpace(text)}, nil
+	case "submit":
+		lines, _ := scan(d.Body)
+		for _, label := range buttonLabels(lines) {
+			if label == a.Args["label"] {
+				return Submit{Label: label, At: now().Format(when.Moment)}, nil
+			}
+		}
+		return nil, fmt.Errorf("submit: the form has no button %q", a.Args["label"])
+	}
+	return nil, fmt.Errorf("%w: %q", widget.ErrUnknownAction, a.Name)
 }

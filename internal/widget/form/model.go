@@ -144,3 +144,49 @@ func (a Answers) String() string {
 	}
 	return b.String()
 }
+
+// Line is one line of a form as another screen draws it. Kind is one of
+// what the form tells apart: "text" (anything that is not a control),
+// "option" (Radio for ( ), Checked when chosen), "detail" (an indented line
+// under an option), "field" (Text is the answer so far) and "buttons"
+// (Labels). Group names the question an option or a field answers.
+type Line struct {
+	Kind    string   `json:"kind"`
+	Text    string   `json:"text"`
+	Group   string   `json:"group,omitempty"`
+	Radio   bool     `json:"radio,omitempty"`
+	Checked bool     `json:"checked,omitempty"`
+	Labels  []string `json:"labels,omitempty"`
+}
+
+// Page is what Data says of a form: every line, the pressed button and when.
+type Page struct {
+	Lines     []Line `json:"lines"`
+	Submitted string `json:"submitted"`
+	At        string `json:"at"`
+}
+
+// kindNames are the Line kinds, by the line kinds of the reader.
+var kindNames = map[lineKind]string{prose: "text", option: "option", detail: "detail", field: "field", buttons: "buttons"}
+
+// data is the lines of the form, from the same read the board draws. When
+// the file has no button, the built-in one is among them, because it can
+// be pressed.
+func data(d doc.Document) any {
+	c := read(d)
+	p := Page{Lines: make([]Line, 0, len(c.lines)), Submitted: c.submitted}
+	if c.submitted != "" {
+		p.At = c.at
+	}
+	for _, l := range c.lines {
+		out := Line{Kind: kindNames[l.kind], Text: l.text, Labels: l.labels}
+		if l.kind == option || l.kind == field {
+			out.Group = c.questions[l.question]
+		}
+		if l.kind == option {
+			out.Radio, out.Checked = l.radio, l.on
+		}
+		p.Lines = append(p.Lines, out)
+	}
+	return p
+}
