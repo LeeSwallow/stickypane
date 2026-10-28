@@ -50,9 +50,9 @@ asks for what the flags did not say.
 The plugin is in layers. The way in, `using-the-board`, says which of four
 skills fits a job: `tracking-progress`, `asking-the-user`,
 `talking-in-chat` and `connecting-notes`. The rules they share are in
-`rules/`, written once. The commands `/board:show`, `/board:status`,
-`/board:index`, `/board:track`, `/board:ask`, `/board:say`, `/board:kinds`
-and `/board:setup` each start one. A session hook tells the agent what is on
+`rules/`, written once. The commands `/board:status` (what is on the board,
+or the notes that match), `/board:track`, `/board:ask`, `/board:say` and
+`/board:setup` each start one. A session hook tells the agent what is on
 the board when a session starts in a project that has one. In a git
 repository the agent's first `stickypane show` or `stickypane todo` makes
 the board, so no setup step is needed.

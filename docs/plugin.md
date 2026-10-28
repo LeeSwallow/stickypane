@@ -31,6 +31,11 @@ references: a shape in full is `stickypane help <shape>` or the guide with
 the shape as its topic. `go test ./internal/initcmd/` checks that the skills
 stay short, name only files that exist and run only real commands.
 
+The slash commands are `/board:status` (what is on the board, or the notes
+that match), `/board:track`, `/board:ask`, `/board:say` and `/board:setup`.
+Showing a file is `stickypane show`, and a shape is `stickypane help
+<shape>`; neither needs a command of its own.
+
 ## Scripts
 
 | Script | Usage | Does |

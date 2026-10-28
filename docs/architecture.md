@@ -162,7 +162,7 @@ each pointing only at the one below:
 
 | Layer | Folder | Is |
 | --- | --- | --- |
-| commands | `commands/` | `/board:track`, `/board:ask`, `/board:say`...: a line that names a skill |
+| commands | `commands/` | `/board:status`, `/board:track`, `/board:ask`, `/board:say`, `/board:setup`: a line that names a skill |
 | skills | `skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
 | references | `skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
 | rules | `rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
