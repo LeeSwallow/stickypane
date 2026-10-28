@@ -1,0 +1,679 @@
+{
+ "title": "proj",
+ "tabs": [
+  {
+   "name": "",
+   "title": "proj",
+   "notes": [
+    {
+     "name": "welcome.md",
+     "tab": "",
+     "title": "Welcome to stickypane",
+     "kind": "note",
+     "icon": "✎",
+     "open": true,
+     "size": "1/2",
+     "rows": 0,
+     "color": "yellow",
+     "pinned": true,
+     "version": "181a801781af5797",
+     "summary": "",
+     "data": {
+      "markdown": "The line at the top lists every note in `.sticky/`. The ones you open share\nthe screen below it, each in a pane of its own; the rest stay folded away.\n\n- **tab** moves between notes, **enter** opens one and then zooms into it\n- **j** and **k** scroll inside a note, **o** closes it, **+** and **-** make it wider or narrower, **shift+up** and **shift+down** taller or shorter\n- **N** jots a note, **a** adds a board, checklist, log, chart, form or script\n- **e** edits a note here, **m** moves it to a folder, **D** deletes it and\n  **u** takes that back\n- **?** lists every key\n\nYour agent can stick notes here by writing files. Press **o** to fold this\nnote away when you are done with it.\n"
+     },
+     "modTime": "2026-10-29T03:14:42.355265757+09:00",
+     "linked": false
+    },
+    {
+     "name": "api.http",
+     "tab": "",
+     "title": "api",
+     "kind": "api",
+     "icon": "⇄",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "orange",
+     "pinned": false,
+     "version": "784185fecce5f55b",
+     "summary": "2 requests",
+     "data": {
+      "source": "@base = http://127.0.0.1:60576\n\n### Hello\nGET {{base}}/hello.json\n# @assert response.statusCode == 200\n\n### Missing\nGET {{base}}/nothing\n# @assert response.statusCode == 200\n",
+      "env": "",
+      "requests": [
+       {
+        "title": "Hello",
+        "method": "GET",
+        "where": "{{base}}/hello.json",
+        "asserts": 1,
+        "hooks": false,
+        "block": [
+         "# @assert response.statusCode == 200"
+        ]
+       },
+       {
+        "title": "Missing",
+        "method": "GET",
+        "where": "{{base}}/nothing",
+        "asserts": 1,
+        "hooks": false,
+        "block": [
+         "# @assert response.statusCode == 200"
+        ]
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.640379769+09:00",
+     "linked": false
+    },
+    {
+     "name": "api.log",
+     "tab": "",
+     "title": "api",
+     "kind": "log",
+     "icon": "≣",
+     "open": false,
+     "size": "1/2",
+     "rows": 10,
+     "color": "green",
+     "pinned": false,
+     "version": "9ff0d0e47238b613",
+     "summary": "30 lines",
+     "data": {
+      "lines": [
+       "### Hello",
+       "$ curl -sS 'http://127.0.0.1:60576/hello.json'",
+       "{",
+       "  \"ok\": true,",
+       "  \"user\": \"min\"",
+       "}",
+       "",
+       "✔ response.statusCode == 200",
+       "[200 OK · 1ms · Hello · 1/1 ✔]",
+       "",
+       "### Missing",
+       "$ curl -sS 'http://127.0.0.1:60576/nothing'",
+       "<!DOCTYPE HTML>",
+       "<html lang=\"en\">",
+       "    <head>",
+       "        <meta charset=\"utf-8\">",
+       "        <style type=\"text/css\">",
+       "            :root {",
+       "                color-scheme: light dark;",
+       "            }",
+       "        </style>",
+       "        <title>Error response</title>",
+       "    </head>",
+       "    <body>",
+       "        <h1>Error response</h1>",
+       "        <p>Error code: 404</p>",
+       "        <p>Message: File not found.</p>",
+       "        <p>Error code explanation: 404 - Nothing matches the given URI.</p>",
+       "    </body>",
+       "</html>",
+       "",
+       "✘ response.statusCode == 200 · got 404",
+       "[404 File not found · 0ms · Missing · 0/1 ✘]"
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.696512506+09:00",
+     "linked": false
+    },
+    {
+     "name": "build.log",
+     "tab": "",
+     "title": "build",
+     "kind": "log",
+     "icon": "≣",
+     "open": false,
+     "size": "1/2",
+     "rows": 10,
+     "color": "green",
+     "pinned": false,
+     "version": "e509131ae4338ccb",
+     "summary": "4 lines",
+     "data": {
+      "lines": [
+       "$ sh build.sh   (2026-10-29 03:14:42)",
+       "building",
+       "done",
+       "[exit 0 · 0s]"
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.693306426+09:00",
+     "linked": false
+    },
+    {
+     "name": "build.sh",
+     "tab": "",
+     "title": "build",
+     "kind": "script",
+     "icon": "▶",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "blue",
+     "pinned": false,
+     "version": "4479b0d974dcaef3",
+     "summary": "3 lines",
+     "data": {
+      "lang": "sh",
+      "source": "#!/bin/sh\necho building\necho done\n"
+     },
+     "modTime": "2026-10-29T03:14:42.623729244+09:00",
+     "linked": false
+    },
+    {
+     "name": "chat.md",
+     "tab": "",
+     "title": "chat",
+     "kind": "chat",
+     "icon": "✉",
+     "open": true,
+     "size": "1",
+     "rows": 0,
+     "color": "yellow",
+     "pinned": false,
+     "version": "56a9c26d83e84446",
+     "summary": "2 messages",
+     "data": {
+      "messages": [
+       {
+        "day": "2026-10-29",
+        "who": "min",
+        "clock": "03:14",
+        "text": "can you rerun the tests?"
+       },
+       {
+        "day": "2026-10-29",
+        "who": "claude",
+        "clock": "03:14",
+        "text": "41/41 pass"
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.607464635+09:00",
+     "linked": false
+    },
+    {
+     "name": "commits.md",
+     "tab": "",
+     "title": "Commits",
+     "kind": "chart",
+     "icon": "▤",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "yellow",
+     "pinned": false,
+     "version": "d596dd8f99e28de0",
+     "summary": "8 values",
+     "data": {
+      "view": "heat",
+      "prose": [],
+      "points": [
+       {
+        "label": "2026-10-01",
+        "text": "2",
+        "value": 2
+       },
+       {
+        "label": "2026-10-02",
+        "text": "0",
+        "value": 0
+       },
+       {
+        "label": "2026-10-05",
+        "text": "5",
+        "value": 5
+       },
+       {
+        "label": "2026-10-06",
+        "text": "1",
+        "value": 1
+       },
+       {
+        "label": "2026-10-08",
+        "text": "8",
+        "value": 8
+       },
+       {
+        "label": "2026-10-14",
+        "text": "3",
+        "value": 3
+       },
+       {
+        "label": "2026-10-20",
+        "text": "4",
+        "value": 4
+       },
+       {
+        "label": "2026-10-27",
+        "text": "6",
+        "value": 6
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.525428257+09:00",
+     "linked": false
+    },
+    {
+     "name": "deploy.md",
+     "tab": "",
+     "title": "Deploy",
+     "kind": "form",
+     "icon": "◉",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "green",
+     "pinned": false,
+     "version": "169a92ea7ec13c04",
+     "summary": "3/3",
+     "data": {
+      "lines": [
+       {
+        "kind": "text",
+        "text": "## Where to deploy?"
+       },
+       {
+        "kind": "option",
+        "text": "staging",
+        "group": "Where to deploy?",
+        "radio": true,
+        "checked": true
+       },
+       {
+        "kind": "option",
+        "text": "production",
+        "group": "Where to deploy?",
+        "radio": true
+       },
+       {
+        "kind": "detail",
+        "text": "the one people use"
+       },
+       {
+        "kind": "text",
+        "text": ""
+       },
+       {
+        "kind": "text",
+        "text": "## Checks"
+       },
+       {
+        "kind": "option",
+        "text": "tests",
+        "group": "Checks",
+        "checked": true
+       },
+       {
+        "kind": "option",
+        "text": "lint",
+        "group": "Checks"
+       },
+       {
+        "kind": "text",
+        "text": ""
+       },
+       {
+        "kind": "text",
+        "text": "## Note"
+       },
+       {
+        "kind": "field",
+        "text": "after lunch",
+        "group": "Note"
+       },
+       {
+        "kind": "text",
+        "text": ""
+       },
+       {
+        "kind": "buttons",
+        "text": "",
+        "labels": [
+         "Deploy",
+         "Cancel"
+        ]
+       },
+       {
+        "kind": "text",
+        "text": ""
+       }
+      ],
+      "submitted": "",
+      "at": ""
+     },
+     "modTime": "2026-10-29T03:14:42.461581319+09:00",
+     "linked": false
+    },
+    {
+     "name": "plan.md",
+     "tab": "",
+     "title": "Plan",
+     "kind": "checklist",
+     "icon": "☑",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "orange",
+     "pinned": false,
+     "version": "f45cbd747e711fed",
+     "summary": "1/3",
+     "data": {
+      "items": [
+       {
+        "text": "write tests",
+        "checked": true,
+        "done": "2026-10-29T03:14:00+09:00"
+       },
+       {
+        "text": "tag the release",
+        "checked": false
+       },
+       {
+        "text": "tell the team",
+        "checked": false
+       }
+      ],
+      "prose": [],
+      "done": 1,
+      "total": 3
+     },
+     "modTime": "2026-10-29T03:14:42.396965424+09:00",
+     "linked": false
+    },
+    {
+     "name": "readme.md",
+     "tab": "",
+     "title": "Release notes",
+     "kind": "note",
+     "icon": "✎",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "blue",
+     "pinned": false,
+     "version": "7681e5363f33158b",
+     "summary": "",
+     "data": {
+      "markdown": "# Release notes\n\nShip **0.2** after the [[plan]] is done.\n\n```go\nfmt.Println(\"hi\")\n```\n"
+     },
+     "modTime": "2026-10-29T03:14:42.377859526+09:00",
+     "linked": false
+    },
+    {
+     "name": "ready.md",
+     "tab": "",
+     "title": "Ready",
+     "kind": "form",
+     "icon": "◉",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "pink",
+     "pinned": false,
+     "version": "4cecb94a9f6a2241",
+     "summary": "✓ Go",
+     "data": {
+      "lines": [
+       {
+        "kind": "text",
+        "text": "## Ready?"
+       },
+       {
+        "kind": "option",
+        "text": "yes",
+        "group": "Ready?",
+        "radio": true,
+        "checked": true
+       },
+       {
+        "kind": "option",
+        "text": "no",
+        "group": "Ready?",
+        "radio": true
+       },
+       {
+        "kind": "text",
+        "text": ""
+       },
+       {
+        "kind": "buttons",
+        "text": "",
+        "labels": [
+         "Go"
+        ]
+       },
+       {
+        "kind": "text",
+        "text": ""
+       }
+      ],
+      "submitted": "Go",
+      "at": "2026-10-29T03:14:42+09:00"
+     },
+     "modTime": "2026-10-29T03:14:42.69738088+09:00",
+     "linked": false
+    },
+    {
+     "name": "report.html",
+     "tab": "",
+     "title": "report",
+     "kind": "html",
+     "icon": "⌗",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "yellow",
+     "pinned": false,
+     "version": "e3609f12379608a8",
+     "summary": "",
+     "data": {
+      "html": "<h1>Benchmark</h1>\n<p>Run took <b>4.2s</b>, down from 6.1s.</p>\n<script>document.body.dataset.ran = \"yes\"</script>\n"
+     },
+     "modTime": "2026-10-29T03:14:42.656741503+09:00",
+     "linked": false
+    },
+    {
+     "name": "tokens.md",
+     "tab": "",
+     "title": "Tokens",
+     "kind": "chart",
+     "icon": "▤",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "purple",
+     "pinned": false,
+     "version": "863b7cf68b0ff612",
+     "summary": "4 values",
+     "data": {
+      "view": "bar",
+      "prose": [
+       "Tokens by package"
+      ],
+      "points": [
+       {
+        "label": "app",
+        "text": "61",
+        "value": 61
+       },
+       {
+        "label": "board",
+        "text": "31",
+        "value": 31
+       },
+       {
+        "label": "checklist",
+        "text": "21",
+        "value": 21
+       },
+       {
+        "label": "store",
+        "text": "16",
+        "value": 16
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.493300663+09:00",
+     "linked": false
+    },
+    {
+     "name": "trend.md",
+     "tab": "",
+     "title": "Trend",
+     "kind": "chart",
+     "icon": "▤",
+     "open": false,
+     "size": "1/2",
+     "rows": 0,
+     "color": "orange",
+     "pinned": false,
+     "version": "5bd4b9f0fa4b1f66",
+     "summary": "5 values",
+     "data": {
+      "view": "spark",
+      "prose": [],
+      "points": [
+       {
+        "label": "mon",
+        "text": "3",
+        "value": 3
+       },
+       {
+        "label": "tue",
+        "text": "5",
+        "value": 5
+       },
+       {
+        "label": "wed",
+        "text": "4",
+        "value": 4
+       },
+       {
+        "label": "thu",
+        "text": "9",
+        "value": 9
+       },
+       {
+        "label": "fri",
+        "text": "7",
+        "value": 7
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.509340147+09:00",
+     "linked": false
+    },
+    {
+     "name": "work.md",
+     "tab": "",
+     "title": "work",
+     "kind": "board",
+     "icon": "▦",
+     "open": false,
+     "size": "1",
+     "rows": 0,
+     "color": "green",
+     "pinned": false,
+     "version": "d1ed78b5c81503c3",
+     "summary": "2 cards",
+     "data": {
+      "desc": [],
+      "columns": [
+       {
+        "title": "Todo",
+        "cards": [
+         {
+          "text": "docs",
+          "who": [],
+          "moved": "2026-10-29T03:14:00+09:00",
+          "detail": [],
+          "stalled": false
+         }
+        ]
+       },
+       {
+        "title": "Doing",
+        "cards": [
+         {
+          "text": "login API",
+          "who": [],
+          "moved": "2026-10-29T03:14:00+09:00",
+          "detail": [],
+          "stalled": false
+         }
+        ]
+       },
+       {
+        "title": "Done",
+        "cards": []
+       }
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.445854376+09:00",
+     "linked": false
+    },
+    {
+     "name": "worklog.md",
+     "tab": "",
+     "title": "worklog",
+     "kind": "log",
+     "icon": "≣",
+     "open": true,
+     "size": "1/2",
+     "rows": 10,
+     "color": "green",
+     "pinned": false,
+     "version": "98e9cab0b39bf24a",
+     "summary": "3 lines",
+     "data": {
+      "lines": [
+       "03:14 tests passed",
+       "03:14 started on review feedback",
+       "pushed the fix"
+      ]
+     },
+     "modTime": "2026-10-29T03:14:42.574717875+09:00",
+     "linked": false
+    }
+   ]
+  }
+ ],
+ "settings": {
+  "theme": "auto",
+  "style": "doodle",
+  "view": "terminal",
+  "language": {
+   "choice": "auto",
+   "resolved": "en"
+  },
+  "tab": "",
+  "time": "auto",
+  "editor": "auto",
+  "stale": "30m"
+ },
+ "palette": {
+  "name": "stickypane-dark",
+  "dark": true,
+  "base": "#1F2933",
+  "text": "#E6E6E6",
+  "muted": "#8A94A0",
+  "accent": "#7FB3F5",
+  "select": "#2F3B4C",
+  "good": "#8FD694",
+  "warn": "#F5A962",
+  "bad": "#F28FB1",
+  "info": "#B79CF2",
+  "notes": [
+   "#F2D45C",
+   "#F28FB1",
+   "#7FB3F5",
+   "#8FD694",
+   "#B79CF2",
+   "#F5A962"
+  ]
+ }
+}
