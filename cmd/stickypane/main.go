@@ -220,6 +220,7 @@ func openBoard(e env, start string) error {
 
 // runBoardLive runs the board as a session of its project.
 func runBoardLive(e env, dir, status string) error {
+	prune()
 	defer registry.Live(filepath.Dir(dir), "tui")()
 	return runBoard(e.ctx, dir, status)
 }

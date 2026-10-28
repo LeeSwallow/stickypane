@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/registry"
 )
@@ -105,6 +106,58 @@ func TestBoardIsASession(t *testing.T) {
 	got := recorded(t, home)
 	if len(got) != 2 || got[0].Kind != "tui" || got[1].Type != "session.end" || !same(got[0].Project, root) {
 		t.Errorf("want session.start (tui) and session.end: %+v", got)
+	}
+}
+
+// oldRecords puts in home an event file of a day long past and a touch
+// marker not touched for days, both of which Prune removes.
+func oldRecords(t *testing.T, home string) (event, marker string) {
+	t.Helper()
+	event = filepath.Join(home, "events", "2000-01-01.jsonl")
+	marker = filepath.Join(home, "run", "touch-000000000000")
+	for _, p := range []string{event, marker} {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := time.Now().AddDate(0, 0, -7)
+	if err := os.Chtimes(marker, old, old); err != nil {
+		t.Fatal(err)
+	}
+	return event, marker
+}
+
+// Opening the board, in the terminal or for the app, clears out the
+// records nobody needs any more; a command that changes a note does not.
+func TestOpeningTheBoardPrunesTheRegistry(t *testing.T) {
+	for _, args := range [][]string{nil, {"bridge"}} {
+		project(t)
+		home := appHome(t)
+		fakeBoard(t)
+		event, marker := oldRecords(t, home)
+		if code, _, errOut := execIn(t, "", args...); code != 0 {
+			t.Fatalf("%v: %s", args, errOut)
+		}
+		for _, p := range []string{event, marker} {
+			if _, err := os.Stat(p); !os.IsNotExist(err) {
+				t.Errorf("%v: %s should be pruned: %v", args, filepath.Base(p), err)
+			}
+		}
+	}
+}
+
+func TestAChangeDoesNotPruneTheRegistry(t *testing.T) {
+	project(t)
+	home := appHome(t)
+	event, _ := oldRecords(t, home)
+	if code, _, errOut := exec(t, "todo", "plan", "add", "write tests"); code != 0 {
+		t.Fatalf("todo failed: %s", errOut)
+	}
+	if _, err := os.Stat(event); err != nil {
+		t.Errorf("a change pruned the registry: %v", err)
 	}
 }
 

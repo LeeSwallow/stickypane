@@ -29,6 +29,10 @@ on GitHub are built from pull request labels.
   `run/<pid>.json` record
   project paths, command names, times and process ids, so the overlay can
   list your boards. See the README.
+- Opening a board, in the terminal or with `stickypane bridge`, prunes
+  `~/.stickypane`: run files of sessions whose process has died, events
+  older than 90 days, touch markers a day old. stickypane is the only
+  program that deletes these files (#32).
 - `view` and `style` keys in `sticky.json`, for the overlay; the terminal
   ignores them.
 - A note's height from the board: `shift+up` and `shift+down` (with `pgup`
