@@ -96,26 +96,26 @@ func TestNotesThatDoNotFitGoToTheNextScreen(t *testing.T) {
 	}
 	m, _ := newModel(t, files)
 	s := screen(m)
-	if !strings.Contains(s, "note 1") || !strings.Contains(s, "note 2") || strings.Contains(s, "note 3") {
-		t.Fatalf("two notes fit a screen of 24 lines; the third waits on the next:\n%s", s)
+	if !strings.Contains(s, "note 1") || !strings.Contains(s, "note 3") || strings.Contains(s, "note 4") {
+		t.Fatalf("three long notes fit a screen of 24 lines at six lines each; the fourth waits on the next:\n%s", s)
 	}
-	if !strings.HasSuffix(strings.Split(s, "\n")[0], " 1/3") {
+	if !strings.HasSuffix(strings.Split(s, "\n")[0], " 1/2") {
 		t.Errorf("the screen should say which screen it is:\n%s", s)
 	}
 	press(m, "]")
-	if s := screen(m); !strings.Contains(s, "note 3") || !strings.Contains(s, " 2/3") || m.focus != "n3.md" {
+	if s := screen(m); !strings.Contains(s, "note 4") || !strings.Contains(s, " 2/2") || m.focus != "n4.md" {
 		t.Fatalf("] should show the next screen and focus its first note (focus %q):\n%s", m.focus, s)
 	}
 	press(m, "]", "]", "]")
-	if s := screen(m); !strings.Contains(s, "note 5") || !strings.Contains(s, " 3/3") {
+	if s := screen(m); !strings.Contains(s, "note 5") || !strings.Contains(s, " 2/2") {
 		t.Errorf("] stops at the last screen:\n%s", s)
 	}
 	press(m, "[", "[", "[")
-	if s := screen(m); !strings.Contains(s, "note 1") || !strings.Contains(s, " 1/3") {
+	if s := screen(m); !strings.Contains(s, "note 1") || !strings.Contains(s, " 1/2") {
 		t.Errorf("[ should go back to the first screen:\n%s", s)
 	}
-	press(m, "tab", "tab")
-	if s := screen(m); m.focus != "n3.md" || !strings.Contains(s, "note 3") {
+	press(m, "tab", "tab", "tab")
+	if s := screen(m); m.focus != "n4.md" || !strings.Contains(s, "note 4") {
 		t.Errorf("moving the focus to a note on another screen shows that screen:\n%s", s)
 	}
 	if s := screen(m); !strings.Contains(s, "[ ] screen") {

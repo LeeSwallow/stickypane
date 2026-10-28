@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -28,6 +29,38 @@ func edges(t *testing.T, m *Model, name string) (right, bottom [2]int) {
 	}
 	bar, r := len(m.bar), p.rect
 	return [2]int{r.X + r.W - 1, bar + r.Y + r.H/2}, [2]int{r.X + r.W/2, bar + r.Y + r.H - 1}
+}
+
+func TestSixShortNotesFitOneScreen(t *testing.T) {
+	files := map[string]string{}
+	for i := 1; i <= 6; i++ {
+		files[fmt.Sprintf("n%d.md", i)] = opened(fmt.Sprintf("note %d\n", i) + numbered(5))
+	}
+	m, _ := newModel(t, files)
+	t.Logf("80x24:\n%s", screen(m))
+	if m.screens != 1 {
+		t.Errorf("six notes of six lines fit one screen of 80x24, not %d:\n%s", m.screens, screen(m))
+	}
+	for i := 1; i <= 6; i++ {
+		if !strings.Contains(screen(m), fmt.Sprintf("note %d", i)) {
+			t.Errorf("note %d is not on the screen:\n%s", i, screen(m))
+		}
+	}
+}
+
+func TestTheRowsLeftoverWidthIsSharedByFraction(t *testing.T) {
+	m, dir := newModel(t, map[string]string{"a.md": opened("a\n"), "b.md": opened("b\n"), "c.md": opened("c\n")})
+	writeView(t, dir, `{"notes":{"a.md":{"size":"1/3"},"b.md":{"size":"1/3"},"c.md":{"size":"1/3"}}}`)
+	m.reload()
+	m.relayout()
+	var widths []int
+	for _, n := range []string{"a.md", "b.md", "c.md"} {
+		p, _ := m.paneOf(n)
+		widths = append(widths, p.rect.W)
+	}
+	if fmt.Sprint(widths) != "[27 27 26]" {
+		t.Errorf("three thirds of 80 cells are %v, want [27 27 26]: no note takes all of the rounding", widths)
+	}
 }
 
 func TestDraggingTheRightBorderSnapsTheWidthToAFraction(t *testing.T) {
@@ -138,6 +171,9 @@ func TestHeightKeysStartFromWhatTheNoteShows(t *testing.T) {
 	press(m, "shift+down")
 	if got := viewsOf(t, dir)["b.md"].Rows; got != b.rows()-1 {
 		t.Errorf("a squeezed note shrinks from what it shows (%d lines): rows = %d", b.rows(), got)
+	}
+	if b2, _ := m.paneOf("b.md"); b2.rect.H >= b.rect.H {
+		t.Errorf("its pane should be shorter now: %d, was %d", b2.rect.H, b.rect.H)
 	}
 }
 

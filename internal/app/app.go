@@ -421,5 +421,6 @@ func (m *Model) zoomed() bool {
 }
 
 // minPane is the least a note gets on the screen, borders included, before
-// the notes after it go to the next screen.
-const minPane = 10
+// the notes after it go to the next screen; a note that needs less asks for
+// only what it needs.
+const minPane = 6
