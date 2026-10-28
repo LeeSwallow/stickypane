@@ -16,6 +16,7 @@
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import CreateDialog from '../create/CreateDialog.svelte'
+  import SettingsDialog from '../settings/SettingsDialog.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -45,7 +46,13 @@
 
   // zoom: a note to open zoomed on the first load; create: the create
   // dialog open on a shape (both for the dev screens page)
-  let { api = projectService, zoom: startZoom, create: startCreate }: { api?: ProjectApi; zoom?: string; create?: string } = $props()
+  // settings: the settings open (the dev screens page)
+  let {
+    api = projectService,
+    zoom: startZoom,
+    create: startCreate,
+    settings: startSettings = false,
+  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -64,6 +71,8 @@
   let focused = $state<string | null>(null)
   // "+ 생성": the dialog, open from the title bar or with a
   let creating = $state(false)
+  // ⌘, and ⋯ → 설정…
+  let configuring = $state(false)
   // a short word at the bottom (made, archived, deleted with 되돌리기)
   let notice = $state<{ message: string; action?: { label: string; run: () => void } } | null>(null)
 
@@ -265,7 +274,7 @@
   // --- keys --------------------------------------------------------------
 
   function onkey(e: KeyboardEvent) {
-    if (!board || !tab) return
+    if (!board || !tab || creating || configuring || asking || moving) return
     const t = e.target as HTMLElement
     const editing = t.matches?.('input, textarea, select, [contenteditable]') ?? false
     // a dialog's keys are its own
@@ -326,6 +335,9 @@
       case 'create':
         creating = true
         break
+      case 'settings':
+        configuring = true
+        break
       case 'archive':
       case 'trash':
         if (!note || (a.type === 'archive' && note.error)) return
@@ -352,6 +364,7 @@
 
   onMount(() => {
     if (startCreate) creating = true
+    if (startSettings) configuring = true
     const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d))]
     api
       .prefs()
@@ -399,6 +412,7 @@
     onpin={pin}
     onedit={() => editTarget && ctx.edit?.(editTarget)}
     oncreate={status?.state === 'ready' && board ? () => (creating = true) : undefined}
+    onsettings={status?.state === 'ready' && board ? () => (configuring = true) : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -481,6 +495,16 @@
     </Dialog>
   {/if}
   {#if board}
+    <SettingsDialog
+      bind:open={configuring}
+      {api}
+      settings={board.settings}
+      {mode}
+      {hotkey}
+      version={status?.version ?? ''}
+      onmode={(m) => (mode = m)}
+      onchanged={refresh}
+    />
     <CreateDialog
       bind:open={creating}
       {api}

@@ -25,6 +25,7 @@
     onpin,
     onedit,
     oncreate,
+    onsettings,
   }: {
     title: string
     path: string
@@ -37,6 +38,8 @@
     onpin: () => void
     onedit: () => void
     oncreate?: () => void
+    /** ⋯ → 설정… (and ⌘,) */
+    onsettings?: () => void
   } = $props()
 
   let view = $state('grid')
@@ -44,10 +47,13 @@
     { value: 'grid', label: $tr('ui.view.grid'), icon: 'grid' as const },
     { value: 'canvas', label: $tr('ui.view.canvasSoon'), icon: 'canvas' as const, disabled: true },
   ])
-  const menu = $derived<MenuItem[]>([{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit }])
+  const menu = $derived<MenuItem[]>([
+    { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
+    { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
+  ])
 </script>
 
-<UiTitleBar name={title} {path} hotkey={hotkeyLabel(hotkey)} {chrome} window={win} {menu} onmenu={(id) => id === 'edit' && onedit()}>
+<UiTitleBar name={title} {path} hotkey={hotkeyLabel(hotkey)} {chrome} window={win} {menu} onmenu={(id) => (id === 'edit' ? onedit() : id === 'settings' && onsettings?.())}>
   {#snippet actions()}
     <SegmentedControl label={$tr('ui.view')} bind:value={view} iconOnly size="sm" options={views} />
     <IconButton icon="search" label={$tr('ui.searchSoon')} disabled />
