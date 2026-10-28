@@ -1,8 +1,10 @@
 <script lang="ts">
   // Dev only (?demo=motion&mode=dark|light&style=doodle|neat&lang=en|ko
-  // &motion=reduce|off&scene=<name>|all&intro=full|short|fade): the real
+  // &motion=reduce|off&scene=<name>|all&intro=full|short|fade
+  // &view=canvas|torn): the real
   // board over a few fixture notes, with a fake bridge that sends the
-  // board.changed of each scene (motionScenes.ts), so every movement of
+  // board.changed of each scene (motionScenes.ts), on the grid, the free
+  // canvas or a torn-off window of work.md, so every movement of
   // 04 §4.3 can be seen and filmed. scene= plays one 700 ms after the
   // page opens (all: each in turn); intro= plays the launch intro. The
   // plans played are in window.__motionPlans, and window.__motionPlay(name)
@@ -11,6 +13,7 @@
   import Board from '../board/Board.svelte'
   import type { Board as BoardData } from '../board/model'
   import Intro from '../lib/motion/Intro.svelte'
+  import TornNote from '../torn/TornNote.svelte'
   import type { IntroMode } from '../lib/motion/intro'
   import { motion } from '../lib/motion/level.svelte'
   import type { Plan } from '../lib/motion/plan'
@@ -25,6 +28,7 @@
   const style = q.get('style') === 'neat' ? 'neat' : 'doodle'
   const scene = q.get('scene')
   const intro = q.get('intro') as IntroMode | null
+  const view = q.get('view')
   motion.setting = q.get('motion') ?? ''
 
   const palette = THEMES.find((t) => t.name === (mode === 'dark' ? 'stickypane-dark' : 'stickypane-light'))
@@ -34,7 +38,8 @@
     settings: { ...first.settings, theme: palette?.name ?? '', style, language: { choice: lang, resolved: lang } },
     palette,
   }
-  const api = { ...fakeProject(board, mode, lang), load: async () => board, prefs: async () => ({ hotkey: 'Option+Space', language: lang, mode, motion: motion.setting }) }
+  const torn = view === 'torn' ? 'work.md' : ''
+  const api = { ...fakeProject(board, mode, lang, { mode: view === 'canvas' ? 'canvas' : 'grid' }, torn), load: async () => board, prefs: async () => ({ hotkey: 'Option+Space', language: lang, mode, motion: motion.setting }) }
 
   // the fake bridge's events: what Board subscribes to
   const listeners = new Map<string, (e: { data?: unknown }) => void>()
@@ -66,7 +71,11 @@
     }, 700)
 </script>
 
-<Board {api} {bus} played={(p) => plans.push(p)} />
+{#if torn}
+  <TornNote {api} {bus} note={torn} />
+{:else}
+  <Board {api} {bus} played={(p) => plans.push(p)} />
+{/if}
 {#if intro}
   <Intro play={intro} />
 {/if}
