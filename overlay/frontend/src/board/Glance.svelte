@@ -1,10 +1,13 @@
 <script lang="ts">
-  // The Glance line (03 §3.6): one tag per @name, its card now and how long
-  // it has been there, a warning border when one of its cards stalled. A
-  // click filters the board's cards by that name; again clears it.
+  // The Glance line (03 §3.6): one Chip per @name — its card now and how
+  // long it has been there, a warning when one of its cards stalled. A
+  // click filters the board's cards by that name; again clears it. A Badge
+  // at the end counts the stalled cards.
   import { language, relativeTime, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { agentColor } from '../lib/theme/tokens'
+  import Badge from '../lib/ui/Badge.svelte'
+  import Chip from '../lib/ui/Chip.svelte'
   import type { GlanceTag } from './glance'
 
   let {
@@ -19,66 +22,43 @@
 
 {#if tags.length}
   <nav class="glance" aria-label={$tr('glance.label')}>
-    {#each tags as g (g.who)}
-      <button
-        class="tag"
-        class:stalled={g.stalled}
-        aria-pressed={filter === g.who}
-        title={$tr(filter === g.who ? 'glance.clear' : 'glance.filter', { who: g.who })}
-        onclick={() => onfilter(filter === g.who ? null : g.who)}
-      >
-        <span class="who" style:color={color(g.who)}>@{g.who}</span>
-        <span class="card">{g.card ? g.card.text : $tr('glance.resting')}</span>
-        {#if g.since !== null}<span class="since">{relativeTime(new Date(now.getTime() - g.since), now, $language)}</span>{/if}
-      </button>
-    {/each}
-    {#if stalled}<span class="count">{$tr('glance.stalled', { n: stalled })}</span>{/if}
+    <span class="tags">
+      {#each tags as g (g.who)}
+        <span class="tag" title={$tr(filter === g.who ? 'glance.clear' : 'glance.filter', { who: g.who })}>
+          <Chip
+            name={g.who}
+            color={color(g.who)}
+            detail={g.card ? g.card.text : $tr('glance.resting')}
+            time={g.since !== null ? relativeTime(new Date(now.getTime() - g.since), now, $language) : undefined}
+            stalled={g.stalled}
+            selected={filter === g.who}
+            onclick={() => onfilter(filter === g.who ? null : g.who)}
+          />
+        </span>
+      {/each}
+    </span>
+    {#if stalled}<Badge tone="warn">{$tr('glance.stalled', { n: stalled })}</Badge>{/if}
   </nav>
 {/if}
 
 <style>
   .glance {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-1) var(--space-5);
+    padding: var(--space-2) var(--space-4);
+    background: var(--chrome);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
   }
   .tag {
     display: inline-flex;
-    align-items: baseline;
-    gap: var(--space-2);
-    max-width: 22em;
-    padding: var(--space-1) var(--space-3);
-    border: var(--stroke) solid var(--grid-major);
-    border-radius: 999px;
-    background: var(--paper);
-    color: var(--ink);
-    cursor: pointer;
-  }
-  .tag.stalled {
-    border-color: var(--warn);
-  }
-  .tag[aria-pressed='true'] {
-    border-color: var(--accent);
-  }
-  .who {
-    font: 700 var(--hand-md) var(--font-hand);
-  }
-  .card {
-    font: var(--text-sm) var(--font-body);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .since,
-  .count {
-    color: var(--pencil);
-    font: var(--text-xs) var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
-  .count {
-    color: var(--warn);
-    margin-left: auto;
+    min-width: 0;
+    max-width: 100%;
   }
 </style>

@@ -32,26 +32,26 @@
 <style>
   .card {
     position: relative;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
   }
   .dim {
     opacity: 0.35;
   }
   .text {
-    font-size: 16px;
+    font-size: var(--text-body-lg);
     line-height: 1.25;
     overflow-wrap: anywhere;
   }
   .meta {
     display: flex;
-    gap: 6px;
+    gap: var(--space-2);
     justify-content: space-between;
-    margin-top: 4px;
-    font-size: 13px;
+    margin-top: var(--space-1);
+    font-size: var(--text-body-md);
     opacity: 0.85;
   }
   .ago {
-    font: 11px var(--font-mono);
+    font: var(--weight-mono-sm) var(--text-mono-sm) / var(--leading-mono-sm) var(--font-mono);
     font-variant-numeric: tabular-nums;
     align-self: center;
   }
@@ -62,8 +62,8 @@
   }
   .stalled {
     display: block;
-    margin-top: 4px;
+    margin-top: var(--space-1);
     color: var(--warn);
-    font: 700 13px var(--font-hand);
+    font: var(--weight-hand-label) var(--text-body-md) / var(--leading-body-md) var(--font-hand);
   }
 </style>

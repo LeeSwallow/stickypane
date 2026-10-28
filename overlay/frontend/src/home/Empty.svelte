@@ -1,8 +1,9 @@
 <script lang="ts">
-  // No boards yet: one note, one line, one button. No explanation (R-32).
+  // No boards yet: the design system's EmptyState — the three notes, one
+  // line, one button. No explanation (R-32, 08 §8.2).
   import { tr } from '../i18n'
-  import NoteFrame from '../lib/doodle/NoteFrame.svelte'
-  import { look } from '../lib/doodle/look.svelte'
+  import Button from '../lib/ui/Button.svelte'
+  import EmptyState from '../lib/ui/EmptyState.svelte'
   import Install from './Install.svelte'
 
   let {
@@ -18,48 +19,28 @@
     busy?: boolean
     canPick?: boolean
   } = $props()
-  const color = $derived(look.palette?.notes[0] ?? 'currentColor')
 </script>
 
 <div class="empty">
-  <div class="note">
-    <NoteFrame {color} id="empty">
-      <p class="line">{$tr('home.empty')}</p>
+  <EmptyState title={$tr('home.empty')}>
+    <div class="actions">
       {#if setup}<Install kind={setup} {copy} />{/if}
-      <button type="button" class="pick" disabled={busy || !canPick} onclick={pick}>
+      <Button variant="primary" size="lg" disabled={busy || !canPick} onclick={pick}>
         {busy ? $tr('home.initRunning') : $tr('home.pickFolder')}
-      </button>
-    </NoteFrame>
-  </div>
+      </Button>
+    </div>
+  </EmptyState>
 </div>
 
 <style>
   .empty {
     display: flex;
     justify-content: center;
-    padding: 48px 24px;
+    padding-top: var(--space-8);
   }
-  .note {
-    width: min(420px, 100%);
-  }
-  .line {
-    margin: 0 0 14px;
-    font-family: var(--font-hand);
-    font-size: 24px;
-    font-weight: 700;
-  }
-  .pick {
-    font-family: var(--font-hand);
-    font-size: 20px;
-    padding: 4px 18px;
-    color: var(--ink);
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
-    border: 2px solid var(--accent);
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  .pick:disabled {
-    opacity: 0.5;
-    cursor: default;
+  .actions {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-4);
   }
 </style>

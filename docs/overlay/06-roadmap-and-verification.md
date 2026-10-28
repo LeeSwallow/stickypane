@@ -46,7 +46,7 @@ flowchart LR
 ### 4단계 — 렌더러와 상호작용
 
 - 나머지 shape 렌더러(form, chart, logview, script, chat, api, html 샌드박스).
-- 클릭 동작(체크, 카드 드래그, form 답, 실행), "+ 생성"(카탈로그), `$EDITOR`로 열기.
+- 클릭 동작(체크, 카드 드래그, form 답, 실행), "+ 만들기"(카탈로그), `$EDITOR`로 열기.
 - Motion 전체([04](04-motion.md)), 동작 줄이기.
 
 **완료 조건**: [01 §1.7](01-product-overview.md#17-사용-장면)의 장면 A·B·C를 손으로 재현한다. HTML 격리 검사(아래)를 통과한다.

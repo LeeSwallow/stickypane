@@ -74,7 +74,7 @@
 
 <style>
   .md {
-    font: 13px/1.55 var(--font-body);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
     color: var(--ink);
     overflow-wrap: anywhere;
   }
@@ -88,13 +88,13 @@
     margin: 0.7em 0 0.3em;
   }
   .md :global(h1) {
-    font-size: 24px;
+    font-size: var(--text-hand-title);
   }
   .md :global(h2) {
-    font-size: 21px;
+    font-size: var(--text-hand-label);
   }
   .md :global(h3) {
-    font-size: 18px;
+    font-size: var(--text-body-lg);
   }
   .md :global(p),
   .md :global(ul),
@@ -123,15 +123,15 @@
     cursor: pointer;
   }
   .md :global(code) {
-    font: 12px var(--font-mono);
+    font: var(--weight-mono-md) var(--text-mono-md) / var(--leading-mono-md) var(--font-mono);
     background: var(--select);
-    padding: 1px 4px;
-    border-radius: 4px;
+    padding: 1px var(--space-1);
+    border-radius: var(--radius-sm);
   }
   .md :global(pre) {
     background: var(--select);
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
     overflow: auto;
   }
   .md :global(pre code) {
@@ -150,11 +150,11 @@
   .md :global(th),
   .md :global(td) {
     border: 1px solid var(--grid-major);
-    padding: 3px 8px;
+    padding: var(--space-1) var(--space-2);
   }
   .md :global(blockquote) {
-    border-left: 3px solid var(--pencil);
-    padding-left: 10px;
+    border-left: var(--stroke-emphasis) solid var(--pencil);
+    padding-left: var(--space-3);
     color: var(--pencil);
   }
   .md :global(.mermaid svg) {
@@ -169,7 +169,7 @@
     overflow-y: hidden;
   }
   .md :global(.footnotes) {
-    font-size: 12px;
+    font-size: var(--text-body-sm);
     color: var(--pencil);
   }
   .md :global(.sr-only) {
@@ -191,13 +191,13 @@
     margin: 0;
   }
   .embed {
-    margin: 8px 0;
-    padding: 8px 10px;
-    border: 1.5px dashed var(--grid-major);
-    border-radius: 8px;
+    margin: var(--space-2) 0;
+    padding: var(--space-2) var(--space-3);
+    border: var(--stroke-hairline) dashed var(--line-strong);
+    border-radius: var(--radius-md);
   }
   .embed figcaption {
-    font: 700 16px var(--font-hand);
-    margin-bottom: 6px;
+    font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
+    margin-bottom: var(--space-1);
   }
 </style>

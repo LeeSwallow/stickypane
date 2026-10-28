@@ -42,31 +42,31 @@
 
 <style>
   .desc {
-    margin: 0 0 6px;
+    margin: 0 0 var(--space-2);
     color: var(--pencil);
-    font: 13px/1.5 var(--font-body);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
   .cols {
     display: grid;
     grid-template-columns: repeat(var(--n), minmax(0, 1fr));
-    gap: 14px;
+    gap: var(--space-4);
   }
   .cols.narrow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .head {
-    margin: 0 0 8px;
+    margin: 0 0 var(--space-2);
     color: var(--pencil);
-    font: 700 17px var(--font-hand);
+    font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
   }
   .count {
-    font: 12px var(--font-mono);
+    font: var(--weight-mono-sm) var(--text-mono-sm) / var(--leading-mono-sm) var(--font-mono);
     font-variant-numeric: tabular-nums;
-    margin-left: 4px;
+    margin-left: var(--space-1);
   }
   .none {
     color: var(--pencil);
-    font: 13px var(--font-hand);
+    font: var(--weight-hand-label) var(--text-body-md) / var(--leading-body-md) var(--font-hand);
     margin: 0;
     opacity: 0.7;
   }

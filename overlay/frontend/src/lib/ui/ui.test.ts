@@ -16,7 +16,7 @@ import CrayonIcon from './icons/CrayonIcon.svelte'
 import { CRAYON_NAMES, crayonDrawing } from './icons/crayon'
 import { ICON_NAMES, ICON_STROKE, ICONS, iconPaths, parse } from './icons/icons'
 import Input from './Input.svelte'
-import { nextIndex } from './keys'
+import { hotkeyLabel, nextIndex } from './keys'
 import Menu from './Menu.svelte'
 import NoteHeader from './NoteHeader.svelte'
 import { nextFraction } from '../sizes'
@@ -241,6 +241,12 @@ describe('keys', () => {
     expect(nextIndex('ArrowDown', 0, 3)).toBeNull()
     expect(nextIndex('a', 0, 3)).toBeNull()
   })
+})
+
+test('a hotkey is written as macOS writes it', () => {
+  expect(hotkeyLabel('alt+space')).toBe('⌥Space')
+  expect(hotkeyLabel('Cmd+Shift+K')).toBe('⌘⇧K')
+  expect(hotkeyLabel('')).toBe('')
 })
 
 describe('the note header steps the size through the fractions', () => {

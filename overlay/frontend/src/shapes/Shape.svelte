@@ -27,11 +27,11 @@
   .unreadable {
     margin: 0;
     color: var(--bad);
-    font: 14px/1.5 var(--font-body);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
   .plain {
     margin: 0;
     color: var(--pencil);
-    font: 13px/1.55 var(--font-body);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
 </style>

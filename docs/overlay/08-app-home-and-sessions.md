@@ -40,7 +40,7 @@ flowchart LR
 [사용자 결정] stickypane이 있는 활성 세션들을 볼 수 있다(R-27).
 
 ```text
-┌ stickypane ─────────────────────────────────────── [+ 프로젝트] ┐
+┌ stickypane ──────────────────────────────── [+ 프로젝트 추가] ⋯ ┐
 │ 지금 움직이는 중                                                 │
 │  ● stickypane   ~/Projects/Personal/stickypane  @claude @codex  │
 │                 Auth sprint 카드 6 · 멈춤 1 · 2분 전              │
@@ -60,6 +60,8 @@ flowchart LR
 | 사라진 프로젝트 | 폴더나 `.sticky/`가 없어져 자동으로 정리된 것. 한 번 알리고 실행 취소할 수 있다 |
 
 각 줄에는 프로젝트 이름(`sticky.json`의 title 또는 폴더 이름), 경로, 활동 중인 에이전트(board 카드의 `@담당자`), 요약(카드 수, 정체 수), 마지막 활동이 보인다. 누르면 그 프로젝트의 overlay 창이 열린다.
+
+화면은 디자인 시스템(03 §3.11)으로 짓는다: 제목줄은 TitleBar(⋯에 창 닫기·stickypane 종료), 줄은 테이프로 붙인 메모지(기울지 않음) 안에 이름(손글씨)·에이전트 Chip·실행 중인 것 Badge·시각·경로 한 줄, 빈 목록은 EmptyState. 셸의 알림과 창 자신의 실패는 제목줄 아래 Toast로, "사라진 프로젝트 N개를 정리했어요 · 되돌리기"와 한 번만 나오는 "트레이에 남아 있어요 · stickypane 종료"도 Toast다. 폴더에 보드를 만들기 전에는 Confirm으로 묻는다.
 
 ## 8.4 레지스트리 — `~/.stickypane/`
 

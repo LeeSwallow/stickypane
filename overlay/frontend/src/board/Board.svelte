@@ -9,9 +9,12 @@
   import { setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
-    import { watchSystemDark, type Mode } from '../lib/theme/mode'
+  import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { applyTheme } from '../lib/theme/tokens'
+  import { chromeOf, windowActions } from '../lib/ui/chrome'
+  import EmptyState from '../lib/ui/EmptyState.svelte'
+  import Toast from '../lib/ui/Toast.svelte'
   import { act, arrange, shellApi, type BoardApi, type Status } from './actions'
   import { boardContext, type BoardCtx } from './context'
   import Glance from './Glance.svelte'
@@ -30,7 +33,8 @@
     type Seen, type View,
   } from './view'
 
-  let { api = shellApi }: { api?: BoardApi } = $props()
+  // zoom: a note to open zoomed on the first load (the dev screens page)
+  let { api = shellApi, zoom: startZoom }: { api?: BoardApi; zoom?: string } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -45,6 +49,11 @@
   let systemDark = $state(false)
   let hotkey = $state('')
   let failed = $state('')
+  // the note a focused frame holds: what ⋯ "편집기로 열기" opens when none is zoomed
+  let focused = $state<string | null>(null)
+
+  const chrome = chromeOf(location.search)
+  const win = windowActions('project')
 
   const bridgePalette = $derived.by((): Palette | null => {
     try {
@@ -76,6 +85,10 @@
   const tags = $derived(board ? glance(board.tabs, now) : [])
   const stalled = $derived(board ? stalledCount(board.tabs) : 0)
   const files = $derived(board ? allNotes(board.tabs).map((n) => n.name) : [])
+  const editTarget = $derived.by(() => {
+    const n = board ? findNote(board.tabs, zoomed?.name ?? focused ?? '') : null
+    return n && !n.pages && !n.error ? n.name : null
+  })
 
   // --- loading -----------------------------------------------------------
 
@@ -97,7 +110,7 @@
           const b = await api.load()
           const before = board?.settings.tab ?? null
           board = b
-          view = before === null ? initView(b.settings.tab) : followTab(view, before, b.settings.tab)
+          view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
           seen = seeAll(seen, allNotes(b.tabs))
           failed = ''
         } catch (e) {
@@ -275,46 +288,61 @@
 <svelte:window onkeydown={onkey} />
 
 <div class="window" bind:clientWidth={width}>
-  <Paper>
-    <div class="page">
-      <TitleBar title={board?.title ?? ''} path={status?.path ?? ''} {hotkey} pinned={status?.pinned ?? false} onpin={pin} />
+  <TitleBar
+    title={board?.title || (status?.path ?? '').split('/').filter(Boolean).pop() || ''}
+    path={status?.path ?? ''}
+    {hotkey}
+    {chrome}
+    window={win}
+    pinned={status?.pinned ?? false}
+    canEdit={!!editTarget}
+    onpin={pin}
+    onedit={() => editTarget && ctx.edit?.(editTarget)}
+  />
+  {#if status?.state === 'ready' && board}
+    <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
+    {#if !zoomed}
+      <Tabs
+        tabs={board.tabs}
+        current={tab?.name ?? ''}
+        changed={tabChanged}
+        {closed}
+        onselect={(name) => (view = selectTab(view, name))}
+        onopen={(name) => ctx.arrange(name, { open: true })}
+      />
+    {/if}
+  {/if}
+  <div class="scroll">
+    <Paper>
       {#if !status || status.state !== 'ready' || !board}
-        <p class="state" role="status">
-          {$tr(status ? (stateText[status.state] ?? 'board.cannotOpen') : 'board.loading')}
-          {#if status?.error}<br /><small>{status.error}</small>{/if}
-        </p>
+        <div class="state" role="status">
+          <EmptyState title={$tr(status ? (stateText[status.state] ?? 'board.cannotOpen') : 'board.loading')} body={status?.error} art={!!status && status.state !== 'loading'} />
+        </div>
+      {:else if zoomed}
+        <!-- a click on the paper around a zoomed note goes back; Esc does too -->
+        <main class="zoom" role="presentation" onclick={(e) => e.target === e.currentTarget && ctx.back()}>
+          {#key zoomed.name}
+            <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} />
+          {/key}
+        </main>
+      {:else if open.length}
+        <main class="notes" onfocusin={(e) => (focused = frameOf(e.target as Element))}>
+          <div bind:clientWidth={gridWidth}>
+            <Grid notes={open} width={gridWidth} />
+          </div>
+        </main>
       {:else}
-        <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
-        {#if !zoomed}
-          <Tabs
-            tabs={board.tabs}
-            current={tab?.name ?? ''}
-            changed={tabChanged}
-            {closed}
-            onselect={(name) => (view = selectTab(view, name))}
-            onopen={(name) => ctx.arrange(name, { open: true })}
-          />
-        {/if}
-        {#if failed}<p class="failed" role="alert">{failed}</p>{/if}
-        {#if zoomed}
-          <!-- a click on the paper around a zoomed note goes back; Esc does too -->
-          <main class="zoom" role="presentation" onclick={(e) => e.target === e.currentTarget && ctx.back()}>
-            {#key zoomed.name}
-              <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} />
-            {/key}
-          </main>
-        {:else if open.length}
-          <main class="notes">
-            <div bind:clientWidth={gridWidth}>
-              <Grid notes={open} width={gridWidth} />
-            </div>
-          </main>
-        {:else}
-          <p class="state">{$tr(tab && tab.notes.length ? 'board.noneOpen' : 'board.empty')}</p>
-        {/if}
+        <div class="state">
+          <EmptyState title={$tr(tab && tab.notes.length ? 'board.noneOpen' : 'board.emptyTitle')} body={tab && tab.notes.length ? undefined : $tr('board.emptyHint')} />
+        </div>
       {/if}
+    </Paper>
+  </div>
+  {#if failed}
+    <div class="toasts">
+      <Toast message={failed} tone="bad" icon="warn" onclose={() => (failed = '')} />
     </div>
-  </Paper>
+  {/if}
 </div>
 
 <style>
@@ -325,26 +353,35 @@
     overflow: hidden;
   }
   .window {
-    height: 100%;
-    overflow: auto;
-  }
-  .window :global(.paper) {
-    min-height: 100%;
-  }
-  .page {
+    position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .scroll > :global(.paper) {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
   }
   .notes {
-    padding: var(--space-4) var(--space-5) var(--space-5);
+    padding: var(--space-6) var(--space-5) var(--space-10);
   }
   .zoom {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: var(--space-3) var(--space-5) var(--space-5);
-    height: calc(100vh - 7 * var(--space-4));
+    min-height: 0;
+    max-height: 100%;
+    padding: var(--space-4) var(--space-5) var(--space-5);
     box-sizing: border-box;
   }
   .zoom > :global(.frame) {
@@ -352,13 +389,22 @@
     min-height: 0;
   }
   .state {
-    padding: var(--space-5);
-    color: var(--pencil);
-    font: 700 var(--hand-lg) var(--font-hand);
+    display: grid;
+    place-items: center;
+    flex: 1;
   }
-  .failed {
-    margin: var(--space-1) var(--space-5);
-    color: var(--bad);
-    font: var(--text-sm) var(--font-body);
+  .toasts {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--space-5);
+    z-index: var(--z-toast);
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--space-4);
+    pointer-events: none;
+  }
+  .toasts > :global(*) {
+    pointer-events: auto;
   }
 </style>

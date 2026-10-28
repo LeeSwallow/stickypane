@@ -52,7 +52,7 @@
   }
 </script>
 
-<header class="bar {chrome}" style:--lights="{TRAFFIC_LIGHTS}px">
+<header class="bar {chrome}" data-titlebar style:--lights="{TRAFFIC_LIGHTS}px">
   <div class="id">
     <Logo size={20} />
     {#if path}

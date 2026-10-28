@@ -32,14 +32,12 @@
   section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 22px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
   }
   h2 {
     margin: 0;
-    font-family: var(--font-hand);
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--pencil);
+    color: var(--ink-2);
+    font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
   }
 </style>

@@ -139,7 +139,7 @@ type Action struct {
 | → | `board.index` | `{entries}`: `api.Index`와 같다. 노트마다 `tab`·`name`·`kind`·`icon`·`title`·`summary`·`gist`·`open`·`modified`·`links`·`backlinks` |
 | → | `kinds.list` | 카탈로그. 모양마다 `{name, icon, label, blurb, example, data}`. `example`은 예시 파일 전체, `data`는 그 예시의 `Kind.Data` |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과 `{version}`. 버전이 다르면 `stale`. chat의 `say`는 `who`가 비면 터미널과 같은 규칙(`$STICKYPANE_USER` → git `user.name` → 로그인)으로 채운다 |
-| → | `note.create` `{tab, kind, title, body}` | "+ 생성". `api.Create`: 파일을 배타적으로 만들어, 같은 이름이 생기면 덮어쓰지 않고 `-2`, `-3`을 붙인다. 파일이 따로인 모양(script·html·api)은 카탈로그 `a`처럼 그 확장자(`.sh`, `.html`, `.http`)로, 본문이 없으면 그 모양의 템플릿으로 만든다(front matter 없음). 결과 `{note}` |
+| → | `note.create` `{tab, kind, title, body}` | "+ 만들기". `api.Create`: 파일을 배타적으로 만들어, 같은 이름이 생기면 덮어쓰지 않고 `-2`, `-3`을 붙인다. 파일이 따로인 모양(script·html·api)은 카탈로그 `a`처럼 그 확장자(`.sh`, `.html`, `.http`)로, 본문이 없으면 그 모양의 템플릿으로 만든다(front matter 없음). 결과 `{note}` |
 | → | `note.arrange` `{note, open?, size?, rows?, pin?, color?, title?}` | `stickypane set`과 같은 길(`api.Set`, `arrange.Change`). 빈 `size`·`color`·`title`과 `rows: 0`은 선택을 되돌린다. 책의 페이지는 책의 배치를 따르고 제목만 자기 것이다. `note.view`를 대체했다(제거됨) |
 | → | `tab.order` `{tab, order[]}` | 탭의 노트 순서(전체 이름). 터미널 `{` `}`가 쓰는 `store.SetOrder`. 그 탭의 노트만, 중복 없이 |
 | → | `note.move` `{note, to}` | `api.MoveTo`(= `api.Move`). `to`는 `"."`(최상위), `"폴더/"`(책), 새 이름. 결과 `{note}`는 옮겨진 이름 |

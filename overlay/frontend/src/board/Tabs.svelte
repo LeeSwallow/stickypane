@@ -1,9 +1,10 @@
 <script lang="ts">
-  // The tabs (folders, as on the terminal) and, below them, the closed
-  // notes of the tab as chips: a click opens one (10 §10.1). A tab with a
-  // changed note carries the `•`.
-  import Underline from '../lib/doodle/Underline.svelte'
+  // The tabs (folders, as on the terminal), drawn by the design system's
+  // Tabs, and below them the closed notes of the tab as small buttons: a
+  // click opens one (10 §10.1). A tab with a changed note carries a dot.
   import { tr } from '../i18n'
+  import Button from '../lib/ui/Button.svelte'
+  import UiTabs from '../lib/ui/Tabs.svelte'
   import type { Note, Tab } from './model'
 
   let {
@@ -22,62 +23,55 @@
     onopen: (note: string) => void
   } = $props()
   const label = (t: Tab) => t.title || t.name.replace(/^\d+[-_. ]*/, '') || $tr('board.tabRoot')
+  const items = $derived(
+    tabs.map((t, i) => ({
+      id: t.name,
+      label: label(t),
+      count: t.notes.length,
+      changed: changed(t),
+      hint: i < 9 ? `⌘${i + 1}` : undefined,
+    })),
+  )
 </script>
 
-{#if tabs.length > 1}
-  <div class="tabs" role="tablist">
-    {#each tabs as t, i (t.name)}
-      <button role="tab" aria-selected={t.name === current} title={i < 9 ? `⌘${i + 1}` : ''} onclick={() => onselect(t.name)}>
-        {label(t)}
-        {#if changed(t)}<span class="changed" title={$tr('board.changedTab')}>•</span>{/if}
-        {#if t.name === current}<Underline />{/if}
-      </button>
-    {/each}
-  </div>
-{/if}
-{#if closed.length}
-  <div class="shelf" aria-label={$tr('board.shelf')}>
-    {#each closed as n (n.name)}
-      <button class="chip" title={$tr('note.open', { title: n.title })} onclick={() => onopen(n.name)}>{n.icon} {n.title}</button>
-    {/each}
+{#if tabs.length > 1 || closed.length}
+  <div class="row">
+    {#if tabs.length > 1}
+      <UiTabs tabs={items} value={current} label={$tr('board.tabs')} changedLabel={$tr('board.changedTab')} onchange={onselect} />
+    {/if}
+    {#if closed.length}
+      <div class="shelf" role="group" aria-label={$tr('board.shelf')}>
+        {#each closed as n (n.name)}
+          <Button variant="ghost" size="sm" title={$tr('note.open', { title: n.title })} onclick={() => onopen(n.name)}>
+            <span class="closed">{n.icon} {n.title}</span>
+          </Button>
+        {/each}
+      </div>
+    {/if}
   </div>
 {/if}
 
 <style>
-  .tabs {
+  .row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-4);
-    padding: var(--space-1) var(--space-5);
-  }
-  [role='tab'] {
-    position: relative;
-    border: 0;
-    background: none;
-    color: var(--pencil);
-    font: 700 var(--hand-lg) var(--font-hand);
-    cursor: pointer;
-    padding: var(--space-1) 0;
-  }
-  [role='tab'][aria-selected='true'] {
-    color: var(--ink);
-  }
-  .changed {
-    color: var(--accent);
+    align-items: center;
+    gap: var(--space-1) var(--space-4);
+    padding: 0 var(--space-4) var(--space-1);
+    border-bottom: var(--stroke-hairline) solid var(--line);
+    background: var(--chrome);
   }
   .shelf {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-5) 0;
+    gap: var(--space-1);
+    margin-left: auto;
   }
-  .chip {
-    padding: var(--space-1) var(--space-3);
-    border: var(--stroke) dashed var(--grid-major);
-    border-radius: var(--radius);
-    background: var(--paper);
-    color: var(--pencil);
-    font: var(--text-sm) var(--font-body);
-    cursor: pointer;
+  .closed {
+    max-width: 16em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-2);
   }
 </style>

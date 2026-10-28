@@ -4,6 +4,10 @@
     label: string
     count?: number
     attention?: boolean
+    /** something in it changed since it was seen: a dot, named by changedLabel */
+    changed?: boolean
+    /** its tooltip, e.g. the shortcut */
+    hint?: string
   }
 </script>
 
@@ -21,8 +25,9 @@
     tabs,
     value = $bindable(),
     label,
+    changedLabel = '',
     onchange,
-  }: { tabs: Tab[]; value: string; label: string; onchange?: (id: string) => void } = $props()
+  }: { tabs: Tab[]; value: string; label: string; changedLabel?: string; onchange?: (id: string) => void } = $props()
 
   let list: HTMLElement | undefined = $state()
 
@@ -47,6 +52,7 @@
     <button
       type="button"
       role="tab"
+      title={tab.hint}
       class="tab"
       class:on
       aria-selected={on}
@@ -59,6 +65,7 @@
           {#if look.style === 'doodle'}<Underline seed={seedOf(tab.id)} />{:else}<span class="bar"></span>{/if}
         {/if}
       </span>
+      {#if tab.changed}<i class="changed" role="img" aria-label={changedLabel}></i>{/if}
       {#if tab.count !== undefined}<Badge count={tab.count} tone={tab.attention ? 'warn' : 'neutral'} />{/if}
     </button>
   {/each}
@@ -105,6 +112,13 @@
   .text {
     position: relative;
     white-space: nowrap;
+  }
+  .changed {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--accent);
   }
   .bar {
     position: absolute;

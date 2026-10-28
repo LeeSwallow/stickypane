@@ -2,6 +2,7 @@
   // The install line (stickypane not found) or the update line (every copy
   // found is too old), with a copy button.
   import { tr } from '../i18n'
+  import Button from '../lib/ui/Button.svelte'
 
   let { kind, copy }: { kind: 'install' | 'update'; copy: (text: string) => Promise<void> } = $props()
   const command = $derived($tr(kind === 'install' ? 'home.installCommand' : 'home.updateCommand'))
@@ -21,38 +22,31 @@
   <p>{$tr(kind === 'install' ? 'home.installHint' : 'home.updateHint')}</p>
   <div class="line">
     <code>{command}</code>
-    <button type="button" onclick={doCopy}>{copied ? $tr('home.copied') : $tr('home.copy')}</button>
+    <Button size="sm" icon={copied ? 'check' : undefined} onclick={doCopy}>{copied ? $tr('home.copied') : $tr('home.copy')}</Button>
   </div>
 </div>
 
 <style>
+  .install {
+    text-align: left;
+  }
   p {
-    margin: 0 0 8px;
-    font-family: var(--font-hand);
-    font-size: 18px;
+    margin: 0 0 var(--space-2);
+    color: var(--ink-2);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
   .line {
     display: flex;
-    gap: 10px;
+    gap: var(--space-2);
     align-items: center;
     flex-wrap: wrap;
   }
   code {
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    padding: 4px 8px;
-    background: color-mix(in srgb, var(--ink) 9%, transparent);
-    border-radius: 4px;
-    user-select: all;
-  }
-  button {
-    font-family: var(--font-hand);
-    font-size: 16px;
-    padding: 2px 12px;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunk);
     color: var(--ink);
-    background: transparent;
-    border: 1.5px solid currentColor;
-    border-radius: 8px;
-    cursor: pointer;
+    font: var(--weight-mono-md) var(--text-mono-md) / var(--leading-mono-md) var(--font-mono);
+    user-select: all;
   }
 </style>

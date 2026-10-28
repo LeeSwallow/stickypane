@@ -2,7 +2,6 @@
   // The home window: the boards on this machine, straight away (R-32).
   import { onMount } from 'svelte'
   import { chooseLanguage, resolveAuto, setLanguage, tr, type Choice } from '../i18n'
-  import Logo from '../lib/doodle/Logo.svelte'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
   import { look } from '../lib/doodle/look.svelte'
@@ -10,6 +9,11 @@
   import { fallbackPalette } from '../lib/theme/fallback'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { applyTheme } from '../lib/theme/tokens'
+  import Button from '../lib/ui/Button.svelte'
+  import { chromeOf, windowActions } from '../lib/ui/chrome'
+  import Confirm from '../lib/ui/Confirm.svelte'
+  import TitleBar from '../lib/ui/TitleBar.svelte'
+  import Toast from '../lib/ui/Toast.svelte'
   import { realApi, type Groups, type HomeApi, type Notice, type Prefs, type StickypaneState } from './api'
   import Empty from './Empty.svelte'
   import Sessions from './Sessions.svelte'
@@ -59,7 +63,16 @@
   const lang = $derived<Choice>(prefs.language === 'ko' || prefs.language === 'en' ? prefs.language : 'auto')
   $effect(() => setLanguage(lang === 'auto' ? resolveAuto() : lang))
 
-  const shown = $derived([...notices, ...local])
+  const chrome = chromeOf(location.search)
+  const win = windowActions('home')
+  // the shell's one-time word that a closed window left the app in the tray (03 §3.11.6)
+  const TRAY = 'stayInTray'
+  // the codes of the window's own failures, drawn as errors
+  const LOCAL: Record<string, true> = { init_failed: true, restore_failed: true, status_failed: true, notices_failed: true }
+  // notices put away for as long as the window lives
+  let hidden = $state<string[]>([])
+  const hide = (code: string) => (hidden = [...hidden, code])
+  const shown = $derived([...notices, ...local].filter((n) => !hidden.includes(n.code)))
   const removed = $derived((groups?.Removed ?? []).filter((p) => !dismissed.includes(p.ID)))
   const count = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
   const setup = $derived(status && !status.found ? 'install' : status && !status.bridge ? 'update' : null)
@@ -93,6 +106,7 @@
 
   function warn(code: string, e: unknown) {
     local = [...local.filter((n) => n.code !== code), { code, detail: String((e as Error)?.message ?? e) }]
+    hidden = hidden.filter((c) => c !== code) // a new failure is shown even if the last was put away
   }
 
   // pick asks for a folder; a folder with a board opens, any other asks first.
@@ -165,152 +179,118 @@
   })
 </script>
 
-<Paper>
-  <main>
-    <header>
-      <Logo size={34} />
-      <span class="brand">{$tr('home.title')}</span>
+<div class="window">
+  <TitleBar name={$tr('home.title')} {chrome} window={win}>
+    {#snippet actions()}
       {#if count > 0}
-        <button type="button" class="add" onclick={pick} disabled={busy || status?.found !== true}>{$tr('home.addProject')}</button>
+        <Button variant="primary" size="sm" icon="plus" onclick={pick} disabled={busy || status?.found !== true}>{$tr('home.addProject')}</Button>
       {/if}
-    </header>
+    {/snippet}
+  </TitleBar>
 
-    {#if shown.length || failure || confirming}
-      <div class="notices">
-        {#each shown as n (n.code)}
-          <div role="status" class="notice">
-            <NoteFrame color={look.palette?.warn ?? 'currentColor'} id={'notice-' + n.code}>{noticeText(n)}</NoteFrame>
-          </div>
-        {/each}
-        {#if confirming}
-          <div role="dialog" aria-label={$tr('home.confirmInit')} class="notice">
-            <NoteFrame color={look.palette?.accent ?? 'currentColor'} id="confirm-init">
-              <p class="ask">{$tr('home.confirmInit')}</p>
-              <p class="where">{confirming}</p>
-              <button type="button" onclick={create}>{$tr('home.create')}</button>
-              <button type="button" onclick={() => (confirming = '')}>{$tr('home.cancel')}</button>
-            </NoteFrame>
-          </div>
+  {#if shown.length || failure}
+    <div class="notices">
+      {#each shown as n (n.code)}
+        {#if n.code === TRAY}
+          <Toast message={noticeText(n)} icon="tab" action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
+        {:else}
+          <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
         {/if}
-        {#if failure}
-          <div role="alert" class="notice">
-            <NoteFrame color={look.palette?.bad ?? 'currentColor'} id="notice-index">{$tr('notice.index', { detail: failure })}</NoteFrame>
-          </div>
-        {/if}
-      </div>
-    {/if}
-
-    {#if groups && count > 0}
-      {#if setup}
-        <div class="notice setup"><NoteFrame color={look.palette?.warn ?? 'currentColor'} id="setup"><Install kind={setup} copy={api.copy} /></NoteFrame></div>
+      {/each}
+      {#if failure}
+        <Toast message={$tr('notice.index', { detail: failure })} tone="bad" icon="warn" />
       {/if}
-      <Sessions {groups} now={at} open={(p) => void api.openProject(p)} />
-    {:else if groups && !failure}
-      <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found === true} />
-    {/if}
+    </div>
+  {/if}
 
-    {#if removed.length}
-      <p class="removed">
-        <span>{$tr('home.removed', { n: removed.length })}</span>
-        <span aria-hidden="true">·</span>
-        <button type="button" onclick={undo}>{$tr('home.undo')}</button>
-        <button type="button" class="x" aria-label={$tr('home.dismiss')} onclick={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}>×</button>
-      </p>
-    {/if}
+  <div class="scroll">
+    <Paper>
+      <main>
+        {#if groups && count > 0}
+          {#if setup}
+            <div class="setup"><NoteFrame color={look.palette?.warn ?? 'currentColor'} id="setup"><Install kind={setup} copy={api.copy} /></NoteFrame></div>
+          {/if}
+          <Sessions {groups} now={at} open={(p) => void api.openProject(p)} />
+        {:else if groups && !failure}
+          <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found === true} />
+        {/if}
+        <footer><Language {host} current={lang} /></footer>
+      </main>
+    </Paper>
+  </div>
 
-    <footer><Language {host} current={lang} /></footer>
-  </main>
-</Paper>
+  {#if removed.length}
+    <div class="toasts">
+      <Toast
+        message={$tr('home.removed', { n: removed.length })}
+        icon="restore"
+        action={{ label: $tr('home.undo'), run: undo }}
+        onclose={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}
+      />
+    </div>
+  {/if}
+
+  <Confirm
+    open={confirming !== ''}
+    title={$tr('home.confirmInit')}
+    message={confirming}
+    confirmLabel={$tr('home.create')}
+    cancelLabel={$tr('home.cancel')}
+    onconfirm={create}
+    oncancel={() => (confirming = '')}
+  />
+</div>
 
 <style>
+  .window {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
   main {
     box-sizing: border-box;
-    min-height: 100vh;
-    padding: 18px 24px 24px;
     max-width: 760px;
     margin: 0 auto;
-  }
-  header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-  .brand {
-    font-family: var(--font-hand);
-    font-size: 28px;
-    font-weight: 700;
-  }
-  .add {
-    margin-left: auto;
-    font-family: var(--font-hand);
-    font-size: 18px;
-    padding: 2px 14px;
-    color: var(--ink);
-    background: transparent;
-    border: 2px solid var(--accent);
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  .add:disabled {
-    opacity: 0.5;
-    cursor: default;
+    padding: var(--space-6) var(--space-6) var(--space-10);
   }
   .notices {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 18px;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4) 0;
   }
-  .notice {
-    font-family: var(--font-hand);
-    font-size: 18px;
-  }
-  .ask {
-    margin: 0;
-  }
-  .where {
-    margin: 2px 0 8px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-  .notice button {
-    font: inherit;
-    color: var(--ink);
-    background: transparent;
-    border: 1.5px solid currentColor;
-    border-radius: 8px;
-    padding: 0 12px;
-    margin-right: 8px;
-    cursor: pointer;
+  .notices > :global(*) {
+    width: min(100%, 440px);
   }
   .setup {
-    margin-bottom: 18px;
-  }
-  .removed {
-    display: flex;
-    gap: 8px;
-    align-items: baseline;
-    margin: 8px 0 0;
-    font-family: var(--font-hand);
-    font-size: 17px;
-    color: var(--pencil);
-  }
-  .removed button {
-    font: inherit;
-    color: var(--ink);
-    background: none;
-    border: 0;
-    padding: 0;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  .removed .x {
-    text-decoration: none;
-    margin-left: 4px;
+    margin-bottom: var(--space-6);
   }
   footer {
-    margin-top: 28px;
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-8);
+  }
+  .toasts {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--space-5);
+    z-index: var(--z-toast);
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--space-4);
+    pointer-events: none;
+  }
+  .toasts > :global(*) {
+    pointer-events: auto;
   }
 </style>

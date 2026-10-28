@@ -138,9 +138,9 @@
       <Toolbar label={$tr('ui.noteActions')}>
         {#if editable}
           <span class="size" role="group" aria-label={$tr('ui.size')}>
-            <IconButton icon="minimise" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} />
+            <span class="step"><IconButton icon="minimise" size="sm" label={$tr('ui.size.narrower')} shortcut="-" disabled={at === 0} onclick={() => step(-1)} /></span>
             <span class="frac" aria-label={$tr('ui.size.now', { size })}>{size}</span>
-            <IconButton icon="plus" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} />
+            <span class="step"><IconButton icon="plus" size="sm" label={$tr('ui.size.wider')} shortcut="=" disabled={at === FRACTIONS.length - 1} onclick={() => step(1)} /></span>
           </span>
           <IconButton
             icon="pin"
@@ -150,7 +150,7 @@
             crayon={pinned}
             onclick={() => onpin?.(!pinned)}
           />
-          <IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} disabled={!ontearoff} onclick={ontearoff} />
+          <span class="tearoff"><IconButton icon="tear-off" size="sm" label={$tr('ui.tearOff')} disabled={!ontearoff} onclick={ontearoff} /></span>
         {/if}
         {#if menu.length}
           <span class="anchor">
@@ -240,9 +240,17 @@
     border-radius: var(--radius-sm);
     background: var(--surface);
   }
+  /* the width reads as a control, not as another count beside the summary */
   .size {
     display: inline-flex;
     align-items: center;
+    margin-right: var(--space-1);
+    border: var(--stroke-hairline) solid var(--line);
+    border-radius: var(--radius-md);
+  }
+  .step,
+  .tearoff {
+    display: inline-flex;
   }
   .frac {
     min-width: 28px;
@@ -264,10 +272,19 @@
     position: relative;
     display: inline-flex;
   }
-  /* a narrow note keeps the size and the close; the rest is in ⋯ or a key away */
-  @container (max-width: 300px) {
-    .summary {
+  /* a narrow note keeps its width, pin, ⋯ and close; the rest is a key or an edge away */
+  @container (max-width: 400px) {
+    .summary,
+    .tearoff {
       display: none;
+    }
+  }
+  @container (max-width: 300px) {
+    .step {
+      display: none;
+    }
+    .frac {
+      padding: 0 var(--space-1);
     }
   }
 </style>

@@ -310,7 +310,7 @@
           <div>
             <h3>EmptyState</h3>
             <div class="emptybox">
-              <EmptyState title={$tx('board.noneOpen')} body={$tx('board.empty')}>
+              <EmptyState title={$tx('board.emptyTitle')} body={$tx('board.emptyHint')}>
                 <Button variant="primary" icon="plus">{$tx('create.make')}</Button>
               </EmptyState>
             </div>

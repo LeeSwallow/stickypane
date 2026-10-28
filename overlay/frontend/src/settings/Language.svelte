@@ -1,5 +1,6 @@
 <script lang="ts">
   import { language, tr, chooseLanguage, type Choice, type LanguageHost } from '../i18n'
+  import SegmentedControl from '../lib/ui/SegmentedControl.svelte'
 
   // host says where the choice is kept: the bridge in a project window,
   // the shell's overlay.json in the home window. current is the saved choice.
@@ -26,36 +27,30 @@
   }
 </script>
 
-<div class="language" role="radiogroup" aria-label={$tr('settings.language')} data-lang={$language}>
-  {#each options as c (c)}
-    <button type="button" role="radio" aria-checked={chosen === c} onclick={() => pick(c)}>
-      {$tr('settings.language.' + c)}
-    </button>
-  {/each}
+<div class="language" data-lang={$language}>
+  <span class="label">{$tr('settings.language')}</span>
+  <SegmentedControl
+    label={$tr('settings.language')}
+    size="sm"
+    value={chosen}
+    options={options.map((c) => ({ value: c, label: $tr('settings.language.' + c) }))}
+    onchange={(v) => pick(v as Choice)}
+  />
   {#if failed}<span class="err" role="alert">{$tr('settings.language.failed')}</span>{/if}
 </div>
 
 <style>
   .language {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .label {
+    color: var(--ink-2);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
   .err {
-    font-family: var(--font-hand);
-    align-self: center;
-  }
-  button {
-    font-family: var(--font-hand);
-    font-size: 16px;
-    padding: 4px 12px;
-    color: var(--ink);
-    background: transparent;
-    border: 1.5px solid currentColor;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  button[aria-checked='true'] {
-    font-weight: 700;
-    background: color-mix(in srgb, currentColor 14%, transparent);
+    color: var(--danger-text);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
 </style>

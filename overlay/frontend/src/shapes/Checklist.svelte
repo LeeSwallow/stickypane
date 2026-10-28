@@ -56,7 +56,7 @@
   .prose {
     margin: 0 0 var(--space-1);
     color: var(--pencil);
-    font: var(--text-body) / var(--line-body) var(--font-body);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
   .progress {
     height: var(--space-1);
@@ -84,12 +84,12 @@
     border: 0;
     background: none;
     color: var(--ink);
-    font: var(--text-md) / 1.35 var(--font-body);
+    font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
     text-align: left;
     cursor: pointer;
   }
   .item:focus-visible {
-    outline: var(--stroke) solid var(--accent);
+    outline: var(--focus-width) solid var(--focus);
   }
   .item.done .text {
     color: var(--pencil);
@@ -98,7 +98,7 @@
   .when {
     margin-left: auto;
     color: var(--pencil);
-    font: var(--text-xs) var(--font-mono);
+    font: var(--weight-mono-sm) var(--text-mono-sm) / var(--leading-mono-sm) var(--font-mono);
   }
   .sr {
     position: absolute;

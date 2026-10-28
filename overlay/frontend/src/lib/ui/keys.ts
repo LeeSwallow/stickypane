@@ -3,6 +3,16 @@
 
 export type Orientation = 'horizontal' | 'vertical'
 
+const MODIFIERS: Record<string, string> = { alt: '⌥', option: '⌥', cmd: '⌘', command: '⌘', ctrl: '⌃', control: '⌃', shift: '⇧' }
+
+/** hotkeyLabel writes a hotkey from overlay.json ("alt+space") as macOS does ("⌥Space"). */
+export const hotkeyLabel = (hotkey: string): string =>
+  hotkey
+    .split('+')
+    .filter(Boolean)
+    .map((k) => MODIFIERS[k.toLowerCase()] ?? k.charAt(0).toUpperCase() + k.slice(1))
+    .join('')
+
 /**
  * nextIndex is where an arrow, Home or End key moves from index i among n
  * items, skipping disabled ones and wrapping; null when the key does not move.

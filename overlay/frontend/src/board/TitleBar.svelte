@@ -1,94 +1,66 @@
 <script lang="ts">
-  // The title bar (03 §3.6): the drag area of the frameless window, with the
-  // logo, the project's name and path, the hotkey, "+ Create" (A9 fills it
-  // in) and the window's pin.
-  import Logo from '../lib/doodle/Logo.svelte'
+  // The board window's title bar (03 §3.6, §3.11.6): the design system's
+  // TitleBar — traffic lights on macOS, the project's name on one line with
+  // its path only in a tooltip, the hotkey — with the board's actions: grid
+  // or canvas (the canvas comes with A7b), search (later), "+ 만들기" (A9),
+  // the window's pin, and ⋯ with "편집기로 열기" before the window's own
+  // "창 닫기" and "stickypane 종료".
   import { tr } from '../i18n'
+  import Button from '../lib/ui/Button.svelte'
+  import type { Chrome, WindowActions } from '../lib/ui/chrome'
+  import IconButton from '../lib/ui/IconButton.svelte'
+  import { hotkeyLabel } from '../lib/ui/keys'
+  import type { MenuItem } from '../lib/ui/menu'
+  import SegmentedControl from '../lib/ui/SegmentedControl.svelte'
+  import UiTitleBar from '../lib/ui/TitleBar.svelte'
 
   let {
     title,
     path,
     hotkey = '',
     pinned = false,
+    chrome,
+    window: win,
+    canEdit = false,
     onpin,
+    onedit,
     oncreate,
-  }: { title: string; path: string; hotkey?: string; pinned?: boolean; onpin: () => void; oncreate?: () => void } = $props()
+  }: {
+    title: string
+    path: string
+    hotkey?: string
+    pinned?: boolean
+    chrome: Chrome
+    window: WindowActions
+    /** a note is zoomed or focused: "편집기로 열기" opens it */
+    canEdit?: boolean
+    onpin: () => void
+    onedit: () => void
+    oncreate?: () => void
+  } = $props()
 
-  /** "alt+space" is "⌥Space", as macOS writes it. */
-  const keys: Record<string, string> = { alt: '⌥', option: '⌥', cmd: '⌘', command: '⌘', ctrl: '⌃', control: '⌃', shift: '⇧' }
-  const label = $derived(
-    hotkey
-      .split('+')
-      .map((k) => keys[k.toLowerCase()] ?? k.charAt(0).toUpperCase() + k.slice(1))
-      .join(''),
-  )
-  const home = $derived(path.replace(/^\/(Users|home)\/[^/]+/, '~'))
+  let view = $state('grid')
+  const views = $derived([
+    { value: 'grid', label: $tr('ui.view.grid'), icon: 'grid' as const },
+    { value: 'canvas', label: $tr('ui.view.canvasSoon'), icon: 'canvas' as const, disabled: true },
+  ])
+  const menu = $derived<MenuItem[]>([{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit }])
 </script>
 
-<header class="bar">
-  <Logo size={28} />
-  <h1>{title}</h1>
-  <span class="path" title={path}>{home}</span>
-  <span class="grow"></span>
-  {#if label}<kbd title={$tr('window.hotkey')}>{label}</kbd>{/if}
-  <button class="create" disabled={!oncreate} title={oncreate ? '' : $tr('create.soon')} onclick={() => oncreate?.()}>{$tr('create.button')}</button>
-  <button
-    class="pin"
-    aria-pressed={pinned}
-    title={$tr(pinned ? 'window.unpin' : 'window.pin')}
-    aria-label={$tr(pinned ? 'window.unpin' : 'window.pin')}
-    onclick={onpin}>📌</button
-  >
-</header>
-
-<style>
-  .bar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-5) var(--space-1);
-    --wails-draggable: drag;
-  }
-  .bar button,
-  .bar kbd {
-    --wails-draggable: no-drag;
-  }
-  h1 {
-    margin: 0;
-    font: 700 var(--hand-h1) var(--font-hand);
-    white-space: nowrap;
-  }
-  .path {
-    color: var(--pencil);
-    font: var(--text-sm) var(--font-body);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  .grow {
-    flex: 1;
-  }
-  kbd {
-    color: var(--pencil);
-    font: var(--text-sm) var(--font-mono);
-  }
-  button {
-    height: calc(var(--control) + var(--space-1));
-    padding: 0 var(--space-3);
-    border: var(--stroke) solid var(--grid-major);
-    border-radius: var(--radius);
-    background: none;
-    color: var(--ink);
-    font: 700 var(--hand-md) var(--font-hand);
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  button:disabled {
-    opacity: var(--dim);
-    cursor: default;
-  }
-  .pin[aria-pressed='true'] {
-    border-color: var(--accent);
-  }
-</style>
+<UiTitleBar name={title} {path} hotkey={hotkeyLabel(hotkey)} {chrome} window={win} {menu} onmenu={(id) => id === 'edit' && onedit()}>
+  {#snippet actions()}
+    <SegmentedControl label={$tr('ui.view')} bind:value={view} iconOnly size="sm" options={views} />
+    <IconButton icon="search" label={$tr('ui.searchSoon')} disabled />
+    <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>
+      {$tr('create.make')}
+    </Button>
+    <IconButton
+      icon="pin"
+      label={pinned ? $tr('window.unpin') : $tr('window.pin')}
+      pressed={pinned}
+      crayon={pinned}
+      align="end"
+      onclick={onpin}
+    />
+  {/snippet}
+</UiTitleBar>

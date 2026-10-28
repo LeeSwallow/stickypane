@@ -1,32 +1,10 @@
 /*
- * The board window's sizes, in one place, until the design system (A5c)
- * replaces them. Colours are not here: they come from the palette
- * (lib/theme/tokens.ts). Components use these variables only.
+ * The board window's own measures. Type, space, radii, strokes, layers
+ * and motion come from the design system (lib/theme/scale.ts, 03 §3.11.1)
+ * and colours from the palette (lib/theme/tokens.ts); only what the
+ * board's layout fixes is here, mirrored from layout.ts.
  */
 :root {
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-body: 13px;
-  --text-md: 14px;
-  --line-body: 1.55;
-
-  --hand-sm: 13px;
-  --hand-md: 16px;
-  --hand-lg: 18px;
-  --hand-title: 21px;
-  --hand-h1: 24px;
-
-  --radius: 6px;
-  --stroke: 1.5px;
-  --control: 24px; /* a header button */
   --row: 22px; /* one terminal row: layout.ts ROW_PX */
-  --edge: 8px; /* the grab height of a note's bottom edge */
-  --narrow: 720px; /* layout.ts NARROW */
-  --dim: 0.35;
+  --narrow: 720px; /* one grid column below this: layout.ts NARROW */
 }

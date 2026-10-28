@@ -91,26 +91,26 @@ describe('home', () => {
     const api = fakeApi(empty, { pickFolder: vi.fn(async () => '/home/min/new') })
     mount(api)
     expect(await screen.findByText('아직 붙은 보드가 없어요')).toBeTruthy()
-    const buttons = screen.getAllByRole('button').filter((b) => !b.closest('.language'))
+    const buttons = screen.getAllByRole('button').filter((b) => !b.closest('.language, [data-titlebar]'))
     expect(buttons.map((b) => b.textContent?.trim())).toEqual(['폴더 고르기'])
     await fireEvent.click(buttons[0])
     // no board is made until the person says so
-    const ask = await screen.findByRole('dialog')
+    const ask = await screen.findByRole('alertdialog')
     expect(within(ask).getByText('이 폴더에 보드를 만들까요?')).toBeTruthy()
     expect(within(ask).getByText('/home/min/new')).toBeTruthy()
     expect(api.initProject).not.toHaveBeenCalled()
     await fireEvent.click(within(ask).getByRole('button', { name: '만들기' }))
     await waitFor(() => expect(api.initProject).toHaveBeenCalledWith('/home/min/new'))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
   })
 
   it('cancelling the confirm makes nothing', async () => {
     const api = fakeApi(empty, { pickFolder: vi.fn(async () => '/home/min/new') })
     mount(api)
     await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
-    const ask = await screen.findByRole('dialog')
+    const ask = await screen.findByRole('alertdialog')
     await fireEvent.click(within(ask).getByRole('button', { name: '취소' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
     expect(api.initProject).not.toHaveBeenCalled()
     expect(api.openProject).not.toHaveBeenCalled()
   })
@@ -124,7 +124,7 @@ describe('home', () => {
     await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
     await waitFor(() => expect(api.openProject).toHaveBeenCalledWith('/home/min/has'))
     expect(api.initProject).not.toHaveBeenCalled()
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('alertdialog')).toBeNull()
   })
 
   it('a failed init shows a notice', async () => {
@@ -136,7 +136,7 @@ describe('home', () => {
     })
     mount(api)
     await fireEvent.click(await screen.findByRole('button', { name: '폴더 고르기' }))
-    await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '만들기' }))
+    await fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: '만들기' }))
     expect(await screen.findByText('보드를 만들지 못했어요 · refused')).toBeTruthy()
   })
 
@@ -267,6 +267,16 @@ describe('home', () => {
     mount(api)
     const note = await screen.findByRole('status')
     expect(within(note).getByText(/Alt\+Space: taken/)).toBeTruthy()
+  })
+
+  it('the one-time tray word shows with a way to quit, and can be put away', async () => {
+    const api = fakeApi(empty, { notices: vi.fn(async () => [{ code: 'stayInTray', detail: '' }]) })
+    mount(api)
+    const note = await screen.findByRole('status')
+    expect(within(note).getByText('트레이에 남아 있어요')).toBeTruthy()
+    expect(within(note).getByRole('button', { name: 'stickypane 종료' })).toBeTruthy()
+    await fireEvent.click(within(note).getByRole('button', { name: '닫기' }))
+    expect(screen.queryByText('트레이에 남아 있어요')).toBeNull()
   })
 
   it('an index that cannot be read says so instead of an empty list', async () => {

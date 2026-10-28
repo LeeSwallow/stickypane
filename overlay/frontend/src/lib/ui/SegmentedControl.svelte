@@ -4,6 +4,8 @@
     value: string
     label: string
     icon?: IconName
+    /** not yet there: shown, never chosen (its label says why) */
+    disabled?: boolean
   }
 </script>
 
@@ -34,7 +36,7 @@
   let group: HTMLElement | undefined = $state()
 
   function pick(v: string) {
-    if (v === value) return
+    if (v === value || options.find((o) => o.value === v)?.disabled) return
     value = v
     onchange?.(v)
   }
@@ -42,7 +44,7 @@
   function onkeydown(e: KeyboardEvent) {
     const i = options.findIndex((o) => o.value === value)
     const j = nextIndex(e.key, i, options.length)
-    if (j === null) return
+    if (j === null || options[j].disabled) return
     e.preventDefault()
     pick(options[j].value)
     group?.querySelectorAll<HTMLElement>('[role="radio"]')[j]?.focus()
@@ -59,6 +61,7 @@
     aria-checked={on}
     aria-label={iconOnly ? o.label : undefined}
     tabindex={on ? 0 : -1}
+    aria-disabled={o.disabled || undefined}
     onclick={() => pick(o.value)}
   >
     {#if o.icon}<Icon name={o.icon} size={size === 'sm' ? 16 : 18} />{/if}
@@ -117,6 +120,10 @@
   }
   .sm .seg {
     border-radius: 2px;
+  }
+  .seg[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: default;
   }
   .seg:hover {
     color: var(--ink);
