@@ -240,5 +240,5 @@ overlay 앱은 실행 시 `stickypane` 바이너리를 PATH에서 찾는다. 버
 | 네트워크 | overlay는 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
 | 상태 | 창 위치·크기·핀은 앱 자체 설정(OS 표준 위치). 노트와 화면 배치는 `sticky.json`뿐 |
 | 언어 | 화면 문구는 `internal/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
-| 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.8](03-design-system.md#38-접근성)) |
+| 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.9](03-design-system.md#39-접근성)) |
 | 라이선스 | 본체 `scripts/licenses.sh`는 그대로. overlay 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |
