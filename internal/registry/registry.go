@@ -19,9 +19,10 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
-// maxLine is the longest line Append writes, newline included. A single
-// write of this size or less to a file opened for appending is not mixed
-// with another process's (PIPE_BUF is 4096 on the systems we run on).
+// maxLine is the longest line Append writes, newline included. Opening the
+// file with O_APPEND makes each single write land at the end of the file,
+// whatever other processes do; the cap keeps a line to one modest write.
+// (PIPE_BUF is about pipes, not files, and is not what holds here.)
 const maxLine = 4096
 
 // Event is one line of events/<date>.jsonl. Empty fields are left out.

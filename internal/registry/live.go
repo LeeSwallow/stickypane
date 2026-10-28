@@ -35,7 +35,7 @@ func Live(project, kind string) (end func()) {
 			"started": time.Now().Format(when.Moment),
 		})
 		if err == nil {
-			os.WriteFile(file, b, 0o644)
+			writeAtomic(file, b)
 		}
 	}
 	Append(Event{Type: "session.start", Project: project, PID: pid, Kind: kind})
@@ -45,16 +45,16 @@ func Live(project, kind string) (end func()) {
 	}
 }
 
-// Touch records that a command cmd changed something in project. A
-// project is recorded at most once a minute, whatever the command: the
-// app wants to know a board is in use, not each keystroke of it. The
-// minute is kept in the modification time of run/touch-<hash of project>,
-// which is shared by every process.
+// Touch records that a command cmd changed something in project. The same
+// project and command are recorded at most once a minute: the app wants to
+// know a board is in use, not each keystroke of it. The minute is kept in
+// the modification time of run/touch-<hash of project and command>, which
+// is shared by every process.
 func Touch(project, cmd string) {
 	if !Enabled() {
 		return
 	}
-	sum := sha1.Sum([]byte(project))
+	sum := sha1.Sum([]byte(project + "\x00" + cmd))
 	marker := filepath.Join(Home(), "run", "touch-"+hex.EncodeToString(sum[:])[:12])
 	if fi, err := os.Stat(marker); err == nil && time.Since(fi.ModTime()) < touchEvery {
 		return
@@ -62,10 +62,25 @@ func Touch(project, cmd string) {
 	if os.MkdirAll(filepath.Dir(marker), 0o755) != nil {
 		return
 	}
-	now := time.Now()
+	// Writing the file sets its modification time to now.
 	if os.WriteFile(marker, nil, 0o644) != nil {
 		return
 	}
-	os.Chtimes(marker, now, now)
 	Append(Event{Type: "project.touch", Project: project, Cmd: cmd})
+}
+
+// writeAtomic writes b to path through a temporary file in the same folder
+// and a rename, so that the app, which reads run/, never sees half a file.
+func writeAtomic(path string, b []byte) {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".tmp-*")
+	if err != nil {
+		return
+	}
+	_, werr := tmp.Write(b)
+	cerr := tmp.Close()
+	if werr != nil || cerr != nil || os.Rename(tmp.Name(), path) != nil {
+		os.Remove(tmp.Name())
+		return
+	}
+	os.Chmod(path, 0o644)
 }

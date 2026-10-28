@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 func lines(t *testing.T, path string) []string {
@@ -28,7 +30,7 @@ func lines(t *testing.T, path string) []string {
 	return out
 }
 
-func today() string { return time.Now().Format("2006-01-02") }
+func today() string { return time.Now().Format(when.Date) }
 
 func TestNothingIsWrittenWithoutTheHomeFolder(t *testing.T) {
 	home := filepath.Join(t.TempDir(), "absent")
@@ -168,9 +170,13 @@ func TestTouchIsThrottled(t *testing.T) {
 	if n := len(lines(t, log)); n != 1 {
 		t.Fatalf("lines = %d, want 1", n)
 	}
-	Touch("/q", "card")
+	Touch("/p", "todo")
 	if n := len(lines(t, log)); n != 2 {
-		t.Fatalf("another project: lines = %d, want 2", n)
+		t.Fatalf("another command: lines = %d, want 2", n)
+	}
+	Touch("/q", "card")
+	if n := len(lines(t, log)); n != 3 {
+		t.Fatalf("another project: lines = %d, want 3", n)
 	}
 	// A marker older than a minute no longer throttles.
 	ents, _ := os.ReadDir(filepath.Join(home, "run"))
@@ -179,7 +185,7 @@ func TestTouchIsThrottled(t *testing.T) {
 		os.Chtimes(filepath.Join(home, "run", e.Name()), old, old)
 	}
 	Touch("/p", "card")
-	if n := len(lines(t, log)); n != 3 {
-		t.Fatalf("after a minute: lines = %d, want 3", n)
+	if n := len(lines(t, log)); n != 4 {
+		t.Fatalf("after a minute: lines = %d, want 4", n)
 	}
 }
