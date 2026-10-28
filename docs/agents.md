@@ -70,7 +70,9 @@ when the project has a `.claude` folder but no `CLAUDE.md`, and a new
 `AGENTS.md` when there is nothing. An agent with the plugin installed gets
 nothing in its file, since the plugin teaches it. `init` works outside a
 git repository too, but not in the home folder or the root, where every
-project below would find the board; it is safe to run again. `--skill` writes the skill
+project below would find the board; it is safe to run again. `--view app` (or `both`)
+shows the board in the desktop app, and `--style neat` gives the app its
+neat look; both go to `sticky.json`. `--skill` writes the skill
 instead of the instruction files and `--no-agent-docs` makes the folder
 only. `stickypane guide` prints the guide; it stays English.
 

@@ -41,9 +41,9 @@ func init() {
 		{[]string{"init"}, initCmd, helpText{
 			group: "start", brief: "make .sticky/ and tell your agents about it",
 			what:     "Makes .sticky/ in this folder and puts the agent guide where agents read it: CLAUDE.md, AGENTS.md or a .claude skill. Safe to run again.",
-			syntax:   "stickypane init [--skill] [--no-agent-docs]",
-			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only",
-			examples: []string{"stickypane init", "stickypane init --skill", "stickypane init --no-agent-docs"},
+			syntax:   "stickypane init [--skill] [--no-agent-docs] [--view terminal|app|both] [--style doodle|neat]",
+			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only\n--view V         where the board shows: terminal, app (the desktop app) or both\n--style S        the app's look: doodle or neat",
+			examples: []string{"stickypane init", "stickypane init --view app", "stickypane init --skill", "stickypane init --no-agent-docs"},
 			related:  []string{"setup", "guide", "start"},
 		}},
 		{[]string{"setup"}, setupCmd, helpText{
@@ -306,8 +306,17 @@ func initCmd(e env, args []string) error {
 	fs := newFlags("init")
 	noDocs := fs.Bool("no-agent-docs", false, "leave AGENTS.md and CLAUDE.md alone")
 	skill := fs.Bool("skill", false, "install the guide as a Claude Code skill instead")
+	view := fs.String("view", "", "where the board shows: terminal, app or both")
+	style := fs.String("style", "", "the app's look: doodle or neat")
 	if _, err := parse(fs, "init", args, 0, 0); err != nil {
 		return err
+	}
+	mode, ok := viewOf(*view)
+	if !ok {
+		return usagef("init", "--view is terminal, app or both, not %q", *view)
+	}
+	if *style != "" && *style != store.StyleDoodle && *style != store.StyleNeat {
+		return usagef("init", "--style is doodle or neat, not %q", *style)
 	}
 	if err := initcmd.RefuseBoard("."); err != nil {
 		return err
@@ -315,10 +324,39 @@ func initCmd(e env, args []string) error {
 	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill}, e.stdout); err != nil {
 		return err
 	}
-	if dir, err := store.Resolve("."); err == nil {
-		registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+	dir, err := store.Resolve(".")
+	if err != nil {
+		return nil
 	}
+	st := store.Open(dir)
+	if mode != "" {
+		if err := st.SetViewMode(mode); err != nil {
+			return err
+		}
+	}
+	if *style != "" {
+		if err := st.SetStyle(*style); err != nil {
+			return err
+		}
+	}
+	registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
 	return nil
+}
+
+// viewOf reads --view: "app" is the desktop app, which sticky.json calls
+// "overlay"; "" leaves the board's setting as it is.
+func viewOf(v string) (string, bool) {
+	switch v {
+	case "":
+		return "", true
+	case "terminal":
+		return store.ViewTerminal, true
+	case "app", store.ViewOverlay:
+		return store.ViewOverlay, true
+	case "both":
+		return store.ViewBoth, true
+	}
+	return "", false
 }
 
 // changes are the commands that change a board; each one notes its project

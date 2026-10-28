@@ -1,7 +1,10 @@
 package main
 
 import (
+	"path/filepath"
+
 	"errors"
+	"github.com/LeeSwallow/stickypane/internal/store"
 	"os"
 	"slices"
 	"strings"
@@ -127,5 +130,27 @@ func TestInitRefusesTheHomeFolder(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(home); len(entries) != 0 {
 		t.Errorf("init wrote into home: %v", entries)
+	}
+}
+
+// init --view and --style write how the board shows to sticky.json; "app"
+// is the desktop app.
+func TestInitSetsTheViewAndStyle(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if code, _, errOut := exec(t, "init", "--no-agent-docs", "--view", "app", "--style", "neat"); code != 0 {
+		t.Fatalf("init: %s", errOut)
+	}
+	st := store.Open(filepath.Join(dir, ".sticky"))
+	if st.ViewMode() != store.ViewOverlay || st.Style() != store.StyleNeat {
+		t.Errorf("view %q style %q", st.ViewMode(), st.Style())
+	}
+	if code, _, _ := exec(t, "init", "--view", "both"); code != 0 || store.Open(filepath.Join(dir, ".sticky")).ViewMode() != store.ViewBoth {
+		t.Errorf("init again with --view both: %d", code)
+	}
+	for _, args := range [][]string{{"init", "--view", "window"}, {"init", "--style", "fancy"}} {
+		if code, _, errOut := exec(t, args...); code != exitUsage {
+			t.Errorf("%q: %d %q", args, code, errOut)
+		}
 	}
 }

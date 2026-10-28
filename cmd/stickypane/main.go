@@ -60,7 +60,8 @@ Usage:
                          read it: CLAUDE.md, AGENTS.md or a .claude skill, or
                          nowhere when the board plugin is installed. Safe to run
                          again. --skill: a skill instead of the instruction
-                         files; --no-agent-docs: the folder only
+                         files; --no-agent-docs: the folder only; --view
+                         terminal|app|both and --style doodle|neat: how it shows
   stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
                          [--command PATH] [--undo] [--dry-run] [--yes]
                          install the board plugin for Claude Code and Codex
