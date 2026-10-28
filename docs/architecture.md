@@ -13,7 +13,7 @@ layer, fails the build.
 | Layer | Packages | Is |
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
-| 50 | `internal/app`, `internal/mcp` | the two front ends: the terminal UI and the MCP server |
+| 50 | `internal/app`, `internal/mcp`, `internal/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
 | 40 | `internal/api`, `internal/initcmd` | what the command line and agents call; setting a project up |
 | 30 | `internal/kinds`, `internal/arrange` | the registry of shapes; how a note is arranged |
 | 20-22 | `internal/widget`, `internal/widget/<shape>` | the widget contract, then one package per shape |

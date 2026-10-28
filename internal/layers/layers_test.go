@@ -63,9 +63,10 @@ var rank = map[string]int{
 	// What the command line and agents call.
 	"internal/api":     40,
 	"internal/initcmd": 40,
-	// The two front ends over it.
-	"internal/mcp": 50,
-	"internal/app": 50,
+	// The front ends over it.
+	"internal/mcp":    50,
+	"internal/app":    50,
+	"internal/bridge": 50, // the desktop app's, over standard input/output
 	// The program.
 	"cmd/stickypane": 60,
 }
