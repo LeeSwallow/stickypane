@@ -165,5 +165,7 @@
   "ui.closeWindow": "창 닫기",
   "ui.minimise": "최소화",
   "app.quit": "stickypane 종료",
-  "notice.stayInTray": "트레이에 남아 있어요"
+  "notice.stayInTray": "트레이에 남아 있어요",
+  "kanban.card": "카드",
+  "kanban.moveHint": "끌거나 h l j k로 옮겨요"
 }

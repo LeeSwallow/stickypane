@@ -165,5 +165,7 @@
   "ui.closeWindow": "Close window",
   "ui.minimise": "Minimise",
   "app.quit": "Quit stickypane",
-  "notice.stayInTray": "stickypane is still running in the tray"
+  "notice.stayInTray": "stickypane is still running in the tray",
+  "kanban.card": "card",
+  "kanban.moveHint": "Drag it, or h l j k to move it"
 }
