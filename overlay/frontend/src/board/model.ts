@@ -81,6 +81,15 @@ export interface Board {
   palette: unknown
 }
 
+/** Action is a note.act request: the shape's verb and its arguments, all strings. */
+export interface Action {
+  name: string
+  args?: Record<string, string>
+}
+
+/** toggleAction ticks (or unticks) the item at place i of a checklist's file. */
+export const toggleAction = (i: number): Action => ({ name: 'toggle', args: { i: String(i) } })
+
 /** ArrangePatch is what note.arrange changes; "" and 0 put a choice back. */
 export interface ArrangePatch {
   open?: boolean
@@ -203,3 +212,7 @@ export function splitEmbeds(md: string): Segment[] {
   flush()
   return out
 }
+
+/** htmlFor is the HTML rendered for these segments, or none when it was made for others. */
+export const htmlFor = (rendered: { segs: Segment[]; html: string[] }, segs: Segment[]): string[] =>
+  rendered.segs === segs ? rendered.html : []

@@ -4,7 +4,7 @@
   // that is only ![[name]] draws that note, one level deep (10 §10.2).
   import 'katex/dist/katex.min.css'
   import { useBoard } from '../board/context'
-  import { splitEmbeds, type Note as NoteT, type NoteData } from '../board/model'
+  import { htmlFor, splitEmbeds, type Note as NoteT, type NoteData, type Segment } from '../board/model'
   import { tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { mermaidRenderer, render } from './markdown'
@@ -15,7 +15,10 @@
 
   const markdown = $derived((note.data as NoteData | null)?.markdown ?? '')
   const segments = $derived(splitEmbeds(markdown))
-  let html: string[] = $state([])
+  // the HTML of the segments it was made for: a render still running for an
+  // older text is never drawn against the new segments
+  let rendered = $state.raw<{ segs: Segment[]; html: string[] }>({ segs: [], html: [] })
+  const html = $derived(htmlFor(rendered, segments))
 
   $effect(() => {
     const segs = segments
@@ -23,7 +26,7 @@
     const mermaid = look.palette ? mermaidRenderer(look.palette, style) : undefined
     let live = true
     Promise.all(segs.map((s) => ('md' in s ? render(s.md, { mermaid }) : Promise.resolve(''))))
-      .then((out) => live && (html = out))
+      .then((out) => live && (rendered = { segs, html: out }))
       .catch(() => {})
     return () => (live = false)
   })

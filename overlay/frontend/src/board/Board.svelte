@@ -6,19 +6,19 @@
   import './tokens.css'
   import { Events } from '@wailsio/runtime'
   import { onMount, setContext } from 'svelte'
-  import { setLanguage, tr } from '../i18n'
+  import { setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
-  import { changedEvent, restartedEvent, statusEvent } from '../lib/shell'
-  import { watchSystemDark, type Mode } from '../lib/theme/mode'
+    import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { applyTheme } from '../lib/theme/tokens'
-  import { arrange, shellApi, type BoardApi, type Status } from './actions'
+  import { act, arrange, shellApi, type BoardApi, type Status } from './actions'
   import { boardContext, type BoardCtx } from './context'
   import Glance from './Glance.svelte'
   import { glance, stalledCount } from './glance'
   import Grid from './Grid.svelte'
-  import { keyAction } from './keys'
+  import { connect } from './session'
+  import { frameOf, keyAction } from './keys'
   import { columnsFor, nextSize, shift } from './layout'
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
   import NoteFrame from './NoteFrame.svelte'
@@ -135,13 +135,8 @@
         view = goToPage(navigate(view, at.tab, at.book.name), at.book.name, at.page, at.book.pages?.length ?? 0)
       } else view = navigate(view, at.tab, name)
     },
-    async act(note, action) {
-      try {
-        await api.act(note.name, note.version, action)
-      } finally {
-        await refresh() // a stale version: draw what the file says now
-      }
-    },
+    act: (note, action) =>
+      act(api, note, action, (error) => (failed = t('note.actFailed', { title: note.title, error })), refresh),
     async arrange(name, patch) {
       try {
         await arrange(api, name, patch, update)
@@ -171,19 +166,19 @@
 
   // --- keys --------------------------------------------------------------
 
-  const focusedName = (): string | null =>
-    (document.activeElement?.closest('[data-note]') as HTMLElement | null)?.dataset.note ?? null
-
   function onkey(e: KeyboardEvent) {
     if (!board || !tab) return
     const t = e.target as HTMLElement
     const editing = t.matches?.('input, textarea, select, [contenteditable]') ?? false
     // Enter and Space on a button or a link are that control's own
     if ((e.key === 'Enter' || e.key === ' ') && t.closest?.('button, a')) return
-    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view) })
-    if (!a) return
-    const name = zoomed?.name ?? focusedName()
+    // the note keys act on: the zoomed one, or the frame holding the focus
+    // (never the note a focused link names)
+    const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
+    const book = !!note?.pages?.length
+    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
+    if (!a) return
     switch (a.type) {
       case 'back':
         ctx.back()
@@ -193,7 +188,7 @@
         ctx.zoom(note.name)
         break
       case 'size':
-        if (!note) return
+        if (!note || note.error) return
         ctx.arrange(note.name, { size: nextSize(note.size, a.dir) })
         break
       case 'page':
@@ -206,8 +201,8 @@
         break
       case 'focus': {
         if (zoomed) return
-        const frames = [...document.querySelectorAll<HTMLElement>('.notes [data-note]')]
-        const i = frames.findIndex((f) => f.dataset.note === name)
+        const frames = [...document.querySelectorAll<HTMLElement>('.notes [data-frame]')]
+        const i = frames.findIndex((f) => f.dataset.frame === name)
         frames[Math.max(0, Math.min(frames.length - 1, i < 0 ? 0 : i + a.delta))]?.focus()
         break
       }
@@ -221,7 +216,7 @@
           tabs: b.tabs.map((x) => (x.name === tabName ? { ...x, notes: order.map((o) => x.notes.find((n) => n.name === o)!) } : x)),
         }))
         api.order(tabName, order).catch((err) => (failed = String(err))).finally(refresh)
-        requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-note="${CSS.escape(note.name)}"]`)?.focus())
+        requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(note.name)}"]`)?.focus())
         break
       }
       case 'edit':
@@ -249,18 +244,22 @@
         hotkey = p.hotkey ?? ''
       })
       .catch(() => {})
-    refresh().then(() => {
-      const id = status?.window
-      if (id === undefined) return
-      const changed = (e: { data?: unknown }) => {
-        // A10's motion listens for this and picks a movement from the events.
-        window.dispatchEvent(new CustomEvent('stickypane:board-changed', { detail: e?.data }))
-        refresh()
-      }
-      offs.push(Events.On(changedEvent(id), changed))
-      offs.push(Events.On(restartedEvent(id), () => refresh()))
-      offs.push(Events.On(statusEvent(id), () => refresh()))
-    })
+    refresh()
+    // the bridge's events, from as soon as the window id is known, even
+    // when the first load failed
+    offs.push(
+      connect({
+        status: () => api.status(),
+        bus: { on: (name, fn) => Events.On(name, fn) },
+        onChanged(data) {
+          // A10's motion listens for this and picks a movement from the events.
+          window.dispatchEvent(new CustomEvent('stickypane:board-changed', { detail: data }))
+          refresh()
+        },
+        onRestarted: () => refresh(),
+        onStatus: () => refresh(),
+      }),
+    )
     // elapsed times are words ("4m ago"): a new minute rewrites them
     const tick = setInterval(() => (now = new Date()), 60_000)
     offs.push(() => clearInterval(tick))

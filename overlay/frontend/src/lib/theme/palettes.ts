@@ -1,8 +1,10 @@
 // Mirror of internal/theme/palettes.go. At run time the palette comes from
 // the bridge; this table only supplies the paired theme when the overlay's
 // mode (03 §3.4) asks for the other half of a pair than the one chosen
-// (the bridge sends the chosen theme's colours alone). Keep it in step
-// with palettes.go.
+// (the bridge sends the chosen theme's colours alone). palettes.test.ts
+// checks it against palettes.golden.json, which overlay/scripts/palettes
+// makes from internal/theme (its Go test fails when that is out of date).
+// Task A11 replaces this mirror with a bridge `themes.list`.
 import type { Palette } from './palette'
 import { STICKYPANE_DARK, STICKYPANE_LIGHT } from './fallback'
 

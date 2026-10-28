@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { glance } from './glance'
-import { resolveLink, splitEmbeds } from './model'
+import { htmlFor, resolveLink, splitEmbeds } from './model'
 import type { Tab } from './model'
 
 const kanban = (name: string, columns: { title: string; cards: object[] }[]) => ({
@@ -54,6 +54,13 @@ test('links resolve as the terminal resolves them', () => {
   expect(resolveLink('work/todo.md', files)).toBe('work/todo.md')
   expect(resolveLink('x', files)).toBe('') // two could be meant
   expect(resolveLink('nothing', files)).toBe('')
+})
+
+test('HTML made for older segments is not drawn against new ones', () => {
+  const a = splitEmbeds('one')
+  const b = splitEmbeds('one\n![[x]]\ntwo')
+  expect(htmlFor({ segs: a, html: ['<p>one</p>'] }, a)).toEqual(['<p>one</p>'])
+  expect(htmlFor({ segs: a, html: ['<p>one</p>'] }, b)).toEqual([])
 })
 
 test('an embed is a line that is only ![[name]], outside code', () => {

@@ -123,5 +123,7 @@
   "note.diagramError": "Cannot draw this diagram",
   "checklist.progress": "{done}/{total}",
   "kanban.count": "{n} cards",
-  "kanban.empty": "No cards"
+  "kanban.empty": "No cards",
+  "card.stalled": "Stalled",
+  "note.actFailed": "Could not change {title}: {error}"
 }

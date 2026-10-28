@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { THEMES } from '../lib/theme/palettes'
-import { mermaidConfig, render } from './markdown'
+import { mermaidConfig, mermaidRenderer, render } from './markdown'
 
 const plain = { highlight: false }
 
@@ -65,6 +65,36 @@ describe('markdown', () => {
     expect(c.themeVariables.textColor).toBe(p.text)
     expect(c.look).toBe('handDrawn')
     expect(mermaidConfig(p, 'neat').look).toBe('classic')
+  })
+
+  test('Mermaid draws one diagram at a time: its configuration is shared', async () => {
+    const log: string[] = []
+    let open = 0
+    const fake = {
+      initialize: (c: { look: string }) => log.push('init ' + c.look),
+      render: async (id: string, src: string) => {
+        open++
+        expect(open).toBe(1)
+        await new Promise((r) => setTimeout(r, 5))
+        open--
+        log.push('render ' + src)
+        return { svg: `<svg id="${id}"/>` }
+      },
+    }
+    const load = async () => ({ default: fake })
+    const doodle = mermaidRenderer(THEMES[0], 'doodle', load)
+    const neat = mermaidRenderer(THEMES[0], 'neat', load)
+    const out = await Promise.all([doodle('a'), neat('b'), doodle('c')])
+    expect(out.every((s) => s.startsWith('<svg'))).toBe(true)
+    expect(log).toEqual(['init handDrawn', 'render a', 'init classic', 'render b', 'init handDrawn', 'render c'])
+  })
+
+  test('a failed diagram does not stop the next', async () => {
+    let n = 0
+    const fake = { initialize: () => {}, render: async () => (++n === 1 ? Promise.reject(new Error('bad')) : { svg: '<svg/>' }) }
+    const draw = mermaidRenderer(THEMES[0], 'neat', async () => ({ default: fake }))
+    await expect(draw('x')).rejects.toThrow('bad')
+    await expect(draw('y')).resolves.toBe('<svg/>')
   })
 
   test('math renders', async () => {

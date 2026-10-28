@@ -4,7 +4,7 @@
 
 import { Call } from '@wailsio/runtime'
 import { home, project } from '../lib/shell'
-import { withArrange, type ArrangePatch, type Board } from './model'
+import { withArrange, type ArrangePatch, type Board, type Note } from './model'
 
 export interface Status {
   window: number
@@ -15,10 +15,8 @@ export interface Status {
   version?: string
 }
 
-export interface Action {
-  name: string
-  args?: Record<string, string>
-}
+export type { Action } from './model'
+import type { Action } from './model'
 
 export interface BoardApi {
   status(): Promise<Status>
@@ -57,3 +55,20 @@ export const setSize = (api: BoardApi, note: string, size: string, update: Updat
 
 /** setRows is the bottom edge, dragged (0: as tall as the content). */
 export const setRows = (api: BoardApi, note: string, rows: number, update: Update) => arrange(api, note, { rows }, update)
+
+export { toggleAction } from './model'
+
+/**
+ * act is note.act with the note's version. A failure (a stale version, a
+ * note gone) is told through fail, never thrown; either way the board is
+ * read again, so the window draws what the file says now.
+ */
+export async function act(api: BoardApi, note: Note, a: Action, fail: (why: string) => void, refresh: () => Promise<void>): Promise<void> {
+  try {
+    await api.act(note.name, note.version, a)
+  } catch (e) {
+    fail(String(e))
+  } finally {
+    await refresh()
+  }
+}

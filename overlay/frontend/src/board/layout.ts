@@ -78,3 +78,36 @@ export function shift(order: string[], name: string, delta: -1 | 1): string[] | 
   ;[out[i], out[j]] = [out[j], out[i]]
   return out
 }
+
+/**
+ * HeightDrag is a drag of a note's bottom edge: from the body's height and
+ * the pointer's y at the start to the rows to save on release. A release
+ * that comes to the same rows, or a cancelled drag, saves nothing.
+ */
+export class HeightDrag {
+  private height: number
+  private done = false
+  constructor(
+    private readonly start: number,
+    private readonly y0: number,
+    private readonly rows: number,
+  ) {
+    this.height = start
+  }
+  /** move is the height to draw while the pointer is at y */
+  move(y: number): number {
+    this.height = Math.max(0, this.start + y - this.y0)
+    return this.height
+  }
+  /** release is the rows to save, or null for none */
+  release(): number | null {
+    if (this.done) return null
+    this.done = true
+    const rows = rowsFromHeight(this.height)
+    return rows === this.rows ? null : rows
+  }
+  cancel(): null {
+    this.done = true
+    return null
+  }
+}

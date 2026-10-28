@@ -3,7 +3,7 @@
   // through in pencil, and a progress bar. A click (or Space) ticks an
   // item through note.act `toggle`; the bridge's board.changed redraws it.
   import { useBoard } from '../board/context'
-  import { itemOrder, type ChecklistData, type Note } from '../board/model'
+  import { itemOrder, toggleAction, type ChecklistData, type Note } from '../board/model'
   import { language, relativeTime, tr } from '../i18n'
   import Check from '../lib/doodle/Check.svelte'
   import { seedOf } from '../lib/theme/tokens'
@@ -18,7 +18,7 @@
     if (busy >= 0) return
     busy = i
     try {
-      await board.act(note, { name: 'toggle', args: { i: String(i) } })
+      await board.act(note, toggleAction(i))
     } finally {
       busy = -1
     }

@@ -3,7 +3,7 @@
 // so a note draws and acts the same anywhere.
 
 import { getContext } from 'svelte'
-import type { Action } from './actions'
+import type { Action } from './model'
 import type { ArrangePatch, Note } from './model'
 import { NOTE_NAMES, type Palette } from '../lib/theme/palette'
 

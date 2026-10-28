@@ -10,7 +10,7 @@
   import { tr } from '../i18n'
   import Shape from '../shapes/Shape.svelte'
   import { noteHex, useBoard } from './context'
-  import { heightOfRows, rowsFromHeight, SIZES } from './layout'
+  import { HeightDrag, heightOfRows, SIZES } from './layout'
   import type { Note } from './model'
 
   let { note, zoomed = false, small = false, narrow = false }: { note: Note; zoomed?: boolean; small?: boolean; narrow?: boolean } =
@@ -22,6 +22,8 @@
   const shown = $derived(pages.length ? pages[page] : note)
   const color = $derived(noteHex(note.color, look.palette))
   const changed = $derived(board.changed(note) || pages.some((p) => board.changed(p)))
+  // a note that cannot be read can only be closed (10 §10.1)
+  const readable = $derived(!note.error)
   const sizeIcon: Record<string, string> = { card: '▢', half: '▭', page: '▬' }
 
   // the height being dragged, in px; null when not dragging
@@ -38,22 +40,21 @@
     e.preventDefault()
     const el = e.currentTarget as HTMLElement
     el.setPointerCapture(e.pointerId)
-    const y0 = e.clientY
-    const h0 = body.clientHeight
-    const move = (m: PointerEvent) => (dragH = Math.max(0, h0 + m.clientY - y0))
-    const up = () => {
+    const drag = new HeightDrag(body.clientHeight, e.clientY, note.rows)
+    const move = (m: PointerEvent) => (dragH = drag.move(m.clientY))
+    const end = (save: boolean) => () => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
-      el.removeEventListener('pointercancel', up)
-      if (dragH !== null) {
-        const rows = rowsFromHeight(dragH)
-        dragH = null
-        if (rows !== note.rows) board.arrange(note.name, { rows })
-      }
+      el.removeEventListener('pointercancel', cancel)
+      dragH = null
+      const rows = save ? drag.release() : drag.cancel()
+      if (rows !== null) board.arrange(note.name, { rows })
     }
+    const up = end(true)
+    const cancel = end(false) // the system took the pointer: keep the height it had
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
-    el.addEventListener('pointercancel', up)
+    el.addEventListener('pointercancel', cancel)
   }
 
   function rename() {
@@ -79,7 +80,7 @@
   class="frame"
   class:zoomed
   class:small
-  data-note={note.name}
+  data-frame={note.name}
   tabindex="0"
   role="group"
   aria-label={note.title}
@@ -110,7 +111,7 @@
         />
       {:else}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <span class="title" style:color title={$tr('note.rename')} ondblclick={rename}>{note.title}</span>
+        <span class="title" style:color title={readable ? $tr('note.rename') : null} ondblclick={() => readable && rename()}>{note.title}</span>
       {/if}
       {#if changed}<span class="changed" title={$tr('note.changed')} aria-label={$tr('note.changed')}>•</span>{/if}
       {#if note.linked}<span class="linked" title={$tr('note.linked', { target: note.target ?? '' })}>🔗</span>{/if}
@@ -125,6 +126,7 @@
         </span>
       {/if}
       <span class="tools">
+        {#if readable}
         {#each SIZES as s (s)}
           <button
             class="ctl"
@@ -142,13 +144,14 @@
           onclick={() => board.arrange(note.name, { pin: !note.pinned })}>📌</button
         >
         <button class="ctl dot" style:color title={$tr('note.color')} aria-label={$tr('note.color')} aria-expanded={colours} onclick={() => (colours = !colours)}>●</button>
+        {/if}
         {#if !zoomed}
           <button class="ctl" title={$tr('note.zoom')} aria-label={$tr('note.zoom')} onclick={() => board.zoom(note.name)}>⤢</button>
         {/if}
         <button class="ctl" title={$tr('note.close')} aria-label={$tr('note.close')} onclick={() => board.arrange(note.name, { open: false })}>×</button>
       </span>
     </header>
-    {#if colours}
+    {#if colours && readable}
       <div class="swatches" role="menu">
         {#each NOTE_NAMES as c (c)}
           <button
@@ -171,7 +174,7 @@
         <Shape note={shown} narrow={narrow || small} />
       {/key}
     </div>
-    {#if !zoomed}
+    {#if !zoomed && readable}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="edge" title={$tr('note.height')} onpointerdown={startDrag} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
     {/if}

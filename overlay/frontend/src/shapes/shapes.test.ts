@@ -55,6 +55,16 @@ test('board draws columns and stalled ring', () => {
   expect(body).toContain('data-stalled="true"')
 })
 
+test('a stalled card with no time says so without an empty suffix', () => {
+  const note = {
+    ...base, name: 'w.md', title: 'W', kind: 'board', size: 'page',
+    data: { desc: [], columns: [{ title: 'Doing', cards: [{ text: 'x', who: [], detail: [], stalled: true }] }, { title: 'Done', cards: [] }] },
+  } as unknown as Note
+  const { body } = render(Kanban, { props: { note }, context: ctx() })
+  expect(body).toMatch(/class="stalled[^"]*">Stalled</)
+  expect(body).not.toMatch(/Stalled \s*</) // not "Stalled {time}" with no time
+})
+
 test('a checklist draws its items, done ones struck, with progress', () => {
   const note = {
     ...base, name: 'todo.md', title: 'Todo', kind: 'checklist', size: 'half',
@@ -86,6 +96,6 @@ test('300 notes render under 1s', () => {
   const t0 = performance.now()
   const { body } = render(Grid, { props: { notes, columns: 2 }, context: ctx() })
   const took = performance.now() - t0
-  expect((body.match(/data-note="/g) ?? []).length).toBe(300)
+  expect((body.match(/data-frame="/g) ?? []).length).toBe(300)
   expect(took).toBeLessThan(1000)
 })

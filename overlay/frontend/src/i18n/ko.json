@@ -123,5 +123,7 @@
   "note.diagramError": "이 다이어그램을 그릴 수 없어요",
   "checklist.progress": "{done}/{total}",
   "kanban.count": "카드 {n}장",
-  "kanban.empty": "카드가 없어요"
+  "kanban.empty": "카드가 없어요",
+  "card.stalled": "멈춰 있어요",
+  "note.actFailed": "{title}을(를) 바꾸지 못했어요: {error}"
 }

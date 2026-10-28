@@ -22,7 +22,16 @@ export interface KeyLike {
 export interface KeyContext {
   zoomed: boolean
   canBack: boolean
+  /** the note the keys act on is a book: left and right turn its pages */
+  book?: boolean
 }
+
+/**
+ * frameOf is the note whose frame holds el (data-frame), the note keys act
+ * on. A link inside a note names another note (data-note) and is not it.
+ */
+export const frameOf = (el: Element | null): string | null =>
+  (el?.closest('[data-frame]') as HTMLElement | null)?.dataset.frame ?? null
 
 /** keyAction is what a key does on the board, or null when it does nothing here. */
 export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
@@ -45,9 +54,11 @@ export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
     case ']':
       return { type: 'page', delta: 1 }
     case 'ArrowLeft':
+      return ctx.book ? { type: 'page', delta: -1 } : { type: 'focus', delta: -1 }
+    case 'ArrowRight':
+      return ctx.book ? { type: 'page', delta: 1 } : { type: 'focus', delta: 1 }
     case 'ArrowUp':
       return { type: 'focus', delta: -1 }
-    case 'ArrowRight':
     case 'ArrowDown':
       return { type: 'focus', delta: 1 }
     case '{':

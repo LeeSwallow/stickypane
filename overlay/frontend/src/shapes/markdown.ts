@@ -207,16 +207,28 @@ export function mermaidConfig(p: Palette, style: Style) {
 }
 
 let diagrams = 0
+// Mermaid keeps one configuration for the page, so drawings take turns:
+// each sets its configuration and draws before the next begins.
+let turn: Promise<unknown> = Promise.resolve()
 
-/**
- * mermaidRenderer draws with the bundled Mermaid, loaded on first use.
- * Mermaid keeps one configuration, so each drawing sets it first.
- */
-export function mermaidRenderer(p: Palette, style: Style): DiagramRenderer {
-  return async (source) => {
-    const { default: mermaid } = await import('mermaid')
-    mermaid.initialize(mermaidConfig(p, style))
-    const { svg } = await mermaid.render(`sp-diagram-${++diagrams}`, source)
-    return svg
+/** The part of Mermaid used here (a test passes its own). */
+export interface MermaidLike {
+  initialize(config: ReturnType<typeof mermaidConfig>): void
+  render(id: string, source: string): Promise<{ svg: string }>
+}
+
+const bundled = () => import('mermaid') as unknown as Promise<{ default: MermaidLike }>
+
+/** mermaidRenderer draws with the bundled Mermaid, loaded on first use, one drawing at a time. */
+export function mermaidRenderer(p: Palette, style: Style, load: () => Promise<{ default: MermaidLike }> = bundled): DiagramRenderer {
+  return (source) => {
+    const run = turn.then(async () => {
+      const { default: mermaid } = await load()
+      mermaid.initialize(mermaidConfig(p, style))
+      const { svg } = await mermaid.render(`sp-diagram-${++diagrams}`, source)
+      return svg
+    })
+    turn = run.catch(() => {})
+    return run
   }
 }
