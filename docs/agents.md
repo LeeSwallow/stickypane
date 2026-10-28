@@ -25,19 +25,26 @@ note first.
 ## The plugin
 
 `stickypane setup` installs the plugin for every agent it finds, through
-the agents' own commands:
+the agents' own commands. It makes no board and writes no instruction
+file, so it is safe to run from any folder; `stickypane init` in a project
+makes its board, and in a project that already has one takes out a guide
+the plugin now teaches.
 
 ```sh
 stickypane setup                       # asks, then installs for Claude Code and Codex
 stickypane setup --scope project --mcp --yes
-stickypane setup --undo                # takes it out again
+stickypane setup --undo                # uninstalls the plugin again
 ```
 
 `--scope` is where Claude Code installs it: `user` (every project, the
 default), `project` (this repository, shared with the team) or `local`
 (this repository, just you). `--mcp` also registers `stickypane mcp` as an
 MCP server, `--agents claude,codex` limits it to some agents, and
-`--dry-run` prints the commands without running them. In a terminal it
+`--dry-run` prints the commands without running them. `--undo`
+uninstalls the plugin from each agent found (from Claude Code at the
+`--scope` given, `user` unless you say); with `--mcp` it also removes the
+`stickypane` MCP server. It leaves the marketplace entry, the boards and
+any guide `init` wrote in place. In a terminal it
 asks for what the flags did not say.
 
 The plugin is in layers. The way in, `using-the-board`, says which of four

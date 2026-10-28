@@ -148,5 +148,10 @@ two things there, to let the desktop app list your boards:
   and start time. It is removed when the session ends. `run/touch-*` files
   are empty markers that keep the once-a-minute count.
 
+When you open a board, in the terminal or the desktop app, stickypane clears
+out what is no longer needed: the `run/` file of a session whose process
+has died, events older than 90 days, and markers a day old. It is the
+only program that deletes these files.
+
 No note text, no arguments, no file contents. Nothing leaves your machine.
 Delete the folder to stop it.

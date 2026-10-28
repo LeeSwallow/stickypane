@@ -65,7 +65,7 @@ go build -o stickypane ./cmd/stickypane
 ## Check that it works
 
 ```sh
-stickypane version     # stickypane 0.1.0
+stickypane version     # stickypane 0.1.1
 stickypane env         # the system, shell, pane tool, locale and editor it found
 ```
 
@@ -73,7 +73,8 @@ stickypane env         # the system, shell, pane tool, locale and editor it foun
 
 Update the way you installed it: `brew upgrade --cask stickypane`, a newer
 archive, or `go install ...@latest` again. To remove it, run
-`stickypane setup --undo` if you installed the plugin, then
+`stickypane setup --undo` if you installed the plugin (with the same
+`--scope`, and `--mcp` if you registered the MCP server), then
 `brew uninstall --cask stickypane` or delete the program. Your notes stay
 in each project's `.sticky/` folder; they are plain files, yours to keep or
 delete.
