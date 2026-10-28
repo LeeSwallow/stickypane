@@ -9,6 +9,7 @@ import (
 )
 
 func TestComposeWritesTheFirstEntries(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Worklog", map[string]string{"entries": "started\nread the spec"})
 	if err != nil {
 		t.Fatal(err)

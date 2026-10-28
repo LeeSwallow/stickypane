@@ -9,6 +9,7 @@ import (
 )
 
 func TestComposeWritesTheCommands(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Build", map[string]string{"commands": "go vet ./...\ngo test ./..."})
 	if err != nil {
 		t.Fatal(err)

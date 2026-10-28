@@ -7,6 +7,7 @@ import (
 )
 
 func TestComposeKeepsTheMarkdown(t *testing.T) {
+	t.Parallel()
 	md := "# Plan\n\n- one\n  - two\n"
 	b, err := NewKind(Plain).Make("Plan", map[string]string{"text": md})
 	if err != nil {

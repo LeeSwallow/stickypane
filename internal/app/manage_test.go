@@ -15,6 +15,7 @@ import (
 )
 
 func TestPinToggles(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	press(m, "tab", "p")
 	if v := viewsOf(t, dir)["b.md"].Pin; v == nil || !*v || readFile(t, dir, "b.md") != "two\n" {
@@ -30,6 +31,7 @@ func TestPinToggles(t *testing.T) {
 }
 
 func TestColorCycles(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n"})
 	first := palette[(arrange.ColorIndex("a.md", "")+1)%len(palette)]
 	second := palette[(arrange.ColorIndex("a.md", "")+2)%len(palette)]
@@ -44,6 +46,7 @@ func TestColorCycles(t *testing.T) {
 }
 
 func TestRenameEditsTheTitle(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "---\ntitle: Old\n---\nx\n"})
 	press(m, "R")
 	typeText(m, "er")
@@ -57,6 +60,7 @@ func TestRenameEditsTheTitle(t *testing.T) {
 }
 
 func TestArchiveMovesTheNoteAway(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "one\n", "b.md": "two\n"})
 	press(m, "x")
 	if got := readFile(t, dir, "archive/a.md"); got != "one\n" {
@@ -71,6 +75,7 @@ func TestArchiveMovesTheNoteAway(t *testing.T) {
 }
 
 func TestDeleteAsksFirst(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "---\ntitle: Plan\n---\nx\n"})
 	path := filepath.Join(dir, "a.md")
 	press(m, "D")
@@ -91,6 +96,7 @@ func TestDeleteAsksFirst(t *testing.T) {
 }
 
 func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, nil)
 	press(m, "p", "c", "R", "x", "D", "e", "enter", "o", "+", "-", "tab", "j", "G")
 	if m.mode != modeBoard {
@@ -121,6 +127,7 @@ func TestEditorCommand(t *testing.T) {
 }
 
 func TestEditorFailureIsReported(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(reloadMsg{what: "Editor failed", err: errors.New("exit status 1")})
 	if s := screen(m); !strings.Contains(s, "Editor failed: exit status 1") {
@@ -129,6 +136,7 @@ func TestEditorFailureIsReported(t *testing.T) {
 }
 
 func TestHelpOpensScrollsAndCloses(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
 	for _, line := range strings.Split(m.tr.Help, "\n") {
@@ -160,6 +168,7 @@ func TestHelpOpensScrollsAndCloses(t *testing.T) {
 }
 
 func TestHelpFromAZoomedNoteReturnsToIt(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"b.md": boardFile})
 	press(m, "enter")
 	if s := screen(m); !strings.Contains(s, "? keys") {

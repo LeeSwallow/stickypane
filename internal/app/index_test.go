@@ -8,6 +8,7 @@ import (
 // i (or /) opens the index: every note of every tab in a line. Typing
 // filters it; enter goes to the note, switching tab and opening it.
 func TestTheIndexFindsAndOpensANote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{
 		"plan.md":  "---\ntype: checklist\ntitle: Plan\n---\n- [ ] write tests\n",
 		"notes.md": "just text\n",
@@ -41,6 +42,7 @@ func TestTheIndexFindsAndOpensANote(t *testing.T) {
 // f on a note opens the index with only the notes it links to and the
 // notes that link to it; enter goes there.
 func TestFFollowsALink(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"plan.md":  opened("see [[why]]\n"),
 		"why.md":   "---\ntitle: Why\n---\nbecause\n",

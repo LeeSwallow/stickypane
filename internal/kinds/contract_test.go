@@ -15,6 +15,7 @@ import (
 // Every registered shape keeps the widget contract, so a new shape only has
 // to pass this to work on the board, in the catalog and in `kinds`.
 func TestEveryKindKeepsTheContract(t *testing.T) {
+	t.Parallel()
 	for _, k := range Default(note.Plain) {
 		t.Run(k.Name, func(t *testing.T) {
 			for field, v := range map[string]string{"Icon": k.Icon, "Label": k.Label, "Blurb": k.Blurb, "Example": k.Example, "Command": k.Command, "Usage": k.Usage} {
@@ -65,6 +66,7 @@ func TestEveryKindKeepsTheContract(t *testing.T) {
 // Every shape says what it holds, for a screen that is not a terminal, and
 // a shape that takes actions refuses the ones it does not know.
 func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
+	t.Parallel()
 	for _, k := range Default(note.Plain) {
 		t.Run(k.Name, func(t *testing.T) {
 			if k.Data == nil {
@@ -91,6 +93,7 @@ func TestEveryKindHasDataAndRefusesUnknownActions(t *testing.T) {
 // formed and translated, and what it makes with no option given is a note
 // of the same shape.
 func TestEveryKindComposesFromItsOptions(t *testing.T) {
+	t.Parallel()
 	ko, err := i18n.Load("ko")
 	if err != nil {
 		t.Fatal(err)

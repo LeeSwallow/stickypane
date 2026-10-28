@@ -31,6 +31,7 @@ func (c *counted) Sync(d doc.Document) widget.Widget { return &counted{draws: c.
 // A note that did not change is not drawn again when another key redraws
 // the screen; one that took a key is.
 func TestAnUnchangedNoteIsNotDrawnAgain(t *testing.T) {
+	t.Parallel()
 	draws := 0
 	kind := widget.Kind{Name: "note", Keys: "x", Parse: func(d doc.Document, _ widget.Env) widget.Widget { return &counted{draws: &draws, text: d.Body} }}
 	dir := filepath.Join(t.TempDir(), store.DirName)

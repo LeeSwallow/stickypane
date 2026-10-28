@@ -9,6 +9,7 @@ import (
 )
 
 func TestComposeWritesOpenItems(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Release", map[string]string{"items": "build\n\n tag \npublish"})
 	if err != nil {
 		t.Fatal(err)

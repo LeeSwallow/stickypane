@@ -13,6 +13,7 @@ func fileExists(dir, name string) bool {
 }
 
 func TestDeleteGoesToTheTrashAndUBringsItBack(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n")})
 	press(m, "D", "y")
 	if fileExists(dir, "a.md") || readFile(t, dir, ".trash/a.md") != opened("note a\n") {
@@ -35,6 +36,7 @@ func TestDeleteGoesToTheTrashAndUBringsItBack(t *testing.T) {
 }
 
 func TestArchiveCanBeUndone(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
 	press(m, "x")
 	if !fileExists(dir, "archive/a.md") {
@@ -47,6 +49,7 @@ func TestArchiveCanBeUndone(t *testing.T) {
 }
 
 func TestUndoDoesNotWriteOverANewNote(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("old\n")})
 	press(m, "D", "y")
 	writeFile(t, dir, "a.md", "written since\n")
@@ -60,6 +63,7 @@ func TestUndoDoesNotWriteOverANewNote(t *testing.T) {
 }
 
 func TestMMovesANoteIntoATabThenABookAndBack(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n")})
 	mkdir(t, dir, "t/docs")
 	writeFile(t, dir, "t/docs/p.md", "page p\n")
@@ -97,6 +101,7 @@ func TestMMovesANoteIntoATabThenABookAndBack(t *testing.T) {
 }
 
 func TestMCanMakeANewFolder(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n")})
 	press(m, "m", "enter") // the only choice is a new folder
 	if m.mode != modeInput {
@@ -111,6 +116,7 @@ func TestMCanMakeANewFolder(t *testing.T) {
 }
 
 func TestMovingOntoATakenNameIsRefused(t *testing.T) {
+	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("mine\n")})
 	mkdir(t, dir, "t")
 	writeFile(t, dir, "t/a.md", "theirs\n")

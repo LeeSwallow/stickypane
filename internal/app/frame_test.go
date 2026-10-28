@@ -16,6 +16,7 @@ func top(b box) string {
 }
 
 func TestFrameTopBorder(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name string
 		b    box
@@ -39,6 +40,7 @@ func TestFrameTopBorder(t *testing.T) {
 }
 
 func TestFrameKeepsWidthWithWideText(t *testing.T) {
+	t.Parallel()
 	body := "토큰은 세션 쿠키로\nshort\n" + strings.Repeat("긴", 40)
 	for _, focused := range []bool{false, true} {
 		for _, title := range []string{"", "인증 설계 보고서", "아주 긴 제목입니다 정말로 길어서 잘려야 하는 제목"} {
@@ -55,12 +57,14 @@ func TestFrameKeepsWidthWithWideText(t *testing.T) {
 }
 
 func TestFrameHeightFollowsTheBody(t *testing.T) {
+	t.Parallel()
 	if n := strings.Count(frame(box{body: "a\nb\nc", width: 20, color: lipgloss.Color("#F2D45C")}), "\n") + 1; n != 5 {
 		t.Errorf("three body lines should give 5 lines, got %d", n)
 	}
 }
 
 func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
+	t.Parallel()
 	lines := (&Model{}).dialog("Keys", []string{"one", "two"}, 20, 60, 12, lipgloss.Color("#7FB3F5"))
 	var first string
 	for _, l := range lines {
@@ -86,6 +90,7 @@ func TestDialogIsCenteredAndFallsBackWhenThereIsNoRoom(t *testing.T) {
 }
 
 func TestHintsPairKeysWithLabels(t *testing.T) {
+	t.Parallel()
 	if got := ansi.Strip((&Model{}).hints(80, "tab", "next", "o", "close")); got != "tab next  o close" {
 		t.Errorf("hints = %q", got)
 	}

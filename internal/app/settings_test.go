@@ -12,6 +12,7 @@ import (
 // as such. j and k pick one, l and h (or enter) change it, at once, and
 // the change is kept in sticky.json; esc closes.
 func TestTheSettingsPanelChangesWhatItSays(t *testing.T) {
+	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("note\n")})
 	press(m, "S")
 	s := screen(m)

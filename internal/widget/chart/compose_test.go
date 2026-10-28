@@ -10,6 +10,7 @@ import (
 )
 
 func TestComposeWritesTheViewAndValues(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Tokens", map[string]string{"view": "spark", "values": "mon: 3\ntue: 1,200\n\nwed: -2.5"})
 	if err != nil {
 		t.Fatal(err)
@@ -29,6 +30,7 @@ func TestComposeWritesTheViewAndValues(t *testing.T) {
 }
 
 func TestComposeCountsFromAnotherNote(t *testing.T) {
+	t.Parallel()
 	b, err := Kind.Make("Progress", map[string]string{"from": "plan"})
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +45,7 @@ func TestComposeCountsFromAnotherNote(t *testing.T) {
 }
 
 func TestComposeRefusesALineThatIsNotAValue(t *testing.T) {
+	t.Parallel()
 	_, err := Kind.Make("x", map[string]string{"values": "mon: 3\nlots"})
 	if !errors.Is(err, widget.ErrBadOption) || !strings.Contains(err.Error(), "lots") {
 		t.Errorf("err = %v", err)

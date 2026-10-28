@@ -14,6 +14,7 @@ import (
 const flow = "Here is the flow.\n\n```mermaid\ngraph LR\n  key[키 입력] --> app --> store\n```\n\nThat is all.\n"
 
 func TestMermaidBlocksBecomeDiagrams(t *testing.T) {
+	t.Parallel()
 	out := ansi.Strip(WithMermaid(note.Plain)(flow, 70, widget.Env{}))
 	for _, want := range []string{"Here is the flow.", "That is all.", "키 입력", "app", "store", "┌", "►"} {
 		if !strings.Contains(out, want) {
@@ -31,6 +32,7 @@ func TestMermaidBlocksBecomeDiagrams(t *testing.T) {
 }
 
 func TestSequenceDiagramsAreDrawn(t *testing.T) {
+	t.Parallel()
 	out := ansi.Strip(WithMermaid(note.Plain)("```mermaid\nsequenceDiagram\n  Agent->>File: write note\n  File-->>Board: changed\n```\n", 70, widget.Env{}))
 	for _, want := range []string{"Agent", "File", "Board", "write note", "changed", "┌"} {
 		if !strings.Contains(out, want) {
@@ -40,6 +42,7 @@ func TestSequenceDiagramsAreDrawn(t *testing.T) {
 }
 
 func TestEntityDiagramsAreDrawn(t *testing.T) {
+	t.Parallel()
 	md := "```mermaid\nerDiagram\n  USER ||--o{ NOTE : writes\n  USER {\n    int id PK\n    string name\n  }\n```\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 70, widget.Env{}))
 	for _, want := range []string{"USER", "NOTE", "writes", "│ int", "│ PK │", "┌"} {
@@ -53,6 +56,7 @@ func TestEntityDiagramsAreDrawn(t *testing.T) {
 }
 
 func TestWhatCannotBeDrawnShowsItsSource(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"```mermaid\npie title Pets\n  \"Dogs\" : 3\n```\n", // a diagram type the renderer does not know
 		"```mermaid\ngraph LR\n  A -->\n",                   // a block that is never closed
@@ -68,6 +72,7 @@ func TestWhatCannotBeDrawnShowsItsSource(t *testing.T) {
 }
 
 func TestOtherCodeBlocksAreLeftAlone(t *testing.T) {
+	t.Parallel()
 	md := "```go\nfunc main() {}\n```\n\n~~~mermaid\ngraph TD\n  A --> B\n~~~\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 60, widget.Env{}))
 	if !strings.Contains(out, "func main() {}") || !strings.Contains(out, "```go") {
@@ -79,6 +84,7 @@ func TestOtherCodeBlocksAreLeftAlone(t *testing.T) {
 }
 
 func TestDiagramsFitTheWidthWhenTheyCan(t *testing.T) {
+	t.Parallel()
 	out := WithMermaid(note.Plain)("```mermaid\ngraph LR\n  A --> B --> C --> D\n```\n", 44, widget.Env{})
 	for _, line := range strings.Split(out, "\n") {
 		if w := widget.Width(line); w > 44 {
@@ -88,6 +94,7 @@ func TestDiagramsFitTheWidthWhenTheyCan(t *testing.T) {
 }
 
 func TestMarkdownDrawsMermaid(t *testing.T) {
+	t.Parallel()
 	out := ansi.Strip(Markdown(theme.NewHolder(theme.Pick("auto", true)))(flow, 70, widget.Env{}))
 	if !strings.Contains(out, "┌") || strings.Contains(out, "graph LR") || !strings.Contains(out, "That is all.") {
 		t.Errorf("the styled renderer should draw Mermaid blocks too:\n%s", out)
@@ -95,6 +102,7 @@ func TestMarkdownDrawsMermaid(t *testing.T) {
 }
 
 func TestAHugeDiagramKeepsItsSource(t *testing.T) {
+	t.Parallel()
 	var sb strings.Builder
 	sb.WriteString("```mermaid\ngraph LR\n")
 	for i := 0; i < 400; i++ {
@@ -108,6 +116,7 @@ func TestAHugeDiagramKeepsItsSource(t *testing.T) {
 }
 
 func TestADiagramTooWideForTheNoteIsNotCut(t *testing.T) {
+	t.Parallel()
 	md := "```mermaid\nsequenceDiagram\n  Alice->>Bob: a rather long message for a narrow pane\n```\n"
 	out := WithMermaid(note.Plain)(md, 30, widget.Env{})
 	for _, line := range strings.Split(out, "\n") {
@@ -122,6 +131,7 @@ func TestADiagramTooWideForTheNoteIsNotCut(t *testing.T) {
 }
 
 func TestAWideFlowchartTurnsDownwards(t *testing.T) {
+	t.Parallel()
 	md := "```mermaid\ngraph LR\n  alpha --> beta --> gamma --> delta --> epsilon\n```\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 32, widget.Env{}))
 	if strings.Contains(out, "graph LR") || !strings.Contains(out, "▼") || !strings.Contains(out, "epsilon") {
@@ -130,6 +140,7 @@ func TestAWideFlowchartTurnsDownwards(t *testing.T) {
 }
 
 func TestANarrowPaneGetsATighterDrawing(t *testing.T) {
+	t.Parallel()
 	md := "```mermaid\ngraph LR\n  agent[에이전트] --> file[.stickypane/*.md]\n  file --> board[stickypane 화면]\n  board --> user[사용자]\n  user -->|키 입력| file\n```\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 46, widget.Env{}))
 	if strings.Contains(out, "graph LR") || !strings.Contains(out, "┌") {
@@ -143,6 +154,7 @@ func TestANarrowPaneGetsATighterDrawing(t *testing.T) {
 }
 
 func TestLongerFencesAreRespected(t *testing.T) {
+	t.Parallel()
 	md := "Example:\n\n````markdown\n```mermaid\ngraph LR\n  A --> B\n```\n````\n\nafter\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 60, widget.Env{}))
 	if strings.Contains(out, "┌") || !strings.Contains(out, "graph LR") || !strings.Contains(out, "after") {
@@ -151,6 +163,7 @@ func TestLongerFencesAreRespected(t *testing.T) {
 }
 
 func TestStylingLinesAndLabelledArrowsAreUnderstood(t *testing.T) {
+	t.Parallel()
 	md := "```mermaid\ngraph LR\n  A -- yes --> B\n  style A fill:#f9f\n  click A href \"x\"\n```\n"
 	out := ansi.Strip(WithMermaid(note.Plain)(md, 70, widget.Env{}))
 	if strings.Contains(out, "style") || strings.Contains(out, "click") || strings.Contains(out, "A -- yes") || !strings.Contains(out, "yes") {
