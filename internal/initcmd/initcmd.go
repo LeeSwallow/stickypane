@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane"
+	"github.com/LeeSwallow/stickypane/internal/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/store"
 )
@@ -121,13 +122,13 @@ func MakeBoard(root string) (string, bool, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", false, err
 	}
-	if err := os.WriteFile(filepath.Join(dir, "welcome.md"), []byte(welcome), 0o644); err != nil {
+	if err := store.Open(dir).WriteNew("welcome.md", []byte(welcome)); err != nil {
 		return "", false, err
 	}
 	// Deleted notes wait in the trash to be restored. They are the user's
 	// own undo history and do not belong in the repository; nor do the
 	// tokens a .http note captured from responses.
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"+httpfile.SavedFile+"\n"), 0o644); err != nil {
+	if err := atomicfile.WriteFile(filepath.Join(dir, ".gitignore"), []byte(store.TrashDir+"/\n"+httpfile.SavedFile+"\n"), 0o644); err != nil {
 		return "", false, err
 	}
 	return dir, true, nil
@@ -270,7 +271,7 @@ func put(root, name string, change func(string) string, r *report) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+	if err := atomicfile.WriteFile(path, []byte(text), 0o644); err != nil {
 		return err
 	}
 	r.added = append(r.added, filepath.ToSlash(name))
@@ -306,11 +307,11 @@ func strip(root, name string, r *report) error {
 	case before == "" && after == "":
 		return os.Remove(path)
 	case before == "":
-		return os.WriteFile(path, []byte(after), 0o644)
+		return atomicfile.WriteFile(path, []byte(after), 0o644)
 	case after == "":
-		return os.WriteFile(path, []byte(before+nl), 0o644)
+		return atomicfile.WriteFile(path, []byte(before+nl), 0o644)
 	}
-	return os.WriteFile(path, []byte(before+nl+nl+after), 0o644)
+	return atomicfile.WriteFile(path, []byte(before+nl+nl+after), 0o644)
 }
 
 // find returns where an earlier guide starts and ends in content.
