@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
+	"github.com/LeeSwallow/stickypane/internal/when"
 )
 
 type entry struct {
@@ -83,7 +84,7 @@ func data(d doc.Document) any {
 		case e.item:
 			t := thing{Text: e.text, Checked: e.checked}
 			if !e.done.IsZero() {
-				t.Done = e.done.Format(time.RFC3339)
+				t.Done = e.done.Format(when.Moment)
 			}
 			out.Items = append(out.Items, t)
 		case e.text != "":

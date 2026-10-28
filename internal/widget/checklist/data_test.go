@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/doc"
 	"github.com/LeeSwallow/stickypane/internal/widget"
@@ -21,8 +22,11 @@ func dataOf(t *testing.T, d doc.Document) string {
 }
 
 func TestDataOfAList(t *testing.T) {
+	old := time.Local
+	time.Local = time.FixedZone("KST", 9*3600)
+	defer func() { time.Local = old }()
 	got := dataOf(t, doc.Parse([]byte(listSrc)))
-	want := `{"items":[{"text":"build","checked":false},{"text":"test","checked":true,"done":"2026-10-03T14:02:00` + zone(t) + `"},{"text":"ship","checked":false}],"prose":["Release plan"],"done":1,"total":3}`
+	want := `{"items":[{"text":"build","checked":false},{"text":"test","checked":true,"done":"2026-10-03T14:02:00+09:00"},{"text":"ship","checked":false}],"prose":["Release plan"],"done":1,"total":3}`
 	if got != want {
 		t.Errorf("Data = %s\nwant   %s", got, want)
 	}
@@ -34,13 +38,6 @@ func TestDataOfAnEmptyList(t *testing.T) {
 	if got != want {
 		t.Errorf("Data = %s, want %s", got, want)
 	}
-}
-
-// zone is the offset the test machine writes after a local time, as RFC 3339.
-func zone(t *testing.T) string {
-	t.Helper()
-	d := read(doc.Parse([]byte(listSrc))).entries[2].done
-	return d.Format("Z07:00")
 }
 
 func doAct(t *testing.T, src, name string, args map[string]string) (doc.Document, error) {
