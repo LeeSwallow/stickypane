@@ -45,7 +45,7 @@
 | 터미널 | 키 | overlay | 판정 | bridge |
 |---|---|---|---|---|
 | 끄적이기 | `N`, `n` | [사용자 결정] overlay에는 두지 않는다(R-36). 빠른 메모도 "+ 만들기"에서 모양 note를 골라 만든다. 터미널의 `N`은 그대로 | ✗ | — |
-| 모양 골라 추가(카탈로그) | `a` | **"+ 만들기"**(제목줄 버튼, `A`). 손그림 카탈로그: 왼쪽 모양 목록, 오른쪽에 설명과 실제 렌더러로 그린 예시. 고르면 제목 입력 | ✅ | `kinds.list`(이름·아이콘·라벨·blurb·example·data) + `note.create {kind, title}` |
+| 모양 골라 추가(카탈로그) | `a` | **"+ 생성"**(제목줄 버튼, `a`). 왼쪽 모양 목록, 오른쪽에 설명·제목·탭과 그 모양의 만들기 옵션(`kinds.list`의 `options`로 그린 칸: 한 줄·여러 줄·고르기·숫자·켜고 끄기), 아래에 실제 렌더러로 그린 예시. 앱은 값만 보내고 본문은 모양의 `Kind.Compose`가 쓴다. 모양이 거절한 값은 그 칸 아래에 bridge의 말 그대로 | ✅ | `kinds.list`(이름·아이콘·라벨·blurb·example·data·options) + `note.create {tab, kind, title, options}` |
 | 보관 | `x` | 노트 머리 메뉴 "보관" | ✅ | `note.archive` |
 | 지우기(휴지통) | `D` + 확인 | 메뉴 "지우기" + 확인 메모지 | ✅ | `note.trash` |
 | 되돌리기(마지막 x/D 하나) | `u` | 지운 직후 하단 토스트 "되돌리기"(↗: 토스트가 사라지기 전까지), `⌘Z` | ✅ | `note.restore` |
@@ -85,6 +85,8 @@
 | (overlay만) style | doodle · neat | overlay 설정에만 |
 | (overlay만) view | terminal · overlay · both | overlay 설정과 `init` |
 | `ignore` | 손으로만 | 손으로만(설정 화면에 넣지 않는다) |
+
+앱의 설정 창(`⌘,`, ⋯ → 설정…)은 두 칸으로 나뉜다. "이 보드"(테마·스타일·언어)는 아래처럼 `sticky.json`에, "이 컴퓨터"(모드 시스템·다크·라이트, 단축키)는 `~/.stickypane/overlay.json`에 쓴다. "터미널 명령 설치"·"에이전트 연결"은 #22에서 채운다.
 
 설정은 모두 루트 `sticky.json`에 쓰여 터미널과 overlay가 같은 값을 본다. bridge: `settings.get`(`time`·`editor`·`stale`도 읽는다) / `settings.set {theme|language|style|view}`. **미구현**: `settings.set`의 `time`·`editor`·`stale`(지금은 터미널 `S`나 `stickypane config`로만 바꾼다).
 

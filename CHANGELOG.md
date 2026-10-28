@@ -22,6 +22,12 @@ on GitHub are built from pull request labels.
   included (#17).
 - An `html` note: `.html` and `.htm` files in `.sticky/` are shown as text
   in the terminal, and cannot be changed from a screen.
+- The desktop app (in progress, #10): "+ 생성" makes a note from a shape's
+  create options, the fields drawn from `kinds.list` and the file written
+  by the shape; a note's ⋯ menu moves, archives, deletes (with 되돌리기),
+  runs a script or sends a request after a question; cards move by drag or
+  `h l j k`; a settings dialog (`⌘,`) for the board's theme, style and
+  language and the app's mode and hotkey (#18).
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop overlay (in progress, #10). It is not for agents.
 - `~/.stickypane` (or `$STICKYPANE_HOME`), written only when the folder
