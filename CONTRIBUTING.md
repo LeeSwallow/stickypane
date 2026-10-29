@@ -173,8 +173,9 @@ signs, the tool does not.
 
 The skills (`plugin/skills/`), the agent guide and the README are where most of
 the product is. Wording that makes an agent do the right thing more often
-is a contribution. The design notes are in `docs/superpowers/specs/`; a
-change that contradicts one should say why.
+is a contribution. The design notes the board was built from are in
+[docs/history/](docs/history/README.md), as they were written; a change
+that contradicts one should say why.
 
 By contributing you agree that your contribution is licensed under the
 project's [MIT license](LICENSE), and to follow the

@@ -389,6 +389,7 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 코딩 에이전트는 [AGENTS.md](AGENTS.md)를 먼저 읽습니다. 계획은
 [ROADMAP.md](ROADMAP.md), 원칙은 [VISION.md](VISION.md), 번역은
 [docs/translating.md](docs/translating.md)에 있습니다.
+그 밖의 문서는 [docs/](docs/README.md)에 모여 있습니다.
 
 ## 라이선스
 
