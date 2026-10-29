@@ -23,22 +23,24 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
-//go:embed guide.md
-var guideHead string
+// guide is the plugin's guide.md, then its rules without their titles:
+// each rule is written once, in plugin/rules/, and an agent without the
+// plugin reads the same words.
+var guide = harnessFile("guide.md") + rule("rules/touching-the-board.md") + rule("rules/writing-notes.md") + endMark + "\n"
 
-// guide is the head, then the plugin's rules without their titles: each
-// rule is written once, in rules/, and an agent without the plugin reads
-// the same words.
-var guide = guideHead + rule("rules/touching-the-board.md") + rule("rules/writing-notes.md") + endMark + "\n"
-
-// rule is a file of the plugin's rules/ without its title line, after a
-// blank line.
-func rule(name string) string {
+// harnessFile is a file of the plugin, with LF line ends.
+func harnessFile(name string) string {
 	b, err := fs.ReadFile(stickypane.Harness, name)
 	if err != nil {
 		panic(err)
 	}
-	text := strings.ReplaceAll(string(b), "\r\n", "\n")
+	return strings.ReplaceAll(string(b), "\r\n", "\n")
+}
+
+// rule is a file of the plugin's rules/ without its title line, after a
+// blank line.
+func rule(name string) string {
+	text := harnessFile(name)
 	if strings.HasPrefix(text, "# ") {
 		_, text, _ = strings.Cut(text, "\n")
 	}

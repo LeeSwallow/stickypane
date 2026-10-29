@@ -35,8 +35,8 @@ when the behaviour is meant to change, and say so.
 - **Standard library first.** A new module needs a reason, and a license
   that `sh scripts/licenses.sh` accepts.
 - **Words.** The README, the skills and the agent guide
-  (`internal/usecase/initcmd/guide.md` with `rules/`, at most 55 lines) change
-  with the behaviour. Each rule is written once, in `rules/`. The skills
+  (`plugin/guide.md` with `plugin/rules/`, at most 55 lines) change
+  with the behaviour. Each rule is written once, in `plugin/rules/`. The skills
   are tested: short, opening with a command, naming only real commands and
   files.
 - **Commits** are Conventional Commits, one change each. Do not add

@@ -57,7 +57,7 @@ where a stamp is made.
 | 0 | `core/i18n` | the screen's words, in the language a locale asks for; the caller reads the locale with `env` |
 | 0 | `core/httpfile/syntax` | the grammar of a `.http` file, read without the code that sends it: the API note draws from this alone |
 | 0 | `core/doc`, `core/theme`, `core/when`, `core/markdown`, `core/layout` | leaves that know nothing of the board; `when` is how every time is written and read |
-| 0 | `.` (the module root) | the plugin's files (`skills/`, `rules/`, `commands/`), embedded |
+| 0 | `.` (the module root) | the plugin's files (`plugin/skills/`, `plugin/rules/`, `plugin/commands/`, `plugin/guide.md`), embedded |
 
 The paths in the table are under `internal/`. The ranks do not follow the
 folders: a widget (core, 20) ranks above the store (adapter, 10), though
@@ -212,8 +212,8 @@ To add a shape:
 5. If the command line should change one thing in it, add a function to
    `internal/usecase/api/edit.go` that applies one of its ops and answers an
    `api.Edited`, and a command to the table in `cmd/stickypane/commands.go`.
-6. Describe it in `skills/using-the-board/references/kinds.md`, and in a
-   line of `rules/writing-notes.md` if agents write it by hand.
+6. Describe it in `plugin/skills/using-the-board/references/kinds.md`, and in a
+   line of `plugin/rules/writing-notes.md` if agents write it by hand.
 
 `TestEveryKindKeepsTheContract` in `internal/core/kinds` runs against every
 registered shape: its catalog text, drawing within every width, keys and
@@ -229,15 +229,16 @@ each pointing only at the one below:
 
 | Layer | Folder | Is |
 | --- | --- | --- |
-| commands | `commands/` | `/board:status`, `/board:track`, `/board:ask`, `/board:say`, `/board:setup`: a line that names a skill |
-| skills | `skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
-| references | `skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
-| rules | `rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
+| commands | `plugin/commands/` | `/board:status`, `/board:track`, `/board:ask`, `/board:say`, `/board:setup`: a line that names a skill |
+| skills | `plugin/skills/<name>/SKILL.md` | one job each, starting with the commands to run; `using-the-board` is the way in and names the others |
+| references | `plugin/skills/<name>/references/` | read when the skill points there: the shapes, in a paragraph each |
+| rules | `plugin/rules/` | each rule once: the commands, what the board writes itself, how to write and word a note; the agent guide is made of them |
 
-The program embeds `skills/`, `rules/` and `commands/` (`harness.go` at the
-module root), and `internal/usecase/harness` hands the skills to the MCP server, as
+The plugin is the folder `plugin/`; the marketplace files at the root point
+at it ([plugin.md](plugin.md)). The program embeds its `skills/`, `rules/`,
+`commands/` and `guide.md` (`harness.go` at the module root), and `internal/usecase/harness` hands the skills to the MCP server, as
 prompts and as topics of the `guide` tool, and to `stickypane guide`;
-`internal/usecase/initcmd` builds the agent guide from `rules/`. The
+`internal/usecase/initcmd` builds the agent guide from `guide.md` and `rules/`. The
 tests in `internal/usecase/initcmd` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 
