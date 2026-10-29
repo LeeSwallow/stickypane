@@ -126,7 +126,10 @@ tests otherwise.
   `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`, `chore: ...`, a
   `!` for a breaking change. With the hooks on, every commit on the branch
   gets `Refs: #12`.
-- **Tests** come with the change. When a test and the README disagree, say
+- **Tests** come with the change. A unit test sits beside its code; a check
+  of the repository as a whole (the README against the help, the plugin's
+  files, the links of every Markdown file) goes in `test/`, reading files
+  and running the built program. When a test and the README disagree, say
   so in the pull request.
 - **Docs**: a change in behaviour updates the README, and the rules
   (`plugin/rules/`, which are also the agent guide) or a skill when agents need to
