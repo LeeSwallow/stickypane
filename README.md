@@ -405,6 +405,7 @@ proposals, pull requests and how to test. Good first picks are labelled
 or [accepted](https://github.com/LeeSwallow/stickypane/labels/accepted).
 Coding agents read [AGENTS.md](AGENTS.md) first. The plan is in
 [ROADMAP.md](ROADMAP.md) and the principles in [VISION.md](VISION.md).
+Everything else written down is listed in [docs/](docs/README.md).
 
 ## License
 

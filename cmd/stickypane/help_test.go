@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"flag"
-	"os"
 	"regexp"
 	"slices"
 	"strings"
@@ -394,22 +393,6 @@ func TestKoreanHelpKeysAreReal(t *testing.T) {
 	for k := range ko.CLI {
 		if !known[k] {
 			t.Errorf("ko.json has the stale key %q", k)
-		}
-	}
-}
-
-// The README sections are the help's text, so they cannot drift from it.
-func TestReadmeUsageIsTheHelp(t *testing.T) {
-	for file, code := range map[string]string{"../../README.md": "en", "../../README.ko.md": "ko"} {
-		b, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		s, _ := i18n.Load(code)
-		for _, text := range []string{s.T("start", startText), overview(s)} {
-			if !strings.Contains(string(b), strings.TrimSpace(text)) {
-				t.Errorf("%s does not contain the help text:\n%s", file, text)
-			}
 		}
 	}
 }

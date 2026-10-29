@@ -1,4 +1,4 @@
-package initcmd
+package test
 
 import (
 	"encoding/json"
@@ -9,14 +9,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
-
-// repoRoot is the repository, three levels up from this package.
-var repoRoot = filepath.Join("..", "..", "..")
-
-// pluginRoot is the plugin, ${CLAUDE_PLUGIN_ROOT} once installed: the
-// folder both marketplaces at the repository's root point at.
-var pluginRoot = filepath.Join(repoRoot, "plugin")
 
 // The repository is also a Claude Code and Codex marketplace. These tests keep
 // its files honest: the manifests parse, the skill that teaches the board
@@ -155,7 +150,7 @@ func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 	}
 	cmd := regexp.MustCompile("stickypane ([a-z]+)")
 	files := harnessFiles(t)
-	files["guide"] = Guide()
+	files["guide"] = initcmd.Guide()
 	for path, text := range files {
 		for _, m := range cmd.FindAllStringSubmatch(text, -1) {
 			if !real[m[1]] && m[1] != "board" && m[1] != "is" && m[1] != "notes" {

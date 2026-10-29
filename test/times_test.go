@@ -1,4 +1,4 @@
-package layers
+package test
 
 import (
 	"go/ast"
@@ -31,7 +31,7 @@ var layoutNames = map[string]bool{
 // A time layout outside internal/core/when, a string such as "2006-01-02" or a
 // name such as time.RFC3339, fails: the layout belongs in when, with a name.
 func TestTimeLayoutsLiveInWhen(t *testing.T) {
-	root, err := filepath.Abs("../..")
+	root, err := filepath.Abs(repoRoot)
 	if err != nil {
 		t.Fatal(err)
 	}

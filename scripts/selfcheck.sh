@@ -2,7 +2,7 @@
 # Checks the plugin's own files: manifests parse, scripts are valid shell,
 # every skill has a name and a description and every command a description.
 # The plugin is plugin/; the two marketplaces at the root point at it.
-# The Go tests check the rest (go test ./internal/usecase/initcmd/). Exit code 1 when
+# The Go tests check the rest (go test ./test/). Exit code 1 when
 # any check fails.
 set -u
 here="$(cd "$(dirname "$0")/.." && pwd)"

@@ -24,9 +24,9 @@ nothing below it knows there is an API.
 Within and across the folders each package has a rank, and a package only
 imports packages of a lower rank. `internal/layers` checks both on every
 test run: an import the wrong way, a package outside the four folders, or
-a new package without a rank, fails the build. It also fails on a time
-layout outside `internal/core/when` (a string such as `"15:04"`, or
-`time.RFC3339`): a time is written through a named form in `when`, and a
+a new package without a rank, fails the build. A test in `test/` also
+fails on a time layout outside `internal/core/when` (a string such as
+`"15:04"`, or `time.RFC3339`): a time is written through a named form in `when`, and a
 clock is handed in as a `now func() time.Time`, never read from `time.Now`
 where a stamp is made.
 
@@ -239,7 +239,7 @@ at it ([plugin.md](plugin.md)). The program embeds its `skills/`, `rules/`,
 `commands/` and `guide.md` (`harness.go` at the module root), and `internal/usecase/harness` hands the skills to the MCP server, as
 prompts and as topics of the `guide` tool, and to `stickypane guide`;
 `internal/usecase/initcmd` builds the agent guide from `guide.md` and `rules/`. The
-tests in `internal/usecase/initcmd` keep the layers pointing at each other: every
+tests in `test/` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 
 ## The command line
@@ -260,6 +260,21 @@ library only:
 A command is `func(env, []string) error`. Its usage is the lines of the
 usage text that start with its name, so help and the table cannot drift.
 Tests call `run` with buffers; nothing reads globals.
+
+## Tests
+
+A unit test sits beside its code, in the package it tests, and may use
+what the package does not export. A check of the repository as a whole
+is in `test/` (`go test ./test/...`): the README against what `stickypane
+help` prints, the plugin's manifests against each other and the
+changelog's newest version, the marketplaces, the skills and the hook
+scripts, where a time layout may be written, and every relative link and
+image in the Markdown (all but `docs/history/` and the changelog). It
+reads files and runs the program it builds, and reaches no package's
+internals; it is not a layer, and nothing imports it. Two whole-repo
+checks stay where they are: `internal/layers`, which this page draws, and
+`internal/adapter/registry`'s golden home, which the desktop app's tests
+read too.
 
 ## Measuring
 

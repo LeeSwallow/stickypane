@@ -167,6 +167,11 @@ func importsOf(t *testing.T) map[string]map[string]bool {
 			if path != root && (strings.HasPrefix(name, ".") || name == "testdata" || name == "dist") {
 				return filepath.SkipDir
 			}
+			// test/ holds the checks of the repository as a whole, not a
+			// layer: nothing imports it.
+			if path == filepath.Join(root, "test") {
+				return filepath.SkipDir
+			}
 			// A nested module (desktop/) is not part of this one's layers.
 			if path != root {
 				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {

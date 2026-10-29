@@ -40,7 +40,7 @@ point to it. The guide `stickypane init` writes into `AGENTS.md` is
 without the plugin reads the same words; together they stay at most 55
 lines. Over MCP, a skill comes with the rules it points to, but not its
 references: a shape in full is `stickypane help <shape>` or the guide with
-the shape as its topic. `go test ./internal/usecase/initcmd/` checks that the skills
+the shape as its topic. `go test ./test/` checks that the skills
 stay short, name only files that exist and run only real commands.
 
 The slash commands are `/board:status` (what is on the board, or the notes
@@ -65,4 +65,4 @@ installed.
 1. Make `plugin/skills/<name>/SKILL.md` with `name` and a `description` that
    starts with "Use when". Put the commands first and the rules after, in
    under 80 lines.
-2. Run `sh scripts/selfcheck.sh` and `go test ./internal/usecase/initcmd/`.
+2. Run `sh scripts/selfcheck.sh` and `go test ./test/ ./internal/usecase/initcmd/`.
