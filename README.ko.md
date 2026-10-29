@@ -30,9 +30,8 @@
 
 [소개](#소개) · [설치](#설치) · [시작하기](#시작하기) · [데스크톱 앱](#데스크톱-앱) · [동작 방식](#동작-방식) · [노트 모양](#노트-모양) · [에이전트](#에이전트와-함께-쓰기) · [사용법](#사용법) · [설정](#설정) · [자주 묻는 질문](#자주-묻는-질문) · [기여](#기여)
 
-> 이 문서는 [README.md](README.md)를 커밋 `832183b` 기준으로 옮긴 것입니다. 영문이
-> 원본이고, 두 문서가 다르면 영문이 맞습니다. 자세한 내용 가운데 한국어가 없는
-> 것은 영문 문서로 이어집니다.
+> 원본은 영문 [README.md](README.md)입니다. 두 문서가 다르면 영문이 맞습니다.
+> 한국어로 옮기지 않은 자세한 문서는 영문으로 이어집니다.
 
 ## 소개
 
@@ -51,11 +50,10 @@ flowchart LR
     folder -->|"다시 읽음: CLI, MCP, 파일"| agent
 ```
 
-> **상태: 설계 단계.** 아직 1.0 전입니다. 파일 이름, 명령 이름, `sticky.json`은
-> 1.0 전까지 바뀔 수 있습니다. 에이전트와 하루 써 보고 보드가 어떻게 해 주길
-> 바랐는지 [디자인 피드백 이슈](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)나
+> **상태: 설계 단계.** 아직 1.0 전이라 파일 이름, 명령 이름, `sticky.json`이
+> 바뀔 수 있습니다. 에이전트와 하루 써 보고 보드가 어떻게 해 주길 바랐는지
+> [디자인 피드백 이슈](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)나
 > [Discussions](https://github.com/LeeSwallow/stickypane/discussions)에 알려 주세요.
-> [데스크톱 앱](#데스크톱-앱)은 만들었지만 아직 내놓지 않았습니다.
 
 ## 설치
 
@@ -71,22 +69,18 @@ flowchart LR
 됩니다. 설치는 `stickypane version`으로 확인합니다. 압축 파일 설치 명령, 체크섬,
 소스에서 빌드, 업데이트와 삭제는 영문 [docs/install.md](docs/install.md)에 있습니다.
 
-지우려면 플러그인을 넣었을 때 `stickypane setup --undo`를 먼저 하고(설치할 때와 같은
-`--scope`로, MCP 서버를 등록했다면 `--mcp`도 붙여서), 설치한
-방법대로 지웁니다. 노트는 각 프로젝트의 `.sticky/`에 평범한 파일로 남습니다.
-
 ## 시작하기
 
 **1. 설치합니다.** 위의 방법 가운데 하나로.
 
-**2. 에이전트를 연결합니다.** 한 번이면 됩니다.
+**2. 에이전트를 연결합니다.** 한 번이면 되고, 어느 폴더에서 해도 됩니다.
 
 ```sh
 stickypane setup
 ```
 
-Claude Code와 Codex에 보드 플러그인을 설치합니다. 어느 폴더에서 해도 됩니다.
-`stickypane setup --mcp`는 MCP 서버도 등록합니다.
+Claude Code와 Codex에 보드 플러그인을 설치합니다. `stickypane setup --mcp`는
+MCP 서버도 등록합니다.
 
 **3. 프로젝트에 보드를 만듭니다.** 프로젝트 폴더에서:
 
@@ -95,21 +89,23 @@ stickypane init
 ```
 
 `.sticky/`를 만듭니다. 플러그인이 없는 에이전트에게는 `CLAUDE.md`나 `AGENTS.md`에
-짧은 안내문을 남겨, 보드가 있다는 것을 알게 합니다.
+짧은 안내문을 남겨, 보드가 있다는 것을 알게 합니다. `--language ko`는 보드의 언어를
+정하고, `--view`와 `--style`은 [데스크톱 앱](#데스크톱-앱)용입니다.
 
 **4. 에이전트 옆에 보드를 띄웁니다.** 창을 나눠 새 창에서 `stickypane`을 실행합니다.
 `stickypane env`가 지금 터미널에 맞는 명령을 알려 줍니다.
 
 | 터미널 | 명령 |
 | --- | --- |
-| <img src="https://cdn.simpleicons.org/tmux" height="16" alt=""> tmux | `tmux split-window -h stickypane` |
+| <img src="https://cdn.simpleicons.org/tmux" height="16" alt=""> tmux | `tmux split-window -h stickypane`, 팝업으로는 `tmux display-popup -E stickypane` |
 | <img src="https://cdn.simpleicons.org/wezterm" height="16" alt=""> WezTerm | `wezterm cli split-pane --right -- stickypane` |
 | Zellij | `zellij run --direction right -- stickypane` |
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
+| <img src="https://cdn.simpleicons.org/iterm2" height="16" alt=""> iTerm2, <img src="https://cdn.simpleicons.org/ghostty" height="16" alt=""> Ghostty | macOS에서 `⌘ D`로 나누고 `stickypane` |
 | 그 밖의 터미널 | 같은 폴더에서 창이나 탭을 하나 더 열고 `stickypane` |
 
 그다음 시키면 됩니다. "이 리팩터 체크리스트를 보드에 띄워 줘." "배포 전에 보드에서
-물어봐." 화면을 한국어로 하려면 `stickypane language ko`.
+물어봐."
 
 <details>
 <summary>같은 순서를 <code>stickypane help start</code>로 보면</summary>
@@ -138,23 +134,25 @@ stickypane init
 
 ## 데스크톱 앱
 
+<img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white" alt="macOS"> <img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" alt="Linux"> <img src="https://img.shields.io/badge/Wails_3-DF0000?logo=wails&logoColor=white" alt="Wails 3"> <img src="https://img.shields.io/badge/Svelte-FF3E00?logo=svelte&logoColor=white" alt="Svelte">
+
 ![데스크톱 앱: 위쪽 줄에 에이전트와 맡은 카드, 체크리스트, 멈춘 카드에 동그라미가 쳐진 칸반, 모눈종이 위의 노트들](docs/desktop/assets/app-board.png)
 
-같은 보드를 따로 창에 띄웁니다. 터미널 옆에 창 하나를 더 두고 싶은 분을 위한
-것입니다. 표, Mermaid, 수식, 샌드박스 안의 `.html` 페이지까지 노트를 빠짐없이
-그리고, 클릭은 키와 똑같이 파일을 바꿉니다. 체크하고, 양식에 답하고, 카드를
-끌어 옮깁니다. **+ 새 노트**로 어떤 모양이든 만듭니다. 노트는 격자에 두거나
-캔버스 아무 데나 붙이고, 하나만 떼어 늘 위에 떠 있는 작은 창으로 둘 수도
-있습니다. `⌥ Space`로 띄우고 숨깁니다.
+같은 보드를 따로 창에 띄웁니다. 표, Mermaid, 수식, 샌드박스 안의 `.html`
+페이지까지 노트를 빠짐없이 그리고, 클릭은 키와 똑같이 파일을 바꿉니다. 체크하고,
+양식에 답하고, 카드를 끌어 옮깁니다. **+ 새 노트**로 어떤 모양이든 만듭니다.
+노트는 격자에 두거나 캔버스 아무 데나 붙이고, 하나만 떼어 늘 위에 떠 있는 작은
+창으로 둘 수도 있습니다. `⌥ Space`로 앱을 띄우고 숨깁니다.
 
 앱 안에 `stickypane`이 들어 있습니다. 보드 설정의 **터미널과 에이전트**에서
-터미널 명령을 설치하고 Claude Code와 Codex를 연결합니다. `stickypane init
+터미널용 명령을 설치하고 Claude Code와 Codex를 연결합니다. `stickypane init
 --view app`을 해 두면 그냥 `stickypane`을 쳐도 앱에서 보드가 열립니다.
 
-**상태:** macOS와 Linux용으로 만들고 시험했지만 아직 내놓지 않았습니다. DMG와
-Linux 압축 파일은 첫 앱 릴리스와 함께 나옵니다([#10](https://github.com/LeeSwallow/stickypane/issues/10)).
-그 전에는 내려받을 것이 없습니다. 설계와 빌드 문서는
-[docs/desktop](docs/desktop/README.md)에 있습니다.
+**아직 내놓지 않았습니다.** 앱은 이 저장소의 [`desktop/`](desktop/)에서 macOS와
+Linux용으로 만들고 시험했습니다. DMG와 Linux 압축 파일은 첫 앱 릴리스와 함께
+나옵니다([#10](https://github.com/LeeSwallow/stickypane/issues/10)). 그 전에는
+내려받을 것이 없습니다. 설계와 빌드 문서는 [docs/desktop](docs/desktop/README.md)에
+있습니다.
 
 ## 동작 방식
 
@@ -162,8 +160,8 @@ Linux 압축 파일은 첫 앱 릴리스와 함께 나옵니다([#10](https://gi
 
 `.sticky/`의 파일 하나가 노트 하나입니다. 폴더는 탭이고, 탭 안의 폴더는 여러
 페이지로 된 책입니다. 마크다운 노트는 머리말(front matter)로 모양을 정합니다.
-노트가 화면 어디에 놓이는지는 `sticky.json`에 따로 적기 때문에, 보드를 정리해도
-노트 파일은 다시 쓰이지 않습니다.
+노트가 화면 어디에 놓이고 얼마나 넓은지(화면의 몫, `1/4`부터 `1`까지)는
+`sticky.json`에 따로 적기 때문에, 보드를 정리해도 노트 파일은 다시 쓰이지 않습니다.
 
 ```mermaid
 flowchart TB
@@ -192,39 +190,70 @@ title: 릴리스
 
 ### 쓰는 길은 하나
 
-에이전트는 파일을 직접 고쳐도 됩니다. 그 밖의 모든 변경은 한 길로 갑니다. 변경은
-"이 항목을 체크" 같은 의도(`doc.Op`)이고, `store.Apply`가 그 의도를 지금 디스크에
-있는 파일에 적용해 한 번에 바꿔 씁니다. 그사이 에이전트가 같은 항목을 바꿨다면
-덮어쓰지 않습니다.
+에이전트는 파일을 직접 고쳐도 됩니다. 그 밖의 변경은 모두 한 길로 갑니다. 명령줄,
+MCP 서버, 옆 창의 보드, 데스크톱 앱의 bridge가 모두 `api`를 부릅니다. `api`는 변경을
+"이 항목을 체크" 같은 의도(`doc.Op`)로 바꾸고, `store.Apply`가 그 의도를 지금
+디스크에 있는 파일에 적용해 한 번에 바꿔 씁니다. 그사이 에이전트가 같은 항목을
+바꿨다면 덮어쓰지 않습니다.
 
 ```mermaid
 flowchart LR
     subgraph ways["들어오는 길"]
-        cli["CLI<br/>stickypane todo, card, show"]
+        cli["CLI<br/>stickypane todo, card, say"]
         mcp["MCP 서버<br/>stickypane mcp"]
-        tui["TUI<br/>옆 창의 보드"]
-        bridge["bridge<br/>데스크톱 앱용 JSON 줄"]
+        tui["옆 창의 보드"]
+        bridge["stickypane bridge<br/>데스크톱 앱용"]
     end
-    plugin["플러그인과 스킬<br/>Claude Code, Codex"] -.->|"에이전트에게 알려 줌"| cli
-    plugin -.-> mcp
-    cli --> op["doc.Op<br/>의도"]
-    mcp --> op
-    tui --> op
-    bridge --> op
+    cli --> api["api<br/>변경마다 호출 하나"]
+    mcp --> api
+    tui --> api
+    bridge --> api
+    api --> op["doc.Op<br/>의도"]
     op --> apply["store.Apply<br/>읽고, 바꾸고, 갈아 끼움"]
     apply --> files[(".sticky/ 파일")]
     agent["파일을 고치는 에이전트"] -.-> files
     files -->|"파일 감시"| tui
+    files -->|"파일 감시"| bridge
 ```
 
-| | 부분 | 하는 일 |
-| --- | --- | --- |
-| <img src="https://cdn.simpleicons.org/gnubash" height="16" alt=""> | CLI | 에이전트와 스크립트가 쓰는 한 줄 명령 |
-| <img src="https://cdn.simpleicons.org/modelcontextprotocol" height="16" alt=""> | MCP 서버 | 같은 명령을 MCP 도구로 |
-| <img src="https://cdn.simpleicons.org/markdown" height="16" alt=""> | `.sticky/` | 저장소 안의 평범한 파일로 된 노트 |
-| <img src="https://cdn.simpleicons.org/claude" height="16" alt=""> | 플러그인 | Claude Code와 Codex용 스킬과 슬래시 명령 |
+### 데스크톱 앱과 bridge
 
-코드의 패키지와 계층은 [docs/architecture.md](docs/architecture.md)(영문)에 있습니다.
+`desktop/`의 앱은 Wails 창을 띄우는 별도 Go 모듈입니다. 노트를 직접 읽지 않고
+`stickypane bridge`를 띄워 표준 입출력으로 JSON 줄을 주고받습니다. 그래서 앱과
+터미널이 같은 길로 씁니다.
+
+```mermaid
+flowchart LR
+    subgraph app["desktop/ (Wails)"]
+        window["창<br/>Svelte 보드"]
+        client["bridgeclient"]
+        index["index<br/>보드 목록"]
+    end
+    window <--> client
+    client <-->|"stdin/stdout의 JSON 줄"| bridge["stickypane bridge"]
+    bridge --> api["api"]
+    api --> store["store"]
+    store <--> files[(".sticky/")]
+    home[("~/.stickypane<br/>쓰이는 보드 기록")] -.-> index
+    index -.-> window
+```
+
+앱은 보드 목록을 `~/.stickypane`에서 읽습니다. stickypane 세션마다 어느 보드에
+있는지 거기에 적어 둡니다([자주 묻는 질문](#자주-묻는-질문) 참고).
+
+### 계층
+
+`internal/` 아래 코드는 네 폴더로 나뉘고, 패키지는 자기 폴더나 그보다 아래 폴더만
+가져다 씁니다. 어기면 `internal/layers` 테스트가 실패합니다.
+
+```mermaid
+flowchart LR
+    surface["surface<br/>TUI, MCP, bridge"] -->|"가져다 씀"| usecase["usecase<br/>api, init, prefs"]
+    usecase -->|"가져다 씀"| adapter["adapter<br/>store, registry, env"]
+    adapter -->|"가져다 씀"| core["core<br/>doc, 모양, when, i18n"]
+```
+
+패키지마다의 순위와 노트를 읽고 쓰는 방식은 [docs/architecture.md](docs/architecture.md)(영문)에 있습니다.
 
 ### 사용자에게 묻기
 
@@ -257,7 +286,7 @@ sequenceDiagram
 | board | 칸에 놓인 카드(칸반) | `stickypane card work add "로그인 API" --to Doing` |
 | checklist | 체크해 나가는 단계와 진행 막대 | `stickypane todo plan add "테스트 작성"` |
 | log | 한 줄에 하나, 최신 줄이 보이게 | `stickypane log worklog --time "테스트 통과"` |
-| chat | 누가 언제 무슨 말을 했는지 | `stickypane say chat "41/41 통과"` |
+| chat | 누가 언제 무슨 말을 했는지. `say`는 `--as`가 없으면 `agent`로 서명 | `stickypane say chat "41/41 통과"` |
 | chart | 막대, 추세선, 날짜 달력 | `stickypane chart tokens add input 1200` |
 | form | 고를 것, 채울 줄, 버튼 | `stickypane wait deploy --timeout 10m` |
 | script | 실행 버튼이 달린 셸 스크립트 | `stickypane show deploy.sh` |
@@ -276,10 +305,10 @@ sequenceDiagram
 | 안내문 | `stickypane init`이 `CLAUDE.md`나 `AGENTS.md`에 넣습니다 | 그 파일을 읽는 모든 에이전트 |
 | <img src="https://cdn.simpleicons.org/modelcontextprotocol" height="16" alt=""> MCP | `stickypane setup --mcp`, 또는 `claude mcp add stickypane -- stickypane mcp` | MCP를 쓰는 모든 클라이언트 |
 
-플러그인의 입구는 `using-the-board` 스킬이고, 일에 맞는 스킬 넷을 알려 줍니다:
-`tracking-progress`, `asking-the-user`, `talking-in-chat`, `connecting-notes`.
-에이전트용 명령은 [docs/ko/agents.md](docs/ko/agents.md)에, MCP 도구와 `setup`
-옵션은 영문 [docs/agents.md](docs/agents.md)에 있습니다.
+플러그인은 [`plugin/`](plugin/)에 있습니다. 슬래시 명령은 `/board:status`(보드에
+무엇이 있는지), `/board:track`, `/board:ask`, `/board:say`, `/board:setup`입니다.
+에이전트용 명령은 [docs/ko/agents.md](docs/ko/agents.md)에, 스킬과 MCP 도구,
+`setup` 옵션은 영문 [docs/agents.md](docs/agents.md)에 있습니다.
 
 ## 사용법
 
@@ -345,13 +374,13 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 
 ## 설정
 
-설정할 것은 없습니다. 보드에서 `S`를 누르면 설정 창이 열리고, `stickypane config`도
-같은 일을 합니다.
+따로 설정할 것은 없습니다. 보드에서 `S`를 누르면 설정 창이 열리고,
+`stickypane config`도 같은 일을 합니다.
 
 | 설정 | 기본값 | 바꾸는 것 |
 | --- | --- | --- |
 | `theme` | `auto` | 색. Catppuccin, Tokyo Night, Gruvbox, Nord, Dracula를 포함해 테마 10개 |
-| `language` | `auto` | 화면의 말 |
+| `language` | `auto` | 화면의 말: 영어나 한국어 |
 | `time` | `auto` | 날짜와 시각을 쓰는 방식 |
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
@@ -373,26 +402,35 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 **macOS에서 내려받은 프로그램이 열리지 않습니다.**
 `xattr -d com.apple.quarantine stickypane`을 실행하거나 Homebrew로 설치하세요.
 
-**어딘가로 무언가를 보내나요?** 보내지 않습니다. `~/.stickypane` 폴더가 이미 있을
-때만 거기에 기록하고, 노트 내용은 적지 않습니다
-([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
+**어딘가로 무언가를 보내나요?** 보내지 않습니다. `~/.stickypane` 폴더가 있으면
+(데스크톱 앱이 만듭니다) 앱이 보드 목록을 보여 줄 수 있게 어느 보드가 쓰이는지
+적고, 오래된 기록은 스스로 지웁니다. 노트 내용은 적지 않고, 폴더를 만들지도
+않습니다([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
+
+**마크다운 칸반과 무엇이 다른가요?**
+[kanban-md](https://github.com/antopolskiy/kanban-md)와
+[Backlog.md](https://github.com/MrLesk/Backlog.md)는 칸반을 파일로 둡니다.
+[sampler](https://github.com/sqshq/sampler)와 [wtf](https://github.com/wtfutil/wtf)는
+설정해서 쓰는 대시보드입니다. stickypane은 당신과 에이전트 사이에 있습니다.
+에이전트가 쓰는 파일, 당신이 힐끗 보는 보드, 그리고 되돌아가는 답.
 
 질문은 [Discussions](https://github.com/LeeSwallow/stickypane/discussions)에, 버그와
 아이디어는 [이슈](https://github.com/LeeSwallow/stickypane/issues/new/choose)에, 보안
-문제는 [SECURITY.md](SECURITY.md)대로 비공개로 알려 주세요.
+문제는 [SECURITY.md](SECURITY.md)대로 알려 주세요. [SUPPORT.md](SUPPORT.md)도 있습니다.
 
 ## 기여
 
 지금은 코드보다 "보드가 이렇게 해 주길 바랐다"는 피드백이 더 도움이 됩니다.
 이슈, 제안, 풀 리퀘스트, 테스트 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)에
-있습니다. 시작하기 좋은 이슈에는 `good first issue`나 `accepted` 라벨이 붙습니다.
+있습니다. 시작하기 좋은 이슈에는
+[good first issue](https://github.com/LeeSwallow/stickypane/labels/good%20first%20issue)나
+[accepted](https://github.com/LeeSwallow/stickypane/labels/accepted) 라벨이 붙습니다.
 코딩 에이전트는 [AGENTS.md](AGENTS.md)를 먼저 읽습니다. 계획은
-[ROADMAP.md](ROADMAP.md), 원칙은 [VISION.md](VISION.md), 번역은
-[docs/translating.md](docs/translating.md)에 있습니다.
+[ROADMAP.md](ROADMAP.md), 원칙은 [VISION.md](VISION.md)에 있습니다.
 그 밖의 문서는 [docs/](docs/README.md)에 모여 있습니다.
 
 ## 라이선스
 
-[MIT](LICENSE). 쓰인 라이브러리와 테마 팔레트는
+[MIT](LICENSE), © 2026 LeeSwallow. 쓰인 라이브러리와 테마 팔레트는
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있고, 릴리스 압축 파일마다
 그 라이선스 원문이 들어 있습니다.
