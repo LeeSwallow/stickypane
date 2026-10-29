@@ -2,6 +2,7 @@ package bridgeclient
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -106,15 +107,10 @@ func (c *Client) Notifications() <-chan Notification { return c.notes }
 // be nil; an error answer comes back as *Error. Any method name goes, so a
 // method the bridge learns needs no change here.
 func (c *Client) Call(ctx context.Context, method string, params, result any) error {
-	var raw json.RawMessage
-	if params != nil {
-		b, err := json.Marshal(params)
-		if err != nil {
+	for {
+		if err := ctx.Err(); err != nil {
 			return err
 		}
-		raw = b
-	}
-	for {
 		c.mu.Lock()
 		switch {
 		case c.closed:
@@ -128,7 +124,7 @@ func (c *Client) Call(ctx context.Context, method string, params, result any) er
 		p, wait := c.cur, c.ready
 		c.mu.Unlock()
 		if p != nil {
-			return p.call(ctx, method, raw, result)
+			return p.call(ctx, method, params, result)
 		}
 		select { // a new bridge is on its way
 		case <-wait:
@@ -381,7 +377,16 @@ func (c *Client) supervise(p *proc) {
 }
 
 // call writes one request to the process and waits for its answer.
-func (p *proc) call(ctx context.Context, method string, params json.RawMessage, result any) error {
+//
+// The request is encoded and written by a goroutine of its own, so the
+// call gives up as soon as its context ends: while a large request is
+// encoded, while an earlier line still blocks the pipe, or while its own
+// line does. A line once begun is always finished by that goroutine, and
+// no other line starts before it is (wsem), so the bridge never reads half
+// a request followed by the next one; the answer to a request whose caller
+// gave up is dropped. A bridge that never reads again ends such a line only
+// by dying, which the restart path handles.
+func (p *proc) call(ctx context.Context, method string, params, result any) error {
 	ch := make(chan Response, 1)
 	p.pmu.Lock()
 	if p.gone {
@@ -398,28 +403,13 @@ func (p *proc) call(ctx context.Context, method string, params json.RawMessage, 
 		p.pmu.Unlock()
 	}
 
-	b, err := json.Marshal(Request{ID: id, Method: method, Params: params})
-	if err != nil {
-		forget()
-		return err
-	}
-	select { // the line goes out whole, one at a time, but a call does not wait for the pipe past its context
-	case p.wsem <- struct{}{}:
-	case <-ctx.Done():
-		forget()
-		return ctx.Err()
-	}
 	wrote := make(chan error, 1)
-	go func() {
-		_, err := p.stdin.Write(append(b, '\n'))
-		<-p.wsem
-		wrote <- err
-	}()
+	go func() { wrote <- p.send(ctx, id, method, params) }()
 	select {
 	case err := <-wrote:
 		if err != nil {
 			forget()
-			return ErrConnectionLost
+			return err
 		}
 	case <-ctx.Done():
 		forget()
@@ -441,6 +431,32 @@ func (p *proc) call(ctx context.Context, method string, params json.RawMessage, 
 		forget()
 		return ctx.Err()
 	}
+}
+
+// send encodes one request and writes it as one line, unless the context
+// ends before the line is begun.
+func (p *proc) send(ctx context.Context, id int64, method string, params any) error {
+	var line bytes.Buffer
+	if err := json.NewEncoder(&line).Encode(struct { // one pass; Encode ends the line
+		ID     int64  `json:"id"`
+		Method string `json:"method"`
+		Params any    `json:"params,omitempty"`
+	}{id, method, params}); err != nil {
+		return err
+	}
+	select { // one line at a time
+	case p.wsem <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	defer func() { <-p.wsem }()
+	if err := ctx.Err(); err != nil { // nothing is begun for a call that is gone
+		return err
+	}
+	if _, err := p.stdin.Write(line.Bytes()); err != nil {
+		return ErrConnectionLost
+	}
+	return nil
 }
 
 // fail ends every call that waits on a process that is gone.

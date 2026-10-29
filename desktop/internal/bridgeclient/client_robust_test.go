@@ -9,8 +9,21 @@ import (
 	"time"
 )
 
+const (
+	shortTimeout = 300 * time.Millisecond
+	slack        = time.Second // a call whose context ended returns within it
+)
+
 func short() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 300*time.Millisecond)
+	return context.WithTimeout(context.Background(), shortTimeout)
+}
+
+// gaveUp fails unless err is the short context's end and came promptly.
+func gaveUp(t *testing.T, what string, err error, start time.Time) {
+	t.Helper()
+	if d := time.Since(start); !errors.Is(err, context.DeadlineExceeded) || d > shortTimeout+slack {
+		t.Fatalf("%s: err = %v after %v, want the deadline within %v", what, err, d, shortTimeout+slack)
+	}
 }
 
 func TestClientNeverWaitsForTheConsumer(t *testing.T) {
@@ -81,15 +94,41 @@ func TestClientCancelledCallReturnsWhileTheWriteBlocks(t *testing.T) {
 	start := time.Now()
 	y, cancel2 := short()
 	defer cancel2()
-	err = c.Call(y, "echo", big, nil) // fills the pipe: the write blocks
-	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 3*time.Second {
-		t.Fatalf("err = %v after %v", err, time.Since(start))
-	}
+	gaveUp(t, "the call whose write blocks", c.Call(y, "echo", big, nil), start) // fills the pipe
 	// a call that waits for the pipe gives up with its context too
 	z, cancel3 := short()
 	defer cancel3()
-	if err := c.Call(z, "echo", nil, nil); !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("err = %v", err)
+	start = time.Now()
+	gaveUp(t, "the call that waits for the pipe", c.Call(z, "echo", nil, nil), start)
+}
+
+func TestClientAbandonedWriteLeavesTheStreamWhole(t *testing.T) {
+	c, err := Start(ctx(t), fakeBin, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if err := c.Call(ctx(t), "pause", map[string]int{"ms": 1500}, nil); err != nil { // reads nothing for a while
+		t.Fatal(err)
+	}
+	big := strings.Repeat("a", 4<<20) // quick to encode: the line is begun, and blocks
+	y, cancel := short()
+	defer cancel()
+	start := time.Now()
+	gaveUp(t, "the call whose write blocks", c.Call(y, "sink", big, nil), start)
+	// a line given up mid-way is still finished whole before the next; one
+	// whose context ended before it was begun is not written at all
+	var got struct{ Lines, Bad int }
+	if err := c.Call(ctx(t), "lines", nil, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Bad != 0 || got.Lines < 3 || got.Lines > 4 { // hello, pause, sink perhaps, lines
+		t.Fatalf("the bridge read %+v", got)
+	}
+	select {
+	case n := <-c.Notifications():
+		t.Fatalf("got %v: the bridge was started again", n.Method)
+	default:
 	}
 }
 
