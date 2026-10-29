@@ -12,7 +12,9 @@
 // Methods besides hello: echo (answers its params), fail (an error
 // answer), emit (answers, then sends a board.changed notification),
 // flood (params {"n":N}: N notifications, then the answer), stall (stops
-// reading input, for ever).
+// reading input, for ever), pause (params {"ms":N}: answers, then reads
+// nothing for N ms), sink (answers {}, whatever its params), lines (answers
+// {"lines":L,"bad":B}: the lines read so far, and those not JSON).
 package main
 
 import (
@@ -69,14 +71,26 @@ func main() {
 		out.Flush()
 	}
 	sc := bufio.NewScanner(os.Stdin)
-	sc.Buffer(nil, 1<<20)
+	sc.Buffer(nil, 64<<20)
+	lines, bad := 0, 0
 	for sc.Scan() {
+		lines++
 		var r req
 		if json.Unmarshal(sc.Bytes(), &r) != nil {
+			bad++
 			send(map[string]any{"id": nil, "error": map[string]string{"code": "bad_request", "message": "not json"}})
 			continue
 		}
 		switch r.Method {
+		case "pause":
+			var p struct{ MS int }
+			json.Unmarshal(r.Params, &p)
+			send(map[string]any{"id": r.ID, "result": map[string]any{}})
+			time.Sleep(time.Duration(p.MS) * time.Millisecond)
+		case "sink":
+			send(map[string]any{"id": r.ID, "result": map[string]any{}})
+		case "lines":
+			send(map[string]any{"id": r.ID, "result": map[string]int{"lines": lines, "bad": bad}})
 		case "hello":
 			send(map[string]any{"id": r.ID, "result": map[string]any{"protocol": proto, "version": "fake", "project": wd}})
 		case "echo":
