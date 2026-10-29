@@ -48,12 +48,11 @@ flowchart LR
     folder -->|"reads back: CLI, MCP or the file"| agent
 ```
 
-> **Status: design stage.** stickypane is before 1.0. File names, command
-> names and `sticky.json` may still change before 1.0. Try it with your agent
+> **Status: design stage.** stickypane is before 1.0, so file names,
+> command names and `sticky.json` may still change. Try it with your agent
 > for a day and tell us what you expected the board to do, in a
 > [design feedback issue](https://github.com/LeeSwallow/stickypane/issues/new?template=design_feedback.yml)
 > or in [Discussions](https://github.com/LeeSwallow/stickypane/discussions).
-> A [desktop app](#the-desktop-app) is built but not released yet.
 
 ## Install
 
@@ -65,22 +64,22 @@ flowchart LR
 
 <img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white" alt="macOS"> <img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" alt="Linux"> <img src="https://img.shields.io/badge/Windows-0078D4" alt="Windows">
 
-It is one program with no runtime dependencies, and any terminal that shows
-Unicode and color will do. `stickypane version` checks the install.
-[docs/install.md](docs/install.md) has the release archive commands,
-checksums, building from source, updating and removing.
+It is one program with no runtime dependencies, for any terminal that
+shows Unicode and color. `stickypane version` checks the install.
+[docs/install.md](docs/install.md) has the archive commands, checksums,
+building from source, updating and removing.
 
 ## Getting started
 
 **1. Install** stickypane, as above.
 
-**2. Connect the agent, once.**
+**2. Connect your agents, once.** From any folder:
 
 ```sh
 stickypane setup
 ```
 
-This installs the board plugin for Claude Code and Codex, from any folder.
+This installs the board plugin for Claude Code and Codex.
 `stickypane setup --mcp` also registers the MCP server.
 
 **3. Give the project a board.** In the project's folder:
@@ -90,7 +89,9 @@ stickypane init
 ```
 
 This makes `.sticky/`. An agent without the plugin gets a short guide in
-`CLAUDE.md` or `AGENTS.md` instead, so it knows the board is there.
+`CLAUDE.md` or `AGENTS.md`, so it knows the board is there.
+`--language ko` sets the board's language. `--view app` opens the board in
+the [desktop app](#the-desktop-app), and `--style` picks the app's look.
 
 **4. Open the board beside your agent.** Split the terminal and run
 `stickypane` in the new pane. `stickypane env` prints the command for the
@@ -102,13 +103,14 @@ terminal you are in.
 | <img src="https://cdn.simpleicons.org/wezterm" height="16" alt=""> WezTerm | `wezterm cli split-pane --right -- stickypane` |
 | Zellij | `zellij run --direction right -- stickypane` |
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
-| anything else | a second window or tab, in the same folder: `stickypane` |
+| <img src="https://cdn.simpleicons.org/iterm2" height="16" alt=""> iTerm2, <img src="https://cdn.simpleicons.org/ghostty" height="16" alt=""> Ghostty | on macOS, split with `⌘ D`, then `stickypane` |
+| anything else | a second window or tab in the same folder, then `stickypane` |
 
 Then ask for things: "Keep a checklist of this refactor on the board."
 "Ask me on the board before you deploy."
 
 <details>
-<summary>The same path, as <code>stickypane help start</code> prints it</summary>
+<summary>The same steps, as <code>stickypane help start</code> prints them</summary>
 
 ```text
 Getting started
@@ -134,25 +136,29 @@ Next: stickypane help, then stickypane help <command>.
 
 ## The desktop app
 
+<img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white" alt="macOS"> <img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" alt="Linux"> <img src="https://img.shields.io/badge/Wails_3-DF0000?logo=wails&logoColor=white" alt="Wails 3"> <img src="https://img.shields.io/badge/Svelte-FF3E00?logo=svelte&logoColor=white" alt="Svelte">
+
 ![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/desktop/assets/app-board.png)
 
-The same board in a window of its own, for those who want one beside the
-terminal. It draws every note in full (tables, Mermaid, maths, `.html`
-pages in a sandbox), and a click is the same change as a key: tick, answer
-a form, drag a card. **+ New note** makes any shape. Notes sit on a grid or
-anywhere on a canvas, and one can be torn off into a small window that
-stays on top. `⌥ Space` shows and hides it.
-
-The app carries its own `stickypane`: from a board's settings,
-**Terminal and agents** installs the command for your terminals and
-connects Claude Code and Codex. `stickypane init --view app` makes a plain
-`stickypane` open the board in the app.
-
-**Status:** built and tested here, for macOS and Linux, but not released
-yet. The DMG and the Linux archive come with its first release
+**Not released yet.** The app is built and tested in this repository, in
+[`desktop/`](desktop/), for macOS and Linux. The DMG and the Linux archive
+come with its first release
 ([#10](https://github.com/LeeSwallow/stickypane/issues/10)); until then
-there is nothing to download. Design and build notes:
-[docs/desktop](docs/desktop/README.md).
+there is nothing to download.
+
+The same board in a window of its own. It draws every note in full,
+including tables, Mermaid, math and `.html` pages in a sandbox. A click
+makes the same change as a key, so you can tick, answer a form or drag a
+card. **+ New note** makes any shape. Notes sit on a grid or anywhere on a canvas, and one can
+be torn off into a small window that stays on top. `⌥ Space` shows and
+hides the app.
+
+The app comes with its own copy of the `stickypane` command. In a board's settings,
+**Terminal and agents** installs the command for your terminals and
+connects Claude Code and Codex. After `stickypane init --view app`, a plain
+`stickypane` opens the board in the app.
+
+Design and build notes are in [docs/desktop](docs/desktop/README.md).
 
 ## How it works
 
@@ -160,8 +166,9 @@ there is nothing to download. Design and build notes:
 
 Each file in `.sticky/` is one note. A folder is a tab, and a folder inside
 a tab is a book of pages. A Markdown note's front matter gives it a shape.
-Where each note sits on the screen is kept apart, in `sticky.json`, so
-rearranging the board never rewrites a note.
+Where each note sits and how wide it is (a share of the screen, from `1/4`
+to `1`) are kept apart, in `sticky.json`, so rearranging the board never
+rewrites a note.
 
 ```mermaid
 flowchart TB
@@ -189,42 +196,77 @@ title: Release
 [docs/shapes.md](docs/shapes.md#the-folder-is-the-board) has every file
 type, tabs, books and scripts.
 
-### One writer for every way in
+### One path for every change
 
-The agent can edit a file itself. Everything else goes through one path:
-each change is an intent such as "tick this item" (a `doc.Op`), and
-`store.Apply` applies it to the file as it is on disk now, in one step. If
-the agent changed the same item in the meantime, nothing is overwritten.
+Apart from the agent editing a file itself, every change takes one path. The command line, the MCP server, the board in a pane and the
+desktop app's bridge all call `api`. It turns the change into an intent
+such as "tick this item" (a `doc.Op`), and `store.Apply` applies it to the
+file as it is on disk now, in one step. If the agent changed the same item
+in the meantime, nothing is overwritten.
 
 ```mermaid
 flowchart LR
     subgraph ways["Ways in"]
-        cli["CLI<br/>stickypane todo, card, show"]
+        cli["CLI<br/>stickypane todo, card, say"]
         mcp["MCP server<br/>stickypane mcp"]
-        tui["TUI<br/>the board in a pane"]
-        bridge["bridge<br/>JSON lines for the desktop app"]
+        tui["Board in a pane"]
+        bridge["stickypane bridge<br/>for the desktop app"]
     end
-    plugin["Plugin and skills<br/>Claude Code, Codex"] -.->|"teach the agent"| cli
-    plugin -.-> mcp
-    cli --> op["doc.Op<br/>an intent"]
-    mcp --> op
-    tui --> op
-    bridge --> op
+    cli --> api["api<br/>one call per change"]
+    mcp --> api
+    tui --> api
+    bridge --> api
+    api --> op["doc.Op<br/>an intent"]
     op --> apply["store.Apply<br/>read, change, replace"]
     apply --> files[(".sticky/ files")]
     agent["Agent editing a file"] -.-> files
     files -->|"file watcher"| tui
+    files -->|"file watcher"| bridge
 ```
 
-| | Part | Is |
-| --- | --- | --- |
-| <img src="https://cdn.simpleicons.org/gnubash" height="16" alt=""> | CLI | one-line commands for agents and scripts |
-| <img src="https://cdn.simpleicons.org/modelcontextprotocol" height="16" alt=""> | MCP server | the same commands as MCP tools |
-| <img src="https://cdn.simpleicons.org/markdown" height="16" alt=""> | `.sticky/` | the notes, as plain files in your repository |
-| <img src="https://cdn.simpleicons.org/claude" height="16" alt=""> | plugin | skills and slash commands for Claude Code and Codex |
+### The desktop app and the bridge
 
-[docs/architecture.md](docs/architecture.md) has the packages and their
-layers.
+The app in `desktop/` is a separate Go module with a Wails window. It does
+not read notes itself. It starts `stickypane bridge` and talks to it in
+JSON lines over standard input and output, so the app and the terminal
+share one writer.
+
+```mermaid
+flowchart LR
+    subgraph app["desktop/ (Wails)"]
+        window["Window<br/>Svelte board"]
+        client["bridgeclient"]
+        index["index<br/>the list of boards"]
+    end
+    window <--> client
+    client <-->|"JSON lines on stdin/stdout"| bridge["stickypane bridge"]
+    bridge <--> api["api"]
+    api <--> store["store"]
+    store <--> files[(".sticky/")]
+    files -->|"file watcher"| store
+    home[("~/.stickypane<br/>which boards are used")] -.-> index
+    index -.-> window
+```
+
+To list your boards, the app reads `~/.stickypane`, where each stickypane
+session notes which board it is on, if that folder exists (see the [FAQ](#faq)).
+
+### Layers
+
+The code under `internal/` is in four folders, and a package imports only
+from its own folder or a lower one. `internal/layers` fails the tests
+otherwise.
+
+```mermaid
+flowchart LR
+    cmd["cmd/stickypane<br/>the CLI"] -->|imports| surface["surface<br/>TUI, MCP, bridge"]
+    surface -->|imports| usecase["usecase<br/>api, init, settings"]
+    usecase -->|imports| adapter["adapter<br/>store, ~/.stickypane, system"]
+    adapter -->|imports| core["core<br/>note files, shapes, times, words"]
+```
+
+[docs/architecture.md](docs/architecture.md) has every package, its rank
+and how a note is read and written.
 
 ### Asking the user
 
@@ -243,7 +285,7 @@ sequenceDiagram
     U->>B: choose production, press Deploy
     B->>F: write the answers and submitted: Deploy
     F-->>A: wait prints the answers
-    A->>U: deploys to production
+    A->>A: deploys to production
 ```
 
 `wait` exits with code 3 if no one answers in time. The form's format is in
@@ -254,10 +296,10 @@ sequenceDiagram
 | Shape | For | Example |
 | --- | --- | --- |
 | note | anything in Markdown; a `mermaid` block is drawn | `echo "check env" \| stickypane write deploy-notes --open` |
-| board | cards in columns | `stickypane card work add "login API" --to Doing` |
+| board | cards in columns, a kanban | `stickypane card work add "login API" --to Doing` |
 | checklist | steps to tick off, with a progress bar | `stickypane todo plan add "write tests"` |
 | log | one entry per line, the newest in sight | `stickypane log worklog --time "tests passed"` |
-| chat | who said what and when | `stickypane say chat "41/41 pass"` |
+| chat | who said what and when; `say` signs as `agent` unless `--as` names someone | `stickypane say chat "41/41 pass"` |
 | chart | bars, a trend line, or a calendar of days | `stickypane chart tokens add input 1200` |
 | form | options, lines to fill in, buttons | `stickypane wait deploy --timeout 10m` |
 | script | a shell script with a Run button | `stickypane show deploy.sh` |
@@ -276,14 +318,14 @@ notes, and charts counted from other notes.
 | guide | `stickypane init` writes it into `CLAUDE.md` or `AGENTS.md` | any agent that reads those files |
 | <img src="https://cdn.simpleicons.org/modelcontextprotocol" height="16" alt=""> MCP | `stickypane setup --mcp`, or `claude mcp add stickypane -- stickypane mcp` | any MCP client |
 
-The plugin's way in is the skill `using-the-board`, which points to four
-more: `tracking-progress`, `asking-the-user`, `talking-in-chat` and
-`connecting-notes`. [docs/agents.md](docs/agents.md) has the commands for
-agents, the MCP tools, and setup options.
+The plugin lives in [`plugin/`](plugin/). Its slash commands are
+`/board:status` (what is on the board), `/board:track`, `/board:ask`,
+`/board:say` and `/board:setup`. [docs/agents.md](docs/agents.md) has the
+skills, the commands for agents, the MCP tools and the setup options.
 
 ## Usage reference
 
-The help is in the program, in the language of the screen. This is
+The help is in the program, in English or Korean. This is
 `stickypane help`:
 
 ```text
@@ -352,15 +394,10 @@ Nothing has to be set. `S` on the board opens the settings, and
 | Setting | Default | Changes |
 | --- | --- | --- |
 | `theme` | `auto` | the colors; 10 themes, including Catppuccin, Tokyo Night, Gruvbox, Nord and Dracula |
-| `language` | `auto` | the screen's words |
+| `language` | `auto` | the board's language: English or Korean |
 | `time` | `auto` | how days and times are written |
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
-
-| Language | Code | README |
-| --- | --- | --- |
-| English | `en` | [README.md](README.md) |
-| 한국어 | `ko` | [README.ko.md](README.ko.md) |
 
 [docs/configuration.md](docs/configuration.md) has the themes,
 `sticky.json`, and what stickypane records on this machine.
@@ -368,11 +405,11 @@ Nothing has to be set. `S` on the board opens the settings, and
 ## FAQ
 
 **Does my agent need the plugin?** No. Writing a Markdown file in
-`.sticky/` is enough. The plugin, the guide and MCP only save it reading.
+`.sticky/` is enough. The plugin, the guide and MCP tell it the board is there and how to use it.
 
 **What if the agent and I change the same note?** The later change is
-applied to the file as it is then. If it no longer fits, nothing is written
-and the board tells you.
+applied to the file as it is then. If the item it meant has gone or
+changed, nothing is written and the board tells you.
 
 **The mouse does nothing in tmux.** Add `set -g mouse on` to your tmux
 config.
@@ -380,8 +417,10 @@ config.
 **macOS will not open the downloaded program.** Run
 `xattr -d com.apple.quarantine stickypane`, or install with Homebrew.
 
-**Does it send anything anywhere?** No. It writes to `~/.stickypane` only
-if that folder already exists, and never note text
+**Does it send anything anywhere?** No. If `~/.stickypane` exists (the
+desktop app makes it), stickypane notes there which boards are used, so
+the app can list them, and clears out old entries itself. It never writes
+note text there, and it never makes the folder
 ([details](docs/configuration.md#what-stickypane-records-on-this-machine)).
 
 **How is it different from a Markdown kanban?**
@@ -389,12 +428,12 @@ if that folder already exists, and never note text
 [Backlog.md](https://github.com/MrLesk/Backlog.md) keep a kanban in files;
 [sampler](https://github.com/sqshq/sampler) and
 [wtf](https://github.com/wtfutil/wtf) are configured dashboards. stickypane
-sits between you and an agent: files the agent writes, a board you glance
-at, answers that go back.
+sits between you and an agent: the agent writes the files, you glance at
+the board, and your answers go back to the agent.
 
-More questions go to [Discussions](https://github.com/LeeSwallow/stickypane/discussions).
-Bugs and ideas go to the [issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose),
-security problems to [SECURITY.md](SECURITY.md). See also [SUPPORT.md](SUPPORT.md).
+Questions go to [Discussions](https://github.com/LeeSwallow/stickypane/discussions),
+bugs and ideas to the [issue tracker](https://github.com/LeeSwallow/stickypane/issues/new/choose),
+and security problems to [SECURITY.md](SECURITY.md). See also [SUPPORT.md](SUPPORT.md).
 
 ## Contributing
 
