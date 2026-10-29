@@ -14,12 +14,16 @@ import (
 // repoRoot is the repository, three levels up from this package.
 var repoRoot = filepath.Join("..", "..", "..")
 
-// The repository is also a Claude Code and Codex plugin. These tests keep
+// pluginRoot is the plugin, ${CLAUDE_PLUGIN_ROOT} once installed: the
+// folder both marketplaces at the repository's root point at.
+var pluginRoot = filepath.Join(repoRoot, "plugin")
+
+// The repository is also a Claude Code and Codex marketplace. These tests keep
 // its files honest: the manifests parse, the skill that teaches the board
 // carries the same guide init installs, and the hook script runs.
 
 func TestPluginManifestsParse(t *testing.T) {
-	for _, f := range []string{".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json", ".agents/plugins/marketplace.json", "hooks/claude-hooks.json", "hooks/codex-hooks.json"} {
+	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json", "plugin/hooks/claude-hooks.json", "plugin/hooks/codex-hooks.json"} {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
 		if err != nil {
 			t.Fatal(err)
@@ -32,7 +36,7 @@ func TestPluginManifestsParse(t *testing.T) {
 	// /board:status also lists the notes, as /board:index did; showing a
 	// note and the shapes are a command away (stickypane show, help <shape>).
 	for _, f := range []string{"commands/status.md", "commands/ask.md", "commands/setup.md", "commands/track.md", "commands/say.md"} {
-		b, err := os.ReadFile(filepath.Join(repoRoot, f))
+		b, err := os.ReadFile(filepath.Join(pluginRoot, f))
 		if err != nil || !strings.HasPrefix(string(b), "---\ndescription: ") {
 			t.Errorf("%s should start with a description: %v", f, err)
 		}
@@ -74,7 +78,7 @@ func TestPluginManifestsNameTheRelease(t *testing.T) {
 		}
 		return out
 	}
-	for _, f := range []string{".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json", ".agents/plugins/marketplace.json"} {
+	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json"} {
 		got := versions(f)
 		if len(got) == 0 {
 			t.Errorf("%s names no version", f)
@@ -95,7 +99,7 @@ func harnessFiles(t *testing.T) map[string]string {
 	t.Helper()
 	files := map[string]string{}
 	for _, dir := range []string{"skills", "commands", "scripts", "rules"} {
-		err := filepath.WalkDir(filepath.Join(repoRoot, dir), func(path string, d os.DirEntry, err error) error {
+		err := filepath.WalkDir(filepath.Join(pluginRoot, dir), func(path string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
 			}
@@ -112,7 +116,7 @@ func harnessFiles(t *testing.T) map[string]string {
 
 func TestTheSkillsAreShortAndOpenWithWhatToDo(t *testing.T) {
 	for _, name := range skillNames {
-		b, err := os.ReadFile(filepath.Join(repoRoot, "skills", name, "SKILL.md"))
+		b, err := os.ReadFile(filepath.Join(pluginRoot, "skills", name, "SKILL.md"))
 		if err != nil || !strings.HasPrefix(string(b), "---\nname: "+name+"\ndescription: Use when") {
 			t.Errorf("skill %s needs its name and a description that starts with when to use it: %v", name, err)
 			continue
@@ -133,7 +137,7 @@ func TestTheHarnessNamesOnlyFilesThatExist(t *testing.T) {
 	ref := regexp.MustCompile("`((?:references|\\$\\{CLAUDE_PLUGIN_ROOT\\})/[^`\\s]+)`")
 	for path, text := range harnessFiles(t) {
 		for _, m := range ref.FindAllStringSubmatch(text, -1) {
-			target := strings.Replace(m[1], "${CLAUDE_PLUGIN_ROOT}", repoRoot, 1)
+			target := strings.Replace(m[1], "${CLAUDE_PLUGIN_ROOT}", pluginRoot, 1)
 			if strings.HasPrefix(m[1], "references/") {
 				target = filepath.Join(filepath.Dir(path), m[1])
 			}
@@ -162,7 +166,7 @@ func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 }
 
 func TestEveryShapeHasAShortEntry(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join(repoRoot, "skills", "using-the-board", "references", "kinds.md"))
+	b, err := os.ReadFile(filepath.Join(pluginRoot, "skills", "using-the-board", "references", "kinds.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +178,7 @@ func TestEveryShapeHasAShortEntry(t *testing.T) {
 }
 
 func TestSessionStartHookIsQuietWithoutABoard(t *testing.T) {
-	script, err := filepath.Abs(filepath.Join(repoRoot, "scripts", "session-start.sh"))
+	script, err := filepath.Abs(filepath.Join(pluginRoot, "scripts", "session-start.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +196,7 @@ func TestSessionStartHookIsQuietWithoutABoard(t *testing.T) {
 // Only .sticky is a board. ~/.stickypane is where the registry lives, so a
 // project under it without a .sticky of its own has no board.
 func TestBoardContextTakesOnlyStickyForABoard(t *testing.T) {
-	script, err := filepath.Abs(filepath.Join(repoRoot, "scripts", "board-context.sh"))
+	script, err := filepath.Abs(filepath.Join(pluginRoot, "scripts", "board-context.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +251,7 @@ func TestTheLayersPointAtEachOther(t *testing.T) {
 	for _, s := range skillNames {
 		isSkill[s] = true
 	}
-	way, err := os.ReadFile(filepath.Join(repoRoot, "skills", "using-the-board", "SKILL.md"))
+	way, err := os.ReadFile(filepath.Join(pluginRoot, "skills", "using-the-board", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,6 +265,72 @@ func TestTheLayersPointAtEachOther(t *testing.T) {
 			if strings.Contains(m[0], "board:") && !isSkill[m[1]] {
 				t.Errorf("%s follows %s, which is not a skill", path, m[0])
 			}
+		}
+	}
+}
+
+// Both marketplaces sit at the repository's root, so that
+// `plugin marketplace add LeeSwallow/stickypane` keeps working, and point
+// at plugin/, where the plugin is whole: its manifests, the files they name
+// and the scripts its hooks and commands run. scripts/ at the root is for
+// developing stickypane only.
+func TestTheMarketplacesPointAtThePluginFolder(t *testing.T) {
+	read := func(f string, v any) {
+		b, err := os.ReadFile(filepath.Join(repoRoot, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(b, v); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+	}
+	var claude struct {
+		Name    string
+		Plugins []struct{ Name, Source string }
+	}
+	read(".claude-plugin/marketplace.json", &claude)
+	if claude.Name != "stickypane" || len(claude.Plugins) != 1 || claude.Plugins[0].Name != "board" || claude.Plugins[0].Source != "./plugin" {
+		t.Errorf("the Claude Code marketplace should be stickypane with board at ./plugin: %+v", claude)
+	}
+	type source struct{ Source, Path string }
+	var codex struct {
+		Name    string
+		Plugins []struct {
+			Name   string
+			Source source
+		}
+	}
+	read(".agents/plugins/marketplace.json", &codex)
+	if codex.Name != "stickypane" || len(codex.Plugins) != 1 || codex.Plugins[0].Name != "board" || codex.Plugins[0].Source != (source{"local", "./plugin"}) {
+		t.Errorf("the Codex marketplace should be stickypane with board at ./plugin: %+v", codex)
+	}
+	var claudePlugin struct{ Name, Hooks string }
+	read("plugin/.claude-plugin/plugin.json", &claudePlugin)
+	var codexPlugin struct{ Name, Skills, Hooks string }
+	read("plugin/.codex-plugin/plugin.json", &codexPlugin)
+	if claudePlugin.Name != "board" || codexPlugin.Name != "board" {
+		t.Errorf("both plugins are board: %q, %q", claudePlugin.Name, codexPlugin.Name)
+	}
+	for _, p := range []string{claudePlugin.Hooks, codexPlugin.Skills, codexPlugin.Hooks} {
+		if _, err := os.Stat(filepath.Join(pluginRoot, p)); err != nil {
+			t.Errorf("a manifest names %s, which is not in plugin/", p)
+		}
+	}
+	run := regexp.MustCompile(`\$\{(?:CLAUDE_)?PLUGIN_ROOT\}/([^"\\]+)`)
+	for _, f := range []string{"hooks/claude-hooks.json", "hooks/codex-hooks.json"} {
+		b, err := os.ReadFile(filepath.Join(pluginRoot, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range run.FindAllStringSubmatch(string(b), -1) {
+			if _, err := os.Stat(filepath.Join(pluginRoot, m[1])); err != nil {
+				t.Errorf("%s runs %s, which is not in plugin/", f, m[1])
+			}
+		}
+	}
+	for _, old := range []string{"skills", "commands", "rules", "hooks", ".codex-plugin", ".claude-plugin/plugin.json", "scripts/session-start.sh", "scripts/board-context.sh"} {
+		if _, err := os.Stat(filepath.Join(repoRoot, old)); err == nil {
+			t.Errorf("%s belongs in plugin/", old)
 		}
 	}
 }

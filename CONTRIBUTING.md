@@ -113,7 +113,7 @@ go test ./internal/adapter/store ./internal/surface/app -run XXX -bench .   # be
 
 Where things are: [docs/architecture.md](docs/architecture.md) (the layers,
 how a note is read and written, how to add a shape) and
-[docs/plugin.md](docs/plugin.md) (the skills, commands and hooks). A package
+[docs/plugin.md](docs/plugin.md) (the plugin in `plugin/`: skills, commands, hooks). A package
 sits in its layer's folder under `internal/` (`core`, `adapter`, `usecase`,
 `surface`) and may only import a lower layer; `internal/layers` fails the
 tests otherwise.
@@ -129,7 +129,7 @@ tests otherwise.
 - **Tests** come with the change. When a test and the README disagree, say
   so in the pull request.
 - **Docs**: a change in behaviour updates the README, and the rules
-  (`rules/`, which are also the agent guide) or a skill when agents need to
+  (`plugin/rules/`, which are also the agent guide) or a skill when agents need to
   know. Each rule is written once there; the rest points to it.
 - Go, standard library first. A new dependency needs a reason in the pull
   request, and a license `scripts/licenses.sh` accepts.
@@ -171,7 +171,7 @@ signs, the tool does not.
 
 ## Not code
 
-The skills (`skills/`), the agent guide and the README are where most of
+The skills (`plugin/skills/`), the agent guide and the README are where most of
 the product is. Wording that makes an agent do the right thing more often
 is a contribution. The design notes are in `docs/superpowers/specs/`; a
 change that contradicts one should say why.

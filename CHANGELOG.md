@@ -8,6 +8,14 @@ on GitHub are built from pull request labels.
 
 ### Changed
 
+- The agent plugin is in one folder, `plugin/`: its manifests, skills,
+  commands, rules, hooks, hook scripts and the agent guide's head. The
+  marketplaces `stickypane` (`.claude-plugin/marketplace.json` and
+  `.agents/plugins/marketplace.json`, still at the root) point at
+  `./plugin`, and the plugin is still `board`, so an install from
+  `LeeSwallow/stickypane` updates as before, with no step to take;
+  `scripts/` keeps only the scripts for developing stickypane (#52).
+
 - A `spark` chart is a line chart that fills the pane (min and max on an
   axis, first and last labels, the latest value marked), and a `heat` chart
   a calendar with weeks two to four cells wide, month labels and a scale.

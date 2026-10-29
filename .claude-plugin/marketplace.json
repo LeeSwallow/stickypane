@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "board",
-      "source": "./",
+      "source": "./plugin",
       "description": "Skills, commands and a session hook for using the stickypane board",
       "version": "0.1.1"
     }

@@ -8,7 +8,7 @@ The board speaks English and Korean. Adding a language is one JSON file.
   on the bottom line, dialog titles, the help screen, the empty-note hints
   inside widgets. These live in `internal/core/i18n/`.
 - Not translated: key names (`tab`, `ctrl+f`), file formats, command names,
-  the agent guide (`internal/usecase/initcmd/guide.md` and `rules/`) and the plugin
+  the agent guide (`plugin/guide.md` and `plugin/rules/`) and the plugin
   skills. The agent's reader is a model; every agent instruction file we looked at in
   other projects is English, and the guide tells the agent to answer the
   user in the user's language.
