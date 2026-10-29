@@ -26,7 +26,7 @@ held back: open **System Settings → Privacy & Security** and choose **Open
 Anyway**. Then, in a board's settings, **Terminal and agents** installs the
 `stickypane` command for your terminals and connects Claude Code and Codex.
 
-Linux (WebKitGTK 4.1 needed):
+Linux (GTK 4 and WebKitGTK 6.0 needed):
 
 ```sh
 tar -xzf stickypane-app-<version>-linux-amd64.tar.gz

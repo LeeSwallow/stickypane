@@ -10,7 +10,7 @@
 # ~/.local/share/applications/stickypane.desktop
 # ~/.local/share/icons/hicolor/512x512/apps/stickypane.png
 #
-# The app needs WebKitGTK 4.1 (libwebkit2gtk-4.1-0 on Debian and Ubuntu).
+# The app needs GTK 4 and WebKitGTK 6.0 (libgtk-4-1 and libwebkitgtk-6.0-4 on Debian and Ubuntu).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)

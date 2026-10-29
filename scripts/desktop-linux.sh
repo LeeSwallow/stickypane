@@ -10,7 +10,7 @@
 # stickypane.desktop, stickypane.png, install.sh (which installs it all under
 # ~/.local), LICENSE, THIRD_PARTY_NOTICES.md and licenses/ (every bundled
 # package's license text).
-# The app needs WebKitGTK 4.1. It leaves no files of its own behind.
+# The app needs GTK 4 and WebKitGTK 6.0. It leaves no files of its own behind.
 set -eu
 
 die() { echo "desktop-linux: $*" >&2; exit 1; }
