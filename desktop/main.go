@@ -62,7 +62,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "io.github.leeswallow.stickypane",
+			UniqueID: instanceID(os.Getenv("STICKYPANE_APP_INSTANCE")),
 			OnSecondInstanceLaunch: func(d application.SecondInstanceData) {
 				<-ready
 				s.Launch(d.Args, d.WorkingDir)
@@ -112,6 +112,17 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// instanceID is the single instance's name. STICKYPANE_APP_INSTANCE=<name>
+// gives a copy run for a check its own (with its own STICKYPANE_HOME), so
+// that it does not hand its launch to an app already running.
+func instanceID(name string) string {
+	const id = "io.github.leeswallow.stickypane"
+	if name == "" {
+		return id
+	}
+	return id + "." + name
 }
 
 // debugTear is a debug hook, for checking tear-off in the built app
