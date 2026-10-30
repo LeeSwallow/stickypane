@@ -4,7 +4,7 @@
 // (services/canvas.ts), which keeps it in overlay.json.
 
 import type { Place } from '../services/canvas'
-import { firstPlaces, PAD, snapTo, SNAP } from './free'
+import { firstPlaces, MIN_H, PAD, snapTo, SNAP } from './free'
 
 /** GAP is the space tidying leaves between notes, on the 8px grid. */
 export const GAP = 3 * SNAP
@@ -62,6 +62,19 @@ interface Placeable {
 export function firstSize(note: Placeable, at: Place, width: number): Place {
   const first = firstPlaces([note], {}, width)[note.name]
   return first ? { ...at, w: first.w, h: first.h } : at
+}
+
+/** FIT_MAX is the tallest a new note is made to fit its content; a longer one scrolls inside. */
+export const FIT_MAX = 560
+
+/**
+ * fitHeight is the height a new note on the canvas takes for content
+ * natural px tall: on the 8px grid, no lower than the canvas's smallest,
+ * no higher than FIT_MAX. A note with nothing measured (0) keeps fallback.
+ */
+export function fitHeight(natural: number, fallback: number): number {
+  if (!(natural > 0)) return fallback
+  return Math.min(FIT_MAX, Math.max(MIN_H, Math.ceil(natural / SNAP) * SNAP))
 }
 
 /** fits says whether a place is inside a canvas width wide. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Place } from '../services/canvas'
-import { changed, EDGE, firstSize, fits, overlaps, tidy, toBack, toFront } from './arrange'
+import { changed, EDGE, firstSize, fitHeight, fits, FIT_MAX, overlaps, tidy, toBack, toFront } from './arrange'
 import { firstPlaces, SNAP } from './free'
 
 const at = (x: number, y: number, w: number, h: number, z = 1): Place => ({ x, y, w, h, tilt: 0.5, z })
@@ -67,6 +67,15 @@ describe('first places', () => {
   it('every note of a board lands inside the width', () => {
     const notes = ['1/4', '1/3', '1/2', '2/3', '3/4', '1', 'card'].map((size, i) => ({ name: `n${i}.md`, size, rows: 0 }))
     for (const width of [480, 720, 1000]) for (const p of Object.values(firstPlaces(notes, {}, width))) expect(fits(p, width)).toBe(true)
+  })
+})
+
+describe('a new note fits what it holds', () => {
+  it('on the grid, no lower than the smallest, no higher than the most, and unmeasured keeps its height', () => {
+    expect(fitHeight(201, 280)).toBe(208)
+    expect(fitHeight(40, 280)).toBe(96)
+    expect(fitHeight(5000, 280)).toBe(FIT_MAX)
+    expect(fitHeight(0, 280)).toBe(280)
   })
 })
 
