@@ -4,6 +4,7 @@
   import { dayLabel, language, tr } from '../i18n'
   import type { Groups, Peek, Row } from '../services/home'
   import SessionRow from './SessionRow.svelte'
+  import { columnsFor, spans } from './grid'
 
   let {
     groups,
@@ -31,15 +32,19 @@
   const todays = $derived(days.filter((d) => d.date === today).flatMap((d) => d.rows))
   const earlier = $derived(days.filter((d) => d.date !== today).flatMap((d) => d.rows.map((row) => ({ row, date: d.date }))))
   const none = $derived(!active.length && !todays.length && !earlier.length)
+  // two or three to a row as the window allows; a short last row shares the width
+  let width = $state(900)
+  const cols = $derived(columnsFor(width))
+  const span = (n: number, i: number) => spans(n, cols)[i]
 </script>
 
-<div class="sessions">
+<div class="sessions" bind:clientWidth={width}>
   {#if active.length}
     <section>
       <h2>{$tr('sessions.active')}</h2>
       <div class="cards">
-        {#each active as row (row.ID)}
-          <SessionRow {row} {now} active {open} peek={peeks[row.Path]} {home} />
+        {#each active as row, i (row.ID)}
+          <div class="cell" style:grid-column="span {span(active.length, i)}"><SessionRow {row} {now} active {open} peek={peeks[row.Path]} {home} /></div>
         {/each}
       </div>
     </section>
@@ -48,8 +53,8 @@
     <section>
       <h2>{$tr('home.today')}</h2>
       <div class="cards">
-        {#each todays as row (row.ID)}
-          <SessionRow {row} {now} {open} peek={peeks[row.Path]} {home} />
+        {#each todays as row, i (row.ID)}
+          <div class="cell" style:grid-column="span {span(todays.length, i)}"><SessionRow {row} {now} {open} peek={peeks[row.Path]} {home} /></div>
         {/each}
       </div>
     </section>
@@ -58,8 +63,8 @@
     <section>
       <h2>{$tr('home.earlier')}</h2>
       <div class="cards">
-        {#each earlier as e (e.row.ID)}
-          <SessionRow row={e.row} {now} {open} peek={peeks[e.row.Path]} day={dayLabel(e.date, now, $language)} {home} />
+        {#each earlier as e, i (e.row.ID)}
+          <div class="cell" style:grid-column="span {span(earlier.length, i)}"><SessionRow row={e.row} {now} {open} peek={peeks[e.row.Path]} day={dayLabel(e.date, now, $language)} {home} /></div>
         {/each}
       </div>
     </section>
@@ -81,8 +86,15 @@
   }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: var(--space-6) var(--space-5);
+  }
+  .cell {
+    display: flex;
+    min-width: 0;
+  }
+  .cell > :global(.card) {
+    flex: 1;
   }
   .none {
     margin: var(--space-8) 0;
