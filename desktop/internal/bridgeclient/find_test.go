@@ -11,9 +11,11 @@ import (
 	"time"
 )
 
-// fakeStickypane writes a stickypane into dir that answers help and
-// version as a release of the given version would, and logs every
-// argument list it is run with to log.
+// fakeStickypane writes a stickypane into dir that answers help, help
+// --all and version as a release of the given version would, and logs
+// every argument list it is run with to log. As the real one does, plain
+// help is an overview without the full usage lines; only help --all
+// lists `stickypane bridge`.
 func fakeStickypane(t *testing.T, dir, version string, hasBridge bool, log string) string {
 	t.Helper()
 	if runtime.GOOS == "windows" {
@@ -25,9 +27,10 @@ func fakeStickypane(t *testing.T, dir, version string, hasBridge bool, log strin
 	}
 	script := "#!/bin/sh\n" +
 		"echo \"$@\" >> '" + log + "'\n" +
-		"case \"$1\" in\n" +
-		"help) /bin/cat <<'EOF'\nstickypane - a note board\n\nUsage:\n" + usage + "\nEOF\n;;\n" +
-		"version) echo 'stickypane " + version + "' ;;\n" +
+		"case \"$1 $2\" in\n" +
+		"'help --all') /bin/cat <<'EOF'\nstickypane - a note board\n\nUsage:\n" + usage + "\nEOF\n;;\n" +
+		"'help ') echo 'Getting started'; echo '  init      make .sticky/' ;;\n" +
+		"'version ') echo 'stickypane " + version + "' ;;\n" +
 		"esac\n"
 	p := filepath.Join(dir, "stickypane")
 	if err := os.WriteFile(p, []byte(script), 0o755); err != nil {
@@ -84,14 +87,32 @@ func TestFindRefusesAStickypaneTooOldForTheBridge(t *testing.T) {
 	if !errors.As(err, &too) || len(too.Found) != 1 || too.Found[0].Path != old || too.Found[0].Version != "0.1.1" {
 		t.Fatalf("found %+v", too)
 	}
-	for _, w := range []string{old, "0.1.1", "too old", "bridge", "Update stickypane"} {
+	for _, w := range []string{old, "0.1.1", "too old for the app", "no `bridge` command", "Update stickypane"} {
 		if !strings.Contains(err.Error(), w) {
 			t.Errorf("the error does not say %q: %s", w, err)
 		}
 	}
+	if strings.Contains(err.Error(), "overlay") {
+		t.Errorf("the error speaks of the overlay: %s", err)
+	}
 	runs, _ := os.ReadFile(log)
 	if strings.Contains(string(runs), "bridge") {
 		t.Errorf("an old stickypane was run with bridge:\n%s", runs)
+	}
+}
+
+// The stickypane this repository builds has the bridge, and Probe must
+// say so: the other half of test/desktop_test.go's contract on help --all.
+func TestProbeTakesTheRealStickypaneForOneWithTheBridge(t *testing.T) {
+	bin := realStickypane(t)
+	isolate(t, "")
+	c := Probe(bin)
+	if !c.Bridge {
+		t.Fatalf("Probe(the real stickypane) = %+v; want Bridge", c)
+	}
+	t.Setenv("STICKYPANE_BIN", bin)
+	if got, err := Find(); err != nil || got != bin {
+		t.Fatalf("Find with STICKYPANE_BIN = the real stickypane: %q, %v", got, err)
 	}
 }
 

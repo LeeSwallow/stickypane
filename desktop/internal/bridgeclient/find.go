@@ -16,7 +16,7 @@ import (
 // ErrTooOld: stickypane was found, but no copy of it has the bridge.
 var ErrTooOld = errors.New("bridge: stickypane too old")
 
-// probeTimeout bounds each `stickypane help` and `stickypane version`. It
+// probeTimeout bounds each `stickypane help --all` and `stickypane version`. It
 // is long because the first run of a new program on macOS can wait for
 // Gatekeeper's scan; a probe that runs out of time is not remembered.
 var probeTimeout = 10 * time.Second
@@ -26,7 +26,7 @@ var probeTimeout = 10 * time.Second
 type Candidate struct {
 	Path    string `json:"path"`
 	Version string `json:"version"`
-	Bridge  bool   `json:"bridge"` // its help lists `stickypane bridge`
+	Bridge  bool   `json:"bridge"` // its help --all lists `stickypane bridge`
 }
 
 // TooOldError lists the copies of stickypane that were found, none of
@@ -43,7 +43,7 @@ func (e *TooOldError) Error() string {
 		parts = append(parts, fmt.Sprintf("stickypane %s at %s", v, c.Path))
 	}
 	return "Found " + strings.Join(parts, ", ") +
-		", which is too old for the overlay (it has no `bridge`). Update stickypane."
+		": this stickypane is too old for the app (it has no `bridge` command). Update stickypane."
 }
 
 func (e *TooOldError) Is(target error) bool { return target == ErrTooOld }
@@ -92,9 +92,9 @@ func bundledPath(goos, exe string) string {
 // looks at the one bundled in the app (BundledCLI), then STICKYPANE_BIN,
 // then every directory of PATH, then
 // /opt/homebrew/bin, /usr/local/bin and ~/go/bin, and takes the first
-// whose `stickypane help` lists `stickypane bridge`: an older copy
+// whose `stickypane help --all` lists `stickypane bridge`: an older copy
 // earlier on PATH (Homebrew's, say) is passed over for a newer one later.
-// An old copy is only ever run with help and version, never with bridge,
+// An old copy is only ever run with help --all and version, never with bridge,
 // which it would take for a folder and open its terminal board.
 //
 // A STICKYPANE_BIN that names no program is an error (ErrNotFound); copies
@@ -175,8 +175,11 @@ func resetProbes() {
 	probes.Unlock()
 }
 
-// Probe asks a stickypane program for its help and version. It never
-// runs it with bridge.
+// Probe asks a stickypane program for its full help and its version. It
+// never runs it with bridge. Plain `stickypane help` is an overview (or,
+// with no board, how to get started) that names commands without the
+// `stickypane ` before them; only `help --all` lists every usage line,
+// and test/desktop_test.go keeps `stickypane bridge` among them.
 func Probe(path string) Candidate {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -190,7 +193,7 @@ func Probe(path string) Candidate {
 	probes.Unlock()
 
 	c := Candidate{Path: path}
-	help, _, late := run(path, "help") // an old copy may exit non-zero; its words still count
+	help, _, late := run(path, "help", "--all") // an old copy may exit non-zero; its words still count
 	c.Bridge = strings.Contains(help, "stickypane bridge")
 	v, err, lateV := run(path, "version")
 	if err == nil {
@@ -205,12 +208,12 @@ func Probe(path string) Candidate {
 	return c
 }
 
-// run runs the program with one argument and no input, briefly. late
+// run runs the program with the arguments and no input, briefly. late
 // says it ran out of time.
-func run(path, arg string) (out string, err error, late bool) {
+func run(path string, args ...string) (out string, err error, late bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, path, arg)
+	cmd := exec.CommandContext(ctx, path, args...)
 	cmd.WaitDelay = time.Second
 	b, err := cmd.CombinedOutput()
 	return string(b), err, ctx.Err() != nil
