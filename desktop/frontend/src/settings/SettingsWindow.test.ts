@@ -56,6 +56,17 @@ const open = (board = fakeBoard(), app = fakeApp(), section: 'board' | 'app' | '
   render(SettingsWindow, { board, app: app.api, setup: fakeSetup().api, section })
 
 describe('the settings window', () => {
+  it('opening it changes nothing', async () => {
+    const board = fakeBoard()
+    const app = fakeApp()
+    open(board, app)
+    await screen.findByRole('radiogroup', { name: '테마' })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(board.setSettings).not.toHaveBeenCalled()
+    expect(board.setMode).not.toHaveBeenCalled()
+    expect(app.api.setPrefs).not.toHaveBeenCalled()
+  })
+
   it('the board: themes as cards in their own colours; picking one keeps the half the screen shows', async () => {
     const board = fakeBoard()
     open(board)
