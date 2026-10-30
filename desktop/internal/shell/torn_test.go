@@ -329,3 +329,40 @@ func TestQuittingKeepsTornNotesForTheNextLaunch(t *testing.T) {
 		t.Errorf("after quitting the frame is %+v", f)
 	}
 }
+
+func (w *fakeWindow) blur() { w.mu.Lock(); w.focused = false; w.mu.Unlock() }
+
+// Tearing a note off moves the focus to its window; the board it came
+// from stays on screen beside it, so the note is seen to leave the board
+// rather than the board to vanish (#62). Focus going anywhere else still
+// hides an unpinned board.
+func TestTearingOffLeavesTheBoardShown(t *testing.T) {
+	r, _, id, _ := tornRig(t)
+	board := r.p.projectWindows()[0]
+	if _, err := r.s.TearOff(id, "work/a.md"); err != nil {
+		t.Fatal(err)
+	}
+	board.loseFocus() // to the torn-off note
+	if !board.Visible() {
+		t.Fatal("the board hid when its own torn-off note took the focus")
+	}
+	r.p.noteWindows()[0].blur()
+	board.loseFocus() // to another app
+	if board.Visible() {
+		t.Error("an unpinned board stays when the focus leaves the app's windows of it")
+	}
+}
+
+// Putting a note back shows its board, where the note now is.
+func TestPutBackShowsTheBoard(t *testing.T) {
+	r, _, id, _ := tornRig(t)
+	board := r.p.projectWindows()[0]
+	nid, _ := r.s.TearOff(id, "work/a.md")
+	board.Hide()
+	if err := r.s.PutBack(nid, ""); err != nil {
+		t.Fatal(err)
+	}
+	if !board.Visible() || !board.Focused() {
+		t.Error("putting a note back leaves its board hidden")
+	}
+}

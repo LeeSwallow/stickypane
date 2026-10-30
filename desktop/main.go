@@ -11,6 +11,7 @@ import (
 	"embed"
 	"log"
 	"os"
+	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/shell"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -75,7 +76,7 @@ func main() {
 
 	platform := shell.NewWails(app)
 	var err error
-	s, err = shell.New(shell.Config{Home: shell.DefaultHome(), Platform: platform})
+	s, err = shell.New(shell.Config{Home: shell.DefaultHome(), Platform: platform, FocusSettle: 150 * time.Millisecond})
 	if err != nil {
 		log.Fatal(err)
 	}
