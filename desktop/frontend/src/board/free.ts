@@ -55,8 +55,8 @@ interface Placeable {
 /**
  * firstPlaces are places for the notes the canvas has not seen: where the
  * grid would draw them alone on a board width px wide, in the board's
- * order. On a canvas that already has notes, they start below them at the
- * left edge, so nothing new lands on top of what was placed by hand, nor
+ * order. On a canvas that already has notes among all, they start below
+ * them at the left edge, so nothing new lands on top of what was placed by hand, nor
  * off to the side where a note it no longer shares a row with would be.
  */
 export function firstPlaces(all: Placeable[], places: Record<string, Place>, width: number): Record<string, Place> {
@@ -70,7 +70,9 @@ export function firstPlaces(all: Placeable[], places: Record<string, Place>, wid
   grid.forEach((p, i) => (rowH[p.row - 1] = Math.max(rowH[p.row - 1] ?? 0, heightOf(notes[i]))))
   const rowTop: number[] = []
   rowH.reduce((top, h, r) => ((rowTop[r] = top), top + (h ?? 0) + ROW_GAP), 0)
-  const known = Object.values(places)
+  // below the notes of this board's own (its tab's) that have places: the
+  // map holds every tab's, and another tab's must not push these down
+  const known = all.filter((n) => places[n.name]).map((n) => places[n.name])
   const below = known.length ? extent(known).h : PAD
   let z = topZ(places)
   const out: Record<string, Place> = {}

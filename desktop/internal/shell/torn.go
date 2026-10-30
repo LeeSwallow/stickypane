@@ -308,6 +308,14 @@ func (s *Shell) PutBack(window uint, note string) error {
 	}
 	err := s.save()
 	s.emitLayout(p)
+	// the board comes forward, where the note now is
+	s.mu.Lock()
+	board, closed := p.win, p.closed
+	s.mu.Unlock()
+	if board != nil && !closed {
+		board.Show()
+		board.Focus()
+	}
 	return err
 }
 

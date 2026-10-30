@@ -96,6 +96,9 @@ type Config struct {
 	// Install puts the app's stickypane on the PATH, connects the agents
 	// and makes boards (install/service); a test passes a fake.
 	Install Installer
+	// FocusSettle is how long a board that lost the focus waits to see
+	// where it went before it hides; 0 decides at once.
+	FocusSettle time.Duration
 }
 
 // Installer is the install use cases: *installsvc.Service.
@@ -827,9 +830,43 @@ func (s *Shell) lostFocus(p *project) {
 	w := p.win
 	closed := p.closed
 	s.mu.Unlock()
-	if !pinned && !closed {
-		w.Hide()
+	if pinned || closed {
+		return
 	}
+	if s.focusInProject(p) {
+		return
+	}
+	if d := s.cfg.FocusSettle; d > 0 {
+		// the desktop may say the board lost the focus before it says
+		// which window has it now
+		go func() {
+			time.Sleep(d)
+			if !s.focusInProject(p) && !w.Focused() {
+				w.Hide()
+			}
+		}()
+		return
+	}
+	w.Hide()
+}
+
+// focusInProject says whether one of the project's torn-off notes has the
+// focus: going to one of them leaves the board on screen beside it.
+func (s *Shell) focusInProject(p *project) bool {
+	s.mu.Lock()
+	var wins []Window
+	for _, tw := range p.torn {
+		if tw.win != nil && !tw.closed {
+			wins = append(wins, tw.win)
+		}
+	}
+	s.mu.Unlock()
+	for _, w := range wins {
+		if w.Focused() {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Shell) focused(p *project) {

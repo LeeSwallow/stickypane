@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -561,6 +562,34 @@ func TestSecondLaunchOpensTheProject(t *testing.T) {
 	}
 	if len(r.p.projectWindows()) != 2 {
 		t.Error("no more project windows")
+	}
+}
+
+// Launched with a project (open … --args --project=<path>), the app makes
+// that project's window and no other: no home window, hidden or shown, and
+// no note window when no note was torn off. (The borderless 500×500 window
+// CGWindowList shows beside it on macOS is AppKit's own TUINSWindow, the
+// text input indicator, which is never on screen; #62.)
+func TestALaunchWithAProjectMakesOnlyItsWindow(t *testing.T) {
+	r := newRig(t)
+	r.s.Start()
+	r.s.Launch([]string{"stickypane-app", "--project=/work/a"}, "")
+	waitFor(t, "the board loads", func() bool {
+		ws := r.p.projectWindows()
+		return len(ws) == 1 && r.s.Status(ws[0].id).State == StateReady
+	})
+	r.p.mu.Lock()
+	defer r.p.mu.Unlock()
+	if len(r.p.windows) != 1 {
+		var kinds []string
+		for _, w := range r.p.windows {
+			kinds = append(kinds, fmt.Sprintf("%s %dx%d", w.opts.Kind, w.bounds.Width, w.bounds.Height))
+		}
+		t.Fatalf("a launch with a project made %d windows: %v; want only the project's", len(r.p.windows), kinds)
+	}
+	w := r.p.windows[0]
+	if w.opts.Kind != KindProject || !w.visible || w.bounds.Width <= 0 || w.bounds.Height <= 0 {
+		t.Errorf("the window is %+v, visible %v", w.opts, w.visible)
 	}
 }
 
