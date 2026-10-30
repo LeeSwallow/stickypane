@@ -83,5 +83,23 @@ export const setupService: SetupApi = {
   initHere: () => Call.ByName(project('InitHere')) as Promise<RunResult>,
 }
 
+/**
+ * Where the agents stand, from what `stickypane setup --dry-run` printed:
+ * connected (nothing to do), none (no Claude Code or Codex on the PATH),
+ * or not yet (a plan to run).
+ */
+export type AgentsState = 'connected' | 'none' | 'todo'
+
+export function agentsState(plan: string): AgentsState {
+  if (/^Nothing to do/m.test(plan)) return 'connected'
+  if (/^No agent found/m.test(plan)) return 'none'
+  return 'todo'
+}
+
+/** agents asks setup what it would do, and says where the agents stand. */
+export async function checkAgents(api: Pick<SetupApi, 'connectPlan'>, mcp = false): Promise<AgentsState> {
+  return agentsState((await api.connectPlan(mcp)).output)
+}
+
 /** linked is the app's link that a terminal uses, if any. */
 export const linked = (s: CommandState): Link | undefined => s.links.find((l) => l.state === 'apps')

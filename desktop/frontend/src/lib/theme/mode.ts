@@ -2,14 +2,14 @@
 // pair (03 §3.4); the chosen theme name itself is never rewritten.
 export type Mode = 'system' | 'dark' | 'light'
 
-const PAIRS: [dark: string, light: string][] = [
+export const PAIRS: [dark: string, light: string][] = [
   ['stickypane-dark', 'stickypane-light'],
   ['catppuccin-mocha', 'catppuccin-latte'],
   ['tokyonight-night', 'tokyonight-day'],
   ['gruvbox-dark', 'gruvbox-light'],
 ]
 // no pair: light mode uses stickypane-light
-const DARK_ONLY = ['nord', 'dracula']
+export const DARK_ONLY = ['nord', 'dracula']
 
 /** resolveDark says whether the screen is dark for a mode. */
 export const resolveDark = (mode: Mode, systemDark: boolean): boolean =>
