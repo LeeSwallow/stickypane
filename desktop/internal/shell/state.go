@@ -31,12 +31,14 @@ type WindowState struct {
 // board's. Notes and their settings are the bridge's; this is windows and
 // the home screen.
 type State struct {
-	Hotkey   string                 `json:"hotkey"`
-	Language string                 `json:"language,omitempty"` // the home window's: "", "ko", "en"
-	Mode     string                 `json:"mode,omitempty"`     // the home window's: "", "light", "dark"
-	Motion   string                 `json:"motion,omitempty"`   // every window's: "", "reduce", "off"
-	Last     string                 `json:"last,omitempty"`     // the project the hotkey toggles
-	Windows  map[string]WindowState `json:"windows,omitempty"`  // by project path
+	Hotkey   string `json:"hotkey"`
+	Language string `json:"language,omitempty"` // the home window's: "", "ko", "en"
+	Mode     string `json:"mode,omitempty"`     // the home window's: "", "light", "dark"
+	Motion   string `json:"motion,omitempty"`   // every window's: "", "reduce", "off"
+	// PinNew keeps a project window seen for the first time on top.
+	PinNew  bool                   `json:"pinNew,omitempty"`
+	Last    string                 `json:"last,omitempty"`    // the project the hotkey toggles
+	Windows map[string]WindowState `json:"windows,omitempty"` // by project path
 	// TrayHint is set once the person has been told, on closing a window,
 	// that the app stays in the tray.
 	TrayHint bool `json:"trayHint,omitempty"`
@@ -44,6 +46,9 @@ type State struct {
 	// places on the canvas and the frames of the notes torn off
 	// (docs/desktop/03 §3.6.1), by project path.
 	Projects map[string]canvas.Project `json:"projects,omitempty"`
+	// Boards are what each board looked like when this computer last
+	// opened it, for the home's cards (peek.go), by project path.
+	Boards map[string]BoardPeek `json:"boards,omitempty"`
 }
 
 // LoadState reads the state file; a missing file is the defaults.
@@ -106,6 +111,10 @@ func (s State) clone() State {
 	c.Projects = make(map[string]canvas.Project, len(s.Projects))
 	for k, v := range s.Projects {
 		c.Projects[k] = v.Clone()
+	}
+	c.Boards = make(map[string]BoardPeek, len(s.Boards))
+	for k, v := range s.Boards {
+		c.Boards[k] = v
 	}
 	return c
 }

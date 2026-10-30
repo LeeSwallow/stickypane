@@ -39,7 +39,7 @@ var modifiers = map[string]string{
 	"ctrl": "Ctrl", "control": "Ctrl",
 	"alt": "Option", "option": "Option", "opt": "Option", "optionoralt": "Option",
 	"shift": "Shift",
-	"cmd": "Cmd", "command": "Cmd", "cmdorctrl": "Cmd", "super": "Cmd", "meta": "Cmd",
+	"cmd":   "Cmd", "command": "Cmd", "cmdorctrl": "Cmd", "super": "Cmd", "meta": "Cmd",
 }
 
 // named are the keys with names, as Wails reads them, written one way.

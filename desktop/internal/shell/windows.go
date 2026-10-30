@@ -159,6 +159,9 @@ func webviewOptions(o WindowOptions, goos string) application.WebviewWindowOptio
 		opts.URL = WithChrome(o.URL, ChromeOwn)
 		opts.MinWidth, opts.MinHeight = NoteMinWidth, NoteMinHeight
 	} else if o.Frameless {
+		if o.Kind == KindSettings {
+			opts.MinWidth, opts.MinHeight = SettingsMinWidth, SettingsMinHeight
+		}
 		chrome := ChromeFor(goos)
 		opts.URL = WithChrome(o.URL, chrome)
 		if chrome == ChromeMac {
@@ -236,4 +239,23 @@ func (x *wailsWindow) OnMoved(f func()) {
 // place can still be read.
 func (x *wailsWindow) OnClosing(f func()) {
 	x.w.RegisterHook(events.Common.WindowClosing, func(*application.WindowEvent) { f() })
+}
+
+// wailsAutostart is Wails' AutostartManager behind Autostart.
+type wailsAutostart struct{ m *application.AutostartManager }
+
+// WailsAutostart is the app's opening at login, or nil when Wails has none.
+func WailsAutostart(app *application.App) Autostart {
+	if app == nil || app.Autostart == nil {
+		return nil
+	}
+	return wailsAutostart{app.Autostart}
+}
+
+func (a wailsAutostart) Enabled() (bool, error) { return a.m.IsEnabled() }
+func (a wailsAutostart) SetEnabled(on bool) error {
+	if on {
+		return a.m.Enable()
+	}
+	return a.m.Disable()
 }

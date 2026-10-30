@@ -18,6 +18,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
+// appVersion is the app's version: build/config.yml's info.version
+// (version_test.go keeps them the same).
+const appVersion = "0.1.0"
+
 // The frontend build output is embedded into the binary.
 //
 //go:embed all:frontend/dist
@@ -76,7 +80,13 @@ func main() {
 
 	platform := shell.NewWails(app)
 	var err error
-	s, err = shell.New(shell.Config{Home: shell.DefaultHome(), Platform: platform, FocusSettle: 150 * time.Millisecond})
+	s, err = shell.New(shell.Config{
+		Home:        shell.DefaultHome(),
+		Platform:    platform,
+		FocusSettle: 150 * time.Millisecond,
+		AppVersion:  appVersion,
+		Autostart:   shell.WailsAutostart(app),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,6 +98,10 @@ func main() {
 		s.Start()
 		s.Launch(os.Args, "")
 		debugTear(s)
+		// STICKYPANE_APP_OPEN=settings[:section] opens the settings window
+		// at launch, for the last board opened: a way to look at it
+		// without pressing anything (docs/desktop/06).
+		s.OpenAtLaunch(os.Getenv("STICKYPANE_APP_OPEN"))
 	})
 	// Clicking the Dock icon with every window hidden brings the home back.
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) {

@@ -30,8 +30,8 @@ import (
 const (
 	HomeWidth     = 860
 	HomeHeight    = 620
-	ProjectWidth  = 840
-	ProjectHeight = 0.70 // of the screen's work area
+	ProjectWidth  = 720 // the first time; after that, where it was left
+	ProjectHeight = 640
 	trayRecent    = 5
 )
 
@@ -99,6 +99,10 @@ type Config struct {
 	// FocusSettle is how long a board that lost the focus waits to see
 	// where it went before it hides; 0 decides at once.
 	FocusSettle time.Duration
+	// AppVersion is the app's own version (build/config.yml's).
+	AppVersion string
+	// Autostart opens the app at login; nil where the desktop cannot.
+	Autostart Autostart
 }
 
 // Installer is the install use cases: *installsvc.Service.
@@ -161,6 +165,7 @@ type Shell struct {
 	hotkey    string // registered accelerator, "" when none
 	hello     bridgeclient.Hello
 	started   bool
+	settings  *settingsWin // the settings window (settingswin.go), nil when closed
 
 	ix      Index
 	ixErr   error
@@ -517,26 +522,37 @@ func refuseInit(dir string) error {
 }
 
 // InitProject makes a board in dir with the app's own `stickypane init`.
-func (s *Shell) InitProject(dir string) error {
+func (s *Shell) InitProject(dir string) error { return s.InitProjectIn(dir, "") }
+
+// InitProjectIn makes a board in dir with its welcome note in lang, the
+// language the window that asked draws in ("ko", "en"); "" is the app's
+// language setting.
+func (s *Shell) InitProjectIn(dir, lang string) error {
 	if err := refuseInit(dir); err != nil {
 		return err
 	}
+	if lang == "" {
+		lang = s.Prefs().Language
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	_, err := s.cfg.Install.Init(ctx, dir, s.Prefs().Language)
+	_, err := s.cfg.Install.Init(ctx, dir, lang)
 	return err
 }
 
 // MakeBoard makes a board in the folder of a window that found none
 // (StateNoBoard), and starts its bridge again.
-func (s *Shell) MakeBoard(window uint) error {
+func (s *Shell) MakeBoard(window uint) error { return s.MakeBoardIn(window, "") }
+
+// MakeBoardIn is MakeBoard with the welcome note in lang (InitProjectIn).
+func (s *Shell) MakeBoardIn(window uint, lang string) error {
 	s.mu.Lock()
 	p := s.byWin[window]
 	s.mu.Unlock()
 	if p == nil {
 		return fmt.Errorf("no project window %d", window)
 	}
-	if err := s.InitProject(p.path); err != nil {
+	if err := s.InitProjectIn(p.path, lang); err != nil {
 		return err
 	}
 	if !s.setState(p, StateLoading, "", nil) {
@@ -632,16 +648,17 @@ func (s *Shell) OpenProject(path string) uint {
 	p := &project{path: path, state: StateLoading, torn: map[string]*tornWin{}}
 	s.projects[path] = p
 	ws, placed := s.state.Windows[path]
+	if !placed && s.state.PinNew {
+		// a board seen for the first time takes the setting "keep new
+		// windows on top", and keeps it as its own pin
+		s.remember(p, func(w *WindowState) { w.Pinned = true })
+		ws = s.state.Windows[path]
+	}
 	s.mu.Unlock()
 
 	bounds := Rect{X: ws.X, Y: ws.Y, Width: ws.Width, Height: ws.Height}
 	if !placed || ws.Width <= 0 || ws.Height <= 0 {
-		area := s.cfg.Platform.WorkArea()
-		h := int(float64(area.Height) * ProjectHeight)
-		if h <= 0 {
-			h = 600
-		}
-		bounds = Rect{Width: ProjectWidth, Height: h}
+		bounds = firstSize(s.cfg.Platform.WorkArea())
 	}
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindProject,
@@ -669,6 +686,19 @@ func (s *Shell) OpenProject(path string) uint {
 	go s.connect(ctx, p)
 	s.reopenTorn(p)
 	return id
+}
+
+// firstSize is a project window's size the first time: ProjectWidth by
+// ProjectHeight, within the screen's work area.
+func firstSize(area Rect) Rect {
+	w, h := ProjectWidth, ProjectHeight
+	if area.Width > 0 && w > area.Width-48 {
+		w = max(area.Width-48, 400)
+	}
+	if area.Height > 0 && h > area.Height-48 {
+		h = max(area.Height-48, 360)
+	}
+	return Rect{Width: w, Height: h}
 }
 
 // connect starts the project's bridge and passes its notifications on.
@@ -736,7 +766,7 @@ func (s *Shell) setState(p *project, state, why string, b Board) bool {
 func (s *Shell) Status(window uint) Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	p, tw := s.owner(window)
+	p, tw := s.ownerOf(window)
 	if p == nil {
 		return Status{Window: window, State: StateClosed}
 	}
@@ -753,7 +783,7 @@ func (s *Shell) Status(window uint) Status {
 // Call sends one request to the bridge of a window's project.
 func (s *Shell) Call(ctx context.Context, window uint, method string, params, result any) error {
 	s.mu.Lock()
-	p, _ := s.owner(window)
+	p, _ := s.ownerOf(window)
 	var b Board
 	state := StateClosed
 	if p != nil {
@@ -767,6 +797,7 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 	if err == nil && method == "board.load" {
 		s.retitle(p.path, result)
 		s.keepNotes(p, result)
+		s.peek(p.path, result)
 	}
 	return err
 }
@@ -925,6 +956,7 @@ func (s *Shell) closing(p *project) {
 		b.Close()
 	}
 	s.closeTorn(p)
+	s.detachSettings(p)
 	s.save()
 	s.trayHint(p.win)
 }
@@ -1041,19 +1073,23 @@ type Prefs struct {
 	// Motion is how much the windows move: "" as the system says,
 	// "reduce" (fades only) or "off".
 	Motion string `json:"motion"`
+	// PinNew keeps a board's window on top the first time it opens.
+	PinNew bool `json:"pinNew"`
 }
 
 // Prefs returns the home window's settings.
 func (s *Shell) Prefs() Prefs {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode, Motion: s.state.Motion}
+	return Prefs{Hotkey: s.state.Hotkey, Language: s.state.Language, Mode: s.state.Mode, Motion: s.state.Motion, PinNew: s.state.PinNew}
 }
 
-// SetPrefs keeps the home window's settings; a new hotkey is registered.
+// SetPrefs keeps the app's settings; a new hotkey is registered. Every
+// window hears them (PrefsEvent).
 func (s *Shell) SetPrefs(p Prefs) error {
+	defer s.emitPrefs()
 	s.mu.Lock()
-	s.state.Language, s.state.Mode = p.Language, p.Mode
+	s.state.Language, s.state.Mode, s.state.PinNew = p.Language, p.Mode, p.PinNew
 	switch p.Motion {
 	case "reduce", "off":
 		s.state.Motion = p.Motion
