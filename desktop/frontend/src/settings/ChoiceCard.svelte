@@ -39,7 +39,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-1);
     min-width: 0;
     padding: var(--space-2);
     border: 1px solid var(--line);
@@ -80,6 +80,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   .neat .label {
     font: 600 var(--text-body-md) / var(--leading-body-md) var(--font-body);

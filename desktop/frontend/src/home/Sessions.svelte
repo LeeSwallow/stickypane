@@ -77,11 +77,12 @@
     margin: 0 0 var(--space-3);
     color: var(--ink-2);
     font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-6) var(--space-5);
   }
   .none {
     margin: var(--space-8) 0;

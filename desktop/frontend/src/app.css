@@ -11,6 +11,16 @@ body,
   margin: 0;
 }
 
+/* Korean: break lines between words, never inside one (#63), and set
+   Gaegu's narrow Hangul closer so a heading reads as words */
+:root:lang(ko) {
+  --hand-track: -0.1em;
+}
+:root:lang(ko) body {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 body {
   font-family: var(--font-body);
   background: #fffdf7;

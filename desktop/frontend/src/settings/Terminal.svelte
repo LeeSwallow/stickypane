@@ -16,8 +16,24 @@
     type AgentsState, type CommandState, type InstallAnswer, type RunResult, type SetupApi, type Target,
   } from '../services/install'
   import Row from './Row.svelte'
+  import { copyText } from '../services/window'
 
-  let { setup, open = true, project = false }: { setup: SetupApi; open?: boolean; project?: boolean } = $props()
+  let {
+    setup,
+    open = true,
+    project = false,
+    copy = copyText,
+  }: { setup: SetupApi; open?: boolean; project?: boolean; copy?: (text: string) => Promise<void> } = $props()
+
+  let copied = $state(false)
+  async function copyCmd(text: string) {
+    try {
+      await copy(text)
+      copied = true
+    } catch {
+      copied = false
+    }
+  }
 
   let cmd = $state<CommandState | null>(null)
   let busy = $state('')
@@ -129,7 +145,7 @@
     {#snippet status()}<Badge tone={cliTone}>{$tr(cliWord)}</Badge>{/snippet}
     {#if cmd && cmd.bundled}
       {#if link}
-        <Button size="sm" variant="ghost" loading={busy === 'uninstall'} disabled={!!busy} onclick={uninstall}>{$tr('cli.uninstall')}</Button>
+        <Button size="sm" variant="secondary" loading={busy === 'uninstall'} disabled={!!busy} onclick={uninstall}>{$tr('cli.uninstall')}</Button>
       {:else}
         <Button size="sm" variant="primary" loading={busy === 'install-user'} disabled={!!busy} onclick={() => install('user')}>{$tr('cli.install')}</Button>
       {/if}
@@ -156,7 +172,10 @@
           {$tr('cli.shadow', { path: cmd.first.path, version: cmd.first.version || $tr('cli.shadowUnknown') })}
           {$tr('cli.fix.' + cmd.shadow.kind)}
         </p>
-        <code class="cmd">{cmd.shadow.command}</code>
+        <div class="copyline">
+          <code class="cmd">{cmd.shadow.command}</code>
+          <Button size="sm" variant="secondary" icon={copied ? 'check' : undefined} onclick={() => copyCmd(cmd!.shadow!.command)}>{copied ? $tr('cli.copied') : $tr('cli.copy')}</Button>
+        </div>
         {#if cmd.shadow.before && cmd.shadow.after && cmd.shadow.before !== cmd.shadow.after}
           <p class="hint">{$tr('cli.fix.order', { before: cmd.shadow.before, after: cmd.shadow.after })}</p>
         {/if}
@@ -169,7 +188,7 @@
   <Row label={$tr('agents.row')} hint={$tr('agents.rowHint')}>
     {#snippet status()}
       <Badge tone={agents === 'connected' ? 'good' : agents === 'none' ? 'warn' : 'neutral'}>
-        {$tr(agents === null ? 'status.checking' : agents === 'connected' ? 'agents.connected' : agents === 'none' ? 'status.none' : 'status.todo')}
+        {$tr(agents === null ? 'status.checking' : agents === 'connected' ? 'agents.connected' : agents === 'none' ? 'status.none' : 'agents.notConnected')}
       </Badge>
     {/snippet}
     <Button size="sm" variant={agents === 'connected' ? 'ghost' : 'primary'} loading={busy === 'plan'} disabled={!!busy || !!plan} onclick={showPlan}>{$tr('settings.connectAgents')}</Button>
@@ -264,6 +283,14 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
+  }
+  .copyline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .copyline .cmd {
+    flex: 1;
   }
   .cmd,
   .out {

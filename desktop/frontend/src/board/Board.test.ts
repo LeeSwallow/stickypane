@@ -56,7 +56,7 @@ describe('the board window', () => {
     expect(writeText).toHaveBeenCalledWith('오늘 할 일을 stickypane 보드에 체크리스트로 붙여 줘.')
     const term = screen.getByText('터미널에서 열기').closest('.card') as HTMLElement
     await fireEvent.click(within(term).getByRole('button', { name: '복사' }))
-    expect(writeText).toHaveBeenCalledWith('cd /Users/min/Projects/Personal/stickypane && stickypane')
+    expect(writeText).toHaveBeenCalledWith('cd ~/Projects/Personal/stickypane && stickypane')
   })
 
   it('⌘, opens the settings window for this board', async () => {

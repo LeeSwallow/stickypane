@@ -221,7 +221,8 @@
     nav?.querySelectorAll<HTMLElement>('[role="tab"]')[SECTIONS.indexOf(section)]?.focus()
   }
 
-  const sheetColor = $derived(palette.notes[NAV[section].color] ?? 'currentColor')
+  // one quiet frame for every section: note colours are for notes (D4)
+  const sheetColor = $derived(palette.muted)
   const neat = $derived(look.style === 'neat')
 </script>
 
@@ -253,11 +254,10 @@
       <Paper>
         <div class="page" role="tabpanel" id="{id}-panel" aria-labelledby="{id}-tab-{section}">
           {#key section}
-            <NoteFrame color={sheetColor} id="settings-{section}" tape="18%">
+            <NoteFrame color={sheetColor} id="settings-{section}">
               <header class="head">
-                <h1 class:neat>
-                  {$tr('settings.nav.' + section)}{#if section === 'board' && board}<span class="of"> · {board.title}</span>{/if}
-                </h1>
+                <h1 class:neat>{$tr('settings.nav.' + section)}</h1>
+                {#if section === 'board' && board}<p class="of" class:neat>{board.title}</p>{/if}
                 {#if section === 'board' && ready}<p class="where">{$tr('settings.board.where')}</p>{/if}
                 {#if section === 'app'}<p class="where">{$tr('settings.app.where')}</p>{/if}
                 {#if section === 'cli'}<p class="where">{$tr('settings.cli.where')}</p>{/if}
@@ -274,10 +274,10 @@
                   </div>
                 {:else}
                   <Row label={$tr('settings.theme')} hint={$tr('settings.theme.hint')} stack>
-                    <CardGroup label={$tr('settings.theme')} min={150}>
+                    <CardGroup label={$tr('settings.theme')} min={100}>
                       <ChoiceCard label={$tr('settings.theme.auto')} sub="auto" checked={theme === 'auto'} onpick={() => setBoard({ theme: 'auto' })}>
                         {#snippet picture()}
-                          <span class="pair"><Swatch palette={STICKYPANE_DARK} style={look.style} width={80} height={64} seed="auto-d" /><Swatch palette={STICKYPANE_LIGHT} style={look.style} width={80} height={64} seed="auto-l" /></span>
+                          <span class="pair"><Swatch palette={STICKYPANE_DARK} style={look.style} width={50} height={40} seed="auto-d" /><Swatch palette={STICKYPANE_LIGHT} style={look.style} width={50} height={40} seed="auto-l" /></span>
                         {/snippet}
                       </ChoiceCard>
                       {#each fams as f (f.id)}
@@ -289,8 +289,8 @@
                         >
                           {#snippet picture()}
                             <span class="pair">
-                              {#if f.dark}<Swatch palette={f.dark} style={look.style} width={f.light ? 80 : 160} height={64} seed={f.id + '-d'} />{/if}
-                              {#if f.light}<Swatch palette={f.light} style={look.style} width={f.dark ? 80 : 160} height={64} seed={f.id + '-l'} />{/if}
+                              {#if f.dark}<Swatch palette={f.dark} style={look.style} width={f.light ? 50 : 100} height={40} seed={f.id + '-d'} />{/if}
+                              {#if f.light}<Swatch palette={f.light} style={look.style} width={f.dark ? 50 : 100} height={40} seed={f.id + '-l'} />{/if}
                             </span>
                           {/snippet}
                         </ChoiceCard>
@@ -298,7 +298,7 @@
                     </CardGroup>
                   </Row>
                   <Row label={$tr('settings.style')} hint={$tr('settings.style.hint')} stack>
-                    <CardGroup label={$tr('settings.style')} min={180}>
+                    <CardGroup label={$tr('settings.style')} min={160}>
                       {#each ['doodle', 'neat'] as const as st (st)}
                         <ChoiceCard
                           label={$tr('settings.style.' + st)}
@@ -310,7 +310,7 @@
                         >
                           {#snippet picture()}
                             <span class="style-pic" class:hand={st === 'doodle'}>
-                              <Swatch {palette} style={st} width={200} height={84} seed="style-{st}" />
+                              <Swatch {palette} style={st} width={200} height={64} seed="style-{st}" />
                               <span class="style-word">{st === 'doodle' ? 'Aa 가나' : 'Aa 가나'}</span>
                             </span>
                           {/snippet}
@@ -355,13 +355,13 @@
                 {/if}
               {:else if section === 'app'}
                 <Row label={$tr('settings.appearance')} hint={$tr('settings.appearance.hint')} stack>
-                  <CardGroup label={$tr('settings.appearance')} min={150}>
+                  <CardGroup label={$tr('settings.appearance')} min={130}>
                     {#each ['system', 'light', 'dark'] as const as m (m)}
                       <ChoiceCard label={$tr('settings.mode.' + m)} checked={mode === m} onpick={() => setPref({ mode: m === 'system' ? '' : m })}>
                         {#snippet picture()}
                           <span class="pair">
-                            {#if m !== 'dark'}<Swatch palette={STICKYPANE_LIGHT} style={look.style} width={m === 'system' ? 80 : 160} height={64} seed="mode-{m}-l" />{/if}
-                            {#if m !== 'light'}<Swatch palette={STICKYPANE_DARK} style={look.style} width={m === 'system' ? 80 : 160} height={64} seed="mode-{m}-d" />{/if}
+                            {#if m !== 'dark'}<Swatch palette={STICKYPANE_LIGHT} style={look.style} width={m === 'system' ? 60 : 120} height={50} seed="mode-{m}-l" />{/if}
+                            {#if m !== 'light'}<Swatch palette={STICKYPANE_DARK} style={look.style} width={m === 'system' ? 60 : 120} height={50} seed="mode-{m}-d" />{/if}
                           </span>
                         {/snippet}
                       </ChoiceCard>
@@ -460,7 +460,7 @@
   }
   .side {
     flex: none;
-    width: 200px;
+    width: 184px;
     padding: var(--space-4) var(--space-3);
     box-sizing: border-box;
     border-right: 1px solid var(--line);
@@ -507,7 +507,7 @@
   .page {
     box-sizing: border-box;
     max-width: 720px;
-    padding: var(--space-8) var(--space-6) var(--space-8);
+    padding: var(--space-8) var(--space-5) var(--space-8);
   }
   .head {
     margin-bottom: var(--space-2);
@@ -515,12 +515,19 @@
   h1 {
     margin: 0;
     font: var(--weight-hand-display) var(--text-hand-display) / var(--leading-hand-display) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   h1.neat {
     font: 600 22px / 28px var(--font-body);
   }
   .of {
-    color: var(--ink-2);
+    margin: 0;
+    color: var(--accent-text);
+    font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
+  }
+  .of.neat {
+    font: 600 var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
   .where {
     margin: var(--space-1) 0 0;
@@ -542,6 +549,7 @@
   .none-title {
     margin: 0;
     font: var(--weight-hand-title) var(--text-hand-title) / var(--leading-hand-title) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   .none-title.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
@@ -566,6 +574,7 @@
   }
   .style-pic.hand .style-word {
     font: 700 22px / 1 var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   .about {
     display: flex;
@@ -576,6 +585,7 @@
   .app-name {
     margin: 0;
     font: var(--weight-hand-display) var(--text-hand-display) / var(--leading-hand-display) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   .app-name.neat {
     font: 600 22px / 28px var(--font-body);

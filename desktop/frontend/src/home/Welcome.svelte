@@ -157,6 +157,7 @@
   h1 {
     margin: var(--space-2) 0 0;
     font: var(--weight-hand-display) 40px / 44px var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   h1.neat {
     font: 650 28px / 34px var(--font-body);
@@ -173,6 +174,7 @@
     margin: var(--space-6) 0 var(--space-2);
     color: var(--ink-2);
     font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   h2.neat {
     font: 600 var(--text-body-md) / var(--leading-body-md) var(--font-body);
@@ -200,10 +202,12 @@
     border: 2px solid var(--ink);
     border-radius: 50%;
     font: 700 16px / 1 var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   h3 {
     margin: 0;
     font: var(--weight-hand-title) var(--text-hand-title) / var(--leading-hand-title) var(--font-hand);
+    letter-spacing: var(--hand-track, 0);
   }
   h3.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);

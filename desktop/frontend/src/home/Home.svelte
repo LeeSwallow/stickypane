@@ -324,9 +324,15 @@
     box-sizing: border-box;
     max-width: 920px;
     margin: 0 auto;
-    padding: var(--space-6) var(--space-6) var(--space-10);
+    padding: var(--space-8) var(--space-6) 96px;
   }
   .notices {
+    position: absolute;
+    top: calc(var(--titlebar-h) + var(--space-2));
+    left: 0;
+    right: 0;
+    z-index: var(--z-toast);
+    pointer-events: none;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -334,6 +340,7 @@
     padding: var(--space-3) var(--space-4) 0;
   }
   .notices > :global(*) {
+    pointer-events: auto;
     width: min(100%, 440px);
   }
   .search {

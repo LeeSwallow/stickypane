@@ -116,7 +116,7 @@
     align-items: center;
     justify-content: center;
     gap: 3px;
-    min-width: 168px;
+    min-width: 120px;
     height: var(--control-lg);
     padding: 0 var(--space-3);
     border: 1px dashed var(--line-strong);

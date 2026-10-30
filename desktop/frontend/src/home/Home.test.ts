@@ -119,11 +119,11 @@ describe('home', () => {
       { peeks: vi.fn(async () => ({ '/home/min/stickypane': { notes: 6, stalled: 1, agents: ['claude'], colors: ['#1', '#2', '#3', '#4', '#5', '#6'] } })) },
     )
     mount(api)
-    expect(await screen.findByText('노트 6')).toBeTruthy()
+    expect(await screen.findByText('· 노트 6')).toBeTruthy()
     expect(screen.getByText('멈춤 1')).toBeTruthy()
     expect(screen.getByText('@claude')).toBeTruthy()
     // a board never opened here says so
-    expect(screen.getByText('아직 여기서 안 열어 봤어요')).toBeTruthy()
+    expect(screen.getByText('· 아직 여기서 안 열어 봤어요')).toBeTruthy()
   })
 
   it('the search narrows the cards by name and folder', async () => {
@@ -236,13 +236,13 @@ describe('home', () => {
     const groups: Groups = { Active: null, Days: null, Removed: [{ ID: 7, Path: '/gone/a', Title: 'a' }] }
     localStorage.clear()
     mount(fakeApi(groups))
-    await screen.findByText('없어진 프로젝트 1개를 목록에서 뺐어요')
+    await screen.findByText('없어진 보드 1개를 목록에서 뺐어요')
     await fireEvent.click(screen.getByRole('button', { name: '닫기' }))
-    expect(screen.queryByText('없어진 프로젝트 1개를 목록에서 뺐어요')).toBeNull()
+    expect(screen.queryByText('없어진 보드 1개를 목록에서 뺐어요')).toBeNull()
     cleanup()
     mount(fakeApi(groups))
     await screen.findByText('첫 보드까지 세 걸음')
-    expect(screen.queryByText('없어진 프로젝트 1개를 목록에서 뺐어요')).toBeNull()
+    expect(screen.queryByText('없어진 보드 1개를 목록에서 뺐어요')).toBeNull()
     localStorage.clear()
   })
 
@@ -310,12 +310,12 @@ describe('home', () => {
       }),
     })
     mount(api)
-    expect(await screen.findByText('없어진 프로젝트 2개를 목록에서 뺐어요')).toBeTruthy()
+    expect(await screen.findByText('없어진 보드 2개를 목록에서 뺐어요')).toBeTruthy()
     await fireEvent.click(screen.getByRole('button', { name: '되돌리기' }))
     await waitFor(() => expect(api.restore).toHaveBeenCalledTimes(2))
     expect(api.restore).toHaveBeenCalledWith(7)
     expect(api.restore).toHaveBeenCalledWith(9)
-    await waitFor(() => expect(screen.queryByText('없어진 프로젝트 2개를 목록에서 뺐어요')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('없어진 보드 2개를 목록에서 뺐어요')).toBeNull())
     expect((api.sessions as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(1)
   })
 
