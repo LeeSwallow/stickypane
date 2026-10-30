@@ -42,6 +42,8 @@ export interface Note {
   open: boolean
   /** a fraction of the board (1/4 … 1), or card; old names are read too (layout.ts) */
   size: string
+  /** the size was chosen for the note, not its kind's default: it keeps its width (layout.ts rows) */
+  sized?: boolean
   rows: number
   color: string
   pinned: boolean
@@ -140,6 +142,7 @@ export function withArrange(b: Board, name: string, p: ArrangePatch): Board {
     const out = { ...n }
     if (p.open !== undefined) out.open = p.open
     if (p.size !== undefined && p.size !== '') out.size = p.size
+    if (p.size !== undefined) out.sized = p.size !== ''
     if (p.rows !== undefined) out.rows = p.rows
     if (p.pin !== undefined) out.pinned = p.pin
     if (p.color !== undefined && p.color !== '') out.color = p.color

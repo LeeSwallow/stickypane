@@ -135,7 +135,7 @@ type Action struct {
 | 방향 | 메시지 | 내용 |
 |---|---|---|
 | → | `hello` | `{protocol, version, project}`. 프로토콜 버전이 다르면 앱이 업데이트 안내를 띄운다 |
-| → | `board.load` | `{title, tabs, settings, palette}`. 노트는 터미널이 그리는 순서(고정 먼저, `tab.order`, 이름순). 노트마다 `name`·`tab`·`title`·`kind`·`icon`·`open`·`size`·`rows`·`color`·`pinned`·`version`·`summary`·`data`·`modTime`, 심볼릭 링크면 `linked`와 `target`, 읽을 수 없으면 `error`. 책은 `pages`(같은 형식). `settings`는 `{theme, style, view, language:{choice, resolved}, tab, time, editor, stale}`, `palette`는 고른 테마의 색 |
+| → | `board.load` | `{title, tabs, settings, palette}`. 노트는 터미널이 그리는 순서(고정 먼저, `tab.order`, 이름순). 노트마다 `name`·`tab`·`title`·`kind`·`icon`·`open`·`size`·`sized`(크기를 고른 노트인지: 고른 노트는 폭을 지킨다)·`rows`·`color`·`pinned`·`version`·`summary`·`data`·`modTime`, 심볼릭 링크면 `linked`와 `target`, 읽을 수 없으면 `error`. 책은 `pages`(같은 형식). `settings`는 `{theme, style, view, language:{choice, resolved}, tab, time, editor, stale}`, `palette`는 고른 테마의 색 |
 | → | `board.index` | `{entries}`: `api.Index`와 같다. 노트마다 `tab`·`name`·`kind`·`icon`·`title`·`summary`·`gist`·`open`·`modified`·`links`·`backlinks` |
 | → | `kinds.list` `{language?}` | 카탈로그. 예시는 `language`(창이 그리는 언어, `ko`·`en`)로, 없으면 보드의 언어로 쓴다(`i18n` 번역의 `examples`, 없는 모양은 영어). 모양마다 `{name, icon, label, blurb, example, data, options}`. `example`은 예시 파일 전체, `data`는 그 예시의 `Kind.Data`, `options`는 만들기 폼의 필드 `[{name, type, label, choices?, default}]`(`type`은 `text`·`lines`·`choice`·`number`·`bool`, `label`은 영어 문구이자 번역 키; 없으면 `[]`) |
 | → | `note.act` `{note, version, action}` | `Kind.Act` → `store.Apply`. 결과 `{version}`. 버전이 다르면 `stale`. chat의 `say`는 `who`가 비면 터미널과 같은 규칙(`$STICKYPANE_USER` → git `user.name` → 로그인)으로 채운다 |

@@ -109,28 +109,40 @@ export interface Cell {
 
 /**
  * rows puts items of the given widths side by side, in order, starting a
- * new row when the next one does not fit, and stretches each row to the
- * full width, every item growing in proportion to its width. The columns
- * rounding leaves over go one each to the items that lost the most to it,
- * the first of equals first. A port of internal/core/layout.Rows.
+ * new row when the next one does not fit. sized says which items have a
+ * width of their own (a size chosen for the note); a sized item keeps it.
+ * What a row leaves over goes to its items without one, each growing in
+ * proportion to its width; a row of sized items leaves it empty at the
+ * right, unless it is only rounding (less than a unit per item, when the
+ * widths were rounded down: cells on the terminal), which the row shares
+ * as if it were not sized. The units rounding leaves over go one each to
+ * the items that lost the most to it, the first of equals first. A port of
+ * internal/core/layout.Rows; the grid's columns are whole fractions of 12,
+ * so place() says there is no rounding to share (rounded = false).
  */
-export function rows(total: number, widths: number[]): Cell[] {
+export function rows(total: number, widths: number[], sized: boolean[] = [], rounded = true): Cell[] {
   const cells: Cell[] = []
   const stretch = (from: number) => {
     const row = cells.slice(from)
-    const sum = row.reduce((n, c) => n + c.w, 0)
-    if (!row.length || sum <= 0) return
-    const lost = row.map((c) => (c.w * total) % sum)
-    let left = total
-    for (const c of row) {
-      c.w = Math.floor((c.w * total) / sum)
-      left -= c.w
-    }
-    for (; left > 0; left--) {
-      let most = 0
-      for (let i = 0; i < row.length; i++) if (lost[i] > lost[most]) most = i
-      row[most].w++
-      lost[most] = -1
+    let left = total - row.reduce((n, c) => n + c.w, 0)
+    let grow = row.map((_, i) => i).filter((i) => !sized[from + i])
+    if (!grow.length && rounded && left < row.length) grow = row.map((_, i) => i)
+    const sum = grow.reduce((n, i) => n + row[i].w, 0)
+    if (left > 0 && sum > 0) {
+      const lost = row.map(() => 0)
+      const extra = left
+      for (const i of grow) {
+        lost[i] = (row[i].w * extra) % sum
+        const add = Math.floor((row[i].w * extra) / sum)
+        row[i].w += add
+        left -= add
+      }
+      for (; left > 0; left--) {
+        let most = grow[0]
+        for (const i of grow) if (lost[i] > lost[most]) most = i
+        row[most].w++
+        lost[most] = -1
+      }
     }
     let x = 0
     for (const c of row) {
@@ -163,21 +175,24 @@ export interface Placement {
   row: number
   /** how many columns it spans */
   span: number
-  /** drawn narrow (four columns or fewer, after its row is stretched): its shape draws small */
+  /** drawn narrow (four columns or fewer, after its row is shared out): its shape draws small */
   small: boolean
 }
 
 /**
  * place puts the notes, in the order given (the terminal's: pinned first,
  * then the user's order, then by name), on a board width px wide: side by
- * side on 12 columns, each row filled. Nothing is moved up to fill a gap,
- * so the order on the screen is the order of the board. Below NARROW every
- * note has a row of its own.
+ * side on 12 columns. A note with a size of its own keeps it; the notes
+ * without one share what their row leaves over, and a row of sized notes
+ * that does not add up to the whole width leaves the rest empty. Nothing
+ * is moved up to fill a gap, so the order on the screen is the order of
+ * the board. Below NARROW every note has a row of its own.
  */
-export function place(notes: { name: string; size: string }[], width: number): Placement[] {
+export function place(notes: { name: string; size: string; sized?: boolean }[], width: number): Placement[] {
   if (columnsFor(width) === 1) return notes.map((n, i) => ({ name: n.name, column: 1, row: i + 1, span: 1, small: false }))
   const asked = notes.map((n) => spanOf(n.size, width))
-  return rows(GRID, asked).map((c, i) => ({ name: notes[i].name, column: c.x + 1, row: c.row + 1, span: c.w, small: c.w <= 4 }))
+  const sized = notes.map((n) => n.sized === true)
+  return rows(GRID, asked, sized, false).map((c, i) => ({ name: notes[i].name, column: c.x + 1, row: c.row + 1, span: c.w, small: c.w <= 4 }))
 }
 
 /**
