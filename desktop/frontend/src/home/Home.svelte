@@ -93,7 +93,20 @@
   let hidden = $state<string[]>([])
   const hide = (code: string) => (hidden = [...hidden, code])
   const shown = $derived([...notices, ...local].filter((n) => !hidden.includes(n.code)))
+  // what the corner shows: failures first, then the shell's words, then the
+  // tidied-away boards; two at most, the rest wait their turn
+  const REMOVED = 'removed'
+  const INDEX = 'index'
+  const MAX_TOASTS = 2
   const removed = $derived((groups?.Removed ?? []).filter((p) => !dismissed.includes(p.ID)))
+  const stack = $derived(
+    [
+      ...(failure ? [{ code: INDEX, detail: failure }] : []),
+      ...shown.filter((n) => n.code in LOCAL),
+      ...shown.filter((n) => !(n.code in LOCAL)),
+      ...(removed.length ? [{ code: REMOVED, detail: '' }] : []),
+    ].slice(0, MAX_TOASTS),
+  )
   const count = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
   const setup = $derived(status && !status.found ? 'install' : status && !status.bridge ? 'update' : null)
   const noticeText = (n: Notice) => {
@@ -224,7 +237,7 @@
 
 <svelte:window onkeydown={onkey} />
 
-<div class="window">
+<div class="window" class:with-toasts={stack.length > 0}>
   <TitleBar name={$tr('home.title')} {chrome} window={win} {menu} onmenu={(id) => id === 'settings' && openSettings('app')}>
     {#snippet actions()}
       {#if count > 0}
@@ -236,21 +249,6 @@
       {/if}
     {/snippet}
   </TitleBar>
-
-  {#if shown.length || failure}
-    <div class="notices">
-      {#each shown as n (n.code)}
-        {#if n.code === TRAY}
-          <Toast message={noticeText(n)} action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
-        {:else}
-          <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
-        {/if}
-      {/each}
-      {#if failure}
-        <Toast message={$tr('notice.index', { detail: failure })} tone="bad" icon="warn" />
-      {/if}
-    </div>
-  {/if}
 
   <div class="scroll">
     <Paper>
@@ -283,14 +281,25 @@
     </Paper>
   </div>
 
-  {#if removed.length}
-    <div class="toasts">
-      <Toast
-        message={$tr('home.removed', { n: removed.length })}
-        icon="restore"
-        action={{ label: $tr('home.undo'), run: undo }}
-        onclose={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}
-      />
+  <!-- the window's words, in one corner, two at most, never over the list (its bottom keeps their room) -->
+  {#if stack.length}
+    <div class="toasts" role="region" aria-label={$tr('home.notices')}>
+      {#each stack as n (n.code)}
+        {#if n.code === TRAY}
+          <Toast message={noticeText(n)} action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
+        {:else if n.code === REMOVED}
+          <Toast
+            message={$tr('home.removed', { n: removed.length })}
+            icon="restore"
+            action={{ label: $tr('home.undo'), run: undo }}
+            onclose={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}
+          />
+        {:else if n.code === INDEX}
+          <Toast message={$tr('notice.index', { detail: failure })} tone="bad" icon="warn" />
+        {:else}
+          <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
+        {/if}
+      {/each}
     </div>
   {/if}
 
@@ -325,23 +334,6 @@
     max-width: 920px;
     margin: 0 auto;
     padding: var(--space-8) var(--space-6) 96px;
-  }
-  .notices {
-    position: absolute;
-    bottom: calc(var(--space-5) + 56px);
-    left: 0;
-    right: 0;
-    z-index: var(--z-toast);
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4) 0;
-  }
-  .notices > :global(*) {
-    pointer-events: auto;
-    width: min(100%, 440px);
   }
   .search {
     display: inline-flex;
@@ -383,14 +375,22 @@
   }
   .toasts {
     position: absolute;
-    left: 0;
-    right: 0;
+    right: var(--space-5);
     bottom: var(--space-5);
     z-index: var(--z-toast);
     display: flex;
-    justify-content: center;
-    padding: 0 var(--space-4);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+    width: min(400px, calc(100% - 2 * var(--space-5)));
     pointer-events: none;
+  }
+  .toasts > :global(*) {
+    width: 100%;
+  }
+  /* the list keeps the corner's room at its bottom, so no card is under a toast */
+  .with-toasts main {
+    padding-bottom: 176px;
   }
   .toasts > :global(*) {
     pointer-events: auto;

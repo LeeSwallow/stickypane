@@ -433,5 +433,6 @@
   "cli.copy": "Copy",
   "cli.copied": "Copied",
   "cli.olderFirst": "Older copy first",
-  "cli.offPath": "Not on PATH"
+  "cli.offPath": "Not on PATH",
+  "home.notices": "Notices"
 }

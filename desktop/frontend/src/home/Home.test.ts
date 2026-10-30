@@ -328,6 +328,27 @@ describe('home', () => {
     expect(within(note).getByText(/Alt\+Space: taken/)).toBeTruthy()
   })
 
+  it('the toasts stack in one corner, two at most, a failure first', async () => {
+    const api = fakeApi(
+      { Active: [row(1, 'a', at(0, 14, 58))], Days: null, Removed: [{ ID: 7, Path: '/gone/a', Title: 'a' }] },
+      {
+        notices: vi.fn(async () => [{ code: 'stayInTray', detail: '' }]),
+        status: vi.fn(async () => {
+          throw new Error('no shell')
+        }),
+      },
+    )
+    localStorage.clear()
+    mount(api)
+    const corner = await screen.findByRole('region', { name: '알림' })
+    await waitFor(() => expect(within(corner).getByText('stickypane을 확인하지 못했어요 · no shell')).toBeTruthy())
+    expect(within(corner).getByText('창을 닫아도 stickypane은 계속 실행돼요')).toBeTruthy()
+    // the third waits its turn
+    expect(screen.queryByText('없어진 보드 1개를 목록에서 뺐어요')).toBeNull()
+    await fireEvent.click(within(corner).getAllByRole('button', { name: '닫기' })[0])
+    expect(await screen.findByText('없어진 보드 1개를 목록에서 뺐어요')).toBeTruthy()
+  })
+
   it('the one-time tray word shows with a way to quit, and can be put away', async () => {
     const api = fakeApi(empty, { notices: vi.fn(async () => [{ code: 'stayInTray', detail: '' }]) })
     mount(api)

@@ -433,5 +433,6 @@
   "cli.copy": "복사",
   "cli.copied": "복사했어요",
   "cli.olderFirst": "옛 사본이 먼저",
-  "cli.offPath": "PATH에 없음"
+  "cli.offPath": "PATH에 없음",
+  "home.notices": "알림"
 }
