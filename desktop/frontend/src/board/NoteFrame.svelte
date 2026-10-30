@@ -21,6 +21,7 @@
   import { HeightDrag, heightOfRows, sizeShown, WidthDrag, type Fraction } from './layout'
   import type { Note } from './model'
   import { manageItems, type Manage } from './manage'
+  import { capture, MOVED } from './pointer'
 
   let {
     note,
@@ -88,22 +89,36 @@
     else if (id in manageItem) board.manage?.(note, id as Manage)
   }
 
-  /** drag follows a pointer on an edge until it is let go (save) or taken away (cancel). */
+  /**
+   * drag follows a pointer on an edge until it is let go (save) or taken
+   * away (cancel). It listens on the window, not the edge: a webview may
+   * refuse or drop the pointer capture (#66), and the pointer leaves the
+   * thin edge as soon as it moves.
+   */
   function drag(e: PointerEvent, move: (m: PointerEvent) => void, done: (save: boolean) => void) {
+    if (e.button !== 0) return
     e.preventDefault()
-    const el = e.currentTarget as HTMLElement
-    el.setPointerCapture(e.pointerId)
-    const end = (save: boolean) => () => {
-      el.removeEventListener('pointermove', move)
-      el.removeEventListener('pointerup', up)
-      el.removeEventListener('pointercancel', cancel)
-      done(save)
-    }
+    e.stopPropagation()
+    capture(e)
+    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
+    // a press that does not move (a click, half a double-click) saves nothing
+    let went = false
+    const moved = mine((m) => {
+      went ||= Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) >= MOVED
+      if (went) move(m)
+    })
+    const end = (save: boolean) =>
+      mine(() => {
+        window.removeEventListener('pointermove', moved)
+        window.removeEventListener('pointerup', up)
+        window.removeEventListener('pointercancel', cancel)
+        done(save && went)
+      })
     const up = end(true)
     const cancel = end(false) // the system took the pointer: keep what it had
-    el.addEventListener('pointermove', move)
-    el.addEventListener('pointerup', up)
-    el.addEventListener('pointercancel', cancel)
+    window.addEventListener('pointermove', moved)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
   }
 
   function startHeight(e: PointerEvent) {
@@ -224,15 +239,16 @@
         <Shape note={shown} narrow={narrow || small} />
       {/key}
     </div>
-    {#if !zoomed && !free && readable}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="edge" title={$tr('note.height')} onpointerdown={startHeight} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
-      {#if !narrow}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="edge side" title={$tr('note.width')} onpointerdown={startWidth}></div>
-      {/if}
-    {/if}
   </NoteFrame>
+  <!-- the edges lie on the border drawn, half in and half out of it (#66) -->
+  {#if !zoomed && !free && readable}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="edge" title={$tr('note.height')} onpointerdown={startHeight} ondblclick={() => board.arrange(note.name, { rows: 0 })}></div>
+    {#if !narrow}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="edge side" title={$tr('note.width')} onpointerdown={startWidth}></div>
+    {/if}
+  {/if}
   {#if landing}<span class="landing" role="status" aria-label={$tr('ui.size.now', { size: landing === '1' ? $tr('ui.size.whole') : $tr('ui.size.share', { size: landing }) })}>{landing === '1' ? $tr('ui.size.full') : landing}</span>{/if}
 </div>
 
@@ -304,30 +320,51 @@
     min-height: 0;
     overflow: auto;
   }
+  /* the edges: 12px across, centred on the border; a short mark shows on
+     the note's hover, the whole border on the edge's */
   .edge {
     position: absolute;
+    z-index: 1;
     left: 0;
     right: 0;
-    bottom: calc(-1 * var(--space-3));
-    height: var(--space-2);
+    bottom: -6px;
+    height: 12px;
     cursor: ns-resize;
     touch-action: none;
-  }
-  .edge:hover {
-    border-bottom: var(--stroke-hairline) dashed var(--accent);
   }
   .edge.side {
     left: auto;
     top: 0;
     bottom: 0;
-    right: calc(-1 * var(--space-3));
-    width: var(--space-2);
+    right: -6px;
+    width: 12px;
     height: auto;
     cursor: ew-resize;
   }
-  .edge.side:hover {
-    border-bottom: 0;
-    border-right: var(--stroke-hairline) dashed var(--accent);
+  .edge::after {
+    content: '';
+    position: absolute;
+    left: calc(50% - 12px);
+    top: 5px;
+    width: 24px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--ink-3);
+    opacity: 0;
+  }
+  .edge.side::after {
+    left: 5px;
+    top: calc(50% - 12px);
+    width: 2px;
+    height: 24px;
+  }
+  .frame:hover > .edge::after {
+    opacity: 0.6;
+  }
+  .frame > .edge:hover::after,
+  .frame.sizing > .edge.side::after {
+    opacity: 1;
+    background: var(--accent);
   }
   .landing {
     position: absolute;
