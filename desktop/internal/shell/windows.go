@@ -125,6 +125,22 @@ type Wails struct {
 func NewWails(app *application.App) *Wails { return &Wails{App: app} }
 
 func (p *Wails) NewWindow(o WindowOptions) Window {
+	w := p.App.Window.NewWithOptions(webviewOptions(o, runtime.GOOS))
+	ww := &wailsWindow{w: w}
+	if o.Kind == KindHome {
+		// The home window hides instead of closing: the app lives on in the
+		// tray, and the window comes back from there.
+		w.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+			e.Cancel()
+			w.Hide()
+		})
+	}
+	return ww
+}
+
+// webviewOptions are the Wails options of a window on goos: the place,
+// size, page and chrome WindowOptions ask for.
+func webviewOptions(o WindowOptions, goos string) application.WebviewWindowOptions {
 	opts := application.WebviewWindowOptions{
 		Name:      o.Name,
 		Title:     o.Title,
@@ -143,7 +159,7 @@ func (p *Wails) NewWindow(o WindowOptions) Window {
 		opts.URL = WithChrome(o.URL, ChromeOwn)
 		opts.MinWidth, opts.MinHeight = NoteMinWidth, NoteMinHeight
 	} else if o.Frameless {
-		chrome := ChromeFor(runtime.GOOS)
+		chrome := ChromeFor(goos)
 		opts.URL = WithChrome(o.URL, chrome)
 		if chrome == ChromeMac {
 			// A titled window with a transparent, hidden-inset title bar: the
@@ -159,17 +175,7 @@ func (p *Wails) NewWindow(o WindowOptions) Window {
 	} else {
 		opts.InitialPosition = application.WindowCentered
 	}
-	w := p.App.Window.NewWithOptions(opts)
-	ww := &wailsWindow{w: w}
-	if o.Kind == KindHome {
-		// The home window hides instead of closing: the app lives on in the
-		// tray, and the window comes back from there.
-		w.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
-			e.Cancel()
-			w.Hide()
-		})
-	}
-	return ww
+	return opts
 }
 
 func (p *Wails) WorkArea() Rect {
