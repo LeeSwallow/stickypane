@@ -400,8 +400,9 @@
   async function resetSizes() {
     resetting = false
     if (!board) return
-    const notes = board.tabs.flatMap((x) => x.notes).filter((n) => !n.error && (n.size || n.rows))
-    const before = notes.map((n) => ({ note: n.name, size: n.size, rows: n.rows }))
+    // only what was chosen (a size of its own, sized, or a height) changes back
+    const notes = board.tabs.flatMap((x) => x.notes).filter((n) => !n.error && (n.sized || n.rows))
+    const before = notes.map((n) => ({ note: n.name, size: n.sized ? n.size : '', rows: n.rows }))
     try {
       for (const n of notes) await api.arrange({ note: n.name, size: '', rows: 0 })
       await refresh()

@@ -11,7 +11,7 @@ import { THEMES } from '../demo/themes'
 import Board from './Board.svelte'
 
 const base = { tab: 'work', icon: '✎', open: true, rows: 0, color: 'yellow', pinned: false, version: 'v1', summary: '', modTime: '2026-10-28T10:00:00Z', linked: false, kind: 'note' }
-const note = (name: string, size: string, rows = 0) => ({ ...base, name: `work/${name}`, title: name, size, rows, data: { markdown: 'hi' } }) as unknown as Note
+const note = (name: string, size: string, rows = 0, sized = true) => ({ ...base, name: `work/${name}`, title: name, size, sized, rows, data: { markdown: 'hi' } }) as unknown as Note
 
 const boardOf = (notes: Note[]): BoardData => ({
   title: 'my-app',
@@ -76,7 +76,7 @@ describe('the board window', () => {
   })
 
   it('on the grid, 배치 초기화 asks first, gives the sizes back, and 되돌리기 writes the old ones', async () => {
-    const a = api(boardOf([note('a.md', '1/3', 8), note('b.md', '1/2')]))
+    const a = api(boardOf([note('a.md', '1/3', 8), note('b.md', '1/2'), note('c.md', '1', 0, false)]))
     render(Board, { props: { api: a, bus: fakeBus().bus } })
     await screen.findByText('a.md')
     await fireEvent.click(within(document.querySelector('[data-titlebar]') as HTMLElement).getByRole('button', { name: '더 보기' }))
@@ -87,6 +87,8 @@ describe('the board window', () => {
     await fireEvent.click(within(ask).getByRole('button', { name: '되돌리기' }))
     await waitFor(() => expect(a.arrange).toHaveBeenCalledWith({ note: 'work/a.md', size: '', rows: 0 }))
     expect(a.arrange).toHaveBeenCalledWith({ note: 'work/b.md', size: '', rows: 0 })
+    // a note at its shape's own size is left as it is
+    expect(a.arrange).not.toHaveBeenCalledWith(expect.objectContaining({ note: 'work/c.md' }))
     await fireEvent.click(await screen.findByRole('button', { name: '되돌리기' }))
     await waitFor(() => expect(a.arrange).toHaveBeenCalledWith({ note: 'work/a.md', size: '1/3', rows: 8 }))
   })
