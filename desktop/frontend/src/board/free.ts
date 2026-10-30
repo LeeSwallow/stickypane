@@ -5,7 +5,7 @@
 
 import type { Place } from '../services/canvas'
 import { SPACE } from '../lib/theme/scale'
-import { heightOfRows, place as gridPlace, spanPx, COL_GAP } from './layout'
+import { heightOfRows, place as gridPlace, spanOf, spanPx, COL_GAP } from './layout'
 
 /** SNAP is the canvas's grid: with snap on, a note lands on a multiple of it. */
 export const SNAP = 8
@@ -83,7 +83,9 @@ export function firstPlaces(all: Placeable[], places: Record<string, Place>, wid
     out[n.name] = {
       x: Math.round(x),
       y: Math.round(below + rowTop[p.row - 1]),
-      w: Math.max(MIN_W, Math.round(spanPx(p.span, inner))),
+      // its own width, not the rest of a row it has alone (#63: a lone
+      // note does not stretch across the whole canvas)
+      w: Math.max(MIN_W, Math.round(spanPx(Math.min(p.span, spanOf(n.size, inner)), inner))),
       h: Math.max(MIN_H, heightOf(n)),
       tilt: tiltOf(n.name),
       z: ++z,
