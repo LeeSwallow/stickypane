@@ -54,6 +54,23 @@ describe('a note new to the canvas', () => {
     expect(p['b.md'].x).toBe(PAD)
     expect(p['b.md'].y).toBeGreaterThanOrEqual(PAD + 300)
   })
+  it("starts at the top of its own tab, not below another tab's notes (#62)", () => {
+    // the canvas keeps every tab's places in one map; a tab seen later
+    // must not open on a screenful of empty canvas
+    const other = {
+      'chart/a.md': { x: PAD, y: PAD, w: 400, h: 280, tilt: 0, z: 1 },
+      'chart/b.md': { x: PAD, y: 2000, w: 400, h: 280, tilt: 0, z: 2 },
+    }
+    const work = [
+      { name: 'work/kanban.md', size: '1', rows: 0 },
+      { name: 'work/list.md', size: '1', rows: 0 },
+    ]
+    const p = firstPlaces(work, other, 708)
+    expect(p['work/kanban.md']).toMatchObject({ x: PAD, y: PAD })
+    expect(p['work/kanban.md'].z).toBe(3) // still on top of every note
+    // and inside the window's width
+    for (const q of Object.values(p)) expect(q.x + q.w).toBeLessThanOrEqual(708 - PAD)
+  })
   it('leans a little, the same every time', () => {
     expect(tiltOf('a.md')).toBe(tiltOf('a.md'))
     for (const n of ['a', 'b', 'release.md', '한글.md']) expect(Math.abs(tiltOf(n))).toBeLessThanOrEqual(1.5)
