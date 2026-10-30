@@ -31,8 +31,9 @@ export { toggleAction } from './model'
  * act is note.act with the note's version. With update, a change the
  * window can tell (a tick, a card moved: interact.ts) is drawn at once. A
  * failure (a stale version, a note gone) is told through fail, never
- * thrown; either way the board is read again, so the window draws what the
- * file says now, and a guess the bridge refused is undone.
+ * thrown, after the board is read again; either way it is read again, so
+ * the window draws what the file says now, and a guess the bridge refused
+ * is undone.
  */
 export async function act(
   api: BoardApi,
@@ -44,11 +45,14 @@ export async function act(
 ): Promise<void> {
   const guess = update ? predict(note.kind, note.data, a) : null
   if (guess !== null && update) update((b) => withData(b, note.name, guess))
+  let why = ''
   try {
     await api.act(note.name, note.version, a)
   } catch (e) {
-    fail(errorText(e))
-  } finally {
-    await refresh()
+    why = errorText(e)
   }
+  // read again first, then say what failed: the read clears the window's
+  // last failure, and would take this one with it
+  await refresh()
+  if (why) fail(why)
 }

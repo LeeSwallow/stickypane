@@ -29,9 +29,10 @@ func (h *HomeService) PickFolder() (string, error) { return h.S.PickFolder() }
 // Inspect says whether dir already has a board; it changes nothing.
 func (h *HomeService) Inspect(dir string) Inspection { return h.S.Inspect(dir) }
 
-// InitProject makes a board in dir and opens its window.
-func (h *HomeService) InitProject(dir string) error {
-	if err := h.S.InitProject(dir); err != nil {
+// InitProject makes a board in dir, its welcome note in lang (the
+// language the home draws in), and opens its window.
+func (h *HomeService) InitProject(dir, lang string) error {
+	if err := h.S.InitProjectIn(dir, lang); err != nil {
 		return err
 	}
 	h.S.OpenProject(dir)
@@ -54,6 +55,24 @@ func (h *HomeService) Quit() { h.S.Quit() }
 // Prefs and SetPrefs are the home window's settings in overlay.json.
 func (h *HomeService) Prefs() Prefs           { return h.S.Prefs() }
 func (h *HomeService) SetPrefs(p Prefs) error { return h.S.SetPrefs(p) }
+
+// OpenSettings opens the settings window on a section, with no board.
+func (h *HomeService) OpenSettings(section string) uint { return h.S.OpenSettings(0, section) }
+
+// CheckHotkey says whether a hotkey can be had; it changes nothing.
+func (h *HomeService) CheckHotkey(accel string) HotkeyCheck { return h.S.CheckHotkey(accel) }
+
+// Peeks are what each board looked like when this computer last opened it.
+func (h *HomeService) Peeks() map[string]BoardPeek { return h.S.Peeks() }
+
+// Autostart says whether the app opens at login, and whether it can here.
+func (h *HomeService) Autostart() AutostartState { return h.S.AutostartState() }
+
+// SetAutostart makes the app open at login, or not.
+func (h *HomeService) SetAutostart(on bool) (AutostartState, error) { return h.S.SetAutostart(on) }
+
+// About is the app's version and its stickypane's.
+func (h *HomeService) About() About { return h.S.About() }
 
 // The parameters of the bridge's methods (docs/desktop/10 §10.7), mirrored
 // from the main module's internal/surface/bridge, which this one cannot import.
@@ -150,13 +169,23 @@ func (p *ProjectService) Pin(ctx context.Context, on bool) error {
 }
 
 // MakeBoard makes a board in the window's folder, which had none, with
-// the app's own stickypane init, and opens it.
-func (p *ProjectService) MakeBoard(ctx context.Context) error {
+// the app's own stickypane init, its welcome note in lang (the language
+// the window draws in), and opens it.
+func (p *ProjectService) MakeBoard(ctx context.Context, lang string) error {
 	id, err := window(ctx)
 	if err != nil {
 		return err
 	}
-	return p.S.MakeBoard(id)
+	return p.S.MakeBoardIn(id, lang)
+}
+
+// OpenSettings opens the settings window on a section, for this window's board.
+func (p *ProjectService) OpenSettings(ctx context.Context, section string) (uint, error) {
+	id, err := window(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return p.S.OpenSettings(id, section), nil
 }
 
 // InitHere runs stickypane init again in the window's project (the agent
@@ -274,9 +303,16 @@ func (p *ProjectService) Settings(ctx context.Context) (json.RawMessage, error) 
 	return p.call(ctx, "settings.get", nil)
 }
 
-// SetSetting is settings.set.
+// SetSetting is settings.set. The board's windows read it again at once
+// (from the settings window, they would wait for the file to be seen).
 func (p *ProjectService) SetSetting(ctx context.Context, s SettingsParams) (json.RawMessage, error) {
-	return p.call(ctx, "settings.set", s)
+	out, err := p.call(ctx, "settings.set", s)
+	if err == nil {
+		if id, werr := window(ctx); werr == nil {
+			p.S.Touched(id)
+		}
+	}
+	return out, err
 }
 
 // CanvasService is what a project window, and a torn-off note's window,
@@ -291,16 +327,33 @@ func (c *CanvasService) Layout(ctx context.Context) (Layout, error) {
 	if err != nil {
 		return Layout{}, err
 	}
-	return c.S.Layout(id)
+	return c.S.Layout(c.S.boardWindow(id))
 }
 
-// SetMode is canvas or grid.
+// SetMode is canvas or grid. From the settings window it is the board's
+// it was opened from, and that board's window is told.
 func (c *CanvasService) SetMode(ctx context.Context, mode string) error {
 	id, err := window(ctx)
 	if err != nil {
 		return err
 	}
-	return c.S.SetMode(id, mode)
+	board := c.S.boardWindow(id)
+	if err := c.S.SetMode(board, mode); err != nil {
+		return err
+	}
+	if board != id {
+		c.S.layoutChanged(board)
+	}
+	return nil
+}
+
+// ResetPlaces forgets where the notes sit on the canvas (03 §3.6.2).
+func (c *CanvasService) ResetPlaces(ctx context.Context) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.ResetPlaces(c.S.boardWindow(id))
 }
 
 // SetSnap makes notes land on the canvas's grid, or anywhere.

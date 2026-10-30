@@ -18,6 +18,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
+// appVersion is the app's version: build/config.yml's info.version
+// (version_test.go keeps them the same).
+const appVersion = "0.1.0"
+
 // The frontend build output is embedded into the binary.
 //
 //go:embed all:frontend/dist
@@ -58,7 +62,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "io.github.leeswallow.stickypane",
+			UniqueID: instanceID(os.Getenv("STICKYPANE_APP_INSTANCE")),
 			OnSecondInstanceLaunch: func(d application.SecondInstanceData) {
 				<-ready
 				s.Launch(d.Args, d.WorkingDir)
@@ -76,7 +80,13 @@ func main() {
 
 	platform := shell.NewWails(app)
 	var err error
-	s, err = shell.New(shell.Config{Home: shell.DefaultHome(), Platform: platform, FocusSettle: 150 * time.Millisecond})
+	s, err = shell.New(shell.Config{
+		Home:        shell.DefaultHome(),
+		Platform:    platform,
+		FocusSettle: 150 * time.Millisecond,
+		AppVersion:  appVersion,
+		Autostart:   shell.WailsAutostart(app),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,15 +98,31 @@ func main() {
 		s.Start()
 		s.Launch(os.Args, "")
 		debugTear(s)
+		// STICKYPANE_APP_OPEN=settings[:section] opens the settings window
+		// at launch, for the last board opened: a way to look at it
+		// without pressing anything (docs/desktop/06).
+		s.OpenAtLaunch(os.Getenv("STICKYPANE_APP_OPEN"))
 	})
-	// Clicking the Dock icon with every window hidden brings the home back.
+	// Clicking the Dock icon, or opening the app again, with every window
+	// hidden brings back the board used last, or the home when none is open.
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) {
-		s.ShowHome()
+		s.Reopen()
 	})
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// instanceID is the single instance's name. STICKYPANE_APP_INSTANCE=<name>
+// gives a copy run for a check its own (with its own STICKYPANE_HOME), so
+// that it does not hand its launch to an app already running.
+func instanceID(name string) string {
+	const id = "io.github.leeswallow.stickypane"
+	if name == "" {
+		return id
+	}
+	return id + "." + name
 }
 
 // debugTear is a debug hook, for checking tear-off in the built app

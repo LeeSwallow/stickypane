@@ -37,6 +37,11 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     open: async () => {},
     pin: async () => {},
     makeBoard: async () => {},
+    openSettings: async (section = 'board') => {
+      const q = new URLSearchParams(location.search)
+      q.set('screen', 'settings-' + section)
+      location.search = q.toString()
+    },
     prefs: async () => prefs,
     archive: async () => {},
     trash: async () => {},
@@ -61,6 +66,7 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     layout: async () => layout,
     setMode: async (m) => void (layout = { ...layout, mode: m }),
     setSnap: async (on) => void (layout = { ...layout, snap: on }),
+    resetPlaces: async () => void (layout = { ...layout, places: {} }),
     async place(places) {
       await kept('place', places)
       layout = { ...layout, places: { ...layout.places, ...places } }

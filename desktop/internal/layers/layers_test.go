@@ -23,6 +23,7 @@ var rank = map[string]int{
 	// Domain: values and rules, no I/O.
 	"internal/prefs":         0,
 	"internal/canvas":        0,
+	"internal/hotkey":        0,
 	"internal/index/model":   0,
 	"internal/install/model": 0,
 	// Ports: what the use cases need, as interfaces.
@@ -52,6 +53,7 @@ var rank = map[string]int{
 var pure = map[string]bool{
 	"internal/prefs":           true,
 	"internal/canvas":          true,
+	"internal/hotkey":          true,
 	"internal/index/model":     true,
 	"internal/index/ports":     true,
 	"internal/index/service":   true,

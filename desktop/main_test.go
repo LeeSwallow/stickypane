@@ -45,6 +45,16 @@ func TestTrayColourHasColour(t *testing.T) {
 	}
 }
 
+// A copy run for a check has its own single instance.
+func TestInstanceID(t *testing.T) {
+	if got := instanceID(""); got != "io.github.leeswallow.stickypane" {
+		t.Errorf("instanceID() = %q", got)
+	}
+	if got := instanceID("check"); got != "io.github.leeswallow.stickypane.check" {
+		t.Errorf("instanceID(check) = %q", got)
+	}
+}
+
 func hasColour(img image.Image) bool {
 	b := img.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {

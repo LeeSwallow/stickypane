@@ -1,11 +1,15 @@
 <script lang="ts">
-  // The home window: the boards on this machine, straight away (R-32).
+  // The home window (08 §8.2, §8.3): with no board yet, a designed
+  // welcome with three steps; then the boards on this machine as cards.
   import { onMount } from 'svelte'
-  import { chooseLanguage, resolveAuto, setLanguage, tr, type Choice } from '../i18n'
+  import { get } from 'svelte/store'
+  import { language, resolveAuto, setLanguage, tr, type Choice } from '../i18n'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
   import { look } from '../lib/doodle/look.svelte'
-  import Language from '../settings/Language.svelte'
+  import Icon from '../lib/ui/icons/Icon.svelte'
+  import SegmentedControl from '../lib/ui/SegmentedControl.svelte'
+  import { appService, type AppPrefs } from '../services/settings'
   import { fallbackPalette } from '../lib/theme/fallback'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { applyTheme } from '../lib/theme/tokens'
@@ -16,19 +20,26 @@
   import TitleBar from '../lib/ui/TitleBar.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import { homeService, type Groups, type HomeApi, type Notice, type Prefs, type StickypaneState } from '../services/home'
-  import Empty from './Empty.svelte'
-  import Dialog from '../lib/ui/Dialog.svelte'
   import type { MenuItem } from '../lib/ui/menu'
   import { setupService, type SetupApi } from '../services/install'
-  import Terminal from '../settings/Terminal.svelte'
+  import type { Peek } from '../services/home'
   import Sessions from './Sessions.svelte'
   import Install from './Install.svelte'
+  import Welcome from './Welcome.svelte'
 
-  let { api = homeService, setup: setupApi = setupService, now = () => new Date() }: { api?: HomeApi; setup?: SetupApi; now?: () => Date } = $props()
+  let {
+    api = homeService,
+    setup: setupApi = setupService,
+    now = () => new Date(),
+    onPrefs = appService.onPrefs,
+  }: { api?: HomeApi; setup?: SetupApi; now?: () => Date; onPrefs?: (fn: (p: AppPrefs) => void) => () => void } = $props()
 
-  // ⋯ → 터미널과 에이전트…: the terminal command and the agents, as in a board's settings
-  let terminal = $state(false)
-  const menu: MenuItem[] = $derived([{ id: 'terminal', label: $tr('settings.terminal') + '…', icon: 'settings' }])
+  // ⋯ → 설정…, and ⌘,: the settings window (03 §3.12)
+  const menu: MenuItem[] = $derived([{ id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,' }])
+  const openSettings = (section: string) => void api.openSettings(section).catch((e) => warn('settings_failed', e))
+  let query = $state('')
+  let peeks = $state<Record<string, Peek>>({})
+  let homeDir = $state('')
 
   const KEY = 'stickypane.home.dismissed'
   let groups = $state<Groups | null>(null)
@@ -82,7 +93,20 @@
   let hidden = $state<string[]>([])
   const hide = (code: string) => (hidden = [...hidden, code])
   const shown = $derived([...notices, ...local].filter((n) => !hidden.includes(n.code)))
+  // what the corner shows: failures first, then the shell's words, then the
+  // tidied-away boards; two at most, the rest wait their turn
+  const REMOVED = 'removed'
+  const INDEX = 'index'
+  const MAX_TOASTS = 2
   const removed = $derived((groups?.Removed ?? []).filter((p) => !dismissed.includes(p.ID)))
+  const stack = $derived(
+    [
+      ...(failure ? [{ code: INDEX, detail: failure }] : []),
+      ...shown.filter((n) => n.code in LOCAL),
+      ...shown.filter((n) => !(n.code in LOCAL)),
+      ...(removed.length ? [{ code: REMOVED, detail: '' }] : []),
+    ].slice(0, MAX_TOASTS),
+  )
   const count = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
   const setup = $derived(status && !status.found ? 'install' : status && !status.bridge ? 'update' : null)
   const noticeText = (n: Notice) => {
@@ -94,6 +118,7 @@
     at = now()
     try {
       groups = await api.sessions()
+      peeks = (await api.peeks().catch(() => null)) ?? {}
       failure = ''
     } catch (e) {
       failure = String((e as Error)?.message ?? e)
@@ -102,7 +127,9 @@
 
   async function load() {
     try {
-      await api.ensure()
+      const dir = await api.ensure()
+      // the person's home, for ~ in the cards' folders
+      if (dir.endsWith('/.stickypane')) homeDir = dir.slice(0, -'/.stickypane'.length)
     } catch (e) {
       failure = String((e as Error)?.message ?? e)
     }
@@ -143,7 +170,8 @@
     confirming = ''
     busy = true
     try {
-      await api.initProject(dir)
+      // the welcome note in the language this window draws in (08 §8.2)
+      await api.initProject(dir, get(language))
       await loadSessions()
     } catch (e) {
       warn('init_failed', e)
@@ -160,18 +188,36 @@
     await loadSessions()
   }
 
-  const host = {
-    kind: 'home' as const,
-    save: async (c: Choice) => {
-      const next = { ...prefs, language: c === 'auto' ? '' : c }
+  async function setAppLanguage(c: Choice) {
+    const next = { ...prefs, language: c === 'auto' ? '' : c }
+    prefs = next
+    try {
       await api.setPrefs(next)
-      prefs = next
-    },
+    } catch (e) {
+      warn('settings_failed', e)
+    }
+  }
+
+  function onkey(e: KeyboardEvent) {
+    if (e.metaKey && e.key === ',') {
+      e.preventDefault()
+      openSettings('app')
+    } else if (e.key === '/' && count > 0 && !(e.target as HTMLElement).matches?.('input, textarea')) {
+      e.preventDefault()
+      document.querySelector<HTMLInputElement>('.search input')?.focus()
+    }
   }
 
   onMount(() => {
     const stopDark = watchSystemDark((d) => (systemDark = d))
     const stopNotices = api.onNotices((n) => (notices = n))
+    // the settings window changed the app's settings: draw with them
+    let stopPrefs = () => {}
+    try {
+      stopPrefs = onPrefs((p) => (prefs = { ...prefs, ...p }))
+    } catch {
+      // no shell to hear (a test, a dev page)
+    }
     const refresh = () => void loadSessions()
     window.addEventListener('focus', refresh)
     // The language and mode are read before the first paint of the list; the list does not wait for them.
@@ -183,34 +229,26 @@
     return () => {
       stopDark()
       stopNotices()
+      stopPrefs()
       window.removeEventListener('focus', refresh)
     }
   })
 </script>
 
+<svelte:window onkeydown={onkey} />
+
 <div class="window">
-  <TitleBar name={$tr('home.title')} {chrome} window={win} {menu} onmenu={(id) => id === 'terminal' && (terminal = true)}>
+  <TitleBar name={$tr('home.title')} {chrome} window={win} {menu} onmenu={(id) => id === 'settings' && openSettings('app')}>
     {#snippet actions()}
       {#if count > 0}
+        <label class="search">
+          <Icon name="search" size={16} />
+          <input type="search" placeholder={$tr('home.search')} aria-label={$tr('home.search')} bind:value={query} />
+        </label>
         <Button variant="primary" size="sm" icon="plus" onclick={pick} disabled={busy || status?.found !== true}>{$tr('home.addProject')}</Button>
       {/if}
     {/snippet}
   </TitleBar>
-
-  {#if shown.length || failure}
-    <div class="notices">
-      {#each shown as n (n.code)}
-        {#if n.code === TRAY}
-          <Toast message={noticeText(n)} icon="tab" action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
-        {:else}
-          <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
-        {/if}
-      {/each}
-      {#if failure}
-        <Toast message={$tr('notice.index', { detail: failure })} tone="bad" icon="warn" />
-      {/if}
-    </div>
-  {/if}
 
   <div class="scroll">
     <Paper>
@@ -219,34 +257,52 @@
           {#if setup}
             <div class="setup"><NoteFrame color={look.palette?.warn ?? 'currentColor'} id="setup"><Install kind={setup} copy={api.copy} /></NoteFrame></div>
           {/if}
-          <Sessions {groups} now={at} open={(p) => void api.openProject(p)} />
+          <Sessions {groups} now={at} open={(p) => void api.openProject(p)} {peeks} {query} home={homeDir} />
         {:else if groups && !failure}
-          <Empty {pick} copy={api.copy} {setup} {busy} canPick={status?.found === true} />
+          <Welcome {pick} copy={api.copy} setup={setupApi} {openSettings} install={setup} {busy} canPick={status?.found === true} />
         {/if}
-        <footer><Language {host} current={lang} label={$tr('settings.appLanguage')} hint={$tr('settings.appLanguage.hint')} /></footer>
+        {#if groups && count === 0}
+          <footer class="lang">
+            <span class="lang-label">{$tr('settings.appLanguage')}</span>
+            <SegmentedControl
+              label={$tr('settings.appLanguage')}
+              size="sm"
+              value={lang}
+              options={[
+                { value: 'ko', label: $tr('settings.language.ko') },
+                { value: 'en', label: $tr('settings.language.en') },
+                { value: 'auto', label: $tr('settings.language.auto') },
+              ]}
+              onchange={(v) => setAppLanguage(v as Choice)}
+            />
+          </footer>
+        {/if}
       </main>
     </Paper>
   </div>
 
-  {#if removed.length}
-    <div class="toasts">
-      <Toast
-        message={$tr('home.removed', { n: removed.length })}
-        icon="restore"
-        action={{ label: $tr('home.undo'), run: undo }}
-        onclose={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}
-      />
+  <!-- the window's words, in one corner under the list, two at most -->
+  {#if stack.length}
+    <div class="toasts" role="region" aria-label={$tr('home.notices')}>
+      {#each stack as n (n.code)}
+        {#if n.code === TRAY}
+          <Toast message={noticeText(n)} action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
+        {:else if n.code === REMOVED}
+          <Toast
+            message={$tr('home.removed', { n: removed.length })}
+            icon="restore"
+            action={{ label: $tr('home.undo'), run: undo }}
+            onclose={() => rememberDismissed([...dismissed, ...removed.map((p) => p.ID)])}
+          />
+        {:else if n.code === INDEX}
+          <Toast message={$tr('notice.index', { detail: failure })} tone="bad" icon="warn" />
+        {:else}
+          <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
+        {/if}
+      {/each}
     </div>
   {/if}
 
-  {#if terminal}
-    <Dialog bind:open={terminal} title={$tr('settings.terminal')} width={520}>
-      <div class="terminal"><Terminal setup={setupApi} open={terminal} /></div>
-      {#snippet actions()}
-        <Button variant="primary" onclick={() => (terminal = false)}>{$tr('ui.close')}</Button>
-      {/snippet}
-    </Dialog>
-  {/if}
 
   <Confirm
     open={confirming !== ''}
@@ -275,48 +331,62 @@
   }
   main {
     box-sizing: border-box;
-    max-width: 760px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: var(--space-6) var(--space-6) var(--space-10);
+    padding: var(--space-8) var(--space-6) 96px;
   }
-  .notices {
-    display: flex;
-    flex-direction: column;
+  .search {
+    display: inline-flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4) 0;
+    gap: var(--space-1);
+    height: var(--control-sm);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunk);
+    color: var(--ink-3);
+    --wails-draggable: no-drag;
   }
-  .notices > :global(*) {
-    width: min(100%, 440px);
+  .search:focus-within {
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px var(--accent-wash);
   }
-  .terminal {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
-    max-height: min(64vh, 560px);
-    overflow: auto;
+  .search input {
+    width: 140px;
+    border: 0;
+    outline: none;
+    background: none;
+    color: var(--ink);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
   .setup {
     margin-bottom: var(--space-6);
   }
   footer {
     display: flex;
+    align-items: center;
     justify-content: center;
+    gap: var(--space-3);
     margin-top: var(--space-8);
   }
-  footer > :global(.language) {
-    max-width: 440px;
+  .lang-label {
+    color: var(--ink-2);
+    font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
+  /* the window's words in the bottom right corner, in a strip of their
+     own under the list: the list ends above them, so no card is ever under
+     a toast */
   .toasts {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: var(--space-5);
+    flex: none;
+    align-self: flex-end;
     z-index: var(--z-toast);
     display: flex;
-    justify-content: center;
-    padding: 0 var(--space-4);
-    pointer-events: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    width: min(440px, 100%);
+    padding: var(--space-2) var(--space-5) var(--space-4);
   }
   .toasts > :global(*) {
     pointer-events: auto;

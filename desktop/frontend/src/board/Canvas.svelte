@@ -10,6 +10,7 @@
   import { tr } from '../i18n'
   import type { Place } from '../services/canvas'
   import { extent, firstPlaces, moved, raise, resized, samePlace, zoomed, type Edge } from './free'
+  import { fitHeight } from './arrange'
   import { CARD_PX } from './layout'
   import type { Note } from './model'
   import NoteFrame from './NoteFrame.svelte'
@@ -39,10 +40,34 @@
   const shown = (name: string): Place | undefined => (drag?.name === name ? drag.at : all[name])
   const size = $derived(extent(notes.map((n) => shown(n.name)).filter((p): p is Place => !!p)))
 
-  // the notes seen for the first time get their places kept
+  // the notes seen for the first time get their places kept; once drawn,
+  // one with no height of its own (rows) takes the height of what it holds
+  // (#63: the welcome note is not 280px of mostly empty paper)
+  let layer: HTMLElement | undefined = $state()
   $effect(() => {
-    if (Object.keys(fresh).length) onplace(fresh)
+    const f = fresh
+    if (!Object.keys(f).length) return
+    onplace(f)
+    const names = notes.filter((n) => f[n.name] && !n.rows).map((n) => n.name)
+    if (names.length) requestAnimationFrame(() => requestAnimationFrame(() => fit(names)))
   })
+
+  /** fit measures each note drawn at its natural height once and keeps that height. */
+  function fit(names: string[]) {
+    const out: Record<string, Place> = {}
+    for (const name of names) {
+      const el = layer?.querySelector<HTMLElement>(`[data-place="${CSS.escape(name)}"]`)
+      const p = all[name]
+      if (!el || !p) continue
+      const was = el.style.height
+      el.style.height = 'auto'
+      const natural = el.offsetHeight
+      el.style.height = was
+      const h = fitHeight(natural, p.h)
+      if (h !== p.h) out[name] = { ...p, h }
+    }
+    if (Object.keys(out).length) onplace(out)
+  }
 
   function toTop(name: string) {
     const up = raise(all, name)
@@ -107,7 +132,7 @@
 
 <div class="canvas" bind:clientWidth={width} onwheel={wheel} role="region" aria-label={$tr('ui.view.canvas')} data-canvas>
   <div class="sizer" style:width="{size.w * scale}px" style:height="{size.h * scale}px">
-    <div class="layer" style:width="{size.w}px" style:height="{size.h}px" style:transform="scale({scale})">
+    <div class="layer" bind:this={layer} style:width="{size.w}px" style:height="{size.h}px" style:transform="scale({scale})">
       {#each notes as note (note.name)}
         {@const p = shown(note.name)}
         {#if p}

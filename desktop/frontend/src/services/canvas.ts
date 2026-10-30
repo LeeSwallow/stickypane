@@ -42,6 +42,8 @@ export interface CanvasApi {
   layout(): Promise<Layout>
   setMode(mode: LayoutMode): Promise<void>
   setSnap(on: boolean): Promise<void>
+  /** forgets where every note sits: the canvas places them again from the grid (03 §3.6.2) */
+  resetPlaces(): Promise<void>
   /** keeps where notes are, by note name */
   place(places: Record<string, Place>): Promise<void>
   /** opens a note in a window of its own */
@@ -67,6 +69,7 @@ export const canvasService: CanvasApi = {
   setMode: (mode) => Call.ByName(canvas('SetMode'), mode) as Promise<void>,
   setSnap: (on) => Call.ByName(canvas('SetSnap'), on) as Promise<void>,
   place: (places) => Call.ByName(canvas('Place'), places) as Promise<void>,
+  resetPlaces: () => Call.ByName(canvas('ResetPlaces')) as Promise<void>,
   tearOff: (note) => Call.ByName(canvas('TearOff'), note),
   putBack: (note = '') => Call.ByName(canvas('PutBack'), note) as Promise<void>,
   onLayout: (window, fn) => Events.On(canvasEvent(window), (e) => fn(layoutOf(e.data as Partial<Layout>))),

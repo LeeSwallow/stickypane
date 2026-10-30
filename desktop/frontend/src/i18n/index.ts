@@ -18,7 +18,11 @@ export const language = { subscribe: langStore.subscribe }
 
 /** setLanguage switches the language at once, with no restart. */
 export function setLanguage(code: Lang): void {
-  langStore.set(code === 'ko' ? 'ko' : 'en')
+  const lang = code === 'ko' ? 'ko' : 'en'
+  langStore.set(lang)
+  // the page says its language: screen readers, hyphens, and the Korean
+  // type rules in app.css (no breaks inside a word, the handwriting set closer)
+  if (typeof document !== 'undefined') document.documentElement.lang = lang
 }
 
 /** translate looks key up in lang, then in English, then is the key. */

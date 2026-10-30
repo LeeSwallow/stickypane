@@ -9,14 +9,15 @@ export const project = (method: string) => `${pkg}.ProjectService.${method}`
 export const setup = (method: string) => `${pkg}.SetupService.${method}`
 export const canvas = (method: string) => `${pkg}.CanvasService.${method}`
 
-export type WindowKind = 'home' | 'project' | 'note'
+export type WindowKind = 'home' | 'project' | 'note' | 'settings'
 
 // windowKind reads which window this page is from its query string: the
-// shell opens a project window at /?window=project and a note torn off its
-// board at /?window=note&note=<name>.
+// shell opens a project window at /?window=project, a note torn off its
+// board at /?window=note&note=<name>, and the settings at
+// /?window=settings&section=<section>.
 export function windowKind(search: string): WindowKind {
   const w = new URLSearchParams(search).get('window')
-  return w === 'project' || w === 'note' ? w : 'home'
+  return w === 'project' || w === 'note' || w === 'settings' ? w : 'home'
 }
 
 /** noteOf is the note a torn-off note's window was opened on. */
@@ -29,3 +30,7 @@ export const statusEvent = (id: number) => `project.status:${id}`
 export const noticesEvent = 'home.notices'
 // A project window's layout changed outside it: a note torn off, put back or gone.
 export const canvasEvent = (id: number) => `canvas.changed:${id}`
+// The app's settings changed (every window hears it); the settings
+// window's board changed.
+export const prefsEvent = 'prefs.changed'
+export const settingsBoardEvent = 'settings.board'

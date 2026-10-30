@@ -1,6 +1,8 @@
 <script lang="ts">
-  // Dev only (?demo=screens&screen=home|empty|board|canvas|torn|zoom|create
-  // |settings&shape=board|form|chart…&mode=dark|light):
+  // Dev only (?demo=screens&screen=home|home-list|empty|home-empty|board
+  // |board-first|board-empty|canvas|torn|zoom|create|settings-board
+  // |settings-app|settings-cli|settings-about|settings-none
+  // &shape=board|form|chart…&mode=dark|light&lang=ko|en):
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. With &bridge=<devbridge url>
   // (desktop/scripts/devbridge.mjs) the board is a real bridge's, and the
@@ -15,9 +17,14 @@
   import type { Groups, HomeApi, Row } from '../services/home'
   import { THEMES } from './themes'
   import { live } from './live'
+  import SettingsWindow from '../settings/SettingsWindow.svelte'
+  import type { AppApi, AppPrefs } from '../services/settings'
+  import type { CommandState, SetupApi } from '../services/install'
 
   const q = new URLSearchParams(location.search)
-  const screen = q.get('screen') ?? 'home'
+  const asked = q.get('screen') ?? 'home'
+  // the names the redesign's captures use (#63)
+  const screen = asked === 'home-list' ? 'home' : asked === 'home-empty' ? 'empty' : asked
   const mode = q.get('mode') === 'light' ? 'light' : 'dark'
   const lang = q.get('lang') === 'en' ? 'en' : 'ko'
   const style = q.get('style') === 'neat' ? 'neat' : 'doodle'
@@ -68,6 +75,17 @@
     setPrefs: async () => {},
     onNotices: () => () => {},
     copy: async () => {},
+    peeks: async () => ({
+      '/Users/min/Projects/Personal/stickypane': { notes: 6, stalled: 1, agents: ['claude', 'codex'], colors: THEMES[mode === 'dark' ? 2 : 3].notes, theme: 'catppuccin-mocha' },
+      '/Users/min/Projects/Personal/keyharbor': { notes: 3, colors: THEMES[mode === 'dark' ? 4 : 5].notes },
+      '/Users/min/Projects/Personal/escape-room': { notes: 9, agents: ['sam'], colors: THEMES[mode === 'dark' ? 8 : 7].notes },
+    }),
+    openSettings: async (section: string) => {
+      const next = new URLSearchParams(location.search)
+      next.set('screen', 'settings-none')
+      next.set('section', section)
+      location.search = next.toString()
+    },
   }
   // the page as the board's window: what the shell does when a board opens
   const toBoard = () => {
@@ -109,15 +127,29 @@
     },
     { ...base, name: 'work/old.md', title: 'Old plan', kind: 'note', icon: '✎', size: '1/2', open: false, data: { markdown: '' } },
   ] as unknown as Note[]
+  const welcome = {
+    ...base, tab: '', name: 'welcome.md', title: lang === 'ko' ? 'stickypane에 오신 걸 환영해요' : 'Welcome to stickypane', kind: 'note', icon: '✎', size: '2/3', pinned: true, modTime: ago(0),
+    data: {
+      markdown: lang === 'ko'
+        ? '에이전트는 `.sticky/`에 파일을 써서 여기에 노트를 붙여요. 체크하고,\n답하고, 카드를 옮기는 건 여러분이 하고, 에이전트는 그 결과를 읽어요.\n\n- **앱에서:** **+ 새 노트**로 노트를 만들고, **×** 버튼으로 접어 둬요.\n  설정(**⌘,**)의 **터미널과 에이전트**에서 Claude Code와 Codex를 연결해요.\n- **터미널에서:** **tab**으로 노트를 오가고, **enter**로 열고 키워요.\n  **N**은 빠른 메모, **a**는 다른 모양의 노트, **o**는 접기예요.\n  모든 키는 **?** 키로 봐요.\n\n다 읽었으면 이 노트를 접어 두세요.'
+        : 'Your agent sticks notes here by writing files in `.sticky/`. You tick,\nanswer and move cards; the agent reads what you did.\n\n- **In the app:** **+ New note** makes one, **×** folds a note away, and\n  **Terminal and agents** in Settings (**⌘,**) connects Claude Code and Codex.\n- **In the terminal:** **tab** moves between notes, **enter** opens one and\n  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note\n  away, **?** lists every key.\n\nFold this note away when you are done with it.',
+    },
+  } as unknown as Note
   const palette = THEMES.find((t) => t.name === (mode === 'dark' ? 'stickypane-dark' : 'stickypane-light'))
+  const tabs =
+    screen === 'board-first'
+      ? [{ name: '', title: 'my-app', notes: [welcome] }]
+      : screen === 'board-empty'
+        ? [{ name: '', title: 'my-app', notes: [] }]
+        : [
+            { name: 'work', title: 'work', notes },
+            { name: 'notes', title: 'notes', notes: [] },
+            { name: 'log', title: 'log', notes: [] },
+          ]
   const board: BoardData = {
-    title: 'stickypane',
-    tabs: [
-      { name: 'work', title: 'work', notes },
-      { name: 'notes', title: 'notes', notes: [] },
-      { name: 'log', title: 'log', notes: [] },
-    ],
-    settings: { theme: palette?.name ?? '', style, view: 'overlay', language: { choice: lang, resolved: lang }, tab: 'work', time: '', editor: '', stale: '2h' },
+    title: screen === 'board-first' || screen === 'board-empty' ? 'my-app' : 'stickypane',
+    tabs,
+    settings: { theme: palette?.name ?? '', style, view: 'overlay', language: { choice: lang, resolved: lang }, tab: tabs[0].name, time: '', editor: '', stale: '2h' },
     palette,
   }
   // board: the grid; canvas: notes where they were left, one torn off;
@@ -132,23 +164,75 @@
     },
     torn: { 'work/ideas.md': { screenX: 1200, screenY: 80, w: 320, h: 260, pinned: true } },
   }
-  const layout = screen === 'canvas' || screen === 'torn' ? canvasLayout : { mode: 'grid' as const }
-  const boardApi = real ? real.project(mode, lang) : fakeProject(board, mode, lang, layout, screen === 'torn' ? (q.get('note') ?? 'work/release.md') : '')
+  const layout = screen === 'canvas' || screen === 'torn' ? canvasLayout : screen === 'board-first' || screen === 'board-empty' ? { mode: 'canvas' as const } : { mode: 'grid' as const }
+  const own = screen === 'board-first' || screen === 'board-empty'
+  const boardApi0 = real ? real.project(mode, lang) : fakeProject(board, mode, lang, layout, screen === 'torn' ? (q.get('note') ?? 'work/release.md') : '')
+  const boardApi = own && !real ? { ...boardApi0, status: async () => ({ ...(await boardApi0.status()), path: '/Users/min/Projects/my-app', pinned: false }) } : boardApi0
   const quietBus = real ? real.bus : { on: () => () => {} }
   const setup = real?.setup()
+
+  // --- settings --------------------------------------------------------------
+  let appPrefs: AppPrefs = { hotkey: 'Option+Space', language: lang, mode, pinNew: false }
+  const fakeApp: AppApi = {
+    prefs: async () => appPrefs,
+    setPrefs: async (p) => void (appPrefs = p),
+    onPrefs: () => () => {},
+    async checkHotkey(accel) {
+      if (/^(Cmd\+Space|Cmd\+Q|Cmd\+W|Ctrl\+Space)$/.test(accel)) return { ok: false, accel, code: 'reserved' }
+      if (!/(Cmd|Ctrl|Option)\+/.test(accel)) return { ok: false, accel, code: 'modifier' }
+      if (accel === 'Ctrl+Option+K') return { ok: false, accel, code: 'taken' }
+      return { ok: true, accel }
+    },
+    autostart: async () => ({ supported: true, enabled: false }),
+    setAutostart: async (on) => ({ supported: true, enabled: on }),
+    about: async () => ({ app: '0.1.0', stickypane: { found: true, bridge: true, path: '/Applications/stickypane.app/Contents/Helpers/stickypane', version: '0.4.0' } }),
+    onBoard: () => () => {},
+    openURL: async (u) => void window.open(u),
+  }
+  const cmdState: CommandState = {
+    bundled: '/Applications/stickypane.app/Contents/Helpers/stickypane',
+    version: '0.4.0',
+    links: [
+      { target: 'user', path: '/Users/min/.local/bin/stickypane', state: 'apps' },
+      { target: 'system', path: '/usr/local/bin/stickypane', state: 'none' },
+    ],
+    first: { path: '/opt/homebrew/bin/stickypane', real: '/opt/homebrew/bin/stickypane', version: '0.2.1', apps: false },
+    shadow: { kind: 'brew', command: 'brew uninstall stickypane' },
+    userDir: '/Users/min/.local/bin',
+    onPath: true,
+    rcFile: '/Users/min/.zshrc',
+    rcLine: 'export PATH="$HOME/.local/bin:$PATH"',
+  }
+  const fakeSetup: SetupApi = {
+    command: async () => (screen === 'empty' ? { ...cmdState, links: cmdState.links.map((l) => ({ ...l, state: 'none' as const })), first: null, shadow: null } : cmdState),
+    install: async () => ({ state: cmdState }),
+    uninstall: async () => ({ state: cmdState }),
+    connectPlan: async (mcp) => ({ command: 'stickypane setup --dry-run', output: 'stickypane setup runs:\n  claude plugin marketplace add LeeSwallow/stickypane\n  claude plugin install board@stickypane --scope user' + (mcp ? '\n  claude mcp add stickypane -- stickypane mcp' : '') }),
+    connect: async () => ({ command: 'stickypane setup --yes', output: 'done' }),
+    initHere: async () => ({ command: 'stickypane init', output: '' }),
+  }
+  const settingsSection = screen.startsWith('settings-') ? screen.slice(9) : ''
+  const noBoard = settingsSection === 'none'
+  const settingsBoard = noBoard ? { ...boardApi, status: async () => ({ window: 2, path: '', state: 'closed', pinned: false }) } : boardApi
 </script>
 
-{#if screen === 'torn'}
+{#if settingsSection}
+  <SettingsWindow
+    board={settingsBoard}
+    app={fakeApp}
+    setup={setup ?? fakeSetup}
+    section={(noBoard ? (q.get('section') ?? 'board') : settingsSection) as 'board' | 'app' | 'cli' | 'about'}
+    chrome={(q.get('chrome') as 'mac' | 'own' | null) ?? 'mac'}
+  />
+{:else if screen === 'torn'}
   <TornNote api={boardApi} bus={quietBus} note={q.get('note') ?? 'work/release.md'} />
-{:else if screen === 'board' || screen === 'canvas' || screen === 'zoom' || screen === 'create' || screen === 'settings'}
+{:else if screen === 'board' || screen === 'board-first' || screen === 'board-empty' || screen === 'canvas' || screen === 'zoom' || screen === 'create'}
   <Board
     api={boardApi}
     zoom={screen === 'zoom' ? 'work/auth.md' : undefined}
     create={screen === 'create' ? (q.get('shape') ?? 'board') : undefined}
-    settings={screen === 'settings'}
     bus={quietBus}
-    {setup}
   />
 {:else}
-  <Home api={homeApi} {setup} />
+  <Home api={homeApi} setup={setup ?? fakeSetup} onPrefs={() => () => {}} />
 {/if}

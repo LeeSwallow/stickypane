@@ -312,8 +312,8 @@ func TestOpenProjectReusesItsWindow(t *testing.T) {
 	if !w.opts.Frameless {
 		t.Error("a project window is frameless")
 	}
-	if w.bounds.Width != 840 || w.bounds.Height != 700 {
-		t.Errorf("first size %dx%d, want 840x700 (70%% of a 1000 high screen)", w.bounds.Width, w.bounds.Height)
+	if w.bounds.Width != 720 || w.bounds.Height != 640 {
+		t.Errorf("first size %dx%d, want 720x640 (#63: not the whole screen)", w.bounds.Width, w.bounds.Height)
 	}
 	if w.focuses < 1 || w.shows < 1 {
 		t.Error("opening again shows and focuses the window")

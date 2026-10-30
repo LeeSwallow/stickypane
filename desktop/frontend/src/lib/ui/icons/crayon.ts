@@ -65,6 +65,28 @@ export const CRAYONS = {
     { line: 'M14.5 5.5L15.5 4.5' },
   ],
   moon: [{ fill: 'purple', d: 'M16 12.5A6.75 6.75 0 1 1 7.5 4A5.25 5.25 0 0 0 16 12.5Z' }],
+  // the settings window's sections (03 §3.12): a board of notes, this
+  // computer, the terminal, about
+  board: [
+    { fill: 'blue', d: 'M2.75 4.25H10.25V11.5H2.75Z' },
+    { fill: 'pink', d: 'M11.5 3.25H17.25V9H11.5Z' },
+    { fill: 'yellow', d: 'M6.5 10.5H14.75V16.75H6.5Z' },
+  ],
+  computer: [
+    { fill: 'blue', d: 'M2.5 3.75H17.5V13.25H2.5Z' },
+    { line: 'M10 13.25V16.25' },
+    { line: 'M6.5 16.5H13.5' },
+  ],
+  terminal: [
+    { fill: 'green', d: 'M2.5 3.5H17.5V16.5H2.5Z' },
+    { line: 'M5.75 8L8.25 10L5.75 12' },
+    { line: 'M10 12.25H13.75' },
+  ],
+  info: [
+    { fill: 'yellow', d: ring(10, 10, 7) },
+    { line: 'M10 9V14' },
+    { line: 'M10 6.1V6.2' },
+  ],
 } as const satisfies Record<string, readonly Part[]>
 
 export type CrayonName = keyof typeof CRAYONS

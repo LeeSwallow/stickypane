@@ -8,6 +8,11 @@
   import Home from './home/Home.svelte'
   import Board from './board/Board.svelte'
   import TornNote from './torn/TornNote.svelte'
+  import SettingsWindow from './settings/SettingsWindow.svelte'
+  import { chromeOf } from './lib/ui/chrome'
+  import { projectService } from './services/project'
+  import { setupService } from './services/install'
+  import { appService, sectionOf } from './services/settings'
   import Intro from './lib/motion/Intro.svelte'
   import { settingsService } from './services/settings'
 
@@ -42,6 +47,14 @@
   {/await}
 {:else if kind === 'note'}
   <TornNote />
+{:else if kind === 'settings'}
+  <SettingsWindow
+    board={projectService}
+    app={appService}
+    setup={setupService}
+    section={sectionOf(new URLSearchParams(location.search).get('section'))}
+    chrome={chromeOf(location.search)}
+  />
 {:else}
   {#if kind === 'project'}
     <Board />

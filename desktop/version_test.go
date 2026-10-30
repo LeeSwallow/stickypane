@@ -35,4 +35,7 @@ func TestVersionsAgree(t *testing.T) {
 			}
 		}
 	}
+	if appVersion != want {
+		t.Errorf("main.go's appVersion is %s, build/config.yml says %s", appVersion, want)
+	}
 }
