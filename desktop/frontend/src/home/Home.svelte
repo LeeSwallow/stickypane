@@ -237,7 +237,7 @@
 
 <svelte:window onkeydown={onkey} />
 
-<div class="window" class:with-toasts={stack.length > 0}>
+<div class="window">
   <TitleBar name={$tr('home.title')} {chrome} window={win} {menu} onmenu={(id) => id === 'settings' && openSettings('app')}>
     {#snippet actions()}
       {#if count > 0}
@@ -281,7 +281,7 @@
     </Paper>
   </div>
 
-  <!-- the window's words, in one corner, two at most, never over the list (its bottom keeps their room) -->
+  <!-- the window's words, in one corner under the list, two at most -->
   {#if stack.length}
     <div class="toasts" role="region" aria-label={$tr('home.notices')}>
       {#each stack as n (n.code)}
@@ -373,24 +373,20 @@
     color: var(--ink-2);
     font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }
+  /* the window's words in the bottom right corner, in a strip of their
+     own under the list: the list ends above them, so no card is ever under
+     a toast */
   .toasts {
-    position: absolute;
-    right: var(--space-5);
-    bottom: var(--space-5);
+    flex: none;
+    align-self: flex-end;
     z-index: var(--z-toast);
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: stretch;
     gap: var(--space-2);
-    width: min(400px, calc(100% - 2 * var(--space-5)));
-    pointer-events: none;
-  }
-  .toasts > :global(*) {
-    width: 100%;
-  }
-  /* the list keeps the corner's room at its bottom, so no card is under a toast */
-  .with-toasts main {
-    padding-bottom: 176px;
+    box-sizing: border-box;
+    width: min(440px, 100%);
+    padding: var(--space-2) var(--space-5) var(--space-4);
   }
   .toasts > :global(*) {
     pointer-events: auto;
