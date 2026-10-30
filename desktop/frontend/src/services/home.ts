@@ -38,6 +38,17 @@ export interface Groups {
   Removed: Removed[] | null
 }
 
+/** What a board looked like when this computer last opened it (the shell's BoardPeek). */
+export interface Peek {
+  notes: number
+  stalled?: number
+  agents?: string[] | null
+  theme?: string
+  dark?: boolean
+  /** the six note colours of its palette */
+  colors?: string[] | null
+}
+
 export interface StickypaneState {
   found: boolean
   bridge: boolean
@@ -60,6 +71,7 @@ export interface Prefs {
   language: string
   mode: string
   motion?: string
+  pinNew?: boolean
 }
 
 export interface HomeApi {
@@ -69,7 +81,8 @@ export interface HomeApi {
   pickFolder(): Promise<string>
   /** inspect says whether dir has a .sticky; it changes nothing. */
   inspect(dir: string): Promise<{ exists: boolean; path: string }>
-  initProject(dir: string): Promise<void>
+  /** initProject makes a board in dir, its welcome note in lang (the language the home draws in) */
+  initProject(dir: string, lang: string): Promise<void>
   openProject(path: string): Promise<unknown>
   status(): Promise<StickypaneState>
   notices(): Promise<Notice[]>
@@ -78,6 +91,10 @@ export interface HomeApi {
   /** onNotices calls fn when the shell's notices change; it returns the way to stop. */
   onNotices(fn: (n: Notice[]) => void): () => void
   copy(text: string): Promise<void>
+  /** what each board looked like when this computer last opened it, by path */
+  peeks(): Promise<Record<string, Peek> | null>
+  /** opens the settings window on a section (no board: the home has none) */
+  openSettings(section: string): Promise<unknown>
 }
 
 const call = <T>(method: string, ...args: unknown[]) => Call.ByName(home(method), ...args) as Promise<T>
@@ -88,7 +105,7 @@ export const homeService: HomeApi = {
   restore: (id) => call('Restore', id),
   pickFolder: () => call('PickFolder'),
   inspect: (dir) => call('Inspect', dir),
-  initProject: (dir) => call('InitProject', dir),
+  initProject: (dir, lang) => call('InitProject', dir, lang),
   openProject: (path) => call('OpenProject', path),
   status: () => call('StickypaneStatus'),
   notices: () => call('Notices'),
@@ -96,4 +113,6 @@ export const homeService: HomeApi = {
   setPrefs: (p) => call('SetPrefs', p),
   onNotices: (fn) => Events.On(noticesEvent, (e) => fn((e.data as Notice[]) ?? [])),
   copy: (text) => navigator.clipboard.writeText(text),
+  peeks: () => call('Peeks'),
+  openSettings: (section) => call('OpenSettings', section),
 }
