@@ -87,6 +87,7 @@ func main() {
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
 		s.Start()
 		s.Launch(os.Args, "")
+		debugTear(s)
 	})
 	// Clicking the Dock icon with every window hidden brings the home back.
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) {
@@ -96,4 +97,23 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// debugTear is a debug hook, for checking tear-off in the built app
+// without a mouse: STICKYPANE_APP_TEAR=<note> with --project=<path> tears
+// that note off the project's board a moment after launch, through the
+// same Shell.TearOff a click on the tear-off button calls, and logs what
+// came of it. Unset, it does nothing.
+func debugTear(s *shell.Shell) {
+	note := os.Getenv("STICKYPANE_APP_TEAR")
+	project := shell.ProjectArg(os.Args)
+	if note == "" || project == "" {
+		return
+	}
+	go func() {
+		time.Sleep(3 * time.Second)
+		id := s.OpenProject(project)
+		tid, err := s.TearOff(id, note)
+		log.Printf("STICKYPANE_APP_TEAR %q: window %d, err %v", note, tid, err)
+	}()
 }
