@@ -213,6 +213,22 @@ func TestFirstSizeFitsTheScreen(t *testing.T) {
 	}
 }
 
+func TestReopenBringsBackTheLastBoard(t *testing.T) {
+	r := newRig(t)
+	r.s.Reopen()
+	if len(r.p.homeWindows()) != 1 {
+		t.Fatal("with no board, reopen shows the home")
+	}
+	r2 := newRig(t)
+	r2.s.OpenProject(filepath.Join(r2.home, "a"))
+	w := r2.p.projectWindows()[0]
+	w.Hide()
+	r2.s.Reopen()
+	if !w.Visible() || len(r2.p.homeWindows()) != 0 {
+		t.Errorf("reopen: board visible %v, home windows %d", w.Visible(), len(r2.p.homeWindows()))
+	}
+}
+
 type fakeAutostart struct{ on bool }
 
 func (f *fakeAutostart) Enabled() (bool, error)   { return f.on, nil }

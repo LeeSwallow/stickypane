@@ -103,9 +103,10 @@ func main() {
 		// without pressing anything (docs/desktop/06).
 		s.OpenAtLaunch(os.Getenv("STICKYPANE_APP_OPEN"))
 	})
-	// Clicking the Dock icon with every window hidden brings the home back.
+	// Clicking the Dock icon, or opening the app again, with every window
+	// hidden brings back the board used last, or the home when none is open.
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) {
-		s.ShowHome()
+		s.Reopen()
 	})
 
 	if err := app.Run(); err != nil {

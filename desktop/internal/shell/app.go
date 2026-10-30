@@ -1022,6 +1022,25 @@ func (s *Shell) Toggle() {
 	}
 }
 
+// Reopen is macOS asking the app to show itself again: the Dock icon
+// clicked, or the app opened once more (`open -n`), while its windows are
+// hidden. The board used last comes back when its window is open; the
+// home only when no board is.
+func (s *Shell) Reopen() {
+	s.mu.Lock()
+	var w Window
+	if p := s.projects[s.state.Last]; p != nil && !p.closed {
+		w = p.win
+	}
+	s.mu.Unlock()
+	if w == nil {
+		s.ShowHome()
+		return
+	}
+	w.Show()
+	w.Focus()
+}
+
 // Launch handles the arguments of a launch, the first or a second one
 // passed on by the single instance: --project=<path> (relative to dir)
 // opens that project, anything else shows the home window.
