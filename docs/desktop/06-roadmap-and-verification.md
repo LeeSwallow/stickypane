@@ -69,6 +69,7 @@ flowchart LR
 | 레이어 | `internal/layers` 테스트(새 패키지 `bridge`, `widget/html`에 rank) |
 | 라이선스 | 본체 `sh scripts/licenses.sh`. 앱은 Go 모듈과 npm 의존성을 같은 허용 목록으로 검사하는 스크립트 추가 |
 | 프런트엔드 | 타입 검사, 단위 테스트(Data → DOM), 테마 10개 × 스타일 2개 스냅샷 |
+| 크기 조절 | `node desktop/scripts/e2e-resize.mjs webkit`: dev 화면에서 그리드 가장자리와 캔버스 손잡이를 진짜 마우스 이벤트로 끈다(WebKit, CI macOS 작업). jsdom에는 레이아웃과 포인터가 없다 (#66) |
 | 대비 | 테마마다 본문·카드 글자 대비 4.5:1 자동 검사 |
 | 문서 | 에이전트 가이드 55줄 이하, 스킬 테스트 통과 |
 

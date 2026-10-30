@@ -52,6 +52,14 @@ jobs:
         working-directory: desktop/frontend
       # The build generates the bindings and frontend/dist that Go embeds.
       - run: wails3 build
+      # Notes' edges dragged with real mouse events in WebKit, the engine of
+      # the app's window on macOS (#66); it needs the bindings the build made.
+      - name: Resize e2e (WebKit)
+        if: runner.os == 'macOS'
+        run: |
+          npm i -g playwright@1.58.2
+          playwright install webkit
+          node scripts/e2e-resize.mjs webkit
       - run: go vet ./...
       - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go test -race ./...

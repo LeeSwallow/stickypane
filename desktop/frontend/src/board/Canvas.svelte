@@ -13,6 +13,7 @@
   import { CARD_PX } from './layout'
   import type { Note } from './model'
   import NoteFrame from './NoteFrame.svelte'
+  import { capture } from './pointer'
 
   let {
     notes,
@@ -55,31 +56,34 @@
    */
   function follow(e: PointerEvent, name: string, next: (start: Place, dx: number, dy: number, snapOn: boolean) => Place) {
     const start = all[name]
-    if (!start) return
+    if (!start || e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    const el = e.currentTarget as HTMLElement
-    el.setPointerCapture?.(e.pointerId)
+    // the window's events, not the handle's: the webview may refuse the
+    // capture, and the pointer leaves the handle as it moves (#66)
+    capture(e)
     const x0 = e.clientX
     const y0 = e.clientY
     const up = raise(all, name)
     const z = (up ?? start).z
     drag = { name, at: { ...start, z } }
-    const move = (m: PointerEvent) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } })
-    const end = (keep: boolean) => () => {
-      el.removeEventListener('pointermove', move)
-      el.removeEventListener('pointerup', done)
-      el.removeEventListener('pointercancel', cancel)
-      const at = drag?.at
-      drag = null
-      if (keep && at && !samePlace(at, start)) onplace({ [name]: at })
-      else if (up) onplace({ [name]: up })
-    }
+    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
+    const move = mine((m) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } }))
+    const end = (keep: boolean) =>
+      mine(() => {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', done)
+        window.removeEventListener('pointercancel', cancel)
+        const at = drag?.at
+        drag = null
+        if (keep && at && !samePlace(at, start)) onplace({ [name]: at })
+        else if (up) onplace({ [name]: up })
+      })
     const done = end(true)
     const cancel = end(false)
-    el.addEventListener('pointermove', move)
-    el.addEventListener('pointerup', done)
-    el.addEventListener('pointercancel', cancel)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', done)
+    window.addEventListener('pointercancel', cancel)
   }
 
   const startMove = (e: PointerEvent, name: string) => follow(e, name, (s, dx, dy, on) => moved(s, dx, dy, scale, on))
@@ -199,46 +203,70 @@
     z-index: 2;
     touch-action: none;
   }
+  /* 12px across, centred on the border drawn (#66); a mark on each shows
+     while the note is hovered, in the accent while its handle is */
   .handle.e {
     top: 0;
-    bottom: var(--space-3);
-    right: calc(-1 * var(--space-1));
-    width: var(--space-2);
+    bottom: var(--space-4);
+    right: -6px;
+    width: 12px;
     cursor: ew-resize;
   }
   .handle.s {
     left: 0;
-    right: var(--space-3);
-    bottom: calc(-1 * var(--space-1));
-    height: var(--space-2);
+    right: var(--space-4);
+    bottom: -6px;
+    height: 12px;
     cursor: ns-resize;
   }
   .handle.se {
-    right: calc(-1 * var(--space-1));
-    bottom: calc(-1 * var(--space-1));
-    width: var(--space-4);
-    height: var(--space-4);
+    right: -6px;
+    bottom: -6px;
+    width: 22px;
+    height: 22px;
     cursor: nwse-resize;
   }
-  .handle.se::after {
+  .handle::after {
     content: '';
     position: absolute;
-    right: var(--space-1);
-    bottom: var(--space-1);
-    width: var(--space-2);
-    height: var(--space-2);
-    border-right: var(--stroke-hairline) solid var(--ink-3);
-    border-bottom: var(--stroke-hairline) solid var(--ink-3);
+    border-radius: 1px;
+    background: var(--ink-3);
     opacity: 0;
   }
-  .item:hover .handle.se::after {
+  .handle.e::after {
+    left: 5px;
+    top: calc(50% - 12px);
+    width: 2px;
+    height: 24px;
+  }
+  .handle.s::after {
+    top: 5px;
+    left: calc(50% - 12px);
+    width: 24px;
+    height: 2px;
+  }
+  .handle.se::after {
+    right: 6px;
+    bottom: 6px;
+    width: var(--space-2);
+    height: var(--space-2);
+    border-radius: 0;
+    background: none;
+    border-right: var(--stroke-emphasis, 2px) solid var(--ink-3);
+    border-bottom: var(--stroke-emphasis, 2px) solid var(--ink-3);
+  }
+  .item:hover .handle::after {
+    opacity: 0.6;
+  }
+  .item .handle:hover::after,
+  .moving .handle::after {
     opacity: 1;
+    background: var(--accent);
   }
-  .handle.e:hover {
-    border-right: var(--stroke-hairline) dashed var(--accent);
-  }
-  .handle.s:hover {
-    border-bottom: var(--stroke-hairline) dashed var(--accent);
+  .item .handle.se:hover::after,
+  .moving .handle.se::after {
+    background: none;
+    border-color: var(--accent);
   }
   .zoom {
     position: sticky;

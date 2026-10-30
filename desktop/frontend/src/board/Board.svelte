@@ -332,8 +332,10 @@
       try {
         await arrange(api, name, patch, update)
       } catch (e) {
-        failed = String(e)
+        // read the board again (it undoes the guess), then tell why: a
+        // read that succeeds clears the toast, so the reason comes after (#66)
         await refresh()
+        failed = errorText(e)
       }
     },
     zoom: (name) => (view = zoomIn(view, name)),

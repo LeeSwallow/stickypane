@@ -2,7 +2,9 @@
 // shapes are kinds.list answers saved from a real bridge (kinds.json, and
 // kinds-ko.json for {"language": "ko"});
 // note.create refuses a few values the way the bridge does, so the create
-// form's errors can be seen.
+// form's errors can be seen. The calls that arrange notes are kept in
+// window.__demoCalls, and &fail=arrange,place makes those refuse, for the
+// e2e checks (desktop/scripts/e2e-resize.mjs).
 import type { Board } from '../board/model'
 import type { BoardApi } from '../services/board'
 import { layoutOf, type Layout } from '../services/canvas'
@@ -14,6 +16,14 @@ import { THEMES } from './themes'
 
 // The layout is kept in memory: a note torn off here shows on the shelf;
 // note is the note a torn-off window's status names.
+const failing = new Set((new URLSearchParams(globalThis.location?.search ?? '').get('fail') ?? '').split(','))
+const calls: { method: string; params: unknown }[] = []
+;(globalThis as { __demoCalls?: typeof calls }).__demoCalls = calls
+async function kept(method: string, params: unknown): Promise<void> {
+  calls.push({ method, params })
+  if (failing.has(method)) throw new Error(`${method} refused (demo)`)
+}
+
 export function fakeProject(board: Board, mode: string, lang: string, start: Partial<Layout> = {}, note = ''): ProjectApi {
   const status: BoardApi['status'] = async () => ({ window: 1, path: '/Users/min/Projects/Personal/stickypane', state: 'ready', pinned: true, version: '0.4.0', note })
   let prefs = { hotkey: 'Option+Space', language: lang, mode }
@@ -22,7 +32,7 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     status,
     load: async () => board,
     act: async () => {},
-    arrange: async () => {},
+    arrange: (p) => kept('arrange', p),
     order: async () => {},
     open: async () => {},
     pin: async () => {},
@@ -51,7 +61,10 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     layout: async () => layout,
     setMode: async (m) => void (layout = { ...layout, mode: m }),
     setSnap: async (on) => void (layout = { ...layout, snap: on }),
-    place: async (places) => void (layout = { ...layout, places: { ...layout.places, ...places } }),
+    async place(places) {
+      await kept('place', places)
+      layout = { ...layout, places: { ...layout.places, ...places } }
+    },
     tearOff: async (n) => void (layout = { ...layout, torn: { ...layout.torn, [n]: { screenX: 0, screenY: 0, w: 360, h: 420, pinned: true } } }),
     async putBack(n) {
       const torn = { ...layout.torn }
