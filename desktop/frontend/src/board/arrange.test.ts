@@ -60,6 +60,7 @@ describe('first places', () => {
     for (const width of [640, 720, 1000]) {
       const p = firstPlaces([{ name: 'welcome.md', size: '2/3', rows: 0 }], {}, width)['welcome.md']
       expect(p.w).toBeLessThan(width * 0.75)
+      expect(p.w).toBeGreaterThan(width * 0.5)
       expect(fits(p, width)).toBe(true)
     }
   })
