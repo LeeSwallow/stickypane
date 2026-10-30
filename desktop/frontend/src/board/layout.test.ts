@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
-  colsOf, columnsFor, FRACTIONS, heightOfRows, normalSize, place, ROW_PX, rowsFromHeight, shift, sizeShown, snapSize, spanOf, spanPx, stepSize, WidthDrag,
+  colsOf, columnsFor, FRACTIONS, heightOfRows, normalSize, place, ROW_PX, rows, rowsFromHeight, shift, sizeShown, snapSize, spanOf, spanPx, stepSize, WidthDrag,
 } from './layout'
 import { withArrange, type Board, type Note } from './model'
 import { setSize, type BoardApi } from './actions'
@@ -128,6 +128,46 @@ describe('the grid places notes on 12 columns, in order, and fills each row (03 
     expect(four.map((p) => p.small)).toEqual([true, true, true, true])
     expect(place([note('a', '1/4')], 1200)[0].small).toBe(false) // alone, it fills the row
     expect(place([note('a', '1/2'), note('b', '1/2')], 1200)[0].small).toBe(false)
+  })
+})
+
+describe('a note with a size of its own keeps it, as on the terminal (#65)', () => {
+  const sized = (name: string, size: string): Note => ({ ...note(name, size), sized: true })
+  // The same cases as internal/core/layout's TestRowsKeepAChosenWidth.
+  test.each([
+    ['a third beside a half leaves the rest empty', 160, [53, 80], [true, true], [[0, 0, 53], [0, 53, 80]]],
+    ['a sized quarter alone stays a quarter', 80, [20], [true], [[0, 0, 20]]],
+    ['a note with no size takes what a sized one leaves', 160, [53, 80], [true, false], [[0, 0, 53], [0, 53, 107]]],
+    ['only the notes with no size grow, by their widths', 80, [20, 20, 10], [true, false, false], [[0, 0, 20], [0, 20, 40], [0, 60, 20]]],
+    ['three sized thirds still fill the width: the rest is only rounding', 80, [26, 26, 26], [true, true, true], [[0, 0, 27], [0, 27, 27], [0, 54, 26]]],
+    ['a third and two thirds fill the width', 80, [26, 53], [true, true], [[0, 0, 26], [0, 26, 54]]],
+    ['many notes: rows break where the next does not fit, and each keeps its width', 160, [40, 40, 53, 80, 53, 53], [true, true, true, true, true, false],
+      [[0, 0, 40], [0, 40, 40], [0, 80, 53], [1, 0, 80], [1, 80, 53], [2, 0, 160]]],
+  ] as [string, number, number[], boolean[], number[][]][])('%s', (_, total, widths, isSized, want) => {
+    expect(rows(total, widths, isSized).map((c) => [c.row, c.x, c.w])).toEqual(want)
+  })
+  test('two notes: a sized 1/3 beside a sized 1/2 leaves two columns empty', () => {
+    const got = place([sized('a', '1/3'), sized('b', '1/2')], 1200)
+    expect(got.map((p) => [p.name, p.column, p.row, p.span])).toEqual([['a', 1, 1, 4], ['b', 5, 1, 6]])
+  })
+  test('two notes: a note with no size beside a sized one takes the rest', () => {
+    const got = place([sized('a', '1/3'), note('b', '1/2')], 1200)
+    expect(got.map((p) => [p.name, p.column, p.span])).toEqual([['a', 1, 4], ['b', 5, 8]])
+  })
+  test('many notes keep their sizes, row by row', () => {
+    const got = place([sized('a', '1/4'), sized('b', '1/4'), sized('c', '1/3'), sized('d', '1/2'), sized('e', '1/3'), sized('f', '1/4')], 1200)
+    expect(got.map((p) => [p.name, p.column, p.row, p.span])).toEqual([
+      ['a', 1, 1, 3], ['b', 4, 1, 3], ['c', 7, 1, 4], // 10 of 12: two empty
+      ['d', 1, 2, 6], ['e', 7, 2, 4], // 10 of 12
+      ['f', 1, 3, 3], // alone, still a quarter
+    ])
+  })
+  test('choosing a size makes the note sized at once', () => {
+    const board: Board = { title: 't', tabs: [{ name: '', title: '', notes: [note('a', '1/2')] }], settings: {} as Board['settings'], palette: {} }
+    expect(place(board.tabs[0].notes, 1200)[0].span).toBe(12) // no size: it fills its row
+    const shown = withArrange(board, 'a', { size: '1/4' })
+    expect(place(shown.tabs[0].notes, 1200)[0].span).toBe(3)
+    expect(withArrange(shown, 'a', { size: '' }).tabs[0].notes[0].sized).toBe(false)
   })
 })
 

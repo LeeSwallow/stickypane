@@ -34,20 +34,18 @@ type pane struct {
 	rect   layout.Rect
 	total  int // lines the note has
 	offset int // the first line shown
-	// The width the note's size asks for, and what the sizes of its row
-	// add up to before the row is stretched to the screen: a dragged
-	// border turns cells back into a size with them.
-	asks, row int
 }
 
 // rows is how many lines of the note fit in the pane.
 func (p pane) rows() int { return max(p.rect.H-2, 0) }
 
-// relayout redraws the title bar and the open notes. The notes tile the
-// screen: each has a fixed place and shows as much of itself as fits there,
-// and the rest is reached by scrolling inside the note. Notes that do not
-// fit on one screen go to the next, and the screen with the focused note is
-// the one shown when the update asked to see it.
+// relayout redraws the title bar and the open notes. Each note has a fixed
+// place and shows as much of itself as fits there, and the rest is reached
+// by scrolling inside the note. A note with a size keeps its width and a
+// note keeps its height: the one it was given, or its content's. Notes in a
+// row start at its top, and the next row starts below the tallest. Notes
+// that do not fit on one screen go to the next, and the screen with the
+// focused note is the one shown when the update asked to see it.
 func (m *Model) relayout() {
 	m.bar, m.panes, m.canvas, m.zoomLines = nil, nil, nil, nil
 	if m.width <= 0 {
@@ -63,36 +61,34 @@ func (m *Model) relayout() {
 
 	var open []item
 	var widths []int
+	var sized []bool
 	for _, it := range m.items {
 		if m.isOpen(it) {
 			open = append(open, it)
 			widths = append(widths, m.widthOf(m.sizeOf(it)))
+			sized = append(sized, m.sized(it))
 		}
 	}
-	cells := layout.Rows(m.width, widths)
+	cells := layout.Rows(m.width, widths, sized)
 
-	// Draw every note at the width its place gives it. A row asks for the
-	// height of its tallest note, or for the height a note fixes.
+	// Draw every note at the width its place gives it. A note asks for the
+	// height it was given, or its content's; a row, for its tallest note's.
 	lines := make([][]string, len(open))
 	spans := make([]widget.Span, len(open))
-	var need, sums []int
-	var fixed []bool // a row is fixed when every note in it asks for a height
+	wants := make([]int, len(open))
+	var need []int
 	for i, it := range open {
 		lines[i], spans[i] = m.draw(it, max(cells[i].W-4, 1), it.note.Name == m.focus)
-		want := len(lines[i]) + 2
-		rows := m.rowsOf(it)
-		if rows > 0 {
-			want = rows + 2
+		wants[i] = max(len(lines[i]), 1) + 2
+		if rows := m.rowsOf(it); rows > 0 {
+			wants[i] = rows + 2
 		}
 		if cells[i].Row == len(need) {
-			need, sums, fixed = append(need, 0), append(sums, 0), append(fixed, true)
+			need = append(need, 0)
 		}
-		r := cells[i].Row
-		need[r] = max(need[r], want)
-		sums[r] += min(widths[i], m.width)
-		fixed[r] = fixed[r] && rows > 0
+		need[cells[i].Row] = max(need[cells[i].Row], wants[i])
 	}
-	slots := layout.Stack(h, need, fixed, minPane)
+	slots := layout.Stack(h, need, minPane)
 
 	m.screens = 1
 	for _, s := range slots {
@@ -111,8 +107,7 @@ func (m *Model) relayout() {
 		slot := slots[cells[i].Row]
 		p := pane{
 			name: it.note.Name, file: it.note.Name, screen: slot.Screen, total: len(lines[i]),
-			rect: layout.Rect{X: cells[i].X, Y: slot.Y, W: cells[i].W, H: slot.H},
-			asks: widths[i], row: sums[cells[i].Row],
+			rect: layout.Rect{X: cells[i].X, Y: slot.Y, W: cells[i].W, H: min(wants[i], slot.H)},
 		}
 		// Where the user left it; a log that was never scrolled shows its end.
 		offset, scrolled := m.offsets[p.file]

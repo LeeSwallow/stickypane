@@ -53,13 +53,17 @@ a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
 
 Open notes are placed left to right by `size`, a share of the screen's
 width (`1` takes a row, two `1/2` notes share one, four `1/4` notes sit side
-by side; on a narrow screen a share under 20 cells takes the next one up),
-and each row is stretched to the full width, its notes growing by their
-shares. The rows then share the height: a short note takes what it needs
-and the long ones split the rest, so the screen is always full and never
-scrolls as a whole. A note gets at least six lines, or all it needs if that
-is less; notes that would get less go to the next screen, shown as `2/3`
-under the title bar.
+by side; on a narrow screen a share under 20 cells takes the next one up).
+A note whose size you chose (with `+` `-`, a drag, `stickypane set` or its
+front matter) keeps exactly that width, and a row that does not add up to
+the whole width leaves the rest empty at the right; a note that only has
+its kind's default size takes what its row leaves over. A note is as tall
+as the `rows` it was given, or else as its content; notes in a row start at
+its top, and the next row starts below the tallest. Only when the notes do
+not fit are the tall ones squeezed, sharing what the short ones leave, and
+the screen never scrolls as a whole. A note gets at least six lines, or all
+it needs if that is less; notes that would get less go to the next screen,
+shown as `2/3` under the title bar.
 
 `+` and `-` step a note through the shares and its border says the new one
 for a moment; `shift+up` and `shift+down` make it a line taller or shorter

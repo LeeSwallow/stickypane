@@ -35,9 +35,8 @@ type lastClick struct {
 type dragging struct {
 	name  string
 	right bool   // the right border; else the bottom one
-	from  string // the size when the border was taken
-	x     int    // where the note starts, and what its row's sizes add
-	row   int    // up to, when the border was taken
+	at    string // the size the note was drawn at when the border was taken
+	x     int    // where the note starts
 	size  string // the width so far, "" before the pointer moved
 	rows  int    // the height so far, 0 before the pointer moved
 }
@@ -67,8 +66,14 @@ func (m *Model) grab(x, y int) bool {
 		m.setRows(m.items[i], 0)
 		return true
 	}
-	m.lastClick = lastClick{name: edge, at: now}
-	m.drag = dragging{name: p.name, right: right, from: m.sizeOf(m.items[i]), x: r.X, row: p.row}
+	m.lastClick = lastClick{}
+	if !right { // only two presses on the bottom border are a double click
+		m.lastClick = lastClick{name: edge, at: now}
+	}
+	// A note with no size of its own may be drawn wider than it asks: the
+	// drag starts from the size it is drawn at, so a nudge changes nothing.
+	at := widget.SnapSize(m.sizeOf(m.items[i]), r.W, m.width)
+	m.drag = dragging{name: p.name, right: right, at: at, x: r.X}
 	return true
 }
 
@@ -79,10 +84,9 @@ func (m *Model) pull(e tea.Mouse) {
 		return
 	}
 	if m.drag.right {
-		// The pane is its row's share of the screen, stretched: the
-		// pointer's width is turned back into the width the size asks for.
-		asks := (e.X - m.drag.x + 1) * max(m.drag.row, 1) / max(m.width, 1)
-		m.drag.size = widget.SnapSize(m.drag.from, asks, m.width)
+		// The note will be as wide as the size it lands on: the pointer
+		// gives the width it asks for.
+		m.drag.size = widget.SnapSize(m.drag.at, e.X-m.drag.x+1, m.width)
 		m.mark = mark{name: p.name, text: m.tr.L("width") + " " + m.drag.size}
 		return
 	}
@@ -98,7 +102,7 @@ func (m *Model) drop() {
 	i := m.index(d.name)
 	switch {
 	case i < 0:
-	case d.size != "" && d.size != d.from:
+	case d.size != "" && d.size != d.at:
 		m.setView(d.name, func(v *store.View) { v.Size = d.size })
 	case d.rows > 0:
 		m.setRows(m.items[i], d.rows)

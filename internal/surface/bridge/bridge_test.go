@@ -245,6 +245,7 @@ type loaded struct {
 	Kind    string          `json:"kind"`
 	Icon    string          `json:"icon"`
 	Size    string          `json:"size"`
+	Sized   bool            `json:"sized"`
 	Rows    int             `json:"rows"`
 	Color   string          `json:"color"`
 	Pinned  bool            `json:"pinned"`
@@ -355,7 +356,10 @@ func TestBridgeLoadsTheBoard(t *testing.T) {
 		t.Errorf("plan data: %s", p.Data)
 	}
 	plain := b.note(t, "notes-with-no-kind.md")
-	if plain.Kind != "note" || plain.Color == "" || plain.Pages != nil {
+	if !p.Sized {
+		t.Errorf("plan's size was chosen in sticky.json: %+v", p)
+	}
+	if plain.Kind != "note" || plain.Color == "" || plain.Pages != nil || plain.Sized {
 		t.Errorf("a plain note: %+v", plain)
 	}
 

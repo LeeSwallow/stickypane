@@ -58,7 +58,7 @@ func TestCompose(t *testing.T) {
 	}
 }
 
-func TestRowsFillTheWidth(t *testing.T) {
+func TestRowsFillTheWidthWithNotesThatHaveNoSize(t *testing.T) {
 	cases := []struct {
 		name   string
 		width  int
@@ -76,45 +76,70 @@ func TestRowsFillTheWidth(t *testing.T) {
 		{"nothing", 80, nil, []Cell{}},
 	}
 	for _, c := range cases {
-		if got := Rows(c.width, c.widths); !reflect.DeepEqual(got, c.want) {
+		if got := Rows(c.width, c.widths, nil); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s: Rows(%d, %v) = %v, want %v", c.name, c.width, c.widths, got, c.want)
 		}
 	}
 }
 
-func TestStackFillsEveryScreen(t *testing.T) {
+func TestRowsKeepAChosenWidth(t *testing.T) {
+	cases := []struct {
+		name   string
+		width  int
+		widths []int
+		sized  []bool
+		want   []Cell
+	}{
+		{"a third beside a half leaves the rest empty", 160, []int{53, 80}, []bool{true, true},
+			[]Cell{{0, 0, 53}, {0, 53, 80}}},
+		{"a sized quarter alone stays a quarter", 80, []int{20}, []bool{true}, []Cell{{0, 0, 20}}},
+		{"a note with no size takes what a sized one leaves", 160, []int{53, 80}, []bool{true, false},
+			[]Cell{{0, 0, 53}, {0, 53, 107}}},
+		{"only the notes with no size grow, by their widths", 80, []int{20, 20, 10}, []bool{true, false, false},
+			[]Cell{{0, 0, 20}, {0, 20, 40}, {0, 60, 20}}},
+		{"three sized thirds still fill the width: the rest is only rounding", 80, []int{26, 26, 26}, []bool{true, true, true},
+			[]Cell{{0, 0, 27}, {0, 27, 27}, {0, 54, 26}}},
+		{"a third and two thirds fill the width", 80, []int{26, 53}, []bool{true, true}, []Cell{{0, 0, 26}, {0, 26, 54}}},
+		{"many notes: rows break where the next does not fit, and each keeps its width", 160,
+			[]int{40, 40, 53, 80, 53, 53}, []bool{true, true, true, true, true, false},
+			[]Cell{{0, 0, 40}, {0, 40, 40}, {0, 80, 53}, {1, 0, 80}, {1, 80, 53}, {2, 0, 160}}},
+	}
+	for _, c := range cases {
+		if got := Rows(c.width, c.widths, c.sized); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: Rows(%d, %v, %v) = %v, want %v", c.name, c.width, c.widths, c.sized, got, c.want)
+		}
+	}
+}
+
+func TestStackGivesEachRowWhatItAsks(t *testing.T) {
 	cases := []struct {
 		name   string
 		height int
 		need   []int
-		fixed  []bool
 		floor  int
 		want   []Slot
 	}{
-		{"rows that fit share what is left over", 20, []int{5, 5}, nil, 6, []Slot{{0, 0, 10}, {0, 10, 10}}},
-		{"a short row keeps its height and the long one takes the rest", 20, []int{30, 4}, nil, 6, []Slot{{0, 0, 16}, {0, 16, 4}}},
-		{"long rows share the screen equally", 20, []int{30, 30}, nil, 6, []Slot{{0, 0, 10}, {0, 10, 10}}},
-		{"rows that cannot have the floor go to the next screen", 20, []int{30, 30, 30, 30}, nil, 6,
+		{"rows that fit keep their heights and leave the rest empty", 20, []int{5, 5}, 6, []Slot{{0, 0, 5}, {0, 5, 5}}},
+		{"a short row keeps its height and the long one takes the rest", 20, []int{30, 4}, 6, []Slot{{0, 0, 16}, {0, 16, 4}}},
+		{"long rows share the screen equally", 20, []int{30, 30}, 6, []Slot{{0, 0, 10}, {0, 10, 10}}},
+		{"rows that cannot have the floor go to the next screen", 20, []int{30, 30, 30, 30}, 6,
 			[]Slot{{0, 0, 6}, {0, 6, 7}, {0, 13, 7}, {1, 0, 20}}},
-		{"short rows pack more to a screen", 20, []int{4, 4, 4, 4, 30}, nil, 6, []Slot{{0, 0, 5}, {0, 5, 5}, {0, 10, 5}, {0, 15, 5}, {1, 0, 20}}},
-		{"a screen shorter than the floor holds one row", 4, []int{30, 30}, nil, 6, []Slot{{0, 0, 4}, {1, 0, 4}}},
-		{"no height at all", 0, []int{5}, nil, 6, []Slot{{0, 0, 0}}},
-		{"nothing", 20, nil, nil, 6, []Slot{}},
-		{"a row with a height keeps it and the others take the rest", 20, []int{5, 5}, []bool{true, false}, 6, []Slot{{0, 0, 5}, {0, 5, 15}}},
-		{"rows that all have a height share the rest", 20, []int{5, 5}, []bool{true, true}, 6, []Slot{{0, 0, 10}, {0, 10, 10}}},
-		{"a squeezed row with a height is squeezed like the others", 20, []int{30, 30}, []bool{true, false}, 6, []Slot{{0, 0, 10}, {0, 10, 10}}},
+		{"short rows pack more to a screen", 20, []int{4, 4, 4, 4, 30}, 6, []Slot{{0, 0, 4}, {0, 4, 4}, {0, 8, 4}, {0, 12, 4}, {1, 0, 20}}},
+		{"a screen shorter than the floor holds one row", 4, []int{30, 30}, 6, []Slot{{0, 0, 4}, {1, 0, 4}}},
+		{"no height at all", 0, []int{5}, 6, []Slot{{0, 0, 0}}},
+		{"nothing", 20, nil, 6, []Slot{}},
 	}
 	for _, c := range cases {
-		got := Stack(c.height, c.need, c.fixed, c.floor)
+		got := Stack(c.height, c.need, c.floor)
 		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("%s: Stack(%d, %v, %v, %d) = %v, want %v", c.name, c.height, c.need, c.fixed, c.floor, got, c.want)
+			t.Errorf("%s: Stack(%d, %v, %d) = %v, want %v", c.name, c.height, c.need, c.floor, got, c.want)
 		}
 		used := map[int]int{}
 		for _, s := range got {
 			used[s.Screen] += s.H
 		}
 		for screen, h := range used {
-			if c.height > 0 && h != c.height {
+			if h > c.height {
 				t.Errorf("%s: screen %d uses %d of %d lines", c.name, screen, h, c.height)
 			}
 		}

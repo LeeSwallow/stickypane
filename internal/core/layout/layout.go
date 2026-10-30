@@ -74,38 +74,56 @@ func Compose(rects []Rect, boxes []string) []string {
 type Cell struct{ Row, X, W int }
 
 // Rows puts items of the given widths side by side, in order, starting a
-// new row when the next one does not fit. Each row is then stretched to the
-// full width, every item growing in proportion to its width, so no part of
-// the screen is left empty. The cells that rounding leaves over go one each
-// to the items that lost the most to it, the first of equals first, so no
-// item takes all of them.
-func Rows(width int, widths []int) []Cell {
+// new row when the next one does not fit. sized says which items have a
+// width of their own (a size chosen for the note); the others only ask for
+// a default. A sized item keeps its width. What a row leaves over goes to
+// its items without one, each growing in proportion to its width; a row of
+// sized items leaves it empty at the right, unless it is only rounding
+// (less than a cell per item, as when three thirds do not divide the
+// width), which the row shares as if it were not sized. The cells that
+// rounding leaves over go one each to the items that lost the most to it,
+// the first of equals first, so no item takes all of them.
+func Rows(width int, widths []int, sized []bool) []Cell {
 	cells := make([]Cell, 0, len(widths))
+	isSized := func(i int) bool { return i < len(sized) && sized[i] }
 	stretch := func(from int) {
 		row := cells[from:]
-		sum := 0
-		for _, c := range row {
-			sum += c.W
-		}
-		if len(row) == 0 || sum <= 0 {
-			return
-		}
-		lost := make([]int, len(row)) // what rounding took, in 1/sum of a cell
 		left := width
-		for i := range row {
-			lost[i] = row[i].W * width % sum
-			row[i].W = row[i].W * width / sum
-			left -= row[i].W
-		}
-		for ; left > 0; left-- {
-			most := 0
-			for i := range row {
-				if lost[i] > lost[most] {
-					most = i
-				}
+		var grow []int // the items that take what is left over
+		for i, c := range row {
+			left -= c.W
+			if !isSized(from + i) {
+				grow = append(grow, i)
 			}
-			row[most].W++
-			lost[most] = -1
+		}
+		if len(grow) == 0 && left < len(row) {
+			for i := range row {
+				grow = append(grow, i)
+			}
+		}
+		sum := 0
+		for _, i := range grow {
+			sum += row[i].W
+		}
+		if left > 0 && sum > 0 {
+			lost := make([]int, len(row)) // what rounding took, in 1/sum of a cell
+			extra := left
+			for _, i := range grow {
+				lost[i] = row[i].W * extra % sum
+				add := row[i].W * extra / sum
+				row[i].W += add
+				left -= add
+			}
+			for ; left > 0; left-- {
+				most := grow[0]
+				for _, i := range grow {
+					if lost[i] > lost[most] {
+						most = i
+					}
+				}
+				row[most].W++
+				lost[most] = -1
+			}
 		}
 		x := 0
 		for i := range row {
@@ -134,13 +152,11 @@ type Slot struct{ Screen, Y, H int }
 // Stack puts rows on screens of the given height, in order. need is the
 // height each row asks for. A screen takes rows for as long as every one of
 // them can have at least floor lines, or all it needs if that is less; the
-// rest go to the next screen. A screen's height is then shared out: a row
-// that needs less than an equal share gets what it needs and the others
-// split the rest, and whatever is left when every row has what it needs is
-// split equally among the rows that are not fixed (all of them when every
-// row is): a fixed row asked for a height of its own and keeps it. Every
-// screen is filled exactly.
-func Stack(height int, need []int, fixed []bool, floor int) []Slot {
+// rest go to the next screen. A row that needs less than an equal share of
+// the screen gets what it needs, and the rows that need more split the
+// rest. No row is made taller than it asks: what the rows leave over stays
+// empty at the bottom of the screen.
+func Stack(height int, need []int, floor int) []Slot {
 	slots := make([]Slot, len(need))
 	if height <= 0 {
 		return slots
@@ -164,23 +180,13 @@ func Stack(height int, need []int, fixed []bool, floor int) []Slot {
 				}
 			}
 		}
-		// The others split the rest; with none, the rows that are not
-		// fixed split the surplus, or every row when all are.
-		split := make([]int, 0, len(rows))
+		// The others split the rest.
 		for i := range rows {
-			if got[i] == 0 || open == 0 && (from+i >= len(fixed) || !fixed[from+i]) {
-				split = append(split, i)
+			if got[i] == 0 {
+				got[i] = left / open
+				left -= got[i]
+				open--
 			}
-		}
-		if len(split) == 0 {
-			for i := range rows {
-				split = append(split, i)
-			}
-		}
-		for k, i := range split {
-			extra := left / (len(split) - k)
-			got[i] += extra
-			left -= extra
 		}
 		y := 0
 		for i := range rows {

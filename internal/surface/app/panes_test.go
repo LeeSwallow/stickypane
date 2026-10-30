@@ -14,7 +14,7 @@ func bodyLines(m *Model) []string {
 	return lines[len(m.bar) : len(lines)-1]
 }
 
-func TestOpenNotesFillTheScreen(t *testing.T) {
+func TestOpenNotesAreAsTallAsTheirContent(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{
 		"a.md": "---\nopen: true\nsize: page\n---\nfirst\n",
@@ -24,21 +24,34 @@ func TestOpenNotesFillTheScreen(t *testing.T) {
 	if len(body) != 24-1-len(m.bar) {
 		t.Fatalf("body = %d lines", len(body))
 	}
-	for i, l := range body {
+	for i, l := range body[:6] {
 		if w := len([]rune(strings.TrimRight(l, " "))); w != 80 {
 			t.Errorf("line %d is %d cells wide, want the full 80: %q", i, w, l)
 		}
 	}
-	if first, last := body[0], body[len(body)-1]; !strings.HasPrefix(first, "╔") || !strings.HasPrefix(last, "╰") {
-		t.Errorf("the notes should reach from the top of the body to its bottom:\n%s", screen(m))
+	if !strings.HasPrefix(body[0], "╔") || !strings.HasPrefix(body[3], "╭") || !strings.HasPrefix(body[5], "╰") {
+		t.Errorf("each note should be its line and its borders, one under the other:\n%s", screen(m))
+	}
+	for i, l := range body[6:] {
+		if strings.TrimSpace(l) != "" {
+			t.Errorf("below the notes the screen is empty, not line %d: %q", 6+i, l)
+		}
 	}
 }
 
-func TestANoteAloneInItsRowTakesTheWholeWidth(t *testing.T) {
+func TestANoteWithNoSizeTakesTheWholeWidthOfItsRow(t *testing.T) {
+	t.Parallel()
+	m, _ := newModel(t, map[string]string{"a.md": "---\nopen: true\n---\nsmall\n"})
+	if body := bodyLines(m); !strings.HasSuffix(body[0], "╗") || len([]rune(body[0])) != 80 {
+		t.Errorf("a note that only asks for its kind's size fills its row:\n%s", screen(m))
+	}
+}
+
+func TestANoteWithASizeKeepsIt(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "---\nopen: true\nsize: card\n---\nsmall\n"})
-	if body := bodyLines(m); !strings.HasSuffix(body[0], "╗") || len([]rune(body[0])) != 80 {
-		t.Errorf("no part of the screen should be empty:\n%s", screen(m))
+	if p, _ := m.paneOf("a.md"); p.rect.W != 40 {
+		t.Errorf("a card on 80 cells is a half (40), alone or not: %+v\n%s", p.rect, screen(m))
 	}
 }
 
