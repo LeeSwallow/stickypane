@@ -37,6 +37,15 @@ func (m *Model) sizeOf(it item) string {
 	return arrange.Size(m.views[it.note.Name], it.note.Doc, it.kind, it.file().Doc)
 }
 
+// sized reports whether the note keeps its width: it has a size of its
+// own, or its border is being dragged.
+func (m *Model) sized(it item) bool {
+	if m.drag.name == it.note.Name && m.drag.size != "" {
+		return true
+	}
+	return arrange.Sized(m.views[it.note.Name], it.note.Doc)
+}
+
 // rowsOf returns the height in lines the note asks for, or 0 when it asks
 // for as much as its content takes.
 func (m *Model) rowsOf(it item) int {

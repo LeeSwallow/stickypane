@@ -427,9 +427,9 @@ func TestAnOldSizeNameIsRewrittenAsAFractionWhenItChanges(t *testing.T) {
 	writeView(t, dir, `{"notes":{"a.md":{"size":"half"},"b.md":{"size":"page"}}}`)
 	m.reload()
 	m.relayout()
-	if p, _ := m.paneOf("a.md"); p.rect.W != 80 {
-		// half and page do not share a row: a is alone, stretched.
-		t.Fatalf("a half note alone in its row takes the row: %+v", p.rect)
+	if p, _ := m.paneOf("a.md"); p.rect.W != 40 {
+		// half and page do not share a row: a is alone, and keeps its size.
+		t.Fatalf("a half note alone in its row is half the screen: %+v", p.rect)
 	}
 	press(m, "+")
 	if got := viewsOf(t, dir)["a.md"].Size; got != "2/3" {

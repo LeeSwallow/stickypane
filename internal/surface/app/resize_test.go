@@ -137,6 +137,7 @@ func TestHeightKeysWriteRows(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"rows":5}}}`)
 	m.reload()
+	m.relayout()
 	steps := []struct {
 		key  string
 		rows int

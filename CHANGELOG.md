@@ -8,6 +8,14 @@ on GitHub are built from pull request labels.
 
 ### Changed
 
+- A note keeps the width and height chosen for it when other notes share
+  the screen, on the terminal and in the app. A row whose sized notes do
+  not add up to the whole width leaves the rest empty, and only notes with
+  no size of their own take what a row leaves. A note is as tall as its
+  `rows`, or its content, instead of as tall as the tallest in its row, and
+  the screen is no longer padded out: the notes are squeezed only when they
+  do not fit. The app's `board.load` says which notes are `sized` (#65).
+
 - The agent plugin is in one folder, `plugin/`: its manifests, skills,
   commands, rules, hooks, hook scripts and the agent guide's head. The
   marketplaces `stickypane` (`.claude-plugin/marketplace.json` and

@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/layout"
 )
 
-func TestADragOfOneCellKeepsTheWidthOfAStretchedNote(t *testing.T) {
+func TestADragOfAFewCellsKeepsTheWidth(t *testing.T) {
 	t.Parallel()
-	// 1/2 and 1/3 of 80 cells are 40 and 26, stretched to 48 and 32.
+	// 1/2 and 1/3 of 80 cells are 40 and 26, and the row keeps them.
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
 	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/3"}}}`)
 	m.reload()
@@ -22,26 +23,30 @@ func TestADragOfOneCellKeepsTheWidthOfAStretchedNote(t *testing.T) {
 	}
 }
 
-func TestALoneStretchedNoteNeedsARealMoveToChange(t *testing.T) {
+func TestAStretchedNoteNeedsARealMoveToChange(t *testing.T) {
 	t.Parallel()
+	// a asks for no size: its kind's card is stretched over its row.
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1"}}}`)
+	writeView(t, dir, `{"notes":{"b.md":{"size":"1"}}}`)
 	m.reload()
 	m.relayout()
 	if p, _ := m.paneOf("a.md"); p.rect.W != 80 {
-		t.Fatalf("a 1/2 alone in its row is stretched to the whole width: %+v", p.rect)
+		t.Fatalf("a note with no size alone in its row is stretched to the whole width: %+v", p.rect)
 	}
 	right, _ := edges(t, m, "a.md")
 	for _, dx := range []int{-1, -5} {
 		drag(m, right, [2]int{right[0] + dx, right[1]})
-		if got := viewsOf(t, dir)["a.md"].Size; got != "1/2" {
+		if got := viewsOf(t, dir)["a.md"].Size; got != "" {
 			t.Fatalf("a drag of %d cells wrote %q", dx, got)
 		}
 	}
-	// Two thirds of the way back is past the middle between 1/2 and 1/3.
+	// 60 of 80 cells is past the middle between 3/4 and 1.
 	drag(m, right, [2]int{59, right[1]})
-	if got := viewsOf(t, dir)["a.md"].Size; got != "1/3" {
-		t.Errorf("a drag to 60 of 80 stretched cells is 30 of 40: want 1/3, got %q", got)
+	if got := viewsOf(t, dir)["a.md"].Size; got != "3/4" {
+		t.Errorf("a drag to 60 of 80 cells: want 3/4, got %q", got)
+	}
+	if p, _ := m.paneOf("a.md"); p.rect.W != 60 {
+		t.Errorf("the note is as wide as where its border was let go: %+v", p.rect)
 	}
 }
 
@@ -96,7 +101,7 @@ func TestANoteWithAHeightGetsItBeforeTheOthersShareTheRest(t *testing.T) {
 	if p, _ := m.paneOf("a.md"); p.rect.H != 6 {
 		t.Errorf("shift+down should show: %+v", p.rect)
 	}
-	if b, _ := m.paneOf("b.md"); b.rect.Y+b.rect.H != m.bodyHeight() {
-		t.Errorf("the other note takes the rest of the screen: %+v", b.rect)
+	if b, _ := m.paneOf("b.md"); b.rect != (layout.Rect{X: 0, Y: 6, W: 80, H: 3}) {
+		t.Errorf("the other note is as tall as its content, under the first: %+v", b.rect)
 	}
 }

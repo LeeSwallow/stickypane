@@ -70,6 +70,19 @@ func Size(v store.View, front doc.Document, k widget.Kind, content doc.Document)
 	return widget.SizeFull
 }
 
+// Sized reports whether the note has a width of its own: a size chosen in
+// sticky.json or its front matter, not the default of its kind. A sized
+// note keeps its width on the screen; one without a size takes the room
+// its row leaves over.
+func Sized(v store.View, front doc.Document) bool {
+	if _, ok := widget.NormalSize(v.Size); ok {
+		return true
+	}
+	s, _ := front.Get("size")
+	_, ok := widget.NormalSize(s)
+	return ok
+}
+
 // Rows returns the height in lines the note asks for, or 0 when it asks for
 // as much as its content takes. A user who chose the content height
 // (store.ContentRows) gets it over the front matter and the kind.

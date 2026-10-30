@@ -50,8 +50,12 @@ type Note struct {
 	Open  bool   `json:"open"`
 	// Size is a fraction of the screen ("1/4" … "1") or "card" since #14
 	// (unreleased): no longer "half" or "page", which are read as "1/2"
-	// and "1". Rows is 0 for a note as tall as its content.
+	// and "1". Sized is whether the size was chosen for the note, not its
+	// kind's default: a sized note keeps its width, one without a size
+	// takes the room its row leaves over (internal/core/layout.Rows).
+	// Rows is 0 for a note as tall as its content.
 	Size    string          `json:"size"`
+	Sized   bool            `json:"sized"`
 	Rows    int             `json:"rows"`
 	Color   string          `json:"color"`
 	Pinned  bool            `json:"pinned"`
@@ -168,6 +172,7 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 		k := s.reg.For(n.Pages[0].Name, n.Pages[0].Doc)
 		out.Size = arrange.Size(v, n.Doc, k, n.Pages[0].Doc)
 		out.Rows = arrange.Rows(v, n.Doc, k)
+		out.Sized = arrange.Sized(v, n.Doc)
 	}
 	out.Summary = fmt.Sprintf("%d pages", len(n.Pages)) // as the index says
 	return out
@@ -181,6 +186,7 @@ func (s *server) file(tab string, n, owner store.Note, v store.View) Note {
 	out := Note{
 		Name: n.Name, Tab: tab, Kind: k.Name, Icon: k.Icon, Open: open,
 		Size:    arrange.Size(v, owner.Doc, k, n.Doc),
+		Sized:   arrange.Sized(v, owner.Doc),
 		Rows:    arrange.Rows(v, owner.Doc, k),
 		Color:   arrange.ColorName(owner.Name, arrange.Color(v, owner.Doc)),
 		Pinned:  arrange.Pinned(v, owner.Doc),

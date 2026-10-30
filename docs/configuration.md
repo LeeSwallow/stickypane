@@ -99,7 +99,7 @@ are only in the root file.
 | Key in `notes` | Values | Key on the board |
 | --- | --- | --- |
 | `open` | `true` shows the note, `false` folds it away | `o`, `enter` |
-| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1` | `+` `-`, drag the right edge |
+| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1`. A note with a size keeps it; one without takes what its row leaves | `+` `-`, drag the right edge |
 | `rows` | the height in lines the note asks for; `-1` is as tall as its content, over what the note or its kind says | `shift+up` `shift+down`, `0`, drag the bottom edge |
 | `color` | `yellow` `pink` `blue` `green` `purple` `orange` | `c` |
 | `pin` | `true` keeps the note first | `p` |
