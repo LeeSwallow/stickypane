@@ -76,9 +76,11 @@
     padding: 0 var(--space-1);
   }
   .label {
+    display: -webkit-box;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     font: var(--weight-hand-label) var(--text-hand-label) / var(--leading-hand-label) var(--font-hand);
     letter-spacing: var(--hand-track, 0);
   }

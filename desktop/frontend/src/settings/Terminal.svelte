@@ -67,7 +67,9 @@
   const link = $derived(cmd ? linked(cmd) : undefined)
   const userLinked = $derived(link?.target === 'user')
   const cliTone = $derived(!cmd ? 'neutral' : link && !cmd.shadow && (cmd.onPath || !userLinked) ? 'good' : cmd.shadow || (userLinked && !cmd.onPath) ? 'warn' : 'neutral')
-  const cliWord = $derived(!cmd ? 'status.checking' : cliTone === 'good' ? 'status.ok' : cliTone === 'warn' ? 'status.warn' : 'status.todo')
+  const cliWord = $derived(
+    !cmd ? 'status.checking' : cliTone === 'good' ? 'status.ok' : cmd.shadow ? 'cli.olderFirst' : userLinked && !cmd.onPath ? 'cli.offPath' : 'status.todo',
+  )
 
   function took(a: InstallAnswer, target: Target) {
     cmd = a.state
@@ -145,7 +147,7 @@
     {#snippet status()}<Badge tone={cliTone}>{$tr(cliWord)}</Badge>{/snippet}
     {#if cmd && cmd.bundled}
       {#if link}
-        <Button size="sm" variant="secondary" loading={busy === 'uninstall'} disabled={!!busy} onclick={uninstall}>{$tr('cli.uninstall')}</Button>
+        <Button size="sm" variant="ghost" loading={busy === 'uninstall'} disabled={!!busy} onclick={uninstall}>{$tr('cli.uninstall')}</Button>
       {:else}
         <Button size="sm" variant="primary" loading={busy === 'install-user'} disabled={!!busy} onclick={() => install('user')}>{$tr('cli.install')}</Button>
       {/if}

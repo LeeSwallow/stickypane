@@ -53,7 +53,7 @@ describe('the board window', () => {
     expect(await screen.findByText('아직 비어 있어요. 이렇게 시작해요')).toBeTruthy()
     const ask = screen.getByText('에이전트에게 부탁하기').closest('.card') as HTMLElement
     await fireEvent.click(within(ask).getByRole('button', { name: '복사' }))
-    expect(writeText).toHaveBeenCalledWith('오늘 할 일을 stickypane 보드에 체크리스트로 붙여 줘.')
+    expect(writeText).toHaveBeenCalledWith('오늘 할 일을 my-app 보드에 체크리스트로 붙여 줘.')
     const term = screen.getByText('터미널에서 열기').closest('.card') as HTMLElement
     await fireEvent.click(within(term).getByRole('button', { name: '복사' }))
     expect(writeText).toHaveBeenCalledWith('cd ~/Projects/Personal/stickypane && stickypane')

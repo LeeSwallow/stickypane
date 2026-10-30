@@ -94,6 +94,7 @@
           <h3 class:neat>{$tr('home.step1')}</h3>
           <p>{$tr('home.step1Body')}</p>
           <div class="foot">
+            <Badge tone="neutral">{$tr('status.todo')}</Badge>
             <Button variant="primary" size="sm" disabled={busy || !canPick} onclick={pick}>
               {busy ? $tr('home.initRunning') : $tr('home.pickFolder')}
             </Button>

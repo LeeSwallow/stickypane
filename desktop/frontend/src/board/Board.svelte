@@ -691,7 +691,7 @@
         </div>
       {:else}
         <div class="state">
-          <NextSteps path={status.path} oncreate={() => (creating = true)} copy={copyText} />
+          <NextSteps path={status.path} name={board.title} oncreate={() => (creating = true)} copy={copyText} />
         </div>
       {/if}
     </Paper>

@@ -41,7 +41,8 @@
   const path = $derived.by(() => {
     const p = home && row.Path.startsWith(home + '/') ? '~' + row.Path.slice(home.length) : row.Path
     // a long folder keeps its end, where its name is
-    return p.length > 48 ? '…' + p.slice(-47) : p
+    const parts = p.split('/')
+    return p.length > 34 && parts.length > 3 ? '…/' + parts.slice(-2).join('/') : p
   })
   const when = $derived.by(() => {
     const d = new Date(row.LastAt)
@@ -61,6 +62,9 @@
       <span class="top">
         <span class="dot" class:live={active} aria-hidden="true"></span>
         <span class="title" class:neat={look.style === 'neat'}>{name}</span>
+        {#if own}
+          <span class="swatches" title={peek?.theme ?? ''} aria-hidden="true">{#each own as c, i (i)}<span style:background={c}></span>{/each}</span>
+        {/if}
       </span>
       <span class="facts">
         <span class="when">{when}</span>
@@ -81,9 +85,6 @@
       {/if}
       <span class="foot">
         <span class="path" title={row.Path}>{path}</span>
-        {#if own}
-          <span class="swatches" aria-hidden="true">{#each own as c, i (i)}<span style:background={c}></span>{/each}</span>
-        {/if}
       </span>
     </span>
   </NoteFrame>
@@ -122,7 +123,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    min-height: 116px;
   }
   .top {
     display: flex;
@@ -173,7 +173,6 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    margin-top: auto;
     min-width: 0;
   }
   .path {

@@ -241,7 +241,7 @@
     <div class="notices">
       {#each shown as n (n.code)}
         {#if n.code === TRAY}
-          <Toast message={noticeText(n)} icon="tab" action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
+          <Toast message={noticeText(n)} action={{ label: $tr('app.quit'), run: win.quit }} onclose={() => hide(n.code)} />
         {:else}
           <Toast message={noticeText(n)} tone={n.code in LOCAL ? 'bad' : 'warn'} icon="warn" onclose={() => hide(n.code)} />
         {/if}
@@ -264,7 +264,7 @@
           <Welcome {pick} copy={api.copy} setup={setupApi} {openSettings} install={setup} {busy} canPick={status?.found === true} />
         {/if}
         {#if groups && count === 0}
-          <footer>
+          <footer class="lang">
             <span class="lang-label">{$tr('settings.appLanguage')}</span>
             <SegmentedControl
               label={$tr('settings.appLanguage')}
@@ -328,7 +328,7 @@
   }
   .notices {
     position: absolute;
-    top: calc(var(--titlebar-h) + var(--space-2));
+    bottom: calc(var(--space-5) + 56px);
     left: 0;
     right: 0;
     z-index: var(--z-toast);
@@ -375,7 +375,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-3);
-    margin-top: var(--space-10);
+    margin-top: var(--space-8);
   }
   .lang-label {
     color: var(--ink-2);

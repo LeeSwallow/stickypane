@@ -14,10 +14,11 @@
     width = 128,
     height = 80,
     seed = 'swatch',
-  }: { palette: Palette; style?: Style; width?: number; height?: number; seed?: string } = $props()
+    compact = false,
+  }: { palette: Palette; style?: Style; width?: number; height?: number; seed?: string; compact?: boolean } = $props()
 
-  // small: a note and one card, no lines of text (the theme picker's halves)
-  const small = $derived(width < 72)
+  // small: a note and one card, no lines of text (the theme picker)
+  const small = $derived(compact || width < 72)
 
   const uid = $props.id()
   const s = $derived(seedOf(seed))

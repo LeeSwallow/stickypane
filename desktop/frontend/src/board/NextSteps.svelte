@@ -11,9 +11,10 @@
 
   let {
     path,
+    name = '',
     oncreate,
     copy,
-  }: { path: string; oncreate?: () => void; copy: (text: string) => Promise<void> } = $props()
+  }: { path: string; name?: string; oncreate?: () => void; copy: (text: string) => Promise<void> } = $props()
 
   // the person's home is ~ (a shell reads it so when it is not quoted)
   const short = $derived(path.replace(/^\/(Users|home)\/[^/]+(?=\/|$)/, '~'))
@@ -56,7 +57,7 @@
             {#if s.id === 'create'}
               <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} onclick={() => oncreate?.()}>{$tr('create.new')}</Button>
             {:else}
-              {@const text = s.id === 'ask' ? $tr('board.next.askPrompt') : command}
+              {@const text = s.id === 'ask' ? $tr('board.next.askPrompt', { name: name || 'stickypane' }) : command}
               <code class:prompt={s.id === 'ask'} class:line={s.id !== 'ask'} title={text}>{text}</code>
               <Button size="sm" variant="secondary" icon={copied === s.id ? 'check' : undefined} onclick={() => doCopy(s.id, text)}>
                 {copied === s.id ? $tr('board.next.copied') : $tr('board.next.copy')}
@@ -86,6 +87,11 @@
   }
   h2.neat {
     font: 600 var(--text-body-lg) / var(--leading-body-lg) var(--font-body);
+  }
+  .cards > :global(.note),
+  .card,
+  .act {
+    min-width: 0;
   }
   .cards {
     display: grid;
@@ -125,6 +131,7 @@
     font: 600 var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }
   p {
+    min-height: calc(2 * var(--leading-body-sm));
     margin: 0;
     color: var(--ink-2);
     font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);

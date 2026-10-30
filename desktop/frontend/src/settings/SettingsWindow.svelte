@@ -256,7 +256,7 @@
           {#key section}
             <NoteFrame color={sheetColor} id="settings-{section}">
               <header class="head">
-                <h1 class:neat>{$tr('settings.nav.' + section)}</h1>
+                {#if section !== 'about'}<h1 class:neat>{$tr('settings.nav.' + section)}</h1>{/if}
                 {#if section === 'board' && board}<p class="of" class:neat>{board.title}</p>{/if}
                 {#if section === 'board' && ready}<p class="where">{$tr('settings.board.where')}</p>{/if}
                 {#if section === 'app'}<p class="where">{$tr('settings.app.where')}</p>{/if}
@@ -289,8 +289,8 @@
                         >
                           {#snippet picture()}
                             <span class="pair">
-                              {#if f.dark}<Swatch palette={f.dark} style={look.style} width={f.light ? 50 : 100} height={40} seed={f.id + '-d'} />{/if}
-                              {#if f.light}<Swatch palette={f.light} style={look.style} width={f.dark ? 50 : 100} height={40} seed={f.id + '-l'} />{/if}
+                              {#if f.dark}<Swatch palette={f.dark} style={look.style} width={f.light ? 50 : 100} height={40} compact seed={f.id + '-d'} />{/if}
+                              {#if f.light}<Swatch palette={f.light} style={look.style} width={f.dark ? 50 : 100} height={40} compact seed={f.id + '-l'} />{/if}
                             </span>
                           {/snippet}
                         </ChoiceCard>
@@ -460,7 +460,7 @@
   }
   .side {
     flex: none;
-    width: 184px;
+    width: 196px;
     padding: var(--space-4) var(--space-3);
     box-sizing: border-box;
     border-right: 1px solid var(--line);
@@ -536,6 +536,7 @@
   }
   .quiet {
     margin: 0;
+    text-wrap: pretty;
     color: var(--ink-2);
     font: var(--weight-body-md) var(--text-body-md) / var(--leading-body-md) var(--font-body);
   }

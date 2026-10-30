@@ -14,7 +14,7 @@ body,
 /* Korean: break lines between words, never inside one (#63), and set
    Gaegu's narrow Hangul closer so a heading reads as words */
 :root:lang(ko) {
-  --hand-track: -0.1em;
+  --hand-track: -0.08em;
 }
 :root:lang(ko) body {
   word-break: keep-all;
