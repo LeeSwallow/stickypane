@@ -2,6 +2,7 @@
 // window provides it; a canvas or a torn-off note window provides the same,
 // so a note draws and acts the same anywhere.
 
+import type { MenuItem } from '../lib/ui/menu'
 import { getContext } from 'svelte'
 import type { Action } from './model'
 import type { ArrangePatch, Note } from './model'
@@ -42,6 +43,9 @@ export interface BoardCtx {
   tear?(name: string): void
   /** put a torn-off note back on its board (the note's own window); its close does this */
   putBack?(name: string): void
+  /** the ⋯ items that change where the note sits: 원래 크기로, and on the canvas 맨 앞으로 · 맨 뒤로 (03 §3.6.2) */
+  layoutItems?(note: Note): MenuItem[]
+  layoutAct?(note: Note, id: string): void
 }
 
 export const useBoard = (): BoardCtx => getContext<BoardCtx>(boardContext)

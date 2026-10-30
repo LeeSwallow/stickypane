@@ -7,7 +7,8 @@
   // bridge, and the bridge's board.changed redraws the window.
   import './tokens.css'
   import { onMount, setContext, tick } from 'svelte'
-  import { boardLanguage, resolveAuto, setLanguage, t, tr } from '../i18n'
+  import { get } from 'svelte/store'
+  import { boardLanguage, language, resolveAuto, setLanguage, t, tr } from '../i18n'
   import { fallbackPalette } from '../lib/theme/fallback'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
@@ -18,12 +19,15 @@
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
   import type { Plan } from '../lib/motion/plan'
   import { chromeOf } from '../lib/ui/chrome'
-  import { windowActions } from '../services/window'
+  import { copyText, windowActions } from '../services/window'
+  import { prefsEvent } from '../lib/shell'
+  import type { AppPrefs } from '../services/settings'
+  import type { MenuItem } from '../lib/ui/menu'
+  import { changed as placesChanged, firstSize, tidy, toBack, toFront } from './arrange'
+  import NextSteps from './NextSteps.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import CreateDialog from '../create/CreateDialog.svelte'
-  import SettingsDialog from '../settings/SettingsDialog.svelte'
-  import type { SetupApi } from '../services/install'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
   import Dialog from '../lib/ui/Dialog.svelte'
@@ -62,11 +66,9 @@
     api = projectService,
     zoom: startZoom,
     create: startCreate,
-    settings: startSettings = false,
     bus = events,
-    setup,
     played,
-  }: { api?: ProjectApi; zoom?: string; create?: string; settings?: boolean; bus?: Bus; setup?: SetupApi; played?: (p: Plan) => void } = $props()
+  }: { api?: ProjectApi; zoom?: string; create?: string; bus?: Bus; played?: (p: Plan) => void } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -85,8 +87,10 @@
   let focused = $state<string | null>(null)
   // "+ 생성": the dialog, open from the title bar or with a
   let creating = $state(false)
-  // ⌘, and ⋯ → 설정…
-  let configuring = $state(false)
+  // ⌘, and ⋯ → 설정…: the settings window, for this board (03 §3.12)
+  const configure = () => void api.openSettings('board').catch((e: unknown) => (failed = errorText(e)))
+  // ⋯ → 배치 초기화 on the grid asks first: it is the board's sticky.json
+  let resetting = $state(false)
   // where notes sit on this computer: canvas or grid, places, torn-off notes
   let layout = $state<Layout>(layoutOf(null))
   let layoutRead = $state(false)
@@ -360,10 +364,85 @@
   }
   setContext(boardContext, ctx)
 
+  // --- tidying the layout (03 §3.6.2) --------------------------------------
+
+  /** tidyCanvas lays the open notes out again, in the board's order, inside the window; 되돌리기 puts them back. */
+  function tidyCanvas() {
+    if (layout.mode !== 'canvas' || zoomed) return
+    const before = layout.places
+    const next = placesChanged(before, tidy(open.map((n) => n.name), before, width))
+    if (!Object.keys(next).length) {
+      notice = { message: t('board.tidied') }
+      return
+    }
+    const back = Object.fromEntries(Object.keys(next).map((k) => [k, before[k]]))
+    place(next)
+    notice = { message: t('board.tidied'), action: { label: t('home.undo'), run: () => place(back) } }
+  }
+
+  /** resetLayout forgets the canvas's places (this computer), or asks before the grid's sizes (sticky.json). */
+  async function resetLayout() {
+    if (layout.mode === 'grid') {
+      resetting = true
+      return
+    }
+    const before = layout.places
+    try {
+      await api.resetPlaces()
+      layout = { ...layout, places: {} }
+      notice = { message: t('board.resetCanvas'), action: { label: t('home.undo'), run: () => place(before) } }
+    } catch (e) {
+      failed = errorText(e)
+    }
+  }
+
+  /** resetSizes gives every note its shape's width and height back, through the bridge; 되돌리기 writes the old ones. */
+  async function resetSizes() {
+    resetting = false
+    if (!board) return
+    const notes = board.tabs.flatMap((x) => x.notes).filter((n) => !n.error && (n.size || n.rows))
+    const before = notes.map((n) => ({ note: n.name, size: n.size, rows: n.rows }))
+    try {
+      for (const n of notes) await api.arrange({ note: n.name, size: '', rows: 0 })
+      await refresh()
+      notice = {
+        message: t('board.resetDone'),
+        action: {
+          label: t('home.undo'),
+          run: () => void Promise.all(before.map((b) => api.arrange(b))).then(refresh, (e) => (failed = errorText(e))),
+        },
+      }
+    } catch (e) {
+      failed = errorText(e)
+      await refresh()
+    }
+  }
+
+  // a note's ⋯: 원래 크기로, and on the canvas 맨 앞으로 · 맨 뒤로
+  ctx.layoutItems = (note: Note): MenuItem[] => {
+    if (note.error) return []
+    const items: MenuItem[] = [
+      { kind: 'separator', id: 'sep-layout' },
+      { id: 'firstSize', label: t('note.firstSize'), icon: 'size-half' },
+    ]
+    if (layout.mode === 'canvas' && !zoomed) items.push({ id: 'toFront', label: t('note.toFront') }, { id: 'toBack', label: t('note.toBack') })
+    return items
+  }
+  ctx.layoutAct = (note: Note, id: string) => {
+    const at = layout.places[note.name]
+    if (id === 'firstSize') {
+      if (layout.mode === 'canvas' && at && !zoomed) place({ [note.name]: firstSize(note, at, width) })
+      else void ctx.arrange(note.name, { size: '', rows: 0 })
+    } else if (id === 'toFront' || id === 'toBack') {
+      const next = (id === 'toFront' ? toFront : toBack)(layout.places, note.name)
+      if (next) place(next)
+    }
+  }
+
   // --- keys --------------------------------------------------------------
 
   function onkey(e: KeyboardEvent) {
-    if (!board || !tab || creating || configuring || asking || moving) return
+    if (!board || !tab || creating || resetting || asking || moving) return
     const t = e.target as HTMLElement
     const editing = t.matches?.('input, textarea, select, [contenteditable]') ?? false
     // a dialog's keys are its own
@@ -375,6 +454,12 @@
     const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
     const book = !!note?.pages?.length
+    // ⌥⌘L: tidy the canvas (03 §3.6.2)
+    if (e.altKey && e.metaKey && e.code === 'KeyL' && !editing) {
+      e.preventDefault()
+      tidyCanvas()
+      return
+    }
     const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
     if (!a) return
     switch (a.type) {
@@ -425,7 +510,7 @@
         creating = true
         break
       case 'settings':
-        configuring = true
+        configure()
         break
       case 'archive':
       case 'trash':
@@ -453,7 +538,6 @@
 
   onMount(() => {
     if (startCreate) creating = true
-    if (startSettings) configuring = true
     const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d)), watchReducedMotion(), () => stage.stop()]
     api
       .prefs()
@@ -465,6 +549,17 @@
       })
       .catch(() => {})
     refresh()
+    // the app's settings, changed in the settings window (or any window)
+    offs.push(
+      bus.on(prefsEvent, (e) => {
+        const p = e.data as AppPrefs | undefined
+        if (!p) return
+        mode = modeOf(p.mode)
+        hotkey = p.hotkey ?? ''
+        appLanguage = p.language ?? ''
+        motion.setting = p.motion ?? ''
+      }),
+    )
     // the bridge's events, from as soon as the window id is known, even
     // when the first load failed
     offs.push(
@@ -506,7 +601,8 @@
     making = true
     failed = ''
     try {
-      await api.makeBoard()
+      // the welcome note in the language the window draws in (08 §8.2)
+      await api.makeBoard(get(language))
     } catch (e) {
       failed = errorText(e)
     } finally {
@@ -529,11 +625,13 @@
     onpin={pin}
     onedit={() => editTarget && ctx.edit?.(editTarget)}
     oncreate={status?.state === 'ready' && board ? () => (creating = true) : undefined}
-    onsettings={status?.state === 'ready' && board ? () => (configuring = true) : undefined}
+    onsettings={status?.state === 'ready' && board ? configure : undefined}
     mode={layout.mode}
     onmode={status?.state === 'ready' && board ? setMode : undefined}
     snap={layout.snap}
     onsnap={status?.state === 'ready' && board ? setSnap : undefined}
+    ontidy={status?.state === 'ready' && board && open.length ? tidyCanvas : undefined}
+    onreset={status?.state === 'ready' && board ? () => void resetLayout() : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -587,9 +685,13 @@
             </div>
           </main>
         {/if}
+      {:else if tab && tab.notes.length}
+        <div class="state">
+          <EmptyState title={$tr('board.noneOpen')} />
+        </div>
       {:else}
         <div class="state">
-          <EmptyState title={$tr(tab && tab.notes.length ? 'board.noneOpen' : 'board.emptyTitle')} body={tab && tab.notes.length ? undefined : $tr('board.emptyHint')} />
+          <NextSteps path={status.path} oncreate={() => (creating = true)} copy={copyText} />
         </div>
       {/if}
     </Paper>
@@ -616,6 +718,17 @@
       oncancel={() => (asking = null)}
     />
   {/if}
+  {#if resetting}
+    <Confirm
+      open
+      title={$tr('board.resetAsk')}
+      message={$tr('board.resetAskBody')}
+      confirmLabel={$tr('board.resetYes')}
+      danger
+      onconfirm={resetSizes}
+      oncancel={() => (resetting = false)}
+    />
+  {/if}
   {#if moving}
     {@const targets = manage.moveTargets(board?.tabs ?? [], moving.tab)}
     <Dialog open title={t('note.moveTitle', { title: moving.title })} width={420} onclose={() => (moving = null)}>
@@ -636,19 +749,6 @@
     </Dialog>
   {/if}
   {#if board}
-    <SettingsDialog
-      bind:open={configuring}
-      {api}
-      {setup}
-      settings={board.settings}
-      {mode}
-      {hotkey}
-      {appLanguage}
-      onapplanguage={(l) => (appLanguage = l)}
-      version={status?.version ?? ''}
-      onmode={(m) => (mode = m)}
-      onchanged={refresh}
-    />
     <CreateDialog
       bind:open={creating}
       {api}

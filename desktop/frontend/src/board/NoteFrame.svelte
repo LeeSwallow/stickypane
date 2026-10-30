@@ -78,6 +78,7 @@
     ...(board.putBack ? [{ id: 'putBack', label: $tr('note.putBack'), icon: 'restore' as const }] : []),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
+    ...(readable && board.layoutItems ? board.layoutItems(note) : []),
     ...(board.manage ? [{ kind: 'separator' as const, id: 'sep-manage' }, ...manageItems(note).map((m) => manageItem[m])] : []),
   ])
 
@@ -87,6 +88,7 @@
     else if (id === 'edit') board.edit?.(note.name)
     else if (id === 'putBack') board.putBack?.(note.name)
     else if (id in manageItem) board.manage?.(note, id as Manage)
+    else board.layoutAct?.(note, id)
   }
 
   /**

@@ -31,6 +31,8 @@
     onmode,
     snap = true,
     onsnap,
+    ontidy,
+    onreset,
   }: {
     title: string
     path: string
@@ -51,6 +53,10 @@
     /** the canvas's notes land on its grid (⋯ → snap, on the canvas) */
     snap?: boolean
     onsnap?: (on: boolean) => void
+    /** ⋯ → 정렬: the canvas's notes laid out again (03 §3.6.2) */
+    ontidy?: () => void
+    /** ⋯ → 배치 초기화 */
+    onreset?: () => void
   } = $props()
 
   const views = $derived([
@@ -58,13 +64,25 @@
     { value: 'grid', label: $tr('ui.view.grid'), icon: 'grid' as const, disabled: !onmode },
   ])
   const menu = $derived<MenuItem[]>([
+    ...(mode === 'canvas' && ontidy ? [{ id: 'tidy', label: $tr('board.tidy'), icon: 'grid' as const, shortcut: '⌥⌘L' }] : []),
+    ...(onreset ? [{ id: 'reset', label: $tr('board.reset'), icon: 'restore' as const }] : []),
+    ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
+    ...(ontidy || onreset ? [{ kind: 'separator' as const, id: 'sep-layout' }] : []),
     { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
     { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
-    ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
   ])
+  // the hotkey is said in the name's tooltip, not on the bar (#63)
+  const tip = $derived(hotkey ? `${path} — ${$tr('window.hotkeyTip', { key: hotkeyLabel(hotkey) })}` : path)
+  function choose(id: string) {
+    if (id === 'edit') onedit()
+    else if (id === 'settings') onsettings?.()
+    else if (id === 'snap') onsnap?.(!snap)
+    else if (id === 'tidy') ontidy?.()
+    else if (id === 'reset') onreset?.()
+  }
 </script>
 
-<UiTitleBar name={title} {path} hotkey={hotkeyLabel(hotkey)} {chrome} window={win} {menu} onmenu={(id) => (id === 'edit' ? onedit() : id === 'settings' ? onsettings?.() : id === 'snap' && onsnap?.(!snap))}>
+<UiTitleBar name={title} path={tip} {chrome} window={win} {menu} onmenu={choose}>
   {#snippet actions()}
     <SegmentedControl label={$tr('ui.view')} value={mode} iconOnly size="sm" options={views} onchange={(v) => onmode?.(v as LayoutMode)} />
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>

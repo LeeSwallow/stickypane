@@ -18,3 +18,6 @@ export function windowActions(kind: WindowKind): WindowActions {
     quit: () => void runtime().then((r) => r.Call.ByName(svc('Quit'))),
   }
 }
+
+/** copyText puts text on the clipboard (a line to paste into a terminal or an agent). */
+export const copyText = (text: string): Promise<void> => navigator.clipboard.writeText(text)
