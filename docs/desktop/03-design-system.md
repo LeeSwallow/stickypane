@@ -294,7 +294,7 @@ flowchart LR
 
 | 단계 | 그림 | 이름 |
 |---|---|---|
-| **크레용**(혼자 뜻을 갖는 것) | 앱 아이콘처럼: 옅은 wash + −41° 크레용 빗금 + 굵은 외곽선(1.9), 노트 색. 다크에서는 옅은 테두리를 한 겹 둘러 어두운 종이 위에서도 보인다. 단정이면 단색 채움 + 반듯한 외곽선 | pin, tear-off, plus(생성), run, trash, archive, settings, search, sun, moon |
+| **크레용**(혼자 뜻을 갖는 것) | 앱 아이콘처럼: 옅은 wash + −41° 크레용 빗금 + 굵은 외곽선(1.9), 노트 색. 다크에서는 옅은 테두리를 한 겹 둘러 어두운 종이 위에서도 보인다. 단정이면 단색 채움 + 반듯한 외곽선 | pin, tear-off, plus(생성), run, trash, archive, settings, search, sun, moon, 설정 창의 묶음 board · computer · terminal · info |
 | **선**(컨트롤·글줄 안) | 20px, 선 1.75, 둥근 끝, `currentColor`. 손그림이면 모든 직선이 살짝 휜다(최대 0.45px), 단정이면 그대로 | pin, pin-off, tear-off, back, close, minimise, more, plus, size-card/half/page, narrower, wider, zoom, grid, canvas, run, send, edit-external, search, settings, sun, moon, auto, tab, book-prev, book-next, archive, trash, restore, link, check, chevron-down, warn |
 
 선과 빗금은 아이콘 이름에서 나온 seed로 그려 다시 그려도 같다. 크레용 아이콘은 툴바에 늘어놓지 않는다: 눌린 핀, 빈 화면, 생성 같은 홀로 선 자리에만 쓴다(조용한 관제판, D4).
@@ -337,5 +337,5 @@ flowchart LR
 - 왼쪽 묶음은 `role=tablist`(세로), 화살표·Home·End로 옮기고 Tab으로 내용에 들어간다. 묶음 아이콘은 크레용 아이콘(§3.11.5)이다.
 - 묶음 제목은 손글씨(display), 줄 이름은 본문 굵게, 한 줄 설명은 `--ink-2`. 줄 사이는 머리카락 선.
 - 홈 창에서 연 설정에는 부른 보드가 없다: **보드** 묶음은 "보드 창에서 열면 그 보드를 바꿀 수 있어요"만 보인다.
-- 셸: 창 종류 `settings`(`/?window=settings&section=…`), 640×560 가운데, 최소 560×440. 설정 창에서의 보드 호출은 부른 보드의 bridge로 간다. 앱 설정이 바뀌면 셸이 `prefs.changed`를 모든 창에 알린다. 보드 설정이 바뀌면 그 보드 창이 다시 읽는다.
+- 셸: 창 종류 `settings`(`/?window=settings&section=…`), 720×580 가운데, 최소 600×460. 테두리는 묶음마다 같은 조용한 연필색 한 장(노트 색은 노트에만). 설정 창에서의 보드 호출은 부른 보드의 bridge로 간다. 앱 설정이 바뀌면 셸이 `prefs.changed`를 모든 창에 알린다. 보드 설정이 바뀌면 그 보드 창이 다시 읽는다.
 - 견본 페이지: `?demo=screens&screen=settings-board|settings-app|settings-cli|settings-about`.
