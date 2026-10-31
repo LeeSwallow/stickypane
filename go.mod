@@ -3,7 +3,7 @@ module github.com/LeeSwallow/stickypane
 go 1.26.5
 
 require (
-	charm.land/bubbletea/v2 v2.1.0
+	charm.land/bubbletea/v2 v2.1.1
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/AlexanderGrooff/mermaid-ascii v0.0.0-20260908213847-5f00e3d9ac9f
 	github.com/charmbracelet/x/ansi v0.11.9
