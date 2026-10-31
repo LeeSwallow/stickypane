@@ -125,7 +125,7 @@ jobs:
           wails3 build
           sh ../scripts/desktop-linux.sh bin/stickypane-app "$VERSION" "$(go env GOARCH)" "$RUNNER_TEMP/dist"
           tar -tzf "$RUNNER_TEMP"/dist/*.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: stickypane-app-${{ runner.os }}
           path: ${{ runner.temp }}/dist/
