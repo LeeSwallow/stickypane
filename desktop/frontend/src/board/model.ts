@@ -72,6 +72,8 @@ export interface Settings {
   time: string
   editor: string
   stale: string
+  /** how many columns the grid has: "1" to "4", or "auto" (the sizes decide); missing from an older stickypane */
+  columns?: string
 }
 
 export interface Board {

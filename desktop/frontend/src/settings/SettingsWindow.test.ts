@@ -103,6 +103,17 @@ describe('the settings window', () => {
     expect(board.setSettings).toHaveBeenCalledWith({ view: 'both' })
   })
 
+  it('notes per row: 1 to 4, three when the board says nothing, kept in the board', async () => {
+    const board = fakeBoard()
+    open(board)
+    const group = await screen.findByRole('radiogroup', { name: '한 줄에 노트' })
+    const options = [...group.querySelectorAll('[role="radio"]')]
+    expect(options.map((o) => o.textContent?.trim())).toEqual(['1', '2', '3', '4'])
+    expect(options[2].getAttribute('aria-checked')).toBe('true')
+    await fireEvent.click(options[3])
+    expect(board.setSettings).toHaveBeenCalledWith({ columns: '4' })
+  })
+
   it('opened with no board, says how to get one', async () => {
     open(fakeBoard({}, false))
     expect(await screen.findByText('고를 보드가 없어요')).toBeTruthy()

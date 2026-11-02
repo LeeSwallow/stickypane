@@ -33,7 +33,7 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     load: async () => board,
     act: async () => {},
     arrange: (p) => kept('arrange', p),
-    order: async () => {},
+    order: (tab, names) => kept('order', { tab, names }),
     open: async () => {},
     pin: async () => {},
     makeBoard: async () => {},

@@ -46,7 +46,8 @@
   import { connect } from './session'
   import { errorText } from '../services/errors'
   import { frameOf, keyAction } from './keys'
-  import { columnsFor, shift, stepSize } from './layout'
+  import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
+  import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
@@ -160,6 +161,9 @@
   const closed = $derived(tab ? tab.notes.filter((n) => !n.open) : [])
   const zoomed: Note | null = $derived(board && view.zoom ? findNote(board.tabs, view.zoom) : null)
   const columns = $derived(columnsFor(width))
+  // the grid's columns: the board's setting, fewer when the window is narrow; 0 when the sizes decide
+  const gridColumns = $derived(board ? columnsOf(board.settings.columns) : 0)
+  const cols = $derived(gridColumns > 0 ? fitColumns(gridColumns, gridWidth) : 0)
   const tags = $derived(board ? glance(board.tabs, now) : [])
   const stalled = $derived(board ? stalledCount(board.tabs) : 0)
   const files = $derived(board ? allNotes(board.tabs).map((n) => n.name) : [])
@@ -427,6 +431,11 @@
       { id: 'firstSize', label: t('note.firstSize'), icon: 'size-half' },
     ]
     if (layout.mode === 'canvas' && !zoomed) items.push({ id: 'toFront', label: t('note.toFront') }, { id: 'toBack', label: t('note.toBack') })
+    else if (!zoomed && note.open)
+      items.push(
+        { id: 'rowUp', label: t('note.rowUp'), shortcut: 'K', disabled: !rowTarget(note.name, -1) },
+        { id: 'rowDown', label: t('note.rowDown'), shortcut: 'J', disabled: !rowTarget(note.name, 1) },
+      )
     return items
   }
   ctx.layoutAct = (note: Note, id: string) => {
@@ -434,10 +443,47 @@
     if (id === 'firstSize') {
       if (layout.mode === 'canvas' && at && !zoomed) place({ [note.name]: firstSize(note, at, width) })
       else void ctx.arrange(note.name, { size: '', rows: 0 })
+    } else if (id === 'rowUp' || id === 'rowDown') {
+      moveRow(note.name, id === 'rowUp' ? -1 : 1)
     } else if (id === 'toFront' || id === 'toBack') {
       const next = (id === 'toFront' ? toFront : toBack)(layout.places, note.name)
       if (next) place(next)
     }
+  }
+
+  // --- the order ---------------------------------------------------------
+
+  /** reorder writes a tab's new order through the bridge (as the terminal's { } do), drawing it at once; focus stays on the note moved. */
+  function reorder(order: string[], moved?: string) {
+    if (!tab) return
+    const tabName = tab.name
+    update((b) => ({
+      ...b,
+      tabs: b.tabs.map((x) => (x.name === tabName ? { ...x, notes: order.map((o) => x.notes.find((n) => n.name === o)!) } : x)),
+    }))
+    api.order(tabName, order).catch((err) => (failed = String(err))).finally(refresh)
+    if (moved) requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(moved)}"]`)?.focus())
+  }
+
+  /** placedNow is where the grid puts the open notes now. */
+  const placedNow = () => (cols > 0 ? placeColumns(open, cols) : gridPlace(open, gridWidth))
+
+  /** rowTarget is the note a row up or down that a note would trade places with (K, J), or null. */
+  const rowTarget = (name: string, delta: -1 | 1) => beside(placedNow(), name, delta)
+
+  /** moveRow trades a note's place with the one at its place a row up or down. */
+  function moveRow(name: string, delta: -1 | 1) {
+    const other = rowTarget(name, delta)
+    const order = other && tab ? swap(tab.notes.map((n) => n.name), name, other) : null
+    if (order) reorder(order, name)
+  }
+
+  /** dropped is the grid's open notes in the order a drag left them: the tab's order, with those places filled in that order. */
+  function dropped(names: string[]) {
+    if (!tab) return
+    const moving = new Set(names)
+    const next = [...names]
+    reorder(tab.notes.map((n) => (moving.has(n.name) ? next.shift()! : n.name)))
   }
 
   // --- keys --------------------------------------------------------------
@@ -473,7 +519,10 @@
         break
       case 'size':
         if (!note || note.error) return
-        ctx.arrange(note.name, { size: stepSize(note.size, gridWidth, a.dir) })
+        if (cols > 0) {
+          const size = stepColumns(note, cols, a.dir)
+          if (size) ctx.arrange(note.name, { size })
+        } else ctx.arrange(note.name, { size: stepSize(note.size, gridWidth, a.dir) })
         break
       case 'page':
         if (!note?.pages?.length) return
@@ -493,16 +542,13 @@
       case 'order': {
         if (!note) return
         const order = shift(tab.notes.map((n) => n.name), note.name, a.delta)
-        if (!order) return
-        const tabName = tab.name
-        update((b) => ({
-          ...b,
-          tabs: b.tabs.map((x) => (x.name === tabName ? { ...x, notes: order.map((o) => x.notes.find((n) => n.name === o)!) } : x)),
-        }))
-        api.order(tabName, order).catch((err) => (failed = String(err))).finally(refresh)
-        requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(note.name)}"]`)?.focus())
+        if (order) reorder(order, note.name)
         break
       }
+      case 'row':
+        if (!note || zoomed || layout.mode === 'canvas') return
+        moveRow(note.name, a.delta)
+        break
       case 'edit':
         if (!note || note.pages) return
         ctx.edit?.(note.name)
@@ -663,7 +709,7 @@
         <!-- a click on the paper around a zoomed note goes back; Esc does too -->
         <main class="zoom" role="presentation" onclick={(e) => e.target === e.currentTarget && ctx.back()}>
           {#key zoomed.name}
-            <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} />
+            <NoteFrame note={zoomed} zoomed narrow={columns === 1} width={gridWidth} columns={cols} />
           {/key}
         </main>
       {:else if open.length || tornHere.length}
@@ -682,7 +728,7 @@
         {:else}
           <main class="notes" onfocusin={(e) => (focused = frameOf(e.target as Element))}>
             <div bind:clientWidth={gridWidth}>
-              <Grid notes={open} width={gridWidth} />
+              <Grid notes={open} width={gridWidth} columns={cols} onorder={dropped} />
             </div>
           </main>
         {/if}

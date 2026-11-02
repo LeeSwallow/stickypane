@@ -6,6 +6,7 @@ import { frameOf, keyAction } from './keys'
 import { HeightDrag, ROW_PX } from './layout'
 import type { Board, Note } from './model'
 import NoteFrame from './NoteFrame.svelte'
+import Grid from './Grid.svelte'
 import { look } from '../lib/doodle/look.svelte'
 import { THEMES } from '../demo/themes'
 
@@ -45,6 +46,29 @@ test('keys act on the frame around a focused link, not on the note it links to',
   expect(keyAction({ key: '=' }, ctx)).toEqual({ type: 'size', dir: 1 })
   expect(keyAction({ key: '[' }, ctx)).toEqual({ type: 'page', delta: -1 })
   expect(keyAction({ key: ']' }, ctx)).toEqual({ type: 'page', delta: 1 })
+})
+
+test('H L and { } move a note a place, K J a row, as on the terminal', () => {
+  const ctx = { zoomed: false, canBack: false }
+  expect(keyAction({ key: 'H', shiftKey: true }, ctx)).toEqual({ type: 'order', delta: -1 })
+  expect(keyAction({ key: 'L', shiftKey: true }, ctx)).toEqual({ type: 'order', delta: 1 })
+  expect(keyAction({ key: '{', shiftKey: true }, ctx)).toEqual({ type: 'order', delta: -1 })
+  expect(keyAction({ key: '}', shiftKey: true }, ctx)).toEqual({ type: 'order', delta: 1 })
+  expect(keyAction({ key: 'K', shiftKey: true }, ctx)).toEqual({ type: 'row', delta: -1 })
+  expect(keyAction({ key: 'J', shiftKey: true }, ctx)).toEqual({ type: 'row', delta: 1 })
+  expect(keyAction({ key: 'j' }, ctx)).toBeNull()
+  expect(keyAction({ key: 'J', editing: true }, ctx)).toBeNull()
+})
+
+test('on three columns the grid draws 24 tracks, a note says k/3 and steps a column', () => {
+  const notes = ['a', 'b', 'c', 'd', 'e'].map((n) => ({ ...base, name: n + '.md', title: n, kind: 'note', data: { markdown: n } })) as unknown as Note[]
+  const { body } = render(Grid, { props: { notes, width: 1200, columns: 3, onorder: () => {} }, context: ctx() })
+  expect(body).toContain('--cols: 24')
+  expect(body.match(/grid-column: \d+ \/ span \d+/g)).toEqual([
+    'grid-column: 1 / span 8', 'grid-column: 9 / span 8', 'grid-column: 17 / span 8', 'grid-column: 1 / span 12', 'grid-column: 13 / span 12',
+  ])
+  expect((body.match(/data-grip/g) ?? []).length).toBe(5)
+  expect(body).toContain('>1/3<')
 })
 
 test('a makes a note, x archives, D deletes, u and ⌘Z undo, ⌘, opens the settings', () => {
