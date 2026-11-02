@@ -20,7 +20,8 @@
   // on the left, the section on paper on the right. 보드 is the board the
   // window was opened from (its sticky.json, through the bridge, shared
   // with the terminal; its layout on this computer); 이 컴퓨터 is
-  // overlay.json; 터미널과 에이전트 and 정보 are the app's. Every change is
+  // overlay.json, and 원격 호스트 its host list; 터미널과 에이전트 and 정보
+  // are the app's. Every change is
   // kept at once and the board's window redraws with it.
   import { onMount } from 'svelte'
   import { resolveAuto, setLanguage, tr, type Choice } from '../i18n'
@@ -55,6 +56,8 @@
   import CardGroup from './CardGroup.svelte'
   import ChoiceCard from './ChoiceCard.svelte'
   import HotkeyRecorder from './HotkeyRecorder.svelte'
+  import Hosts from './Hosts.svelte'
+  import { hostsService, type HostsApi } from '../services/hosts'
   import Row from './Row.svelte'
   import Swatch from './Swatch.svelte'
   import Terminal from './Terminal.svelte'
@@ -64,9 +67,10 @@
     board: side,
     app,
     setup,
+    hosts = hostsService,
     section: start = 'board',
     chrome = 'none',
-  }: { board: BoardSide; app: AppApi; setup: SetupApi; section?: Section; chrome?: Chrome } = $props()
+  }: { board: BoardSide; app: AppApi; setup: SetupApi; hosts?: HostsApi; section?: Section; chrome?: Chrome } = $props()
 
   const GITHUB = 'https://github.com/LeeSwallow/stickypane'
   const DOCS = 'https://github.com/LeeSwallow/stickypane/tree/main/docs'
@@ -206,6 +210,7 @@
   const NAV: Record<Section, { icon: CrayonName; color: number }> = {
     board: { icon: 'board', color: 0 },
     app: { icon: 'computer', color: 2 },
+    hosts: { icon: 'remote', color: 3 },
     cli: { icon: 'terminal', color: 3 },
     about: { icon: 'info', color: 4 },
   }
@@ -260,6 +265,7 @@
                 {#if section === 'board' && board}<p class="of" class:neat>{board.title}</p>{/if}
                 {#if section === 'board' && ready}<p class="where">{$tr('settings.board.where')}</p>{/if}
                 {#if section === 'app'}<p class="where">{$tr('settings.app.where')}</p>{/if}
+                {#if section === 'hosts'}<p class="where">{$tr('settings.hosts.where')}</p>{/if}
                 {#if section === 'cli'}<p class="where">{$tr('settings.cli.where')}</p>{/if}
               </header>
 
@@ -406,6 +412,8 @@
                     <Toggle label={$tr('settings.login')} checked={autostart.enabled} onchange={setLogin} />
                   </Row>
                 {/if}
+              {:else if section === 'hosts'}
+                <Hosts api={hosts} />
               {:else if section === 'cli'}
                 <Terminal {setup} project={ready} />
               {:else}

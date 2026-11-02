@@ -29,6 +29,8 @@
     onmenu,
     actions,
     pinPath = false,
+    host = '',
+    hostTip = '',
   }: {
     name: string
     /** the full folder, shown only in the name's tooltip */
@@ -43,6 +45,9 @@
     actions?: Snippet
     /** show the path tooltip without hover (the reference page) */
     pinPath?: boolean
+    /** the computer a remote board is on, said quietly after the name */
+    host?: string
+    hostTip?: string
   } = $props()
 
   const items = $derived([...menu, ...windowMenu(chrome, $tr)].filter((m, i) => !(i === 0 && m.kind === 'separator')))
@@ -63,6 +68,7 @@
     {:else}
       <span class="name" class:neat={look.style === 'neat'}>{name}</span>
     {/if}
+    {#if host}<span class="host" title={hostTip || host}>{host}</span>{/if}
     {#if hotkey}<span class="hotkey" title={$tr('window.hotkey', { key: hotkey })}><Kbd keys={hotkey} /></span>{/if}
   </div>
   <span class="grow"></span>
@@ -128,6 +134,18 @@
   .name:focus-visible {
     outline: var(--focus-width) solid var(--focus);
     outline-offset: var(--focus-offset);
+  }
+  .host {
+    flex: none;
+    max-width: 16ch;
+    overflow: hidden;
+    padding: 0 6px;
+    border: var(--stroke-hairline) solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    color: var(--ink-3);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font: var(--weight-mono-sm) var(--text-mono-sm) / 18px var(--font-mono);
   }
   .grow {
     flex: 1;

@@ -1,7 +1,7 @@
 <script lang="ts">
   // Dev only (?demo=screens&screen=home|home-list|empty|home-empty|board
   // |board-first|board-empty|canvas|torn|zoom|create|settings-board
-  // |settings-app|settings-cli|settings-about|settings-none
+  // |settings-app|settings-hosts|settings-cli|settings-about|settings-none
   // &shape=board|form|chart…&mode=dark|light&lang=ko|en):
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. With &bridge=<devbridge url>
@@ -18,6 +18,7 @@
   import { THEMES } from './themes'
   import { live } from './live'
   import SettingsWindow from '../settings/SettingsWindow.svelte'
+  import type { Host, HostsApi } from '../services/hosts'
   import type { AppApi, AppPrefs } from '../services/settings'
   import type { CommandState, SetupApi } from '../services/install'
 
@@ -86,6 +87,8 @@
       next.set('section', section)
       location.search = next.toString()
     },
+    hosts: async () => [{ name: 'devbox', target: 'min@devbox', boards: ['/home/min/api-server'] }],
+    openRemote: async () => 1,
   }
   // the page as the board's window: what the shell does when a board opens
   const toBoard = () => {
@@ -211,6 +214,20 @@
     connect: async () => ({ command: 'stickypane setup --yes', output: 'done' }),
     initHere: async () => ({ command: 'stickypane init', output: '' }),
   }
+  let demoHosts: Host[] = [
+    { name: 'devbox', target: 'min@devbox.internal.example.com', command: '/home/min/.local/share/stickypane/bin/stickypane', boards: ['/home/min/Projects/Personal/very-long-folder-name/api-server', '/srv/web app'] },
+    { name: 'nas', target: 'nas', boards: ['/volume1/notes'] },
+  ]
+  const fakeHosts: HostsApi = {
+    hosts: async () => demoHosts,
+    saveHost: async (h, old) => void (demoHosts = old ? demoHosts.map((x) => (x.name === old ? h : x)) : [...demoHosts, h]),
+    removeHost: async (n) => void (demoHosts = demoHosts.filter((h) => h.name !== n)),
+    checkHost: async (n) => (n === 'nas' ? { ok: false, bridge: false, error: 'ssh: Could not resolve hostname nas: nodename nor servname provided, or not known' } : { ok: true, bridge: true, version: '0.4.0' }),
+    addBoard: async () => {},
+    removeBoard: async () => {},
+    openRemote: async () => 1,
+    aliases: async () => [{ name: 'work', resolved: 'min@10.0.0.9:22' }, { name: 'gpu-lab', resolved: 'min@gpu.lab:2222' }],
+  }
   const settingsSection = screen.startsWith('settings-') ? screen.slice(9) : ''
   const noBoard = settingsSection === 'none'
   const settingsBoard = noBoard ? { ...boardApi, status: async () => ({ window: 2, path: '', state: 'closed', pinned: false }) } : boardApi
@@ -221,7 +238,8 @@
     board={settingsBoard}
     app={fakeApp}
     setup={setup ?? fakeSetup}
-    section={(noBoard ? (q.get('section') ?? 'board') : settingsSection) as 'board' | 'app' | 'cli' | 'about'}
+    hosts={fakeHosts}
+    section={(noBoard ? (q.get('section') ?? 'board') : settingsSection) as 'board' | 'app' | 'hosts' | 'cli' | 'about'}
     chrome={(q.get('chrome') as 'mac' | 'own' | null) ?? 'mac'}
   />
 {:else if screen === 'torn'}

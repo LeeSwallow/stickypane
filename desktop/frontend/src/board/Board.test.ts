@@ -114,4 +114,17 @@ describe('the board window', () => {
     // no question: the canvas's places are this computer's only
     expect(screen.queryByRole('alertdialog')).toBeNull()
   })
+
+  it('a board on another computer says its host by the name, and has no 편집기로 열기', async () => {
+    const a = api(boardOf([note('a.md', '1/2')]), { mode: 'grid' }, {
+      status: async () => ({ window: 1, path: 'ssh://dev/srv/api', state: 'ready', pinned: false, remote: 'dev' }),
+    })
+    render(Board, { props: { api: a, bus: fakeBus().bus } })
+    await screen.findByText('a.md')
+    const bar = document.querySelector('[data-titlebar]') as HTMLElement
+    expect(within(bar).getByText('dev').getAttribute('title')).toBe('dev에 있는 보드')
+    await fireEvent.click(within(bar).getByRole('button', { name: '더 보기' }))
+    await screen.findByRole('menuitem', { name: /설정/ })
+    expect(screen.queryByRole('menuitem', { name: /편집기로 열기/ })).toBeNull()
+  })
 })

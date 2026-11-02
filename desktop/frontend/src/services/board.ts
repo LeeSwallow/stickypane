@@ -16,6 +16,8 @@ export interface Status {
   version?: string
   /** the note a torn-off note's window shows; none in a board's */
   note?: string
+  /** the host's name of a board on another computer; none for this computer's */
+  remote?: string
 }
 
 export interface BoardApi {

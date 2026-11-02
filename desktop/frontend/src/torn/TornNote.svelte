@@ -191,7 +191,10 @@
     seen: () => {},
     filter: () => null,
     now: () => now,
-    edit: (n) => void api.open(n).catch((e) => (failed = errorText(e))),
+    // a board on another computer has no editor here
+    get edit() {
+      return status?.remote ? undefined : (n: string) => void api.open(n).catch((e) => (failed = errorText(e)))
+    },
     putBack: () => void putBack(),
     manage(n, what, request) {
       if (what === 'archive') void manage.archive(deps, n)

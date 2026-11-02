@@ -33,6 +33,7 @@
     onsnap,
     ontidy,
     onreset,
+    host = '',
   }: {
     title: string
     path: string
@@ -57,6 +58,8 @@
     ontidy?: () => void
     /** ⋯ → 배치 초기화 */
     onreset?: () => void
+    /** the host of a board on another computer: said by the name, and no editor here */
+    host?: string
   } = $props()
 
   const views = $derived([
@@ -68,7 +71,7 @@
     ...(onreset ? [{ id: 'reset', label: $tr('board.reset'), icon: 'restore' as const }] : []),
     ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
     ...(ontidy || onreset ? [{ kind: 'separator' as const, id: 'sep-layout' }] : []),
-    { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
+    ...(host ? [] : [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E', disabled: !canEdit }]),
     { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
   ])
   // the hotkey is said in the name's tooltip, not on the bar (#63)
@@ -82,7 +85,7 @@
   }
 </script>
 
-<UiTitleBar name={title} path={tip} {chrome} window={win} {menu} onmenu={choose}>
+<UiTitleBar name={title} path={tip} {chrome} window={win} {menu} onmenu={choose} {host} hostTip={host ? $tr('board.remoteTip', { host }) : ''}>
   {#snippet actions()}
     <SegmentedControl label={$tr('ui.view')} value={mode} iconOnly size="sm" options={views} onchange={(v) => onmode?.(v as LayoutMode)} />
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>

@@ -4,6 +4,7 @@
 // in Go; nil slices arrive as null.
 import { Call, Events } from '@wailsio/runtime'
 import { home, noticesEvent } from '../lib/shell'
+import type { Host } from './hosts'
 
 export interface LiveSession {
   PID: number
@@ -95,6 +96,10 @@ export interface HomeApi {
   peeks(): Promise<Record<string, Peek> | null>
   /** opens the settings window on a section (no board: the home has none) */
   openSettings(section: string): Promise<unknown>
+  /** the remote hosts and their boards (services/hosts.ts) */
+  hosts(): Promise<Host[] | null>
+  /** opens a board on a host */
+  openRemote(name: string, path: string): Promise<unknown>
 }
 
 const call = <T>(method: string, ...args: unknown[]) => Call.ByName(home(method), ...args) as Promise<T>
@@ -115,4 +120,6 @@ export const homeService: HomeApi = {
   copy: (text) => navigator.clipboard.writeText(text),
   peeks: () => call('Peeks'),
   openSettings: (section) => call('OpenSettings', section),
+  hosts: () => call('Hosts'),
+  openRemote: (name, path) => call('OpenRemote', name, path),
 }
