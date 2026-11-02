@@ -1,5 +1,5 @@
 // The remote hosts: computers whose boards open over the person's own ssh
-// (the shell's remote.go, docs/desktop/02 §2.9). The app keeps only this
+// (the shell's remote.go, docs/desktop/02 §2.10). The app keeps only this
 // list, in overlay.json; signing in is ~/.ssh/config and ssh-agent.
 import { Call } from '@wailsio/runtime'
 import { home } from '../lib/shell'

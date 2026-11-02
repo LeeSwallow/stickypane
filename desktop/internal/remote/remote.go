@@ -2,7 +2,7 @@
 // key among the boards (ssh://<host><path>), and the ssh command lines that
 // reach it. Nothing here runs ssh or reads a file; the shell does, with
 // these. Signing in is the person's own ssh: its config, its agent, its
-// keys. The app stores only the host list (docs/desktop/02 §2.9).
+// keys. The app stores only the host list (docs/desktop/02 §2.10).
 package remote
 
 import (

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 원격 호스트 (docs/desktop/02 §2.9): the computers whose boards open
+  // 원격 호스트 (docs/desktop/02 §2.10): the computers whose boards open
   // over the person's own ssh. Each host: its name, ssh target and
   // command, 연결 확인 (its stickypane's version, or ssh's words), its
   // boards' folders there with 열기 and 빼기, and a field to add one. Below,

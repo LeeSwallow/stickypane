@@ -17,7 +17,7 @@ import (
 	"github.com/LeeSwallow/stickypane/desktop/internal/sshconfig"
 )
 
-// Remote boards (docs/desktop/02 §2.9): a board on another computer opens
+// Remote boards (docs/desktop/02 §2.10): a board on another computer opens
 // over the person's own ssh, which runs `stickypane bridge` there and
 // speaks the same lines on its standard input and output. Nothing listens
 // on the network, and the app keeps no password or key: only the host
