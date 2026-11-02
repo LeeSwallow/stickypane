@@ -477,19 +477,7 @@
     const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
     const book = !!note?.pages?.length
-    // ⌥⌘T: every note of the tab in its own window
-    if (e.altKey && e.metaKey && e.code === 'KeyT' && !editing) {
-      e.preventDefault()
-      void tearTab()
-      return
-    }
-    // ⌥⌘L: tidy the canvas (03 §3.6.2)
-    if (e.altKey && e.metaKey && e.code === 'KeyL' && !editing) {
-      e.preventDefault()
-      tidyCanvas()
-      return
-    }
-    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
+    const a = keyAction({ key: e.key, code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
     if (!a) return
     switch (a.type) {
       case 'back':
@@ -545,6 +533,12 @@
       case 'trash':
         if (!note || (a.type === 'archive' && note.error)) return
         manageNote(note, a.type)
+        break
+      case 'tidy':
+        tidyCanvas()
+        break
+      case 'tearAll':
+        void tearTab()
         break
       case 'undo':
         if (!lastTrashed) return

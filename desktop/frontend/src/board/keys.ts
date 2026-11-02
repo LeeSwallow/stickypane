@@ -14,9 +14,13 @@ export type KeyAction =
   | { type: 'archive' }
   | { type: 'trash' }
   | { type: 'undo' }
+  | { type: 'tidy' }
+  | { type: 'tearAll' }
 
 export interface KeyLike {
   key: string
+  /** the physical key: with ⌥ held, key is the letter ⌥ makes */
+  code?: string
   metaKey?: boolean
   ctrlKey?: boolean
   altKey?: boolean
@@ -41,7 +45,14 @@ export const frameOf = (el: Element | null): string | null =>
 
 /** keyAction is what a key does on the board, or null when it does nothing here. */
 export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
-  if (e.editing || e.altKey) return null
+  if (e.editing) return null
+  if (e.altKey) {
+    // ⌥⌘L tidies the canvas (03 §3.6.2); ⌥⌘T puts each note of the tab in its own window
+    if (!e.metaKey || ctx.zoomed) return null
+    if (e.code === 'KeyL') return { type: 'tidy' }
+    if (e.code === 'KeyT') return { type: 'tearAll' }
+    return null
+  }
   if (e.metaKey || e.ctrlKey) {
     if (e.key === ',') return { type: 'settings' }
     if (e.key === 'z' && !e.shiftKey) return { type: 'undo' }

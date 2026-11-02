@@ -152,3 +152,12 @@ test('a tick is drawn at once, and a refused one is put back by the read that fo
   expect(shown).toEqual([true])
   expect((board.tabs[0].notes[0].data as typeof data).items[0].checked).toBe(false)
 })
+
+test('⌥⌘L tidies and ⌥⌘T tears the tab off, by the physical key, and not on a zoomed note', () => {
+  const ctx = { zoomed: false, canBack: false }
+  expect(keyAction({ key: '¬', code: 'KeyL', altKey: true, metaKey: true }, ctx)).toEqual({ type: 'tidy' })
+  expect(keyAction({ key: '†', code: 'KeyT', altKey: true, metaKey: true }, ctx)).toEqual({ type: 'tearAll' })
+  expect(keyAction({ key: '†', code: 'KeyT', altKey: true, metaKey: true }, { ...ctx, zoomed: true })).toBeNull()
+  expect(keyAction({ key: '†', code: 'KeyT', altKey: true }, ctx)).toBeNull()
+  expect(keyAction({ key: '†', code: 'KeyT', altKey: true, metaKey: true, editing: true }, ctx)).toBeNull()
+})

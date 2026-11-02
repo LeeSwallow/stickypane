@@ -219,10 +219,10 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 	}
 	s.mu.Unlock()
 	if len(tears) == 0 {
-		return nil, nil
+		return []uint{}, nil
 	}
 	slots := tile(s.cfg.Platform.WorkArea(), fresh)
-	var ids []uint
+	ids := []uint{}
 	i := 0
 	for _, t := range tears {
 		var at Rect
@@ -234,13 +234,13 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 			ids = append(ids, id)
 		}
 	}
-	s.save()
+	err := s.save()
 	s.emitLayout(p)
-	return ids, nil
+	return ids, err
 }
 
 // PutBackAll puts the notes given back on their board, closing their
-// windows; a note not torn off is passed over.
+// windows; for a note not torn off it changes nothing.
 func (s *Shell) PutBackAll(window uint, notes []string) error {
 	s.mu.Lock()
 	p, _ := s.owner(window)
