@@ -19,6 +19,8 @@
   import Shape from '../shapes/Shape.svelte'
   import { noteHex, useBoard } from './context'
   import { HeightDrag, heightOfRows, sizeShown, WidthDrag, type Fraction } from './layout'
+  import { ColumnDrag, sizeOnColumns } from './columns'
+  import { columnSteps } from '../lib/sizes'
   import type { Note } from './model'
   import { manageItems, type Manage } from './manage'
   import { capture, MOVED } from './pointer'
@@ -31,6 +33,7 @@
     free = false,
     titled = true,
     width = 1200,
+    columns = 0,
   }: {
     note: Note
     zoomed?: boolean
@@ -42,6 +45,8 @@
     titled?: boolean
     /** the board's width in px: what a fraction is a fraction of */
     width?: number
+    /** the grid's columns (the board's `columns` as this width draws it), or 0 when the sizes decide */
+    columns?: number
   } = $props()
   const board = useBoard()
 
@@ -52,7 +57,8 @@
   const changed = $derived(board.changed(note) || pages.some((p) => board.changed(p)))
   // a note that cannot be read can only be zoomed and closed (10 §10.1)
   const readable = $derived(!note.error)
-  const size = $derived(sizeShown(note.size, width))
+  const size = $derived(columns > 0 ? sizeOnColumns(note, columns) : sizeShown(note.size, width))
+  const steps = $derived(columns > 0 ? columnSteps(columns) : undefined)
 
   // the height being dragged, in px; null when not dragging
   let dragH: number | null = $state(null)
@@ -143,7 +149,7 @@
   // the drag starts from the width the note asks for, not the width its
   // row stretched it to (layout.ts WidthDrag)
   function startWidth(e: PointerEvent) {
-    const d = new WidthDrag(note.size, width, e.clientX)
+    const d = columns > 0 ? new ColumnDrag(note, columns, width, e.clientX) : new WidthDrag(note.size, width, e.clientX)
     drag(
       e,
       (m) => {
@@ -192,6 +198,7 @@
       summary={shown.summary}
       updated={changed}
       {size}
+      {steps}
       pinned={note.pinned}
       linked={note.linked ? (note.target ?? '') : undefined}
       editable={readable}

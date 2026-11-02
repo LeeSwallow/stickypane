@@ -68,7 +68,7 @@ func TestTheRowsLeftoverWidthIsSharedByFraction(t *testing.T) {
 func TestDraggingTheRightBorderSnapsTheWidthToAFraction(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/2"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/2"}}}`)
 	m.reload()
 	m.relayout()
 	right, _ := edges(t, m, "a.md")

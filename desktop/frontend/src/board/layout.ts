@@ -81,8 +81,8 @@ export const spanOf = (size: string, width: number): number => colsOf(FRACTIONS[
 export const COL_GAP = SPACE[3]
 
 /** spanPx is how wide span columns are drawn on a grid width px wide: the columns and the gaps between them. */
-export function spanPx(span: number, width: number, gap = COL_GAP): number {
-  const col = (width - (GRID - 1) * gap) / GRID
+export function spanPx(span: number, width: number, gap = COL_GAP, tracks = GRID): number {
+  const col = (width - (tracks - 1) * gap) / tracks
   return span * col + (span - 1) * gap
 }
 

@@ -74,6 +74,25 @@ func (m *Model) setView(name string, change func(*store.View)) {
 	m.reload()
 }
 
+// grid is how many columns the screen draws: the "columns" setting, fewer
+// when a column would be narrower than widget.MinWidth, and 0 when the
+// board is set to auto (as many notes in a row as their sizes fit).
+func (m *Model) grid() int {
+	if m.columns <= 0 {
+		return 0
+	}
+	return widget.FitColumns(m.columns, m.width)
+}
+
+// spanOf is how many of n columns the note takes: one without a size of
+// its own, its share of them with one.
+func (m *Model) spanOf(it item, n int) int {
+	if !m.sized(it) {
+		return 1
+	}
+	return widget.ColumnSpan(m.sizeOf(it), n)
+}
+
 // widthOf turns a size, a fraction of the screen, into cells.
 func (m *Model) widthOf(size string) int {
 	return widget.SizeCells(size, m.width)

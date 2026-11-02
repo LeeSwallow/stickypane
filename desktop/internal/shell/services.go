@@ -140,6 +140,7 @@ type (
 		Style    *string `json:"style,omitempty"`
 		View     *string `json:"view,omitempty"`
 		Language *string `json:"language,omitempty"`
+		Columns  *string `json:"columns,omitempty"`
 	}
 	noteParams struct {
 		Note string `json:"note"`

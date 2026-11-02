@@ -30,7 +30,8 @@ of a note, [shapes.md](shapes.md).
 | `N` | jot a note | `space` | tick an item |
 | `a` | add by shape | `n` | new card or item |
 | `p` / `c` / `R` | pin, color, rename | **Open script** | |
-| `{` / `}` | move earlier, later | `enter` | run, after a yes |
+| `H` `L` (`{` `}`) | move earlier, later | `enter` | run, after a yes |
+| `K` `J` | move a row up, down | | |
 | `,` / `.` | turn a book's pages | | |
 | `m` | move to a folder | | |
 | `x` / `D` / `u` | archive, delete, undo | **Zoomed note** | |
@@ -43,7 +44,8 @@ of a note, [shapes.md](shapes.md).
 | `i` / `/` | the index | `S` | settings |
 
 The focused open note takes the keys in the right-hand column where it is;
-you do not have to zoom in first. When the focused note has no cursor of its
+you do not have to zoom in first. On an open kanban `H` `J` `K` `L` move
+its cards, so `{` `}` move the note itself. When the focused note has no cursor of its
 own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
 `ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
 a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
@@ -51,24 +53,30 @@ a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
 
 ### How the screen is shared
 
-Open notes are placed left to right by `size`, a share of the screen's
-width (`1` takes a row, two `1/2` notes share one, four `1/4` notes sit side
-by side; on a narrow screen a share under 20 cells takes the next one up).
-A note whose size you chose (with `+` `-`, a drag, `stickypane set` or its
-front matter) keeps exactly that width, and a row that does not add up to
-the whole width leaves the rest empty at the right; a note that only has
-its kind's default size takes what its row leaves over. A note is as tall
-as the `rows` it was given, or else as its content; notes in a row start at
-its top, and the next row starts below the tallest. Only when the notes do
-not fit are the tall ones squeezed, sharing what the short ones leave, and
-the screen never scrolls as a whole. A note gets at least six lines, or all
-it needs if that is less; notes that would get less go to the next screen,
-shown as `2/3` under the title bar.
+The board is three columns wide unless the `columns` setting says
+otherwise (`1` to `4`; `S` on the board, or `stickypane config columns 4`).
+Notes go left to right, a row at a time. A note without a size of its own
+takes one column, and the notes of a row share its width equally, so a
+last row of two notes on three columns is two halves. A note whose size you
+chose (with `+` `-`, a drag, `stickypane set` or its front matter) spans its
+share of the columns, rounded to the nearest: on three columns `1/2` and
+`2/3` are two, `1/4` and `1/3` one. The other notes of its row share what
+is left. On a screen too narrow for a column of 20 cells, fewer columns are
+drawn; nothing is written. `columns auto` brings back the layout of before,
+where the sizes alone decide how many notes fit in a row.
 
-`+` and `-` step a note through the shares and its border says the new one
-for a moment; `shift+up` and `shift+down` make it a line taller or shorter
-(`shift+pgup` and `shift+pgdn` five), and `0` lets it be as tall as its
-content again. The sizes are kept in
+A note is as tall as the `rows` it was given, or else as its content; notes
+in a row start at its top, and the next row starts below the tallest. Only
+when the notes do not fit are the tall ones squeezed, sharing what the
+short ones leave, and the screen never scrolls as a whole. A note gets at
+least six lines, or all it needs if that is less; notes that would get
+less go to the next screen, shown as `2/3` under the title bar.
+
+`+` and `-` widen or narrow a note by one column and its border says the
+new size for a moment; `H` `L` move it a place, `K` `J` a row up or down,
+trading places with the note there. `shift+up` and `shift+down` make it a
+line taller or shorter (`shift+pgup` and `shift+pgdn` five), and `0` lets
+it be as tall as its content again. The sizes and the order are kept in
 [sticky.json](configuration.md#stickyjson-how-the-board-is-arranged).
 
 ## Mouse
@@ -81,7 +89,7 @@ content again. The sizes are kept in
 | double-click a note | zoom; on a script, run it after a yes |
 | click Yes or No on a question | answer it; a click anywhere else is no |
 | wheel | scroll the note under the pointer |
-| drag a note's right edge | its width, snapped to the nearest share |
+| drag a note's right edge | its width, snapped to the nearest column (the nearest share on `columns auto`) |
 | drag a note's bottom edge | its height in lines |
 | double-click a bottom edge | as tall as its content again |
 

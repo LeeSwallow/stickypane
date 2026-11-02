@@ -349,6 +349,15 @@
                       onchange={(v) => setLayout(v as LayoutMode)}
                     />
                   </Row>
+                  <Row label={$tr('settings.columns')} hint={$tr('settings.columns.hint')}>
+                    <SegmentedControl
+                      label={$tr('settings.columns')}
+                      size="sm"
+                      value={board.settings.columns || '3'}
+                      options={['1', '2', '3', '4'].map((v) => ({ value: v, label: v }))}
+                      onchange={(v) => setBoard({ columns: v })}
+                    />
+                  </Row>
                   <Row label={$tr('settings.opens')} hint={$tr('settings.opens.hint')}>
                     <SegmentedControl
                       label={$tr('settings.opens')}

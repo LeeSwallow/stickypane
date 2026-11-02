@@ -49,7 +49,10 @@ func TestANoteWithNoSizeTakesTheWholeWidthOfItsRow(t *testing.T) {
 
 func TestANoteWithASizeKeepsIt(t *testing.T) {
 	t.Parallel()
-	m, _ := newModel(t, map[string]string{"a.md": "---\nopen: true\nsize: card\n---\nsmall\n"})
+	m, dir := newModel(t, map[string]string{"a.md": "---\nopen: true\nsize: card\n---\nsmall\n"})
+	writeView(t, dir, `{"columns":"auto"}`)
+	m.reload()
+	m.relayout()
 	if p, _ := m.paneOf("a.md"); p.rect.W != 40 {
 		t.Errorf("a card on 80 cells is a half (40), alone or not: %+v\n%s", p.rect, screen(m))
 	}

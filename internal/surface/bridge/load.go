@@ -52,7 +52,8 @@ type Note struct {
 	// (unreleased): no longer "half" or "page", which are read as "1/2"
 	// and "1". Sized is whether the size was chosen for the note, not its
 	// kind's default: a sized note keeps its width, one without a size
-	// takes the room its row leaves over (internal/core/layout.Rows).
+	// takes the room its row leaves over (internal/core/layout.Rows), or on
+	// a board of columns one column (layout.Grid, widget.ColumnSpan).
 	// Rows is 0 for a note as tall as its content.
 	Size    string          `json:"size"`
 	Sized   bool            `json:"sized"`
@@ -75,10 +76,11 @@ type Settings struct {
 	Style    string   `json:"style"`
 	View     string   `json:"view"`
 	Language Language `json:"language"`
-	Tab      string   `json:"tab"`    // the tab the terminal is on, "" for the root
-	Time     string   `json:"time"`   // how times are written: auto, ko, en-US...
-	Editor   string   `json:"editor"` // what the terminal's E opens: auto or an editor
-	Stale    string   `json:"stale"`  // when a card that has not moved is flagged
+	Tab      string   `json:"tab"`     // the tab the terminal is on, "" for the root
+	Time     string   `json:"time"`    // how times are written: auto, ko, en-US...
+	Editor   string   `json:"editor"`  // what the terminal's E opens: auto or an editor
+	Stale    string   `json:"stale"`   // when a card that has not moved is flagged
+	Columns  string   `json:"columns"` // how many columns the grid has, "1" to "4", or "auto" (the sizes decide)
 }
 
 // Language is the language the user chose ("auto", "ko", "en") and the
@@ -277,6 +279,7 @@ func settingsOf(set store.Settings) Settings {
 		Time:     prefs.Get(set, "time"),
 		Editor:   prefs.Get(set, "editor"),
 		Stale:    prefs.Get(set, "stale"),
+		Columns:  prefs.Get(set, "columns"),
 	}
 }
 

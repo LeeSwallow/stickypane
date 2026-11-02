@@ -206,3 +206,72 @@ func Stack(height int, need []int, floor int) []Slot {
 	share(start, len(need), screen)
 	return slots
 }
+
+// Grid puts items on n equal columns of a screen width cells wide, in
+// order, starting a new row when the next one does not fit. spans is how
+// many columns each item takes; sized says which have a width of their
+// own. A sized item keeps its columns; the items of a row without one
+// share what the row leaves over equally, so a row that is not full is
+// still filled. A row of sized items that does not add up to n columns
+// leaves the rest empty, as Rows does.
+func Grid(width, n int, spans []int, sized []bool) []Cell {
+	n = max(n, 1)
+	cells := make([]Cell, 0, len(spans))
+	isSized := func(i int) bool { return i < len(sized) && sized[i] }
+	place := func(from, to, row int) {
+		widths := make([]int, 0, to-from)
+		for i := from; i < to; i++ {
+			k := 1
+			if isSized(i) {
+				k = max(min(spans[i], n), 1)
+			}
+			widths = append(widths, width*k/n)
+		}
+		for _, c := range Rows(width, widths, sized[min(from, len(sized)):min(to, len(sized))]) {
+			cells = append(cells, Cell{Row: row, X: c.X, W: c.W})
+		}
+	}
+	row, start, used := 0, 0, 0
+	for i, k := range spans {
+		k = max(min(k, n), 1)
+		if !isSized(i) {
+			k = 1
+		}
+		if used > 0 && used+k > n {
+			place(start, i, row)
+			row, start, used = row+1, i, 0
+		}
+		used += k
+	}
+	if start < len(spans) {
+		place(start, len(spans), row)
+	}
+	return cells
+}
+
+// Beside is the item delta rows from item i that has i's place in its row:
+// the k-th of that row for the k-th of i's, or its last when that row is
+// shorter. On n columns of notes without a size it is n places away in
+// the order, and moving there and back returns. It is -1 when there is no
+// such row.
+func Beside(cells []Cell, i, delta int) int {
+	if i < 0 || i >= len(cells) {
+		return -1
+	}
+	at := 0
+	for j := i - 1; j >= 0 && cells[j].Row == cells[i].Row; j-- {
+		at++
+	}
+	row, found := cells[i].Row+delta, -1
+	for j, c := range cells {
+		if c.Row != row {
+			continue
+		}
+		found = j
+		if at == 0 {
+			return j
+		}
+		at--
+	}
+	return found
+}

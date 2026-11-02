@@ -25,10 +25,12 @@ the command line.
 | `time` | `auto` | how days and times are written; `auto` follows the locale's country |
 | `editor` | `auto` | what `E` opens; `auto` is `$VISUAL`, `$EDITOR`, then the first editor found |
 | `stale` | `30m` | when a kanban card that has not moved is flagged; `off` never |
+| `columns` | `3` | how many columns the board has, `1` to `4`; a note with a size spans its share of them. `auto`, the layout of before, is still read |
 
 ```sh
 stickypane config                # every setting, its value, and which are defaults
 stickypane config stale 1h
+stickypane config columns 4
 ```
 
 A setting at its default is not written; the others go to the root
@@ -99,7 +101,7 @@ are only in the root file.
 | Key in `notes` | Values | Key on the board |
 | --- | --- | --- |
 | `open` | `true` shows the note, `false` folds it away | `o`, `enter` |
-| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1`. A note with a size keeps it; one without takes what its row leaves | `+` `-`, drag the right edge |
+| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1`, spanning that share of the columns, rounded. A note with a size keeps it; one without takes one column and shares what its row leaves | `+` `-`, drag the right edge |
 | `rows` | the height in lines the note asks for; `-1` is as tall as its content, over what the note or its kind says | `shift+up` `shift+down`, `0`, drag the bottom edge |
 | `color` | `yellow` `pink` `blue` `green` `purple` `orange` | `c` |
 | `pin` | `true` keeps the note first | `p` |
@@ -107,7 +109,7 @@ are only in the root file.
 
 Next to `notes`, `theme` names the theme (`T` on the board), `language` the
 language of the screen (`stickypane language ko`; `auto` follows `LANG`),
-`order` lists the notes you moved with `{` and `}` (the others follow by
+`order` lists the notes you moved with `H` `J` `K` `L` or `{` `}` (the others follow by
 name), and `ignore` lists names or patterns the board should not show.
 `ignore` is the one part you write by hand.
 

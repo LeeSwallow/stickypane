@@ -160,7 +160,8 @@ func English() Strings {
   shift+up down    taller, shorter
   shift+pgup pgdn  five lines at a time
   0                content height
-  { }              move earlier, later
+  H L  { }        move earlier, later
+  K J              move a row up, down
   , .              turn a folder's pages
   m                move to a folder
   N                jot a note
@@ -193,6 +194,7 @@ Open board
   j k              change card
   H L              move a card sideways
   J K              reorder a card
+  { }              move the note
   n                new card
 
 Open checklist

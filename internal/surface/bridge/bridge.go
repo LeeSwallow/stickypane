@@ -532,14 +532,14 @@ func (s *server) settingsSet(params json.RawMessage) (any, error) {
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
-	if p.Theme == nil && p.Style == nil && p.View == nil && p.Language == nil {
-		return nil, badRequest("settings.set needs theme, style, view or language")
+	if p.Theme == nil && p.Style == nil && p.View == nil && p.Language == nil && p.Columns == nil {
+		return nil, badRequest("settings.set needs theme, style, view, language or columns")
 	}
 	var changes []api.Setting
 	for _, c := range []struct {
 		key   string
 		value *string
-	}{{"theme", p.Theme}, {"style", p.Style}, {"view", p.View}, {"language", p.Language}} {
+	}{{"theme", p.Theme}, {"style", p.Style}, {"view", p.View}, {"language", p.Language}, {"columns", p.Columns}} {
 		if c.value != nil {
 			changes = append(changes, api.Setting{Key: c.key, Value: *c.value})
 		}

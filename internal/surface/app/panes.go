@@ -62,14 +62,25 @@ func (m *Model) relayout() {
 	var open []item
 	var widths []int
 	var sized []bool
+	n := m.grid()
 	for _, it := range m.items {
 		if m.isOpen(it) {
 			open = append(open, it)
-			widths = append(widths, m.widthOf(m.sizeOf(it)))
+			if n > 0 {
+				widths = append(widths, m.spanOf(it, n))
+			} else {
+				widths = append(widths, m.widthOf(m.sizeOf(it)))
+			}
 			sized = append(sized, m.sized(it))
 		}
 	}
-	cells := layout.Rows(m.width, widths, sized)
+	var cells []layout.Cell
+	if n > 0 {
+		cells = layout.Grid(m.width, n, widths, sized)
+	} else {
+		cells = layout.Rows(m.width, widths, sized)
+	}
+	m.cells = cells
 
 	// Draw every note at the width its place gives it. A note asks for the
 	// height it was given, or its content's; a row, for its tallest note's.

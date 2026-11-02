@@ -11,6 +11,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/adapter/env"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
+	"github.com/LeeSwallow/stickypane/internal/core/layout"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 	"github.com/LeeSwallow/stickypane/internal/usecase/arrange"
 )
@@ -29,8 +30,14 @@ func init() {
 		boardKeys[k] = onFocused(func(m *Model, it item) tea.Cmd { m.stretch(it, delta); return nil })
 	}
 	boardKeys["0"] = onFocused(func(m *Model, it item) tea.Cmd { m.setRows(it, 0); return nil })
-	boardKeys["}"] = func(m *Model) tea.Cmd { m.move(1); return nil }
-	boardKeys["{"] = func(m *Model) tea.Cmd { m.move(-1); return nil }
+	// The order: H and L (and { }) move the note a place earlier or later,
+	// K and J a row up or down. A note whose shape takes these keys (a
+	// kanban moves its cards with them) keeps them; { } still move it.
+	for k, delta := range map[string]int{"}": 1, "{": -1, "L": 1, "H": -1} {
+		boardKeys[k] = func(m *Model) tea.Cmd { m.move(delta); return nil }
+	}
+	boardKeys["J"] = func(m *Model) tea.Cmd { m.moveRow(1); return nil }
+	boardKeys["K"] = func(m *Model) tea.Cmd { m.moveRow(-1); return nil }
 
 	// Pin and color are part of how the screen is arranged: they go to
 	// sticky.json, like open and size.
@@ -110,7 +117,16 @@ func (m *Model) resize(it item, delta int) {
 	}
 	current := m.sizeOf(it)
 	next := widget.StepSize(current, m.width, delta)
-	if next == current {
+	if n := m.grid(); n > 0 {
+		// On columns a step is one column: from the one a note without a
+		// size takes, or the share its size comes to.
+		k := m.spanOf(it, n) + delta
+		if k < 1 || k > n {
+			return
+		}
+		next = widget.ColumnSize(k, n)
+	}
+	if next == current && (m.grid() == 0 || m.sized(it)) {
 		return
 	}
 	m.setView(it.note.Name, func(v *store.View) { v.Size = next })
@@ -160,8 +176,31 @@ func (m *Model) setRows(it item, rows int) {
 // among the pinned ones, the others among themselves.
 func (m *Model) move(delta int) {
 	i := m.index(m.focus)
-	j := i + delta
-	if i < 0 || j < 0 || j >= len(m.items) || m.pinned(m.items[i]) != m.pinned(m.items[j]) {
+	m.swap(i, i+delta)
+}
+
+// moveRow swaps the focused open note with the one above it (delta -1) or
+// below it (1): the note of that row that stands where it does. On a
+// board of n columns that is n places in the order.
+func (m *Model) moveRow(delta int) {
+	at := -1
+	for k, p := range m.panes {
+		if p.name == m.focus {
+			at = k
+		}
+	}
+	if at < 0 || len(m.cells) != len(m.panes) {
+		return
+	}
+	if to := layout.Beside(m.cells, at, delta); to >= 0 {
+		m.swap(m.index(m.focus), m.index(m.panes[to].name))
+	}
+}
+
+// swap changes the places of two notes in the tab's order and writes it.
+// A pinned note and one that is not stay apart.
+func (m *Model) swap(i, j int) {
+	if i < 0 || j < 0 || i >= len(m.items) || j >= len(m.items) || i == j || m.pinned(m.items[i]) != m.pinned(m.items[j]) {
 		return
 	}
 	names := make([]string, len(m.items))

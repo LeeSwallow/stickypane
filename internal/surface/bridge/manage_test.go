@@ -378,7 +378,7 @@ func TestBridgeLoadsLinkedNotesAndMoreSettings(t *testing.T) {
 	if n := b.note(t, "plan.md"); n.Linked || n.Target != "" || n.Title != "Plan" {
 		t.Errorf("plain note = %+v", n)
 	}
-	if b.Settings.Time != "iso" || b.Settings.Stale != "1h" || b.Settings.Editor != "auto" || b.Settings.Tab != "" {
+	if b.Settings.Time != "iso" || b.Settings.Stale != "1h" || b.Settings.Editor != "auto" || b.Settings.Columns != "3" || b.Settings.Tab != "" {
 		t.Errorf("settings = %+v", b.Settings)
 	}
 }

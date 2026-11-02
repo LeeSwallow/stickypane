@@ -387,6 +387,7 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 | `time` | `auto` | 날짜와 시각을 쓰는 방식 |
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
+| `columns` | `3` | 한 줄에 놓는 노트 수: `1`–`4` |
 
 `sticky.json`과 이 컴퓨터에 남는 기록은 [docs/ko/configuration.md](docs/ko/configuration.md)에,
 테마 목록은 영문 [docs/configuration.md](docs/configuration.md)에 있습니다.

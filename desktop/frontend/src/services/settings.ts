@@ -16,6 +16,8 @@ export interface BoardSettingsPatch {
   style?: 'doodle' | 'neat'
   view?: 'terminal' | 'overlay' | 'both'
   language?: 'auto' | 'ko' | 'en'
+  /** how many columns the grid has, '1' to '4' (shared with the terminal) */
+  columns?: string
 }
 
 /**
