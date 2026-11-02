@@ -20,7 +20,7 @@ func TestATornNoteWindowAsWailsMakesIt(t *testing.T) {
 			Kind:      KindNote,
 			Name:      "note:/p#04-차트/02-spark.md",
 			Title:     "02-spark",
-			URL:       NoteURL("04-차트/02-spark.md"),
+			URL:       NoteURL("04-차트/02-spark.md", false),
 			Bounds:    Rect{X: 540, Y: 260, Width: NoteWidth, Height: NoteHeight},
 			Placed:    true,
 			Frameless: true,

@@ -25,6 +25,7 @@ const (
 	NoteWidth   = 360
 	NoteHeight  = 420
 	noteCascade = 28
+	noteGap     = 16
 )
 
 // CanvasEvent tells a project window its layout changed outside it: a note
@@ -33,9 +34,14 @@ func CanvasEvent(window uint) string {
 	return "canvas.changed:" + strconv.FormatUint(uint64(window), 10)
 }
 
-// NoteURL is the page of a torn-off note's window.
-func NoteURL(note string) string {
-	return "/?window=note&note=" + url.QueryEscape(note)
+// NoteURL is the page of a torn-off note's window; fit asks it to take
+// its note's height, the first time it opens.
+func NoteURL(note string, fit bool) string {
+	u := "/?window=note&note=" + url.QueryEscape(note)
+	if fit {
+		u += "&fit=1"
+	}
+	return u
 }
 
 // tornWin is one torn-off note's window.
@@ -178,30 +184,149 @@ func (s *Shell) TearOff(window uint, note string) (uint, error) {
 	p.torn[note] = tw
 	n := len(p.torn) - 1
 	s.mu.Unlock()
-	id := s.openTorn(tw, f, n)
+	id := s.openTorn(tw, f, cascade(s.cfg.Platform.WorkArea(), n))
 	s.save()
 	s.emitLayout(p)
 	return id, nil
 }
 
-// openTorn makes a torn-off note's window: where it was left, or the n-th
-// step down and right of the middle of the screen.
-func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, n int) uint {
-	b := Rect{X: f.ScreenX, Y: f.ScreenY, Width: f.W, Height: f.H}
-	if !f.Placed() {
-		a := s.cfg.Platform.WorkArea()
-		b = Rect{
-			X:      a.X + (a.Width-NoteWidth)/2 + n*noteCascade,
-			Y:      a.Y + (a.Height-NoteHeight)/2 + n*noteCascade,
+// TearOffAll opens each of the notes given, a tab's, in a window of its
+// own: the ones never torn off before lie side by side across the screen,
+// the others go back where they were left. Notes already torn off stay as
+// they are. It returns the windows it opened.
+func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
+	s.mu.Lock()
+	p, _ := s.owner(window)
+	if p == nil || p.closed {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("no project window %d", window)
+	}
+	type tear struct {
+		tw *tornWin
+		f  canvas.Frame
+	}
+	var tears []tear
+	fresh := 0
+	for _, note := range notes {
+		if strings.TrimSpace(note) == "" || p.torn[note] != nil {
+			continue
+		}
+		f, ok := s.state.Projects[p.path].Torn[note]
+		if !ok {
+			f = canvas.Frame{Pinned: true}
+		}
+		if !f.Placed() {
+			fresh++
+		}
+		tw := &tornWin{p: p, note: note}
+		p.torn[note] = tw
+		tears = append(tears, tear{tw, f})
+	}
+	s.mu.Unlock()
+	if len(tears) == 0 {
+		return []uint{}, nil
+	}
+	slots := tile(s.cfg.Platform.WorkArea(), fresh)
+	ids := []uint{}
+	i := 0
+	for _, t := range tears {
+		var at Rect
+		if !t.f.Placed() {
+			at = slots[i]
+			i++
+		}
+		if id := s.openTorn(t.tw, t.f, at); id != 0 {
+			ids = append(ids, id)
+		}
+	}
+	err := s.save()
+	s.emitLayout(p)
+	return ids, err
+}
+
+// PutBackAll puts the notes given back on their board, closing their
+// windows; for a note not torn off it changes nothing.
+func (s *Shell) PutBackAll(window uint, notes []string) error {
+	s.mu.Lock()
+	p, _ := s.owner(window)
+	if p == nil {
+		s.mu.Unlock()
+		return fmt.Errorf("no project window %d", window)
+	}
+	var wins []Window
+	for _, note := range notes {
+		s.edit(p, func(c canvas.Project) canvas.Project { return c.PutBack(note) })
+		if tw := p.torn[note]; tw != nil {
+			tw.quiet = true // its frame is already forgotten
+			if tw.win != nil {
+				wins = append(wins, tw.win)
+			}
+		}
+	}
+	board, closed := p.win, p.closed
+	s.mu.Unlock()
+	for _, w := range wins {
+		w.Close()
+	}
+	err := s.save()
+	s.emitLayout(p)
+	if board != nil && !closed {
+		board.Show()
+		board.Focus()
+	}
+	return err
+}
+
+// cascade is the n-th step down and right of the middle of the work area,
+// where a note torn off by itself opens.
+func cascade(a Rect, n int) Rect {
+	return Rect{
+		X:      a.X + (a.Width-NoteWidth)/2 + n*noteCascade,
+		Y:      a.Y + (a.Height-NoteHeight)/2 + n*noteCascade,
+		Width:  NoteWidth,
+		Height: NoteHeight,
+	}
+}
+
+// tile lays n note windows out side by side over the work area, in rows
+// from the top left, the block of them in the middle. When more come than
+// the screen holds, the next round lies one cascade step on.
+func tile(a Rect, n int) []Rect {
+	if n <= 0 {
+		return nil
+	}
+	cols := max(1, (a.Width-noteGap)/(NoteWidth+noteGap))
+	rows := max(1, (a.Height-noteGap)/(NoteHeight+noteGap))
+	used := min(n, cols)
+	usedRows := min(rows, (n+cols-1)/cols)
+	x0 := a.X + (a.Width-used*NoteWidth-(used-1)*noteGap)/2
+	y0 := a.Y + (a.Height-usedRows*NoteHeight-(usedRows-1)*noteGap)/2
+	out := make([]Rect, n)
+	for i := range out {
+		k := i % (cols * rows)
+		step := i / (cols * rows) * noteCascade
+		out[i] = Rect{
+			X:      x0 + k%cols*(NoteWidth+noteGap) + step,
+			Y:      y0 + k/cols*(NoteHeight+noteGap) + step,
 			Width:  NoteWidth,
 			Height: NoteHeight,
 		}
+	}
+	return out
+}
+
+// openTorn makes a torn-off note's window: where it was left, or at the
+// place given.
+func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, at Rect) uint {
+	b := Rect{X: f.ScreenX, Y: f.ScreenY, Width: f.W, Height: f.H}
+	if !f.Placed() {
+		b = at
 	}
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindNote,
 		Name:      "note:" + tw.p.path + "#" + tw.note,
 		Title:     strings.TrimSuffix(path.Base(tw.note), ".md"),
-		URL:       NoteURL(tw.note),
+		URL:       NoteURL(tw.note, !f.Placed()),
 		Bounds:    b,
 		Placed:    true,
 		Frameless: true,
@@ -337,8 +462,9 @@ func (s *Shell) reopenTorn(p *project) {
 		p.torn[n] = tws[i]
 	}
 	s.mu.Unlock()
+	a := s.cfg.Platform.WorkArea()
 	for i, tw := range tws {
-		s.openTorn(tw, frames[tw.note], i)
+		s.openTorn(tw, frames[tw.note], cascade(a, i))
 	}
 }
 

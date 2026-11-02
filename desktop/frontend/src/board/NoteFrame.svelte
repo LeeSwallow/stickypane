@@ -82,6 +82,8 @@
   const menu = $derived<MenuItem[]>([
     ...(zoomed || board.putBack ? [] : [{ id: 'zoom', label: $tr('note.zoom'), icon: 'zoom' as const, shortcut: '↵' }]),
     ...(board.putBack ? [{ id: 'putBack', label: $tr('note.putBack'), icon: 'restore' as const }] : []),
+    // the header's ↗ hides on a narrow note; ⋯ always has it
+    ...(board.tear ? [{ id: 'tear', label: $tr('ui.tearOff'), icon: 'tear-off' as const }] : []),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
     ...(readable && board.layoutItems ? board.layoutItems(note) : []),
@@ -93,6 +95,7 @@
     else if (id === 'color') colours = !colours
     else if (id === 'edit') board.edit?.(note.name)
     else if (id === 'putBack') board.putBack?.(note.name)
+    else if (id === 'tear') board.tear?.(note.name)
     else if (id in manageItem) board.manage?.(note, id as Manage)
     else board.layoutAct?.(note, id)
   }
@@ -187,7 +190,8 @@
   onfocusin={() => board.seen(shown.name)}
   onpointerenter={() => board.seen(shown.name)}
 >
-  <NoteFrame {color} id={note.name}>
+  <!-- a torn-off note's window bar is its tape: one strip, not two -->
+  <NoteFrame {color} id={note.name} taped={titled}>
     <NoteHeader
       title={note.title}
       {color}
@@ -213,7 +217,7 @@
       {titled}
       onsize={(s) => board.arrange(note.name, { size: s })}
       onpin={(on) => board.arrange(note.name, { pin: on })}
-      ontearoff={board.tear && readable && !zoomed ? () => board.tear?.(note.name) : undefined}
+      ontearoff={board.tear ? () => board.tear?.(note.name) : undefined}
       onrename={(title) => board.arrange(note.name, { title })}
       onmenu={choose}
       onclose={board.putBack ? () => board.putBack?.(note.name) : () => board.arrange(note.name, { open: false })}

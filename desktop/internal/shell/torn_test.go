@@ -134,7 +134,7 @@ func TestTearOffOpensANoteWindowOnTop(t *testing.T) {
 		t.Fatalf("note windows %v, id %d", ws, nid)
 	}
 	w := ws[0]
-	if w.opts.URL != "/?window=note&note=work%2Fa.md" || !w.opts.Frameless || !w.opts.Placed || !w.pinned() || w.opts.Title != "a" {
+	if w.opts.URL != "/?window=note&note=work%2Fa.md&fit=1" || !w.opts.Frameless || !w.opts.Placed || !w.pinned() || w.opts.Title != "a" {
 		t.Errorf("options %+v pinned %v", w.opts, w.pinned())
 	}
 	// the middle of a 1600x1000 work area that starts 25 down
@@ -364,5 +364,58 @@ func TestPutBackShowsTheBoard(t *testing.T) {
 	}
 	if !board.Visible() || !board.Focused() {
 		t.Error("putting a note back leaves its board hidden")
+	}
+}
+
+func TestTearOffAllLaysATabsNotesSideBySide(t *testing.T) {
+	r, _, id, path := tornRig(t)
+	ids, err := r.s.TearOffAll(id, []string{"work/a.md", "work/b.md", " "})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws := r.p.noteWindows()
+	if len(ids) != 2 || len(ws) != 2 {
+		t.Fatalf("ids %v windows %d", ids, len(ws))
+	}
+	// two of 360 with 16 between, in the middle of 1600x1000 from 25 down
+	want := []Rect{{X: 432, Y: 315, Width: NoteWidth, Height: NoteHeight}, {X: 808, Y: 315, Width: NoteWidth, Height: NoteHeight}}
+	for i, w := range ws {
+		if w.bounds != want[i] || !w.pinned() {
+			t.Errorf("window %d at %+v pinned %v, want %+v", i, w.bounds, w.pinned(), want[i])
+		}
+	}
+	if again, _ := r.s.TearOffAll(id, []string{"work/a.md"}); len(again) != 0 || len(r.p.noteWindows()) != 2 {
+		t.Error("tearing off torn notes again made windows")
+	}
+	if err := r.s.PutBackAll(id, []string{"work/a.md", "work/b.md", "work/none.md"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range r.p.noteWindows() {
+		if !w.isClosed() {
+			t.Errorf("window %d is still open", w.id)
+		}
+	}
+	if torn := r.saved().Projects[path].Torn; len(torn) != 0 {
+		t.Errorf("still torn: %v", torn)
+	}
+	if _, err := r.s.TearOffAll(999, []string{"work/a.md"}); err == nil {
+		t.Error("a window that is no project's tore notes off")
+	}
+}
+
+func TestTileFillsRowsAndThenStepsOn(t *testing.T) {
+	a := Rect{X: 0, Y: 0, Width: 1600, Height: 1000}
+	got := tile(a, 9) // 4 across and 2 down fit; the ninth starts again, one step on
+	if len(got) != 9 {
+		t.Fatalf("%d slots", len(got))
+	}
+	if got[0].X != 56 || got[0].Y != 72 || got[4].Y != got[0].Y+NoteHeight+noteGap || got[3].X != got[0].X+3*(NoteWidth+noteGap) {
+		t.Errorf("rows: %+v", got[:5])
+	}
+	if got[8].X != got[0].X+noteCascade || got[8].Y != got[0].Y+noteCascade {
+		t.Errorf("the ninth at %+v", got[8])
+	}
+	if small := tile(Rect{Width: 200, Height: 200}, 2); small[0] != (Rect{X: -80, Y: -110, Width: NoteWidth, Height: NoteHeight}) || small[1].X != small[0].X+noteCascade {
+		t.Errorf("a screen smaller than a note: %+v", small)
 	}
 }

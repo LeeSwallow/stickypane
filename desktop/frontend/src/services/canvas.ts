@@ -48,6 +48,10 @@ export interface CanvasApi {
   place(places: Record<string, Place>): Promise<void>
   /** opens a note in a window of its own */
   tearOff(note: string): Promise<unknown>
+  /** opens each note given, a tab's, in a window of its own, side by side across the screen */
+  tearOffAll(notes: string[]): Promise<unknown>
+  /** puts the notes given back on their board */
+  putBackAll(notes: string[]): Promise<void>
   /** puts a torn-off note back on its board; from its own window, no name is its own */
   putBack(note?: string): Promise<void>
   /** onLayout calls fn when the window's layout changes outside it; it returns the way to stop */
@@ -71,6 +75,8 @@ export const canvasService: CanvasApi = {
   place: (places) => Call.ByName(canvas('Place'), places) as Promise<void>,
   resetPlaces: () => Call.ByName(canvas('ResetPlaces')) as Promise<void>,
   tearOff: (note) => Call.ByName(canvas('TearOff'), note),
+  tearOffAll: (notes) => Call.ByName(canvas('TearOffAll'), notes),
+  putBackAll: (notes) => Call.ByName(canvas('PutBackAll'), notes) as Promise<void>,
   putBack: (note = '') => Call.ByName(canvas('PutBack'), note) as Promise<void>,
   onLayout: (window, fn) => Events.On(canvasEvent(window), (e) => fn(layoutOf(e.data as Partial<Layout>))),
 }

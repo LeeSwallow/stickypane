@@ -9,7 +9,7 @@
   // overlay.json, never in the board's files.
   import { tr } from '../i18n'
   import type { Place } from '../services/canvas'
-  import { extent, firstPlaces, moved, raise, resized, samePlace, zoomed, type Edge } from './free'
+  import { extent, firstPlaces, moved, raise, resized, restack, samePlace, zoomed, type Edge } from './free'
   import { fitHeight } from './arrange'
   import { CARD_PX } from './layout'
   import type { Note } from './model'
@@ -49,12 +49,15 @@
     if (!Object.keys(f).length) return
     onplace(f)
     const names = notes.filter((n) => f[n.name] && !n.rows).map((n) => n.name)
-    if (names.length) requestAnimationFrame(() => requestAnimationFrame(() => fit(names)))
+    if (names.length) requestAnimationFrame(() => requestAnimationFrame(() => fit(f, names)))
   })
 
-  /** fit measures each note drawn at its natural height once and keeps that height. */
-  function fit(names: string[]) {
-    const out: Record<string, Place> = {}
+  /**
+   * fit measures each new note drawn at its natural height once and keeps
+   * that height; the new notes' rows then stack again on those heights.
+   */
+  function fit(f: Record<string, Place>, names: string[]) {
+    const heights: Record<string, number> = {}
     for (const name of names) {
       const el = layer?.querySelector<HTMLElement>(`[data-place="${CSS.escape(name)}"]`)
       const p = all[name]
@@ -63,9 +66,11 @@
       el.style.height = 'auto'
       const natural = el.offsetHeight
       el.style.height = was
-      const h = fitHeight(natural, p.h)
-      if (h !== p.h) out[name] = { ...p, h }
+      heights[name] = fitHeight(natural, p.h)
     }
+    // a new note moved or resized meanwhile keeps what it was given
+    const still = Object.fromEntries(Object.entries(f).filter(([n, p]) => samePlace(all[n], p)))
+    const out = restack(still, heights)
     if (Object.keys(out).length) onplace(out)
   }
 
