@@ -30,14 +30,15 @@ const (
 // ErrConnectionLost, a later call goes to the new process, and a
 // MethodRestarted notification says the board should be loaded again.
 type Client struct {
-	bin, project string
-	hello        Hello
-	notes        chan Notification
-	qmu          sync.Mutex
-	queue        []Notification // waiting for notes; the reader never waits for the consumer
-	wake         chan struct{}
-	quit         chan struct{}
-	wg           sync.WaitGroup // readers and the supervisor: the senders on notes
+	argv    []string // the program and its arguments
+	project string   // the folder it runs in; "" is the app's
+	hello   Hello
+	notes   chan Notification
+	qmu     sync.Mutex
+	queue   []Notification // waiting for notes; the reader never waits for the consumer
+	wake    chan struct{}
+	quit    chan struct{}
+	wg      sync.WaitGroup // readers and the supervisor: the senders on notes
 
 	mu       sync.Mutex
 	cur      *proc         // nil while a new bridge is being started
@@ -66,8 +67,23 @@ type proc struct {
 // Start runs `stickypane bridge` in the project folder and checks its
 // hello. The context ends the client as Close does.
 func Start(ctx context.Context, stickypane, project string) (*Client, error) {
+	return start(ctx, []string{stickypane, "bridge"}, project)
+}
+
+// StartArgv runs a command that speaks the bridge on its standard input
+// and output, such as ssh running `stickypane bridge` on another computer,
+// and checks its hello. What the command said on stderr ends any error of
+// its start: ssh's own words, when it could not connect.
+func StartArgv(ctx context.Context, argv []string) (*Client, error) {
+	if len(argv) == 0 {
+		return nil, errors.New("bridge: no command")
+	}
+	return start(ctx, append([]string(nil), argv...), "")
+}
+
+func start(ctx context.Context, argv []string, project string) (*Client, error) {
 	c := &Client{
-		bin:     stickypane,
+		argv:    argv,
 		project: project,
 		notes:   make(chan Notification, 16),
 		wake:    make(chan struct{}, 1),
@@ -170,7 +186,7 @@ func (c *Client) settle() {
 
 // launch starts one bridge and asks it hello.
 func (c *Client) launch(ctx context.Context) (*proc, Hello, error) {
-	cmd := exec.Command(c.bin, "bridge")
+	cmd := exec.Command(c.argv[0], c.argv[1:]...)
 	cmd.Dir = c.project
 	cmd.Env = os.Environ()
 	in, err := cmd.StdinPipe()
