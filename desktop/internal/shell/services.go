@@ -74,6 +74,28 @@ func (h *HomeService) SetAutostart(on bool) (AutostartState, error) { return h.S
 // About is the app's version and its stickypane's.
 func (h *HomeService) About() About { return h.S.About() }
 
+// Hosts are the computers whose boards open over ssh (remote.go).
+func (h *HomeService) Hosts() []Host { return h.S.Hosts() }
+
+// SaveHost adds a host (oldName "") or changes the one named oldName.
+func (h *HomeService) SaveHost(host Host, oldName string) error { return h.S.SaveHost(host, oldName) }
+
+// RemoveHost takes a host out of the list and closes its boards.
+func (h *HomeService) RemoveHost(name string) error { return h.S.RemoveHost(name) }
+
+// CheckHost asks a host's stickypane its version over ssh.
+func (h *HomeService) CheckHost(name string) HostCheck { return h.S.CheckHost(name) }
+
+// AddBoard and RemoveBoard change a host's boards: folders on the host.
+func (h *HomeService) AddBoard(name, path string) error    { return h.S.AddBoard(name, path) }
+func (h *HomeService) RemoveBoard(name, path string) error { return h.S.RemoveBoard(name, path) }
+
+// OpenRemote opens the window of a board on a host.
+func (h *HomeService) OpenRemote(name, path string) (uint, error) { return h.S.OpenRemote(name, path) }
+
+// SSHAliases are the hosts of the ssh config not in the list yet.
+func (h *HomeService) SSHAliases() []SSHAlias { return h.S.SSHAliases() }
+
 // The parameters of the bridge's methods (docs/desktop/10 §10.7), mirrored
 // from the main module's internal/surface/bridge, which this one cannot import.
 type (
