@@ -16,6 +16,7 @@ export type KeyAction =
   | { type: 'undo' }
   | { type: 'tidy' }
   | { type: 'tearAll' }
+  | { type: 'tearBoard' }
 
 export interface KeyLike {
   key: string
@@ -47,10 +48,10 @@ export const frameOf = (el: Element | null): string | null =>
 export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
   if (e.editing) return null
   if (e.altKey) {
-    // ⌥⌘L tidies the canvas (03 §3.6.2); ⌥⌘T puts each note of the tab in its own window
+    // ⌥⌘L tidies the canvas (03 §3.6.2); ⌥⌘T puts each note of the tab in its own window, ⇧⌥⌘T every tab's
     if (!e.metaKey || ctx.zoomed) return null
     if (e.code === 'KeyL') return { type: 'tidy' }
-    if (e.code === 'KeyT') return { type: 'tearAll' }
+    if (e.code === 'KeyT') return { type: e.shiftKey ? 'tearBoard' : 'tearAll' }
     return null
   }
   if (e.metaKey || e.ctrlKey) {

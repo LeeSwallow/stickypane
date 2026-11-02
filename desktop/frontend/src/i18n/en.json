@@ -420,6 +420,7 @@
   "board.tidy": "Tidy up",
   "board.tidied": "Tidied the notes.",
   "board.tearAll": "Tear off this tab's notes",
+  "board.tearBoard": "Tear off the whole board",
   "board.tornAll": "Opened {n} notes in their own windows.",
   "board.putBackAll": "Put them all back",
   "board.reset": "Reset layout…",

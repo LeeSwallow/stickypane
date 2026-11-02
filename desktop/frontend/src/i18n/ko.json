@@ -420,6 +420,7 @@
   "board.tidy": "정렬",
   "board.tidied": "노트를 정렬했어요.",
   "board.tearAll": "이 탭 노트 모두 떼어내기",
+  "board.tearBoard": "보드 전체 떼어내기",
   "board.tornAll": "노트 {n}장을 따로 띄웠어요.",
   "board.putBackAll": "모두 보드에 붙이기",
   "board.reset": "배치 초기화…",

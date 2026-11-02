@@ -34,6 +34,7 @@
     ontidy,
     onreset,
     ontearall,
+    ontearboard,
     onputbackall,
   }: {
     title: string
@@ -61,7 +62,9 @@
     onreset?: () => void
     /** ⋯ → every note of the tab in its own window */
     ontearall?: () => void
-    /** ⋯ → the tab's torn-off notes back on the board */
+    /** ⋯ → every note of every tab in its own window */
+    ontearboard?: () => void
+    /** ⋯ → every torn-off note back on the board */
     onputbackall?: () => void
   } = $props()
 
@@ -75,8 +78,9 @@
     ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
     ...(ontidy || onreset ? [{ kind: 'separator' as const, id: 'sep-layout' }] : []),
     ...(ontearall ? [{ id: 'tearAll', label: $tr('board.tearAll'), icon: 'tear-off' as const, shortcut: '⌥⌘T' }] : []),
+    ...(ontearboard ? [{ id: 'tearBoard', label: $tr('board.tearBoard'), icon: 'tear-off' as const, shortcut: '⇧⌥⌘T' }] : []),
     ...(onputbackall ? [{ id: 'putBackAll', label: $tr('board.putBackAll'), icon: 'restore' as const }] : []),
-    ...(ontearall || onputbackall ? [{ kind: 'separator' as const, id: 'sep-torn' }] : []),
+    ...(ontearall || ontearboard || onputbackall ? [{ kind: 'separator' as const, id: 'sep-torn' }] : []),
     { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
     { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
   ])
@@ -89,6 +93,7 @@
     else if (id === 'tidy') ontidy?.()
     else if (id === 'reset') onreset?.()
     else if (id === 'tearAll') ontearall?.()
+    else if (id === 'tearBoard') ontearboard?.()
     else if (id === 'putBackAll') onputbackall?.()
   }
 </script>

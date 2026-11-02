@@ -228,6 +228,8 @@
   }
 
   async function tear(name: string) {
+    // a zoomed note that goes to its own window leaves the board as it was
+    if (zoomed?.name === name) ctx.back()
     try {
       await api.tearOff(name)
     } catch (e) {
@@ -363,8 +365,12 @@
     tear: (name) => void tear(name),
   }
   /** tearTab opens every note the tab shows in a window of its own; 되돌리기 puts them back. */
-  async function tearTab() {
-    const names = open.map((n) => n.name)
+  const tearTab = () => tearOff(open.map((n) => n.name))
+
+  /** tearBoard does the same for every tab's open notes. */
+  const tearBoard = () => tearOff(board ? board.tabs.flatMap((x) => x.notes).filter((n) => n.open && !torn.has(n.name)).map((n) => n.name) : [])
+
+  async function tearOff(names: string[]) {
     if (!names.length) return
     try {
       await api.tearOffAll(names)
@@ -540,6 +546,9 @@
       case 'tearAll':
         void tearTab()
         break
+      case 'tearBoard':
+        void tearBoard()
+        break
       case 'undo':
         if (!lastTrashed) return
         void manage.restore(deps, lastTrashed)
@@ -656,7 +665,8 @@
     ontidy={status?.state === 'ready' && board && open.length ? tidyCanvas : undefined}
     onreset={status?.state === 'ready' && board ? () => void resetLayout() : undefined}
     ontearall={status?.state === 'ready' && board && open.length && !zoomed ? () => void tearTab() : undefined}
-    onputbackall={status?.state === 'ready' && tornHere.length ? () => void putBackAll(tornHere.map((n) => n.name)) : undefined}
+    ontearboard={status?.state === 'ready' && board && board.tabs.length > 1 && !zoomed ? () => void tearBoard() : undefined}
+    onputbackall={status?.state === 'ready' && torn.size ? () => void putBackAll([...torn]) : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
