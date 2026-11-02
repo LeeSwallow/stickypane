@@ -334,7 +334,7 @@
   "settings.nav.about": "정보",
   "settings.board.where": "이 보드의 sticky.json에 저장돼요. 터미널 보드도 같이 바뀌어요.",
   "settings.board.none": "고를 보드가 없어요",
-  "settings.board.noneHint": "보드 창에서 설정을 열면(⌘,) 그 보드를 바꿀 수 있어요. 이 컴퓨터·터미널·정보는 여기서 바꿀 수 있어요.",
+  "settings.board.noneHint": "보드 창에서 설정을 열면(⌘,) 그 보드를 바꿀 수 있어요. 나머지 항목은 여기서 바꿀 수 있어요.",
   "settings.board.loading": "보드를 읽고 있어요…",
   "settings.theme.hint": "카드마다 그 테마의 진짜 색이에요. 밝게·어둡게는 이 컴퓨터에서 정해요.",
   "settings.theme.pair": "{dark} · {light}",

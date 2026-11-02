@@ -334,7 +334,7 @@
   "settings.nav.about": "About",
   "settings.board.where": "Saved in this board's sticky.json — the terminal board sees it too.",
   "settings.board.none": "No board here",
-  "settings.board.noneHint": "Open settings from a board's window (⌘,) to change that board. This computer, Terminal and About can be changed here.",
+  "settings.board.noneHint": "Open settings from a board's window (⌘,) to change that board. The other sections work from here.",
   "settings.board.loading": "Reading the board…",
   "settings.theme.hint": "Each card is drawn in that theme's own colours. Set light or dark in This computer.",
   "settings.theme.pair": "{dark} and {light}",
