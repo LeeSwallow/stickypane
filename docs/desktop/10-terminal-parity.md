@@ -89,7 +89,7 @@
 
 앱의 설정 창(`⌘,`, ⋯ → 설정…)은 자기 창이고 묶음이 넷이다([03 §3.12](03-design-system.md#312-설정-창)): **보드 · 이 컴퓨터 · 터미널과 에이전트 · 정보**. 묶음은 왼쪽 세로 목록에서 화살표·Home·End로 옮기고, Tab으로 내용에 들어간다. "보드"(테마·스타일·보드 언어·열리는 곳)는 아래처럼 `sticky.json`에, "이 컴퓨터"(앱 언어, 모드 시스템·다크·라이트, 움직임 시스템·줄이기·끄기, 단축키)는 `~/.stickypane/overlay.json`에 쓴다. "터미널 명령 설치"·"에이전트 연결"은 #22에서 채운다.
 
-설정은 모두 루트 `sticky.json`에 쓰여 터미널과 앱이 같은 값을 본다. bridge: `settings.get`(`time`·`editor`·`stale`도 읽는다) / `settings.set {theme|language|style|view}`. **미구현**: `settings.set`의 `time`·`editor`·`stale`(지금은 터미널 `S`나 `stickypane config`로만 바꾼다).
+설정은 모두 루트 `sticky.json`에 쓰여 터미널과 앱이 같은 값을 본다. bridge: `settings.get`(`time`·`editor`·`stale`·`columns`도 읽는다) / `settings.set {theme|language|style|view|columns}`. **미구현**: `settings.set`의 `time`·`editor`·`stale`(지금은 터미널 `S`나 `stickypane config`로만 바꾼다).
 
 ## 10.6 마우스 · 알림
 
