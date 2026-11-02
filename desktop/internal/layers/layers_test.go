@@ -40,6 +40,7 @@ var rank = map[string]int{
 	"internal/index/procs":      30,
 	"internal/bridgeclient":     30,
 	"internal/install/osys":     30,
+	"internal/sshconfig":        30,
 	// Wiring of the index's parts.
 	"internal/index": 40,
 	// Screen: the Wails shell and the program.
