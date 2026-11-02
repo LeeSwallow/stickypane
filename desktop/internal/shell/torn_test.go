@@ -134,7 +134,7 @@ func TestTearOffOpensANoteWindowOnTop(t *testing.T) {
 		t.Fatalf("note windows %v, id %d", ws, nid)
 	}
 	w := ws[0]
-	if w.opts.URL != "/?window=note&note=work%2Fa.md" || !w.opts.Frameless || !w.opts.Placed || !w.pinned() || w.opts.Title != "a" {
+	if w.opts.URL != "/?window=note&note=work%2Fa.md&fit=1" || !w.opts.Frameless || !w.opts.Placed || !w.pinned() || w.opts.Title != "a" {
 		t.Errorf("options %+v pinned %v", w.opts, w.pinned())
 	}
 	// the middle of a 1600x1000 work area that starts 25 down

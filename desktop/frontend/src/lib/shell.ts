@@ -23,6 +23,9 @@ export function windowKind(search: string): WindowKind {
 /** noteOf is the note a torn-off note's window was opened on. */
 export const noteOf = (search: string): string => new URLSearchParams(search).get('note') ?? ''
 
+/** fitsOf: the window opens for the first time, and takes the height of its note. */
+export const fitsOf = (search: string): boolean => new URLSearchParams(search).has('fit')
+
 // The Wails events a project window listens to, by its window id.
 export const changedEvent = (id: number) => `board.changed:${id}`
 export const restartedEvent = (id: number) => `bridge.restarted:${id}`

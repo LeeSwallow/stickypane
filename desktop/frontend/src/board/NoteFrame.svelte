@@ -184,7 +184,8 @@
   onfocusin={() => board.seen(shown.name)}
   onpointerenter={() => board.seen(shown.name)}
 >
-  <NoteFrame {color} id={note.name}>
+  <!-- a torn-off note's window bar is its tape: one strip, not two -->
+  <NoteFrame {color} id={note.name} taped={titled}>
     <NoteHeader
       title={note.title}
       {color}

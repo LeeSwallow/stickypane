@@ -34,9 +34,14 @@ func CanvasEvent(window uint) string {
 	return "canvas.changed:" + strconv.FormatUint(uint64(window), 10)
 }
 
-// NoteURL is the page of a torn-off note's window.
-func NoteURL(note string) string {
-	return "/?window=note&note=" + url.QueryEscape(note)
+// NoteURL is the page of a torn-off note's window; fit asks it to take
+// its note's height, the first time it opens.
+func NoteURL(note string, fit bool) string {
+	u := "/?window=note&note=" + url.QueryEscape(note)
+	if fit {
+		u += "&fit=1"
+	}
+	return u
 }
 
 // tornWin is one torn-off note's window.
@@ -321,7 +326,7 @@ func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, at Rect) uint {
 		Kind:      KindNote,
 		Name:      "note:" + tw.p.path + "#" + tw.note,
 		Title:     strings.TrimSuffix(path.Base(tw.note), ".md"),
-		URL:       NoteURL(tw.note),
+		URL:       NoteURL(tw.note, !f.Placed()),
 		Bounds:    b,
 		Placed:    true,
 		Frameless: true,

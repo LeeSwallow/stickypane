@@ -13,14 +13,15 @@
     id = 'note',
     tape = '50%',
     lean = false,
+    taped = true,
     children,
-  }: { color: string; id?: string; tape?: string; lean?: boolean; children?: Snippet } = $props()
+  }: { color: string; id?: string; tape?: string; lean?: boolean; taped?: boolean; children?: Snippet } = $props()
   const seed = $derived(seedOf(id))
   const tilt = $derived(lean ? tiltOf(seed, look.style) : 0)
 </script>
 
 <div class="note" style:transform="rotate({tilt}deg)">
-  <Tape left={tape} />
+  {#if taped}<Tape left={tape} />{/if}
   <RoughBox stroke={color} {seed} strokeWidth={STROKE.note} roughness={ROUGH.note} />
   <div class="body">{@render children?.()}</div>
 </div>

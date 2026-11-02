@@ -96,6 +96,29 @@ export function firstPlaces(all: Placeable[], places: Record<string, Place>, wid
   return out
 }
 
+/**
+ * restack lays the rows of notes placed for the first time again once
+ * their heights are known: a row stays a row, and each starts below the
+ * tallest note of the one before (a form that grew to what it holds does
+ * not lie over the note under it). It returns only the places that change.
+ */
+export function restack(fresh: Record<string, Place>, heights: Record<string, number>): Record<string, Place> {
+  const tops = [...new Set(Object.values(fresh).map((p) => p.y))].sort((a, b) => a - b)
+  const out: Record<string, Place> = {}
+  let top = tops[0] ?? 0
+  for (const y of tops) {
+    let tallest = 0
+    for (const [name, p] of Object.entries(fresh)) {
+      if (p.y !== y) continue
+      const h = heights[name] ?? p.h
+      tallest = Math.max(tallest, h)
+      if (h !== p.h || top !== p.y) out[name] = { ...p, y: top, h }
+    }
+    top += tallest + ROW_GAP
+  }
+  return out
+}
+
 /** raise puts a note on top of the stack; null when it is already there. */
 export function raise(places: Record<string, Place>, name: string): Place | null {
   const p = places[name]
