@@ -1121,7 +1121,7 @@ func (s *Shell) Launch(args []string, dir string) {
 		s.ShowHome()
 		return
 	}
-	if !filepath.IsAbs(path) && dir != "" {
+	if !filepath.IsAbs(path) && !remote.IsRemote(path) && dir != "" {
 		path = filepath.Join(dir, path)
 	}
 	s.OpenProject(path)

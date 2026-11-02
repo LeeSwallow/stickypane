@@ -331,6 +331,21 @@ func TestSSHAliasesLeaveOutHostsInTheList(t *testing.T) {
 	}
 }
 
+// A second launch with --project=ssh://... opens the remote board, not a
+// folder of that name under the launch's folder.
+func TestLaunchOpensARemoteKey(t *testing.T) {
+	f := &sshFake{}
+	r := remoteRig(t, f, devHost)
+	f.start = func([]string) (Board, error) { return r.board, nil }
+	r.s.Launch([]string{"app", "--project=ssh://dev/home/min/my app"}, "/Users/min")
+	waitFor(t, "a window", func() bool { return len(r.p.projectWindows()) == 1 })
+	id := r.p.projectWindows()[0].ID()
+	waitFor(t, "ready", func() bool { return r.s.Status(id).State == StateReady })
+	if p := r.s.Status(id).Path; p != "ssh://dev/home/min/my app" {
+		t.Errorf("opened %q", p)
+	}
+}
+
 func TestCleanPathLeavesRemoteKeysAlone(t *testing.T) {
 	if got := cleanPath("ssh://dev/srv/app/"); got != "ssh://dev/srv/app" {
 		t.Errorf("cleanPath = %q", got)
