@@ -104,6 +104,15 @@
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>
       {$tr('create.new')}
     </Button>
+    {#if ontearboard || onputbackall}
+      <IconButton
+        icon={ontearboard ? 'tear-off' : 'restore'}
+        label={ontearboard ? $tr('board.tearEverything') : $tr('board.putBackAll')}
+        shortcut={ontearboard ? '⇧⌥⌘T' : undefined}
+        align="end"
+        onclick={() => (ontearboard ? ontearboard() : onputbackall?.())}
+      />
+    {/if}
     <IconButton
       icon="pin"
       label={pinned ? $tr('window.unpin') : $tr('window.pin')}

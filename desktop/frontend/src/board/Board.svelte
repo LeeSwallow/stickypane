@@ -368,7 +368,8 @@
   const tearTab = () => tearOff(open.map((n) => n.name))
 
   /** tearBoard does the same for every tab's open notes. */
-  const tearBoard = () => tearOff(board ? board.tabs.flatMap((x) => x.notes).filter((n) => n.open && !torn.has(n.name)).map((n) => n.name) : [])
+  const boardOpen = $derived(board ? board.tabs.flatMap((x) => x.notes).filter((n) => n.open && !torn.has(n.name)) : [])
+  const tearBoard = () => tearOff(boardOpen.map((n) => n.name))
 
   async function tearOff(names: string[]) {
     if (!names.length) return
@@ -665,7 +666,7 @@
     ontidy={status?.state === 'ready' && board && open.length ? tidyCanvas : undefined}
     onreset={status?.state === 'ready' && board ? () => void resetLayout() : undefined}
     ontearall={status?.state === 'ready' && board && open.length && !zoomed ? () => void tearTab() : undefined}
-    ontearboard={status?.state === 'ready' && board && board.tabs.length > 1 && !zoomed ? () => void tearBoard() : undefined}
+    ontearboard={status?.state === 'ready' && board && boardOpen.length && !zoomed ? () => void tearBoard() : undefined}
     onputbackall={status?.state === 'ready' && torn.size ? () => void putBackAll([...torn]) : undefined}
   />
   {#if status?.state === 'ready' && board}
