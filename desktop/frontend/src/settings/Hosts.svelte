@@ -215,8 +215,9 @@
 
 {#if failed}<p class="err" role="alert">{failed}</p>{/if}
 
+{#if removing}
 <Confirm
-  open={removing !== ''}
+  open
   title={$tr('settings.hosts.remove') + ' — ' + removing}
   confirmLabel={$tr('settings.hosts.remove')}
   cancelLabel={$tr('settings.hosts.cancel')}
@@ -228,6 +229,7 @@
   }}
   oncancel={() => (removing = '')}
 />
+{/if}
 
 <style>
   .none {
