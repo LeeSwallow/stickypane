@@ -70,7 +70,8 @@ Usage:
                          through their own commands; asks in a terminal
   stickypane config [key [value]]  list the settings with their values, print
                          one, or change one: theme, language, time, editor,
-                         stale. Each has a default; S on the board shows them
+                         stale, columns. Each has a default; S on the board
+                         shows them
   stickypane theme [name]  list the themes, or choose one ("auto" follows the
                          terminal's background)
   stickypane language [code]  list the languages of the screen, or choose one

@@ -8,6 +8,8 @@
 //           with the size); the bottom border takes the height (rows); a
 //           double-click on it puts the height back (rows 0); a drag still
 //           follows the mouse where pointer capture is refused
+//   order   a note carried by its grip reflows the rows while held and sends
+//           board.order once on release; J moves the focused note a row
 //   canvas  the right, bottom and corner of a leaning note, pressed on its
 //           drawn border, resize it live and keep the place; the handles
 //           show on hover, are at least 8px across and have resize cursors
@@ -177,6 +179,45 @@ async function gridWidth(page, label) {
   await page.close()
 }
 
+// --- grid order ----------------------------------------------------------------
+// a note carried by its grip onto another place: the rows reflow while it
+// is held, and board.order is sent once, when it is let go; J moves the
+// focused note a row down
+const slotOrder = (page) => page.evaluate(() => [...document.querySelectorAll('[data-slot]')].map((s) => s.dataset.slot))
+const gripOf = (page, name) =>
+  page.evaluate((name) => {
+    const r = document.querySelector(`[data-slot="${name}"] [data-grip]`).getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  }, name)
+const centreOf = (page, name) =>
+  page.evaluate((name) => {
+    const r = document.querySelector(`[data-slot="${name}"]`).getBoundingClientRect()
+    return { x: r.left + r.width * 0.75, y: r.top + 40 }
+  }, name)
+{
+  const page = await open('board')
+  const before = await slotOrder(page)
+  const [first, , third] = before
+  const from = await gripOf(page, first)
+  const to = await centreOf(page, third)
+  await calls(page)
+  const mid = await drag(page, from.x, from.y, to.x - from.x, to.y - from.y, () => slotOrder(page))
+  const sent = (await calls(page)).filter((c) => c.method === 'order')
+  check(mid.indexOf(first) > mid.indexOf(third), `grid order: the rows do not reflow while a note is carried (${before} -> ${mid})`)
+  check(sent.length === 1 && sent[0].params.names.indexOf(first) > sent[0].params.names.indexOf(third), `grid order: board.order was not sent once with the new order (${JSON.stringify(sent)})`)
+  const lifted = await page.evaluate(() => document.querySelectorAll('.lifted').length)
+  check(lifted === 0, 'grid order: the carried note stays marked after it was let go')
+
+  await page.mouse.click(5, 5)
+  await page.focus(`[data-frame="${(await slotOrder(page))[0]}"]`)
+  await calls(page)
+  await page.keyboard.press('Shift+J')
+  await page.waitForTimeout(200)
+  const row = (await calls(page)).filter((c) => c.method === 'order')
+  check(row.length === 1, `grid order: J did not move the note a row down (${JSON.stringify(row)})`)
+  await page.close()
+}
+
 // --- canvas ------------------------------------------------------------------
 // a point on the drawn border of a placed note, which leans by --tilt
 // around its centre: its right side (e), its bottom (s) or the corner (se)
@@ -273,4 +314,4 @@ if (failures.length) {
   console.error(`e2e resize (${engine}): ${failures.length} failed, ${passed} passed`)
   process.exit(1)
 }
-console.log(`e2e resize (${engine}): ok, ${passed} checks (grid edges, canvas handles, errors told)`)
+console.log(`e2e resize (${engine}): ok, ${passed} checks (grid edges, grid order, canvas handles, errors told)`)

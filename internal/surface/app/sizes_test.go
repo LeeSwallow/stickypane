@@ -29,7 +29,7 @@ func rectsOf(t *testing.T, m *Model, names ...string) []layout.Rect {
 func TestTwoNotesKeepTheirSizes(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened(numbered(3)), "b.md": opened(numbered(20))})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/3","rows":6},"b.md":{"size":"1/2"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/3","rows":6},"b.md":{"size":"1/2"}}}`)
 	m.Update(tea.WindowSizeMsg{Width: 160, Height: 48})
 	m.reload()
 	m.relayout()
@@ -41,7 +41,7 @@ func TestTwoNotesKeepTheirSizes(t *testing.T) {
 	}
 	// Shrinking a note makes it smaller, with the other note beside it.
 	press(m, "shift+down")
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/4","rows":5},"b.md":{"size":"1/2"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/4","rows":5},"b.md":{"size":"1/2"}}}`)
 	m.reload()
 	m.relayout()
 	want = []layout.Rect{{X: 0, Y: 0, W: 40, H: 7}, {X: 40, Y: 0, W: 80, H: 22}}
@@ -57,7 +57,7 @@ func TestManyNotesKeepTheirSizes(t *testing.T) {
 		files[n+".md"] = opened(numbered(4))
 	}
 	m, dir := newModel(t, files)
-	writeView(t, dir, `{"notes":{
+	writeView(t, dir, `{"columns":"auto","notes":{
 		"a.md":{"size":"1/4","rows":3},"b.md":{"size":"1/4","rows":8},"c.md":{"size":"1/3"},
 		"d.md":{"size":"1/2","rows":2},"e.md":{"size":"1/3"}}}`)
 	m.Update(tea.WindowSizeMsg{Width: 160, Height: 48})
@@ -93,7 +93,7 @@ func TestNotesThatDoNotFitAreSqueezedNotCut(t *testing.T) {
 func TestADragThroughTheTerminalResizesANote(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened(numbered(12))})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2","rows":8},"b.md":{"size":"1/2"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/2","rows":8},"b.md":{"size":"1/2"}}}`)
 	m.reload()
 	m.relayout()
 	right, _ := edges(t, m, "a.md")

@@ -8,6 +8,7 @@ export type KeyAction =
   | { type: 'tab'; index: number }
   | { type: 'focus'; delta: -1 | 1 }
   | { type: 'order'; delta: -1 | 1 }
+  | { type: 'row'; delta: -1 | 1 }
   | { type: 'edit' }
   | { type: 'create' }
   | { type: 'settings' }
@@ -81,10 +82,17 @@ export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
       return { type: 'focus', delta: -1 }
     case 'ArrowDown':
       return { type: 'focus', delta: 1 }
+    // H L (and { }) move the note a place, K J a row (the terminal's keys)
     case '{':
+    case 'H':
       return { type: 'order', delta: -1 }
     case '}':
+    case 'L':
       return { type: 'order', delta: 1 }
+    case 'K':
+      return { type: 'row', delta: -1 }
+    case 'J':
+      return { type: 'row', delta: 1 }
     case 'e':
     case 'E':
       return { type: 'edit' }

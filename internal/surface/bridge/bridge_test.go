@@ -275,10 +275,11 @@ type loadedBoard struct {
 			Choice   string `json:"choice"`
 			Resolved string `json:"resolved"`
 		} `json:"language"`
-		Tab    string `json:"tab"`
-		Time   string `json:"time"`
-		Editor string `json:"editor"`
-		Stale  string `json:"stale"`
+		Tab     string `json:"tab"`
+		Time    string `json:"time"`
+		Editor  string `json:"editor"`
+		Stale   string `json:"stale"`
+		Columns string `json:"columns"`
 	} `json:"settings"`
 	Palette map[string]json.RawMessage `json:"palette"`
 }
@@ -565,6 +566,11 @@ func TestBridgeSetsSettings(t *testing.T) {
 	if b.Settings.Language.Choice != "auto" || b.Settings.Language.Resolved != "en" {
 		t.Errorf("language after auto: %+v", b.Settings.Language)
 	}
+	s.ok("settings.set", map[string]any{"columns": "4"}, nil)
+	s.ok("board.load", nil, &b)
+	if b.Settings.Columns != "4" || store.Open(dir).Settings().Root("columns") != "4" {
+		t.Errorf("columns: %q", b.Settings.Columns)
+	}
 }
 
 // What settings.set says of a value it refuses is pinned: the desktop app
@@ -583,7 +589,8 @@ func TestBridgeRefusesSettingsInItsOwnWords(t *testing.T) {
 		{map[string]any{"view": "hologram"}, `view "hologram" is not terminal, overlay or both`},
 		{map[string]any{"language": "tlh"}, `there is no translation for "tlh": use auto, ` + langs},
 		{map[string]any{"theme": "nord", "view": "hologram"}, `view "hologram" is not terminal, overlay or both`},
-		{map[string]any{}, "settings.set needs theme, style, view or language"},
+		{map[string]any{"columns": "5"}, `columns is one of 3, 4, 1, 2, not "5"`},
+		{map[string]any{}, "settings.set needs theme, style, view, language or columns"},
 	} {
 		r := s.call("settings.set", c.params)
 		if r.code != CodeBadRequest || r.msg != c.says {

@@ -130,5 +130,6 @@ type (
 		Style    *string `json:"style"`
 		View     *string `json:"view"`
 		Language *string `json:"language"`
+		Columns  *string `json:"columns"`
 	}
 )

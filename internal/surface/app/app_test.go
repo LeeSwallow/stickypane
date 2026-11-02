@@ -408,6 +408,8 @@ func TestTheBottomLineAlwaysOffersHelp(t *testing.T) {
 func TestSizeKeysWriteTheSize(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n")})
+	writeView(t, dir, `{"columns":"auto"}`)
+	m.reload()
 	// A one-line note is a card, which is 1/2 on 80 cells.
 	steps := []struct{ key, size string }{
 		{"+", "2/3"}, {"+", "3/4"}, {"=", "1"}, {"+", "1"},
@@ -424,7 +426,7 @@ func TestSizeKeysWriteTheSize(t *testing.T) {
 func TestAnOldSizeNameIsRewrittenAsAFractionWhenItChanges(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"half"},"b.md":{"size":"page"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"half"},"b.md":{"size":"page"}}}`)
 	m.reload()
 	m.relayout()
 	if p, _ := m.paneOf("a.md"); p.rect.W != 40 {
@@ -448,7 +450,7 @@ func TestQuarterNotesShareARow(t *testing.T) {
 		files[n+".md"] = opened(n + " note\n")
 	}
 	m, dir := newModel(t, files)
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/4"},"b.md":{"size":"1/4"},"c.md":{"size":"1/4"},"d.md":{"size":"1/4"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/4"},"b.md":{"size":"1/4"},"c.md":{"size":"1/4"},"d.md":{"size":"1/4"}}}`)
 	m.reload()
 	m.relayout()
 	for _, n := range []string{"a", "b", "c", "d"} {
@@ -461,7 +463,10 @@ func TestQuarterNotesShareARow(t *testing.T) {
 func TestSizesDecideTheLayout(t *testing.T) {
 	t.Parallel()
 	second := strings.Replace(checklistFile, "Release", "Second", 1)
-	m, _ := newModel(t, map[string]string{"1.md": checklistFile, "2.md": second, "3.md": boardFile})
+	m, dir := newModel(t, map[string]string{"1.md": checklistFile, "2.md": second, "3.md": boardFile})
+	writeView(t, dir, `{"columns":"auto"}`)
+	m.reload()
+	m.relayout()
 	// frameTop reports whether line is the top border of a frame naming every title.
 	frameTop := func(line string, titles ...string) bool {
 		if !strings.ContainsAny(line, "╭╔") {

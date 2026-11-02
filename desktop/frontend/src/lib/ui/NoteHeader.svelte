@@ -25,6 +25,7 @@
     summary,
     updated = false,
     size = '1/2',
+    steps = FRACTIONS,
     pinned = false,
     book,
     linked,
@@ -47,6 +48,8 @@
     updated?: boolean
     /** the fraction of the board the note is at */
     size?: string
+    /** the widths the steps go through, narrowest first: the fractions, or on a board of columns k/n */
+    steps?: readonly Fraction[]
     pinned?: boolean
     /** a book: its page (1-based), its count, and the names of its pages for a list */
     book?: { page: number; total: number; onprev: () => void; onnext: () => void; names?: string[]; onpage?: (i: number) => void }
@@ -70,8 +73,9 @@
   } = $props()
 
   const ink = $derived(look.palette ? noteTitleColor(color, look.palette, look.dark) : color)
-  const at = $derived(FRACTIONS.indexOf(size as Fraction))
-  const step = (dir: -1 | 1) => onsize?.(nextFraction(size, dir))
+  const at = $derived(steps.indexOf(size as Fraction))
+  const nextOf = (dir: -1 | 1): Fraction => (at < 0 ? nextFraction(size, dir) : steps[Math.max(0, Math.min(steps.length - 1, at + dir))])
+  const step = (dir: -1 | 1) => onsize?.(nextOf(dir))
   // the width as it is read: "1/2", or "Full" for the whole board; and in
   // words for the tooltip and the ear: "1/2 of the board"
   const fraction = (f: string) => (f === '1' || !isFraction(f) ? $tr('ui.size.full') : f)
@@ -163,7 +167,7 @@
               <IconButton
                 icon="narrower"
                 size="sm"
-                label={at === 0 ? $tr('ui.size.narrower') : $tr('ui.size.narrowerTo', { size: words(nextFraction(size, -1)) })}
+                label={at === 0 ? $tr('ui.size.narrower') : $tr('ui.size.narrowerTo', { size: words(nextOf(-1)) })}
                 shortcut="-"
                 disabled={at === 0}
                 onclick={() => step(-1)}
@@ -176,9 +180,9 @@
               <IconButton
                 icon="wider"
                 size="sm"
-                label={at === FRACTIONS.length - 1 ? $tr('ui.size.wider') : $tr('ui.size.widerTo', { size: words(nextFraction(size, 1)) })}
+                label={at === steps.length - 1 ? $tr('ui.size.wider') : $tr('ui.size.widerTo', { size: words(nextOf(1)) })}
                 shortcut="="
-                disabled={at === FRACTIONS.length - 1}
+                disabled={at === steps.length - 1}
                 onclick={() => step(1)}
               />
             </span>

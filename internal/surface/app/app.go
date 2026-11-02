@@ -15,6 +15,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
+	"github.com/LeeSwallow/stickypane/internal/core/layout"
 	"github.com/LeeSwallow/stickypane/internal/core/theme"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 	"github.com/LeeSwallow/stickypane/internal/surface/editor"
@@ -116,7 +117,8 @@ type Model struct {
 	env   widget.Env   // what every widget is parsed with: the clock, words and styles
 	tr    i18n.Strings // what the screen says, in the language in use
 
-	editor string // settings.go: the editor the settings chose for E; "auto" leaves it to the environment
+	editor  string // settings.go: the editor the settings chose for E; "auto" leaves it to the environment
+	columns int    // settings.go: the columns the board has; 0 for as many as the sizes fit
 
 	theme       *theme.Holder // the theme in use, shared with the Markdown renderer
 	dark        bool          // what the terminal said about its background
@@ -170,6 +172,7 @@ type layoutState struct {
 	bar           []string         // the title bar, one or more lines
 	tabs          []hit            // mouse.go: where each note's title is in the bar
 	panes         []pane           // the open notes, each in its place
+	cells         []layout.Cell    // where each open note is across the screen, in the order of panes
 	screen        int              // which screen of panes is shown
 	screens       int              // how many screens the open notes take
 	offsets       map[string]int   // how far the user scrolled inside a note, by file name
