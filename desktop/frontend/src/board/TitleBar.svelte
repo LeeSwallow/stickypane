@@ -33,6 +33,8 @@
     onsnap,
     ontidy,
     onreset,
+    ontearall,
+    onputbackall,
   }: {
     title: string
     path: string
@@ -57,6 +59,10 @@
     ontidy?: () => void
     /** ⋯ → 배치 초기화 */
     onreset?: () => void
+    /** ⋯ → every note of the tab in its own window */
+    ontearall?: () => void
+    /** ⋯ → the tab's torn-off notes back on the board */
+    onputbackall?: () => void
   } = $props()
 
   const views = $derived([
@@ -68,6 +74,9 @@
     ...(onreset ? [{ id: 'reset', label: $tr('board.reset'), icon: 'restore' as const }] : []),
     ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
     ...(ontidy || onreset ? [{ kind: 'separator' as const, id: 'sep-layout' }] : []),
+    ...(ontearall ? [{ id: 'tearAll', label: $tr('board.tearAll'), icon: 'tear-off' as const, shortcut: '⌥⌘T' }] : []),
+    ...(onputbackall ? [{ id: 'putBackAll', label: $tr('board.putBackAll'), icon: 'restore' as const }] : []),
+    ...(ontearall || onputbackall ? [{ kind: 'separator' as const, id: 'sep-torn' }] : []),
     { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
     { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
   ])
@@ -79,6 +88,8 @@
     else if (id === 'snap') onsnap?.(!snap)
     else if (id === 'tidy') ontidy?.()
     else if (id === 'reset') onreset?.()
+    else if (id === 'tearAll') ontearall?.()
+    else if (id === 'putBackAll') onputbackall?.()
   }
 </script>
 

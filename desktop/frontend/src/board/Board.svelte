@@ -362,6 +362,28 @@
     manage: manageNote,
     tear: (name) => void tear(name),
   }
+  /** tearTab opens every note the tab shows in a window of its own; 되돌리기 puts them back. */
+  async function tearTab() {
+    const names = open.map((n) => n.name)
+    if (!names.length) return
+    try {
+      await api.tearOffAll(names)
+      notice = { message: t('board.tornAll', { n: names.length }), action: { label: t('home.undo'), run: () => void putBackAll(names) } }
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
+  }
+
+  async function putBackAll(names: string[]) {
+    try {
+      await api.putBackAll(names)
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
+  }
+
   setContext(boardContext, ctx)
 
   // --- tidying the layout (03 §3.6.2) --------------------------------------
@@ -455,6 +477,12 @@
     const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
     const book = !!note?.pages?.length
+    // ⌥⌘T: every note of the tab in its own window
+    if (e.altKey && e.metaKey && e.code === 'KeyT' && !editing) {
+      e.preventDefault()
+      void tearTab()
+      return
+    }
     // ⌥⌘L: tidy the canvas (03 §3.6.2)
     if (e.altKey && e.metaKey && e.code === 'KeyL' && !editing) {
       e.preventDefault()
@@ -633,6 +661,8 @@
     onsnap={status?.state === 'ready' && board ? setSnap : undefined}
     ontidy={status?.state === 'ready' && board && open.length ? tidyCanvas : undefined}
     onreset={status?.state === 'ready' && board ? () => void resetLayout() : undefined}
+    ontearall={status?.state === 'ready' && board && open.length && !zoomed ? () => void tearTab() : undefined}
+    onputbackall={status?.state === 'ready' && tornHere.length ? () => void putBackAll(tornHere.map((n) => n.name)) : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -673,6 +703,9 @@
             {#each tornHere as n (n.name)}
               <Button size="sm" variant="secondary" icon="restore" title={$tr('note.putBack')} onclick={() => putBack(n.name)}>{n.title || n.name}</Button>
             {/each}
+            {#if tornHere.length > 1}
+              <Button size="sm" variant="ghost" onclick={() => putBackAll(tornHere.map((n) => n.name))}>{$tr('board.putBackAll')}</Button>
+            {/if}
           </div>
         {/if}
         {#if layout.mode === 'canvas' && layoutRead}
