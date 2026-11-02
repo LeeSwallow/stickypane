@@ -104,12 +104,12 @@ func TestOpenRemoteRunsTheBridgeOverSSH(t *testing.T) {
 
 func TestARemoteBoardThatCannotConnectSaysWhatSSHSaid(t *testing.T) {
 	f := &sshFake{start: func([]string) (Board, error) {
-		return nil, errors.New("bridge: hello: connection lost: ssh: Could not resolve hostname dev.lan")
+		return nil, errors.New("bridge: hello: bridge: connection lost: ssh: Could not resolve hostname dev.lan")
 	}}
 	r := remoteRig(t, f, devHost)
 	id, _ := r.s.OpenRemote("dev", "/home/min/my app")
 	waitFor(t, "failed", func() bool { return r.s.Status(id).State == StateFailed })
-	if e := r.s.Status(id).Error; !strings.Contains(e, "Could not resolve hostname") {
+	if e := r.s.Status(id).Error; e != "ssh: Could not resolve hostname dev.lan" {
 		t.Errorf("error %q", e)
 	}
 }

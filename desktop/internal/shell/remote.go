@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/remote"
 	"github.com/LeeSwallow/stickypane/desktop/internal/sshconfig"
 )
@@ -135,7 +136,21 @@ func (s *Shell) connectRemote(ctx context.Context, p *project) (Board, error) {
 	if !ok {
 		return nil, fmt.Errorf("no host %q in the app's hosts", h.Name)
 	}
-	return s.cfg.StartArgv(ctx, s.ssh().Bridge(h, dir))
+	b, err := s.cfg.StartArgv(ctx, s.ssh().Bridge(h, dir))
+	if err != nil {
+		return nil, errors.New(sshSaid(err))
+	}
+	return b, nil
+}
+
+// sshSaid is a failed start in ssh's words: when ssh ended before the
+// bridge said hello, what it wrote on stderr is the whole story.
+func sshSaid(err error) string {
+	s := err.Error()
+	if rest, ok := strings.CutPrefix(s, "bridge: hello: "+bridgeclient.ErrConnectionLost.Error()+": "); ok && rest != "" {
+		return rest
+	}
+	return s
 }
 
 // Hosts is the host list.
