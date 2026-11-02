@@ -60,6 +60,7 @@
   .hint {
     margin: 2px 0 0;
     max-width: 52ch;
+    overflow-wrap: anywhere;
     color: var(--ink-2);
     font: var(--weight-body-sm) var(--text-body-sm) / var(--leading-body-sm) var(--font-body);
   }

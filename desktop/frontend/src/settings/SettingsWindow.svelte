@@ -280,7 +280,7 @@
                   </div>
                 {:else}
                   <Row label={$tr('settings.theme')} hint={$tr('settings.theme.hint')} stack>
-                    <CardGroup label={$tr('settings.theme')} min={100}>
+                    <CardGroup label={$tr('settings.theme')} min={124}>
                       <ChoiceCard label={$tr('settings.theme.auto')} sub="auto" checked={theme === 'auto'} onpick={() => setBoard({ theme: 'auto' })}>
                         {#snippet picture()}
                           <span class="pair"><Swatch palette={STICKYPANE_DARK} style={look.style} width={50} height={40} seed="auto-d" /><Swatch palette={STICKYPANE_LIGHT} style={look.style} width={50} height={40} seed="auto-l" /></span>
