@@ -49,6 +49,10 @@ type State struct {
 	// Boards are what each board looked like when this computer last
 	// opened it, for the home's cards (peek.go), by project path.
 	Boards map[string]BoardPeek `json:"boards,omitempty"`
+	// Hosts are the computers whose boards open over ssh (remote.go),
+	// each with its boards' folders there. A remote board's key in the
+	// maps above is ssh://<host><path>.
+	Hosts []Host `json:"hosts,omitempty"`
 }
 
 // LoadState reads the state file; a missing file is the defaults.
@@ -116,5 +120,6 @@ func (s State) clone() State {
 	for k, v := range s.Boards {
 		c.Boards[k] = v
 	}
+	c.Hosts = cloneHosts(s.Hosts)
 	return c
 }

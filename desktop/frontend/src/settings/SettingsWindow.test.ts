@@ -166,7 +166,7 @@ describe('the settings window', () => {
     await screen.findByRole('tab', { name: '보드' })
     expect(list.getAttribute('aria-orientation')).toBe('vertical')
     const tabs = within(list).getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['보드', '이 컴퓨터', '터미널과 에이전트', '정보'])
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['보드', '이 컴퓨터', '원격 호스트', '터미널과 에이전트', '정보'])
     tabs[0].focus()
     await fireEvent.keyDown(list, { key: 'ArrowDown' })
     expect(within(list).getByRole('tab', { name: '이 컴퓨터' }).getAttribute('aria-selected')).toBe('true')

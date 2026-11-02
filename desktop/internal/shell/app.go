@@ -24,6 +24,7 @@ import (
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/model"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
+	"github.com/LeeSwallow/stickypane/desktop/internal/remote"
 )
 
 // Sizes of the windows (08 §8.1).
@@ -103,6 +104,17 @@ type Config struct {
 	AppVersion string
 	// Autostart opens the app at login; nil where the desktop cannot.
 	Autostart Autostart
+	// StartArgv starts a bridge from a command line: a remote board's ssh
+	// (remote.go). RunArgv runs a short one and answers what it printed:
+	// a host's check, ssh -G. A test passes fakes.
+	StartArgv func(ctx context.Context, argv []string) (Board, error)
+	RunArgv   func(ctx context.Context, argv []string) (string, error)
+	// SSH is ssh's program and the socket a host's connections share; nil
+	// is $STICKYPANE_SSH or ssh, with a socket of the app's own.
+	SSH *remote.SSH
+	// SSHAliases lists the hosts of the person's ssh config; nil reads
+	// ~/.ssh/config.
+	SSHAliases func() []string
 }
 
 // Installer is the install use cases: *installsvc.Service.
@@ -131,6 +143,9 @@ type Status struct {
 	Version string `json:"version,omitempty"` // the bridge's stickypane
 	// Note is the note a torn-off note's window shows; "" in a board's.
 	Note string `json:"note,omitempty"`
+	// Remote is the host's name of a board on another computer; "" for
+	// one on this computer.
+	Remote string `json:"remote,omitempty"`
 }
 
 // project is one open project window.
@@ -166,6 +181,9 @@ type Shell struct {
 	hello     bridgeclient.Hello
 	started   bool
 	settings  *settingsWin // the settings window (settingswin.go), nil when closed
+
+	sshOnce sync.Once // ssh() is decided once
+	sshCfg  remote.SSH
 
 	ix      Index
 	ixErr   error
@@ -206,6 +224,21 @@ func New(cfg Config) (*Shell, error) {
 			}
 			return c, nil
 		}
+	}
+	if cfg.StartArgv == nil {
+		cfg.StartArgv = func(ctx context.Context, argv []string) (Board, error) {
+			c, err := bridgeclient.StartArgv(ctx, argv)
+			if err != nil {
+				return nil, err
+			}
+			return c, nil
+		}
+	}
+	if cfg.RunArgv == nil {
+		cfg.RunArgv = bridgeclient.RunArgv
+	}
+	if cfg.SSHAliases == nil {
+		cfg.SSHAliases = defaultAliases
 	}
 	if cfg.OpenIndex == nil {
 		cfg.OpenIndex = func(home string) (Index, error) {
@@ -552,6 +585,9 @@ func (s *Shell) MakeBoardIn(window uint, lang string) error {
 	if p == nil {
 		return fmt.Errorf("no project window %d", window)
 	}
+	if remote.IsRemote(p.path) {
+		return fmt.Errorf("%w: make its board there, with stickypane init", ErrRemote)
+	}
 	if err := s.InitProjectIn(p.path, lang); err != nil {
 		return err
 	}
@@ -571,6 +607,9 @@ func (s *Shell) InitHere(window uint) (installsvc.Result, error) {
 	s.mu.Unlock()
 	if p == nil {
 		return installsvc.Result{}, fmt.Errorf("no project window %d", window)
+	}
+	if remote.IsRemote(p.path) {
+		return installsvc.Result{}, fmt.Errorf("%w: run stickypane init there", ErrRemote)
 	}
 	if err := refuseInit(p.path); err != nil {
 		return installsvc.Result{}, err
@@ -618,8 +657,15 @@ func (s *Shell) ShowHome() {
 
 // cleanPath makes one key of the ways a folder is written: absolute,
 // clean, and through its symlinks (/tmp is /private/tmp on macOS) when
-// the folder exists.
+// the folder exists. A remote board's key is only made clean: its folder
+// is on another computer.
 func cleanPath(p string) string {
+	if remote.IsRemote(p) {
+		if name, dir, ok := remote.ParseKey(p); ok {
+			return remote.Key(name, dir)
+		}
+		return p
+	}
 	if abs, err := filepath.Abs(p); err == nil {
 		p = abs
 	}
@@ -660,10 +706,14 @@ func (s *Shell) OpenProject(path string) uint {
 	if !placed || ws.Width <= 0 || ws.Height <= 0 {
 		bounds = firstSize(s.cfg.Platform.WorkArea())
 	}
+	title := filepath.Base(path)
+	if name, dir, ok := remote.ParseKey(path); ok {
+		title = filepath.Base(dir) + " — " + name
+	}
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindProject,
 		Name:      "project:" + path,
-		Title:     filepath.Base(path),
+		Title:     title,
 		URL:       "/?window=project",
 		Bounds:    bounds,
 		Placed:    placed && ws.Width > 0,
@@ -703,6 +753,15 @@ func firstSize(area Rect) Rect {
 
 // connect starts the project's bridge and passes its notifications on.
 func (s *Shell) connect(ctx context.Context, p *project) {
+	if remote.IsRemote(p.path) {
+		b, err := s.connectRemote(ctx, p)
+		if err != nil {
+			s.setState(p, StateFailed, err.Error(), nil)
+			return
+		}
+		s.serve(p, b)
+		return
+	}
 	bin, err := s.cfg.Find() // only ever a stickypane that has the bridge
 	if errors.Is(err, bridgeclient.ErrTooOld) {
 		s.setState(p, StateTooOld, err.Error(), nil)
@@ -721,6 +780,12 @@ func (s *Shell) connect(ctx context.Context, p *project) {
 		s.setState(p, state, err.Error(), nil)
 		return
 	}
+	s.serve(p, b)
+}
+
+// serve keeps a started bridge as the project's and passes its
+// notifications on until it ends.
+func (s *Shell) serve(p *project, b Board) {
 	if !s.setState(p, StateReady, "", b) { // closed meanwhile
 		b.Close()
 		return
@@ -770,7 +835,7 @@ func (s *Shell) Status(window uint) Status {
 	if p == nil {
 		return Status{Window: window, State: StateClosed}
 	}
-	st := Status{Window: window, Path: p.path, State: p.state, Error: p.err, Pinned: s.state.Windows[p.path].Pinned}
+	st := Status{Window: window, Path: p.path, State: p.state, Error: p.err, Pinned: s.state.Windows[p.path].Pinned, Remote: remoteName(p.path)}
 	if tw != nil {
 		st.Note, st.Pinned = tw.note, s.state.Projects[p.path].Torn[tw.note].Pinned
 	}
@@ -793,9 +858,15 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 	if b == nil {
 		return fmt.Errorf("no board in this window (%s)", state)
 	}
+	far := remote.IsRemote(p.path)
+	if far && method == "note.open" {
+		return fmt.Errorf("%w: its notes open in an editor there, not here", ErrRemote)
+	}
 	err := b.Call(ctx, method, params, result)
 	if err == nil && method == "board.load" {
-		s.retitle(p.path, result)
+		if !far { // the index is of this computer's boards
+			s.retitle(p.path, result)
+		}
 		s.keepNotes(p, result)
 		s.peek(p.path, result)
 	}
@@ -1050,7 +1121,7 @@ func (s *Shell) Launch(args []string, dir string) {
 		s.ShowHome()
 		return
 	}
-	if !filepath.IsAbs(path) && dir != "" {
+	if !filepath.IsAbs(path) && !remote.IsRemote(path) && dir != "" {
 		path = filepath.Join(dir, path)
 	}
 	s.OpenProject(path)

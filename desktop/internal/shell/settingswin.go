@@ -34,7 +34,7 @@ const (
 )
 
 // The sections of the settings window.
-var settingsSections = map[string]bool{"board": true, "app": true, "cli": true, "about": true}
+var settingsSections = map[string]bool{"board": true, "app": true, "hosts": true, "cli": true, "about": true}
 
 // settingsWin is the settings window and the project it was opened from;
 // p is nil when it was opened from the home, or its board closed.

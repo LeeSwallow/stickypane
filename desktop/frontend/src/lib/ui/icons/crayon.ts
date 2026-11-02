@@ -82,6 +82,13 @@ export const CRAYONS = {
     { line: 'M5.75 8L8.25 10L5.75 12' },
     { line: 'M10 12.25H13.75' },
   ],
+  // another computer, reached from this one (원격 호스트)
+  remote: [
+    { fill: 'blue', d: 'M2.5 3H11.25V9.75H2.5Z' },
+    { fill: 'green', d: 'M8.75 10.25H17.5V17H8.75Z' },
+    { line: 'M5.5 9.75V13.6H8.75' },
+    { line: 'M14.5 10.25V6.4H11.25' },
+  ],
   info: [
     { fill: 'yellow', d: ring(10, 10, 7) },
     { line: 'M10 9V14' },

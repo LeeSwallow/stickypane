@@ -227,10 +227,10 @@ flowchart TD
 
 | 층 | 패키지 | 하는 일 |
 |---|---|---|
-| 도메인 (0) | `internal/index/model`, `internal/install/model`, `internal/prefs`, `internal/canvas`, `internal/hotkey` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. 캔버스의 노트 자리와 떼어낸 노트 창의 틀(사라진 노트 잊기, 이름 바꾸기, 겹침 순서). 터미널 명령의 링크 자리, 앱의 사본인지, 앞선 옛 사본을 고치는 법, setup이 돌 수 있는 폴더. 전역 단축키로 쓸 수 있는 조합(수정키, 시스템이 쓰는 조합). I/O 없음 |
+| 도메인 (0) | `internal/index/model`, `internal/install/model`, `internal/prefs`, `internal/canvas`, `internal/hotkey`, `internal/remote` | 값과 규칙. 레지스트리 기록 해석, 하루 집계, 지워진 프로젝트 처리, 홈 목록 묶기. 캔버스의 노트 자리와 떼어낸 노트 창의 틀(사라진 노트 잊기, 이름 바꾸기, 겹침 순서). 터미널 명령의 링크 자리, 앱의 사본인지, 앞선 옛 사본을 고치는 법, setup이 돌 수 있는 폴더. 전역 단축키로 쓸 수 있는 조합(수정키, 시스템이 쓰는 조합). 원격 보드의 키(`ssh://<호스트><경로>`)와 ssh 명령줄(따옴표 처리 포함). I/O 없음 |
 | 포트 (10) | `internal/index/ports`, `internal/install/ports` | 유스케이스가 바깥에 바라는 것: `ProjectRepository`·`DayRepository`·`SessionRepository`·`IngestLog`·`Store`(작업 단위), `Records`, `Boards`, `Clock`, `ProcessChecker`. 설치는 `Runner`(프로그램 실행)·`Files`·`Admin`(관리자 권한) |
 | 유스케이스 (20) | `internal/index/service`, `internal/install/service` | `Ingest`·`Prune`·`Sessions`·`Restore`·`Retitle`. 트랜잭션 경계를 여기서 정하고 포트로만 일한다. 설치는 `Command`·`Install`·`Uninstall`·`Connect`·`Init`([09 §9.4](09-distribution.md#94-첫-실행-연결)) |
-| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridgeclient`, `internal/install/osys`(os/exec, 파일, osascript·pkexec) | 포트의 구현 |
+| 어댑터 (30) | `internal/index/gormstore`(GORM + `glebarez/sqlite`), `registryfs`(`~/.stickypane` 읽기 전용), `boardfs`, `procs`(`ps`), `internal/bridgeclient`, `internal/install/osys`(os/exec, 파일, osascript·pkexec), `internal/sshconfig`(`~/.ssh/config`의 Host 별칭 목록, 읽기만) | 포트의 구현 |
 | 조립 (40) · 화면 (50–60) | `internal/index`, `internal/shell`, `main.go` | 부품을 잇고 창에 낸다 |
 
 색인은 `~/.stickypane`을 읽기만 한다. 지우는 것은 본체(`registry.Prune`)뿐이고, 프로젝트 제목은 `sticky.json`을 직접 읽지 않고 bridge의 `board.load`가 답한 `title`로 셸이 `Retitle`한다.
@@ -269,8 +269,20 @@ flowchart LR
 
 | 관심사 | 결정 |
 |---|---|
-| 네트워크 | 앱은 listener를 열지 않는다. 프런트엔드 CSP는 번들 자원만 허용 |
+| 네트워크 | 앱은 listener를 열지 않는다. 다른 컴퓨터의 보드는 사용자의 ssh로 연다(§2.10). 프런트엔드 CSP는 번들 자원만 허용 |
 | 상태 | 창 위치·크기·핀은 앱 자체 설정(OS 표준 위치). 노트와 화면 배치는 `sticky.json`뿐 |
 | 언어 | 화면 문구는 `internal/core/i18n`의 언어 선택(`language` 키)을 따른다. 번역 문자열은 bridge가 함께 내려 준다 |
 | 접근성 | `prefers-reduced-motion`, 키보드 탐색, 대비([03 §3.10](03-design-system.md#310-접근성)) |
 | 라이선스 | 본체 `scripts/licenses.sh`는 그대로. 앱 모듈과 npm 의존성은 별도 검사, 글꼴은 `THIRD_PARTY_NOTICES.md`에 |
+
+## 2.10 원격 보드
+
+다른 컴퓨터의 보드는 사용자의 ssh로 연다. 앱은 아무것도 listen하지 않고, 비밀번호나 키를 저장하지 않는다. 인증은 `~/.ssh/config`와 ssh-agent의 몫이다.
+
+- **호스트 목록**: `overlay.json`의 `hosts`에 `{name, target, command, boards}`만 둔다. `target`은 ssh에 넘기는 별칭이나 `user@host`, `command`는 원격 stickypane(비우면 `stickypane`), `boards`는 원격 절대 경로.
+- **키**: 원격 보드는 `ssh://<name><path>`. 창 위치, 캔버스, 홈 카드의 모습은 이 키로 이 컴퓨터에 남는다. 이 컴퓨터의 색인에는 넣지 않는다.
+- **연결**: `ssh -T -o BatchMode=yes -o ConnectTimeout=10 [공유 연결] <target> -- "cd '<path>' && <command> bridge"`. 같은 bridge 프로토콜이 ssh의 표준 입출력으로 흐른다. 한 호스트의 보드들은 `ControlMaster=auto`, `ControlPersist=60`으로 연결 하나를 나눠 쓴다. 소켓 폴더는 0700이고, 경로는 소켓 길이 제한(macOS 104자) 안에 든다. 보드마다 연결은 따로 고루틴에서 열려, 느린 원격 보드가 다른 보드를 붙잡지 않는다. 연결이 안 되면 창에 ssh의 말(stderr 끝)을 그대로 보여 준다.
+- **연결 확인**: `<command> version`과 `help --all`을 한 번에 물어, 버전과 `stickypane bridge`가 있는지 본다(15초). bridge가 없으면 원격 stickypane을 업데이트하라고 말한다. 바이너리를 올려 보내지 않는다.
+- **ssh 설정에서 가져오기**: `internal/sshconfig`가 `~/.ssh/config`와 `Include`한 파일의 Host 별칭을 나열하고(패턴과 `Match`는 뺀다), 실제 행선지(user@hostname:port)는 `ssh -G <별칭>`에게 묻는다(3초). 설정 파일을 직접 해석하거나 고치지 않는다.
+- **할 수 없는 것**: 편집기로 열기(`note.open`)와 `stickypane init`은 이 컴퓨터의 것이라 원격 보드에는 막는다. 보드는 그 컴퓨터에서 `stickypane init`으로 만든다.
+- **확인용**: `STICKYPANE_SSH`가 ssh 대신 쓸 프로그램을 정한다(검증용 가짜 ssh).

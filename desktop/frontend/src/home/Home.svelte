@@ -24,6 +24,8 @@
   import { setupService, type SetupApi } from '../services/install'
   import type { Peek } from '../services/home'
   import Sessions from './Sessions.svelte'
+  import Remote from './Remote.svelte'
+  import { remoteBoards, type Host } from '../services/hosts'
   import Install from './Install.svelte'
   import Welcome from './Welcome.svelte'
 
@@ -39,6 +41,7 @@
   const openSettings = (section: string) => void api.openSettings(section).catch((e) => warn('settings_failed', e))
   let query = $state('')
   let peeks = $state<Record<string, Peek>>({})
+  let hosts = $state<Host[]>([])
   let homeDir = $state('')
 
   const KEY = 'stickypane.home.dismissed'
@@ -88,7 +91,7 @@
   // the shell's one-time word that a closed window left the app in the tray (03 §3.11.6)
   const TRAY = 'stayInTray'
   // the codes of the window's own failures, drawn as errors
-  const LOCAL: Record<string, true> = { init_failed: true, restore_failed: true, status_failed: true, notices_failed: true }
+  const LOCAL: Record<string, true> = { init_failed: true, restore_failed: true, status_failed: true, notices_failed: true, open_failed: true }
   // notices put away for as long as the window lives
   let hidden = $state<string[]>([])
   const hide = (code: string) => (hidden = [...hidden, code])
@@ -107,7 +110,10 @@
       ...(removed.length ? [{ code: REMOVED, detail: '' }] : []),
     ].slice(0, MAX_TOASTS),
   )
-  const count = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
+  const here = $derived((groups?.Active ?? []).length + (groups?.Days ?? []).reduce((n, d) => n + (d.Rows ?? []).length, 0))
+  // the boards of the remote hosts: the 원격 group, apart from the index
+  const remote = $derived(remoteBoards(hosts))
+  const count = $derived(here + remote.length)
   const setup = $derived(status && !status.found ? 'install' : status && !status.bridge ? 'update' : null)
   const noticeText = (n: Notice) => {
     const s = $tr('notice.' + n.code, { detail: n.detail })
@@ -119,6 +125,7 @@
     try {
       groups = await api.sessions()
       peeks = (await api.peeks().catch(() => null)) ?? {}
+      hosts = (await api.hosts().catch(() => null)) ?? []
       failure = ''
     } catch (e) {
       failure = String((e as Error)?.message ?? e)
@@ -258,6 +265,7 @@
             <div class="setup"><NoteFrame color={look.palette?.warn ?? 'currentColor'} id="setup"><Install kind={setup} copy={api.copy} /></NoteFrame></div>
           {/if}
           <Sessions {groups} now={at} open={(p) => void api.openProject(p)} {peeks} {query} home={homeDir} />
+          <Remote boards={remote} open={(h, p) => void api.openRemote(h, p).catch((e) => warn('open_failed', e))} {peeks} {query} />
         {:else if groups && !failure}
           <Welcome {pick} copy={api.copy} setup={setupApi} {openSettings} install={setup} {busy} canPick={status?.found === true} />
         {/if}

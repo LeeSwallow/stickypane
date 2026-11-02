@@ -37,6 +37,8 @@ function fakeApi(groups: Groups, over: Partial<HomeApi> = {}): HomeApi {
     copy: vi.fn(async () => {}),
     peeks: vi.fn(async () => ({})),
     openSettings: vi.fn(async () => {}),
+    hosts: vi.fn(async () => []),
+    openRemote: vi.fn(async () => 1),
     ...over,
   }
 }

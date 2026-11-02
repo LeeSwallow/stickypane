@@ -364,7 +364,10 @@
     },
     filter: () => filter,
     now: () => now,
-    edit: (name) => void api.open(name).catch((err) => (failed = String(err))),
+    // a board on another computer has no editor here (the shell refuses it too)
+    get edit() {
+      return status?.remote ? undefined : (name: string) => void api.open(name).catch((err) => (failed = String(err)))
+    },
     manage: manageNote,
     tear: (name) => void tear(name),
   }
@@ -700,7 +703,8 @@
     {chrome}
     window={win}
     pinned={status?.pinned ?? false}
-    canEdit={!!editTarget}
+    canEdit={!!editTarget && !status?.remote}
+    host={status?.remote ?? ''}
     onpin={pin}
     onedit={() => editTarget && ctx.edit?.(editTarget)}
     oncreate={status?.state === 'ready' && board ? () => (creating = true) : undefined}

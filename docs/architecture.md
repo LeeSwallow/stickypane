@@ -64,6 +64,12 @@ folders: a widget (core, 20) ranks above the store (adapter, 10), though
 neither imports the other. The folder says what kind of code a package
 is; the rank orders it among the rest.
 
+The desktop app in `desktop/` is a module of its own, with its own layers
+and ranks, drawn in [desktop/02 §2.6.1](desktop/02-system-architecture.md)
+and checked by `desktop/internal/layers`: its remote boards, for example,
+are `internal/remote` (the keys and ssh lines, no I/O) and
+`internal/sshconfig` (the ssh config's host names, read only).
+
 `internal/` is a Go rule, not a web habit: nothing outside this module can
 import these packages, so none of them is a public API and all of them can
 change while the design does.

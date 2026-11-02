@@ -158,6 +158,10 @@ The app comes with its own copy of the `stickypane` command. In a board's settin
 connects Claude Code and Codex. After `stickypane init --view app`, a plain
 `stickypane` opens the board in the app.
 
+Boards on other computers open over your own ssh: add the host under
+**Settings → Remote hosts**, and the app runs `stickypane bridge` there. Nothing
+listens on the network, and only the host list is kept.
+
 Design and build notes are in [docs/desktop](docs/desktop/README.md).
 
 ## How it works
