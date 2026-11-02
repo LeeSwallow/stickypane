@@ -11,6 +11,7 @@ import (
 	"embed"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/shell"
@@ -129,7 +130,8 @@ func instanceID(name string) string {
 // without a mouse: STICKYPANE_APP_TEAR=<note> with --project=<path> tears
 // that note off the project's board a moment after launch, through the
 // same Shell.TearOff a click on the tear-off button calls, and logs what
-// came of it. Unset, it does nothing.
+// came of it. Notes joined by commas go through Shell.TearOffAll, as ⋯ →
+// 이 탭 노트 모두 떼어내기 does. Unset, it does nothing.
 func debugTear(s *shell.Shell) {
 	note := os.Getenv("STICKYPANE_APP_TEAR")
 	project := shell.ProjectArg(os.Args)
@@ -139,6 +141,11 @@ func debugTear(s *shell.Shell) {
 	go func() {
 		time.Sleep(3 * time.Second)
 		id := s.OpenProject(project)
+		if strings.Contains(note, ",") {
+			ids, err := s.TearOffAll(id, strings.Split(note, ","))
+			log.Printf("STICKYPANE_APP_TEAR %q: windows %v, err %v", note, ids, err)
+			return
+		}
 		tid, err := s.TearOff(id, note)
 		log.Printf("STICKYPANE_APP_TEAR %q: window %d, err %v", note, tid, err)
 	}()

@@ -33,6 +33,9 @@
     onsnap,
     ontidy,
     onreset,
+    ontearall,
+    ontearboard,
+    onputbackall,
   }: {
     title: string
     path: string
@@ -57,6 +60,12 @@
     ontidy?: () => void
     /** ⋯ → 배치 초기화 */
     onreset?: () => void
+    /** ⋯ → every note of the tab in its own window */
+    ontearall?: () => void
+    /** ⋯ → every note of every tab in its own window */
+    ontearboard?: () => void
+    /** ⋯ → every torn-off note back on the board */
+    onputbackall?: () => void
   } = $props()
 
   const views = $derived([
@@ -68,6 +77,10 @@
     ...(onreset ? [{ id: 'reset', label: $tr('board.reset'), icon: 'restore' as const }] : []),
     ...(mode === 'canvas' && onsnap ? [{ id: 'snap', label: $tr(snap ? 'canvas.snapOn' : 'canvas.snapOff'), icon: snap ? ('check' as const) : undefined }] : []),
     ...(ontidy || onreset ? [{ kind: 'separator' as const, id: 'sep-layout' }] : []),
+    ...(ontearall ? [{ id: 'tearAll', label: $tr('board.tearAll'), icon: 'tear-off' as const, shortcut: '⌥⌘T' }] : []),
+    ...(ontearboard ? [{ id: 'tearBoard', label: $tr('board.tearBoard'), icon: 'tear-off' as const, shortcut: '⇧⌥⌘T' }] : []),
+    ...(onputbackall ? [{ id: 'putBackAll', label: $tr('board.putBackAll'), icon: 'restore' as const }] : []),
+    ...(ontearall || ontearboard || onputbackall ? [{ kind: 'separator' as const, id: 'sep-torn' }] : []),
     { id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external', shortcut: 'E', disabled: !canEdit },
     { id: 'settings', label: $tr('settings.open'), icon: 'settings', shortcut: '⌘,', disabled: !onsettings },
   ])
@@ -79,6 +92,9 @@
     else if (id === 'snap') onsnap?.(!snap)
     else if (id === 'tidy') ontidy?.()
     else if (id === 'reset') onreset?.()
+    else if (id === 'tearAll') ontearall?.()
+    else if (id === 'tearBoard') ontearboard?.()
+    else if (id === 'putBackAll') onputbackall?.()
   }
 </script>
 
@@ -88,6 +104,15 @@
     <Button variant="primary" size="sm" icon="plus" disabled={!oncreate} title={oncreate ? undefined : $tr('create.soon')} onclick={() => oncreate?.()}>
       {$tr('create.new')}
     </Button>
+    {#if ontearboard || onputbackall}
+      <IconButton
+        icon={ontearboard ? 'tear-off' : 'restore'}
+        label={ontearboard ? $tr('board.tearEverything') : $tr('board.putBackAll')}
+        shortcut={ontearboard ? '⇧⌥⌘T' : undefined}
+        align="end"
+        onclick={() => (ontearboard ? ontearboard() : onputbackall?.())}
+      />
+    {/if}
     <IconButton
       icon="pin"
       label={pinned ? $tr('window.unpin') : $tr('window.pin')}

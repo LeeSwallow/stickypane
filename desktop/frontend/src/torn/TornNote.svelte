@@ -12,7 +12,8 @@
   import { onMount, setContext, tick as drawn } from 'svelte'
   import { boardLanguage, setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
-  import { noteOf } from '../lib/shell'
+  import { fitsOf, noteOf } from '../lib/shell'
+  import { setHeight } from '../services/window'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
   import { normalizePalette, type Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme, noteTitleColor } from '../lib/theme/tokens'
@@ -41,7 +42,9 @@
     api = projectService,
     bus = events,
     note: start = noteOf(location.search),
-  }: { api?: ProjectApi; bus?: Bus; note?: string } = $props()
+    fits = fitsOf(location.search),
+    resize = setHeight,
+  }: { api?: ProjectApi; bus?: Bus; note?: string; fits?: boolean; resize?: (h: number) => Promise<void> } = $props()
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
@@ -62,6 +65,28 @@
   let pages = $state<Record<string, number>>({})
   // where the note is drawn: what moves when it changes (lib/motion)
   let body: HTMLElement | undefined = $state()
+
+  // opened for the first time, the window takes its note's height once,
+  // within the screen: a form shows its buttons without a scroll
+  let fitted = false
+  $effect(() => {
+    if (!fits || fitted || !note || !body) return
+    fitted = true
+    void drawn().then(() => {
+      const frame = body?.querySelector<HTMLElement>('[data-frame]')
+      if (!body || !frame) return
+      // the frame fills the body (flex: 1): drawn on its own for a moment, it says its height
+      const was = [frame.style.height, frame.style.flex]
+      frame.style.height = 'auto'
+      frame.style.flex = 'none'
+      const natural = frame.offsetHeight
+      ;[frame.style.height, frame.style.flex] = was
+      const pad = parseFloat(getComputedStyle(body).paddingBottom) || 0
+      const want = window.innerHeight - body.clientHeight + natural + pad
+      const most = Math.round((screen.availHeight || 900) * 0.8)
+      void resize(Math.min(Math.max(want, 160), most)).catch(() => {})
+    })
+  })
 
   // the shell names the note again after a move
   const name = $derived(status?.note || start)

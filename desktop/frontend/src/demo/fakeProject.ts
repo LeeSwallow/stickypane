@@ -72,6 +72,13 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
       layout = { ...layout, places: { ...layout.places, ...places } }
     },
     tearOff: async (n) => void (layout = { ...layout, torn: { ...layout.torn, [n]: { screenX: 0, screenY: 0, w: 360, h: 420, pinned: true } } }),
+    tearOffAll: async (ns) =>
+      void (layout = { ...layout, torn: { ...layout.torn, ...Object.fromEntries(ns.map((n) => [n, { screenX: 0, screenY: 0, w: 360, h: 420, pinned: true }])) } }),
+    async putBackAll(ns) {
+      const torn = { ...layout.torn }
+      for (const n of ns) delete torn[n]
+      layout = { ...layout, torn }
+    },
     async putBack(n) {
       const torn = { ...layout.torn }
       delete torn[n ?? note]
