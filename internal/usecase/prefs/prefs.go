@@ -7,6 +7,7 @@ package prefs
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,6 +54,30 @@ var All = []Pref{
 		Help:   "when a kanban card that has not moved is flagged ⚠",
 		Values: func() []string { return []string{"30m", "15m", "1h", "4h", "1d", "off"} },
 	},
+	{
+		Key: "columns", Label: "Notes per row", Default: "3",
+		Help:   "how many columns the board has; a note with a size of its own spans its share",
+		Values: func() []string { return []string{"3", "4", "1", "2"} },
+	},
+}
+
+// ColumnsAuto is the value of "columns" that boards had before it: as many
+// notes in a row as their sizes fit in the width. It is still read, and
+// not offered.
+const ColumnsAuto = "auto"
+
+// Columns is how many columns the board has, by the "columns" setting; 0
+// for ColumnsAuto.
+func Columns(set store.Settings) int {
+	v := Get(set, "columns")
+	if v == ColumnsAuto {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || !slices.Contains(Lookup("columns").Values(), v) {
+		n, _ = strconv.Atoi(Lookup("columns").Default)
+	}
+	return n
 }
 
 func names(ts []theme.Theme) []string {
@@ -174,7 +199,7 @@ func Normal(key, value string) (string, error) {
 	}
 	vals := p.Values()
 	switch v := strings.TrimSpace(value); {
-	case strings.EqualFold(v, "auto") && (key == "theme" || key == "language"):
+	case strings.EqualFold(v, "auto") && (key == "theme" || key == "language" || key == "columns"):
 		return "auto", nil
 	case key == "theme":
 		if t, ok := theme.Lookup(v); ok {

@@ -76,7 +76,7 @@ func init() {
 		}},
 		{[]string{"config"}, configCmd, helpText{
 			group: "settings", brief: "list, read or change a setting",
-			what:     "Lists the settings with their values, prints one, or changes one: theme, language, time, editor, stale. Each has a default; S on the board shows them too.",
+			what:     "Lists the settings with their values, prints one, or changes one: theme, language, time, editor, stale, columns. Each has a default; S on the board shows them too.",
 			syntax:   "stickypane config [key [value]]",
 			examples: []string{"stickypane config", "stickypane config language", "stickypane config theme nord"},
 			related:  []string{"theme", "language"},

@@ -40,6 +40,7 @@ func (m *Model) applyPrefs(set store.Settings) {
 		m.items = nil
 	}
 	m.editor = prefs.Get(set, "editor")
+	m.columns = prefs.Columns(set)
 	m.drawn = nil // what notes drew may say times or flags differently now
 }
 

@@ -398,6 +398,7 @@ Nothing has to be set. `S` on the board opens the settings, and
 | `time` | `auto` | how days and times are written |
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
+| `columns` | `3` | how many notes sit in a row: `1` to `4` |
 
 [docs/configuration.md](docs/configuration.md) has the themes,
 `sticky.json`, and what stickypane records on this machine.

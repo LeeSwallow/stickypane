@@ -72,7 +72,7 @@ func (m *Model) grab(x, y int) bool {
 	}
 	// A note with no size of its own may be drawn wider than it asks: the
 	// drag starts from the size it is drawn at, so a nudge changes nothing.
-	at := widget.SnapSize(m.sizeOf(m.items[i]), r.W, m.width)
+	at := m.snap(m.sizeOf(m.items[i]), r.W)
 	m.drag = dragging{name: p.name, right: right, at: at, x: r.X}
 	return true
 }
@@ -86,7 +86,7 @@ func (m *Model) pull(e tea.Mouse) {
 	if m.drag.right {
 		// The note will be as wide as the size it lands on: the pointer
 		// gives the width it asks for.
-		m.drag.size = widget.SnapSize(m.drag.at, e.X-m.drag.x+1, m.width)
+		m.drag.size = m.snap(m.drag.at, e.X-m.drag.x+1)
 		m.mark = mark{name: p.name, text: m.tr.L("width") + " " + m.drag.size}
 		return
 	}
@@ -248,4 +248,14 @@ func (m *Model) clickNote(name string, line, col int) {
 		return
 	}
 	m.lastClick = lastClick{name: name, at: now}
+}
+
+// snap is the size a border dragged to cells wide lands on: the nearest
+// whole number of columns when the board has columns, else the fraction
+// SnapSize gives from the size it was at.
+func (m *Model) snap(from string, cells int) string {
+	if n := m.grid(); n > 0 {
+		return widget.SnapColumns(cells, m.width, n)
+	}
+	return widget.SnapSize(from, cells, m.width)
 }

@@ -11,7 +11,7 @@ func TestADragOfAFewCellsKeepsTheWidth(t *testing.T) {
 	t.Parallel()
 	// 1/2 and 1/3 of 80 cells are 40 and 26, and the row keeps them.
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
-	writeView(t, dir, `{"notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/3"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"a.md":{"size":"1/2"},"b.md":{"size":"1/3"}}}`)
 	m.reload()
 	m.relayout()
 	for _, dx := range []int{-1, 1, -3, 3} {
@@ -27,7 +27,7 @@ func TestAStretchedNoteNeedsARealMoveToChange(t *testing.T) {
 	t.Parallel()
 	// a asks for no size: its kind's card is stretched over its row.
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n")})
-	writeView(t, dir, `{"notes":{"b.md":{"size":"1"}}}`)
+	writeView(t, dir, `{"columns":"auto","notes":{"b.md":{"size":"1"}}}`)
 	m.reload()
 	m.relayout()
 	if p, _ := m.paneOf("a.md"); p.rect.W != 80 {

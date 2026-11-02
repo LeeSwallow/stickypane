@@ -1,0 +1,19 @@
+{
+  "_": "How many of n columns a note of each size takes: round(fraction × n), half up, between 1 and n. A card or no size takes 1. Read by widget.Span's test and by desktop/frontend/src/board/layout.test.ts.",
+  "spans": {
+    "1/4":  [1, 1, 1, 1],
+    "1/3":  [1, 1, 1, 1],
+    "1/2":  [1, 1, 2, 2],
+    "2/3":  [1, 1, 2, 3],
+    "3/4":  [1, 2, 2, 3],
+    "1":    [1, 2, 3, 4],
+    "card": [1, 1, 1, 1],
+    "":     [1, 1, 1, 1]
+  },
+  "sizes": {
+    "1": ["1"],
+    "2": ["1/2", "1"],
+    "3": ["1/3", "2/3", "1"],
+    "4": ["1/4", "1/2", "3/4", "1"]
+  }
+}

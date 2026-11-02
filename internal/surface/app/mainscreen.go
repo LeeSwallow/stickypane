@@ -124,7 +124,7 @@ func mainFooter(m *Model) string {
 		}
 		return m.hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
 	}
-	return m.hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "{ }", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
+	return m.hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "H J K L", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
 }
 
 // titleBar is one line of tabs, like the tab strips of yazi and zellij:
