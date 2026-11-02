@@ -228,6 +228,8 @@
   }
 
   async function tear(name: string) {
+    // a zoomed note that goes to its own window leaves the board as it was
+    if (zoomed?.name === name) ctx.back()
     try {
       await api.tearOff(name)
     } catch (e) {
@@ -365,6 +367,33 @@
     manage: manageNote,
     tear: (name) => void tear(name),
   }
+  /** tearTab opens every note the tab shows in a window of its own; 되돌리기 puts them back. */
+  const tearTab = () => tearOff(open.map((n) => n.name))
+
+  /** tearBoard does the same for every tab's open notes. */
+  const boardOpen = $derived(board ? board.tabs.flatMap((x) => x.notes).filter((n) => n.open && !torn.has(n.name)) : [])
+  const tearBoard = () => tearOff(boardOpen.map((n) => n.name))
+
+  async function tearOff(names: string[]) {
+    if (!names.length) return
+    try {
+      await api.tearOffAll(names)
+      notice = { message: t('board.tornAll', { n: names.length }), action: { label: t('home.undo'), run: () => void putBackAll(names) } }
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
+  }
+
+  async function putBackAll(names: string[]) {
+    try {
+      await api.putBackAll(names)
+    } catch (e) {
+      failed = errorText(e)
+    }
+    await readLayout()
+  }
+
   setContext(boardContext, ctx)
 
   // --- tidying the layout (03 §3.6.2) --------------------------------------
@@ -458,13 +487,7 @@
     const name = zoomed?.name ?? frameOf(document.activeElement)
     const note = name ? findNote(board.tabs, name) : null
     const book = !!note?.pages?.length
-    // ⌥⌘L: tidy the canvas (03 §3.6.2)
-    if (e.altKey && e.metaKey && e.code === 'KeyL' && !editing) {
-      e.preventDefault()
-      tidyCanvas()
-      return
-    }
-    const a = keyAction({ key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
+    const a = keyAction({ key: e.key, code: e.code, metaKey: e.metaKey, ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey, editing }, { zoomed: !!zoomed, canBack: canGoBack(view), book })
     if (!a) return
     switch (a.type) {
       case 'back':
@@ -520,6 +543,15 @@
       case 'trash':
         if (!note || (a.type === 'archive' && note.error)) return
         manageNote(note, a.type)
+        break
+      case 'tidy':
+        tidyCanvas()
+        break
+      case 'tearAll':
+        void tearTab()
+        break
+      case 'tearBoard':
+        void tearBoard()
         break
       case 'undo':
         if (!lastTrashed) return
@@ -637,6 +669,9 @@
     onsnap={status?.state === 'ready' && board ? setSnap : undefined}
     ontidy={status?.state === 'ready' && board && open.length ? tidyCanvas : undefined}
     onreset={status?.state === 'ready' && board ? () => void resetLayout() : undefined}
+    ontearall={status?.state === 'ready' && board && open.length && !zoomed ? () => void tearTab() : undefined}
+    ontearboard={status?.state === 'ready' && board && boardOpen.length && !zoomed ? () => void tearBoard() : undefined}
+    onputbackall={status?.state === 'ready' && torn.size ? () => void putBackAll([...torn]) : undefined}
   />
   {#if status?.state === 'ready' && board}
     <Glance {tags} {stalled} {filter} {now} onfilter={(w) => (filter = w)} />
@@ -677,6 +712,9 @@
             {#each tornHere as n (n.name)}
               <Button size="sm" variant="secondary" icon="restore" title={$tr('note.putBack')} onclick={() => putBack(n.name)}>{n.title || n.name}</Button>
             {/each}
+            {#if tornHere.length > 1}
+              <Button size="sm" variant="ghost" onclick={() => putBackAll(tornHere.map((n) => n.name))}>{$tr('board.putBackAll')}</Button>
+            {/if}
           </div>
         {/if}
         {#if layout.mode === 'canvas' && layoutRead}

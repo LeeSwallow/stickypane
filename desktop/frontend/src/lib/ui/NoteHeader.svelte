@@ -326,10 +326,9 @@
     position: relative;
     display: inline-flex;
   }
-  /* a narrow note keeps its width, pin, ⋯ and close; the rest is a key or an edge away */
+  /* a narrow note keeps its width, pin, tear-off, ⋯ and close; the rest is a key or an edge away */
   @container (max-width: 400px) {
-    .summary,
-    .tearoff {
+    .summary {
       display: none;
     }
   }

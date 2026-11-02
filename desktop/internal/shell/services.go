@@ -405,6 +405,26 @@ func (c *CanvasService) TearOff(ctx context.Context, note string) (uint, error) 
 	return c.S.TearOff(id, note)
 }
 
+// TearOffAll opens each note given, a tab's, in a window of its own, side
+// by side across the screen, and returns the windows it opened.
+func (c *CanvasService) TearOffAll(ctx context.Context, notes []string) ([]uint, error) {
+	id, err := window(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return c.S.TearOffAll(id, notes)
+}
+
+// PutBackAll puts the notes given back on the board and closes their
+// windows.
+func (c *CanvasService) PutBackAll(ctx context.Context, notes []string) error {
+	id, err := window(ctx)
+	if err != nil {
+		return err
+	}
+	return c.S.PutBackAll(id, notes)
+}
+
 // PutBack puts a torn-off note back on the board and closes its window;
 // from that window, note "" is its own.
 func (c *CanvasService) PutBack(ctx context.Context, note string) error {

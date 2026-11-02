@@ -21,3 +21,10 @@ export function windowActions(kind: WindowKind): WindowActions {
 
 /** copyText puts text on the clipboard (a line to paste into a terminal or an agent). */
 export const copyText = (text: string): Promise<void> => navigator.clipboard.writeText(text)
+
+/** setHeight makes this window as tall as given, its width as it is. */
+export const setHeight = (height: number): Promise<void> =>
+  runtime().then(async (r) => {
+    const { width } = await r.Window.Size()
+    await r.Window.SetSize(width, Math.round(height))
+  })

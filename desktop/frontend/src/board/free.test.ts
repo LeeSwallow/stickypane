@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Place } from '../services/canvas'
 import { layoutOf } from '../services/canvas'
 import {
-  extent, firstPlaces, MIN_H, MIN_W, moved, NEW_H, PAD, raise, resized, samePlace, snapTo, tiltOf, topZ, zoomed,
+  extent, firstPlaces, MIN_H, MIN_W, moved, NEW_H, PAD, raise, resized, restack, ROW_GAP, samePlace, snapTo, tiltOf, topZ, zoomed,
 } from './free'
 import { ROW_PX } from './layout'
 
@@ -116,5 +116,22 @@ describe('moving, resizing and stacking', () => {
     expect(samePlace(at(1, 2), at(1, 2))).toBe(true)
     expect(samePlace(at(1, 2), at(1, 3))).toBe(false)
     expect(samePlace(undefined, at(1, 2))).toBe(false)
+  })
+})
+
+describe('restack', () => {
+  const at = (x: number, y: number, h: number) => ({ x, y, w: 300, h, tilt: 0, z: 1 })
+  it('moves the rows under a note that grew, and keeps a row together', () => {
+    const fresh = { form: at(24, 24, 280), log: at(24, 336, 280), memo: at(340, 336, 280) }
+    const out = restack(fresh, { form: 424, log: 120, memo: 200 })
+    expect(out.form).toEqual(at(24, 24, 424))
+    expect(out.log.y).toBe(24 + 424 + ROW_GAP)
+    expect(out.memo.y).toBe(out.log.y)
+    expect(out.log.h).toBe(120)
+  })
+  it('closes the gaps under notes that shrank, and changes nothing that fits', () => {
+    const fresh = { a: at(24, 24, 280), b: at(24, 336, 280) }
+    expect(restack(fresh, { a: 100 }).b.y).toBe(24 + 100 + ROW_GAP)
+    expect(restack({ a: at(24, 24, 280), b: at(24, 24 + 280 + ROW_GAP, 280) }, {})).toEqual({})
   })
 })
