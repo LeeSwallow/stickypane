@@ -93,6 +93,18 @@ type Strings struct {
 	KeysUnreadable      string `json:"keysUnreadable"`
 	KeysIgnored         string `json:"keysIgnored"`
 
+	// The command line's answers. Command names stay English.
+	NotACommand      string `json:"notACommand"`
+	CommandAmbiguous string `json:"commandAmbiguous"`
+	CommandUsage     string `json:"commandUsage"`
+	NotASetting      string `json:"notASetting"`
+	SettingIs        string `json:"settingIs"`
+	SettingChanged   string `json:"settingChanged"`
+	NoNoteMatches    string `json:"noNoteMatches"`
+	NoSuchTab        string `json:"noSuchTab"`
+	NoNoteNumber     string `json:"noNoteNumber"`
+	SavesAsYouGo     string `json:"savesAsYouGo"`
+
 	// The help screen after the board's own keys, which the screen lists
 	// from its table of actions: one key per line, under 40 cells wide.
 	Help string `json:"help"`
@@ -166,6 +178,17 @@ func English() Strings {
 		WatchUnavailable:    "File watching is unavailable.{{with .Reload}} Press {{.}} to refresh.{{end}}",
 		KeysUnreadable:      "{{.File}} could not be read, so the keys are as they come. stickypane keys says why.",
 		KeysIgnored:         "{{.File}}: {{.Names}} kept the keys they come with. stickypane keys says why.",
+
+		NotACommand:      "Not a command: {{.Name}}",
+		CommandAmbiguous: "{{.Name}} could be {{.Choices}}.",
+		CommandUsage:     "Usage: {{.Usage}}",
+		NotASetting:      "Not a setting: {{.Name}}. Settings: {{.Choices}}.",
+		SettingIs:        "{{.Key}} is {{.Value}}.",
+		SettingChanged:   "{{.Key}}: {{.Value}}.",
+		NoNoteMatches:    "No note matches {{.Name}}.",
+		NoSuchTab:        "No tab {{.Name}}.",
+		NoNoteNumber:     "There is no note {{.N}}.",
+		SavesAsYouGo:     "Nothing to write: the board saves as you go.",
 
 		Help: `Zoomed note
   esc              back

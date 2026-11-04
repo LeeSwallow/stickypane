@@ -415,7 +415,8 @@ The board's keys are vim's: `h` `j` `k` `l` go to the note on that side,
 They are yours too: `stickypane keys` lists them, and
 `stickypane keys set note-archive X` makes `X` archive, in
 `~/.stickypane/keys.json`. A key may be a sequence (`"d x"`), and a count
-repeats one: `3J`.
+repeats one: `3J`. `:` opens a vim command line: `:col 2`, `:set theme nord`,
+`:e plan`, `:q`.
 
 [docs/configuration.md](docs/configuration.md) has the themes, the keys,
 `sticky.json`, and what stickypane records on this machine.

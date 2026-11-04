@@ -94,7 +94,7 @@ func mainBody(m *Model, h int) []string {
 // key list is always there, however narrow the pane.
 func mainFooter(m *Model) string {
 	k := m.keys
-	jotAddQuit := joinHints(k.hint("jot", "jot"), k.hint("add", "add"), k.hint("quit", "quit"))
+	jotAddQuit := joinHints(k.hint("jot", "jot"), k.hint("add", "add"), k.hint("command", "command-line"), k.hint("quit", "quit"))
 	i := m.index(m.focus)
 	switch {
 	case i < 0:

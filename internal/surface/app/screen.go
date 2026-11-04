@@ -52,7 +52,7 @@ func (m *Model) bodyMode() mode {
 }
 
 func (m *Model) footer() string {
-	asking := m.mode == modeInput || m.mode == modeConfirm
+	asking := m.mode == modeInput || m.mode == modeConfirm || m.mode == modeCommand
 	if m.status != "" && !asking {
 		return m.env.Styles.Warn.Render(m.status)
 	}

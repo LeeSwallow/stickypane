@@ -149,7 +149,7 @@ func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	if !strings.Contains(seen, "any other key closes") {
 		t.Fatalf("help should say how to close it:\n%s", seen)
 	}
-	for i := 0; i < 70; i++ {
+	for i := 0; i < 100; i++ {
 		press(m, "j")
 		seen += "\n" + screen(m)
 	}
