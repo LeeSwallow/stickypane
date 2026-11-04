@@ -1,13 +1,9 @@
 package shell
 
 import (
-	"errors"
-	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
-	"github.com/LeeSwallow/stickypane/desktop/internal/hotkey"
 )
 
 // The settings window (docs/desktop/03 §3.12): one window, its own, with
@@ -24,13 +20,6 @@ const (
 	SettingsHeight    = 580
 	SettingsMinWidth  = 600
 	SettingsMinHeight = 460
-)
-
-// PrefsEvent carries the app's settings (Prefs) to every window when they
-// change; SettingsEvent tells the settings window its board changed.
-const (
-	PrefsEvent    = "prefs.changed"
-	SettingsEvent = "settings.board"
 )
 
 // The sections of the settings window.
@@ -89,24 +78,6 @@ func (s *Shell) OpenSettings(from uint, section string) uint {
 	w.Show()
 	w.Focus()
 	return w.ID()
-}
-
-// OpenAtLaunch opens what a launch asks for by name: "settings" or
-// "settings:<section>", for the last board opened (STICKYPANE_APP_OPEN,
-// to look at a window without pressing anything). Anything else is
-// nothing.
-func (s *Shell) OpenAtLaunch(what string) {
-	name, section, _ := strings.Cut(strings.TrimSpace(what), ":")
-	if name != "settings" {
-		return
-	}
-	s.mu.Lock()
-	var from uint
-	if p := s.projects[s.state.Last]; p != nil && p.win != nil {
-		from = p.win.ID()
-	}
-	s.mu.Unlock()
-	s.OpenSettings(from, section)
 }
 
 // ownerOf is the project a window acts on: its own, a torn-off note's,
@@ -190,97 +161,3 @@ func (s *Shell) ResetPlaces(window uint) error {
 	s.layoutChanged(window)
 	return nil
 }
-
-// HotkeyCheck is whether a hotkey can be had: OK with it written one
-// way, or the reason it cannot (a hotkey.Code*, or "taken": another
-// program holds it).
-type HotkeyCheck struct {
-	OK     bool   `json:"ok"`
-	Accel  string `json:"accel"`
-	Code   string `json:"code,omitempty"`
-	Detail string `json:"detail,omitempty"`
-}
-
-// CodeTaken: the desktop would not give the hotkey (another program has it).
-const CodeTaken = "taken"
-
-// CheckHotkey says whether accel can be the global hotkey, trying it with
-// the desktop when the rules allow it. It changes nothing.
-func (s *Shell) CheckHotkey(accel string) HotkeyCheck {
-	n, err := hotkey.Check(accel)
-	var he *hotkey.Error
-	if errors.As(err, &he) {
-		return HotkeyCheck{Accel: he.Accel, Code: he.Code, Detail: he.Detail}
-	}
-	if err != nil {
-		return HotkeyCheck{Accel: accel, Code: hotkey.CodeKey, Detail: err.Error()}
-	}
-	s.hotkeyMu.Lock()
-	defer s.hotkeyMu.Unlock()
-	s.mu.Lock()
-	now := s.hotkey
-	s.mu.Unlock()
-	if same, _ := hotkey.Normalize(now); now != "" && same == n {
-		return HotkeyCheck{OK: true, Accel: n}
-	}
-	if err := s.cfg.Platform.RegisterHotkey(n, func() {}); err != nil {
-		return HotkeyCheck{Accel: n, Code: CodeTaken, Detail: err.Error()}
-	}
-	s.cfg.Platform.UnregisterHotkey(n)
-	return HotkeyCheck{OK: true, Accel: n}
-}
-
-// Autostart is opening the app at login: the desktop's (Wails'
-// AutostartManager); nil where it cannot.
-type Autostart interface {
-	Enabled() (bool, error)
-	SetEnabled(on bool) error
-}
-
-// AutostartState says whether the app can open at login here, and whether it does.
-type AutostartState struct {
-	Supported bool   `json:"supported"`
-	Enabled   bool   `json:"enabled"`
-	Error     string `json:"error,omitempty"`
-}
-
-// ErrNoAutostart: this desktop cannot open the app at login.
-var ErrNoAutostart = errors.New("opening at login is not supported here")
-
-// AutostartState says whether the app opens at login.
-func (s *Shell) AutostartState() AutostartState {
-	if s.cfg.Autostart == nil {
-		return AutostartState{}
-	}
-	on, err := s.cfg.Autostart.Enabled()
-	if err != nil {
-		return AutostartState{Supported: true, Error: err.Error()}
-	}
-	return AutostartState{Supported: true, Enabled: on}
-}
-
-// SetAutostart makes the app open at login, or not.
-func (s *Shell) SetAutostart(on bool) (AutostartState, error) {
-	if s.cfg.Autostart == nil {
-		return AutostartState{}, ErrNoAutostart
-	}
-	if err := s.cfg.Autostart.SetEnabled(on); err != nil {
-		return s.AutostartState(), fmt.Errorf("open at login: %w", err)
-	}
-	return s.AutostartState(), nil
-}
-
-// About is what the settings' 정보 shows: the app's version and the
-// stickypane the app uses.
-type About struct {
-	App        string          `json:"app"`
-	Stickypane StickypaneState `json:"stickypane"`
-}
-
-// About is the app's version and its stickypane's.
-func (s *Shell) About() About {
-	return About{App: s.cfg.AppVersion, Stickypane: s.StickypaneStatus()}
-}
-
-// emitPrefs tells every window the app's settings.
-func (s *Shell) emitPrefs() { s.cfg.Platform.Emit(PrefsEvent, s.Prefs()) }

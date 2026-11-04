@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
@@ -27,12 +26,6 @@ const (
 	noteCascade = 28
 	noteGap     = 16
 )
-
-// CanvasEvent tells a project window its layout changed outside it: a note
-// torn off, put back or gone.
-func CanvasEvent(window uint) string {
-	return "canvas.changed:" + strconv.FormatUint(uint64(window), 10)
-}
 
 // NoteURL is the page of a torn-off note's window; fit asks it to take
 // its note's height, the first time it opens.

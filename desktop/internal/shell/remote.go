@@ -27,9 +27,6 @@ import (
 // Host is a computer the app reaches over ssh, and its boards there.
 type Host = remote.Host
 
-// HostsEvent tells every window the host list changed.
-const HostsEvent = "hosts.changed"
-
 // How long the ssh calls of the settings may take.
 const (
 	checkTimeout   = 15 * time.Second
