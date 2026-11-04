@@ -3,7 +3,6 @@ package shell
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
@@ -160,7 +159,7 @@ func window(ctx context.Context) (uint, error) {
 	if w, ok := ctx.Value(application.WindowKey).(application.Window); ok && w != nil {
 		return w.ID(), nil
 	}
-	return 0, errors.New("no window made this call")
+	return 0, ErrNoCaller
 }
 
 func (p *ProjectService) call(ctx context.Context, method string, params any) (json.RawMessage, error) {

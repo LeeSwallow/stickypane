@@ -46,6 +46,18 @@ type Status struct {
 	Remote string `json:"remote,omitempty"`
 }
 
+// boardOf is the project of a board's own window (not a torn-off
+// note's); ErrNoWindow when no board window has that id.
+func (s *Shell) boardOf(window uint) (*project, error) {
+	s.mu.Lock()
+	p := s.byWin[window]
+	s.mu.Unlock()
+	if p == nil {
+		return nil, noWindow(window)
+	}
+	return p, nil
+}
+
 // cleanPath makes one key of the ways a folder is written: absolute,
 // clean, and through its symlinks (/tmp is /private/tmp on macOS) when
 // the folder exists. A remote board's key is only made clean: its folder
@@ -247,7 +259,7 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 	}
 	s.mu.Unlock()
 	if b == nil {
-		return fmt.Errorf("no board in this window (%s)", state)
+		return fmt.Errorf("%w (%s)", ErrNoBoard, state)
 	}
 	far := remote.IsRemote(p.path)
 	if far && method == "note.open" {
@@ -293,7 +305,7 @@ func (s *Shell) SetPin(window uint, on bool) error {
 	p, tw := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	if tw != nil {
 		return s.pinTorn(tw, on) // unlocks

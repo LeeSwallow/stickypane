@@ -2,7 +2,6 @@ package shell
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,10 +51,10 @@ func samePath(a, b string) bool {
 func refuseInit(dir string) error {
 	d := resolvePath(dir)
 	if d == string(filepath.Separator) {
-		return errors.New("will not make a board in the root folder")
+		return fmt.Errorf("%w in the root folder", ErrUnsafeFolder)
 	}
 	if h, err := userHomeDir(); err == nil && samePath(d, resolvePath(h)) {
-		return errors.New("will not make a board in the home folder: every project below it would find it")
+		return fmt.Errorf("%w in the home folder: every project below it would find it", ErrUnsafeFolder)
 	}
 	return nil
 }
@@ -85,11 +84,9 @@ func (s *Shell) MakeBoard(window uint) error { return s.MakeBoardIn(window, "") 
 
 // MakeBoardIn is MakeBoard with the welcome note in lang (InitProjectIn).
 func (s *Shell) MakeBoardIn(window uint, lang string) error {
-	s.mu.Lock()
-	p := s.byWin[window]
-	s.mu.Unlock()
-	if p == nil {
-		return fmt.Errorf("no project window %d", window)
+	p, err := s.boardOf(window)
+	if err != nil {
+		return err
 	}
 	if remote.IsRemote(p.path) {
 		return fmt.Errorf("%w: make its board there, with stickypane init", ErrRemote)
@@ -108,11 +105,9 @@ func (s *Shell) MakeBoardIn(window uint, lang string) error {
 // agent guide where agents read it, or takes it out where the plugin
 // teaches them now. It is safe to run again.
 func (s *Shell) InitHere(window uint) (installsvc.Result, error) {
-	s.mu.Lock()
-	p := s.byWin[window]
-	s.mu.Unlock()
-	if p == nil {
-		return installsvc.Result{}, fmt.Errorf("no project window %d", window)
+	p, err := s.boardOf(window)
+	if err != nil {
+		return installsvc.Result{}, err
 	}
 	if remote.IsRemote(p.path) {
 		return installsvc.Result{}, fmt.Errorf("%w: run stickypane init there", ErrRemote)

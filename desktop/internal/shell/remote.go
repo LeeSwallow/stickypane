@@ -33,10 +33,6 @@ const (
 	resolveTimeout = 3 * time.Second
 )
 
-// ErrRemote is what a remote board cannot do from here: open a note in
-// this computer's editor, or be made with this computer's stickypane.
-var ErrRemote = errors.New("this board is on another computer")
-
 // ssh is how the shell runs ssh: Config.SSH, else $STICKYPANE_SSH (a
 // check's stand-in) or ssh, with a socket shared by a host's connections.
 func (s *Shell) ssh() remote.SSH {
@@ -117,6 +113,12 @@ func (s *Shell) hostOf(key string) (Host, string, bool) {
 	return Host{Name: name}, dir, false
 }
 
+// hostIndex is where the host named name is in the list, -1 when it is
+// not. The caller holds mu.
+func (s *Shell) hostIndex(name string) int {
+	return slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+}
+
 // remoteName is the host's name of a remote board's key, "" for a local one.
 func remoteName(key string) string {
 	name, _, _ := remote.ParseKey(key)
@@ -131,7 +133,7 @@ func (s *Shell) connectRemote(ctx context.Context, p *project) (Board, error) {
 	h, dir, ok := s.hostOf(p.path)
 	s.mu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("no host %q in the app's hosts", h.Name)
+		return nil, fmt.Errorf("%w in the app's hosts", noHost(h.Name))
 	}
 	b, err := s.cfg.StartArgv(ctx, s.ssh().Bridge(h, dir))
 	if err != nil {
@@ -192,10 +194,10 @@ func tidyHost(h Host) Host {
 func (s *Shell) SaveHost(h Host, old string) error {
 	h = tidyHost(h)
 	s.mu.Lock()
-	i := slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == old })
+	i := s.hostIndex(old)
 	if old != "" && i < 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("no host %q", old)
+		return noHost(old)
 	}
 	if old != "" && h.Boards == nil {
 		h.Boards = slices.Clone(s.state.Hosts[i].Boards)
@@ -207,13 +209,13 @@ func (s *Shell) SaveHost(h Host, old string) error {
 	for j, x := range s.state.Hosts {
 		if j != i && x.Name == h.Name {
 			s.mu.Unlock()
-			return fmt.Errorf("a host is already named %q", h.Name)
+			return hostTaken(h.Name)
 		}
 	}
 	if old != "" && old != h.Name {
 		if len(s.openOf(old)) > 0 {
 			s.mu.Unlock()
-			return fmt.Errorf("close the boards of %q before renaming it", old)
+			return &hostOpenError{old}
 		}
 		s.rekey(old, h.Name)
 	}
@@ -303,10 +305,10 @@ func (s *Shell) forget(name, dir string) {
 // RemoveHost takes a host out of the list and closes its boards' windows.
 func (s *Shell) RemoveHost(name string) error {
 	s.mu.Lock()
-	i := slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+	i := s.hostIndex(name)
 	if i < 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("no host %q", name)
+		return noHost(name)
 	}
 	s.state.Hosts = slices.Delete(s.state.Hosts, i, i+1)
 	open := s.openOf(name)
@@ -324,10 +326,10 @@ func (s *Shell) AddBoard(name, dir string) error {
 	}
 	dir = remote.CleanPath(dir)
 	s.mu.Lock()
-	i := slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+	i := s.hostIndex(name)
 	if i < 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("no host %q", name)
+		return noHost(name)
 	}
 	if !slices.Contains(s.state.Hosts[i].Boards, dir) {
 		s.state.Hosts[i].Boards = append(s.state.Hosts[i].Boards, dir)
@@ -340,10 +342,10 @@ func (s *Shell) AddBoard(name, dir string) error {
 func (s *Shell) RemoveBoard(name, dir string) error {
 	dir = remote.CleanPath(strings.TrimSpace(dir))
 	s.mu.Lock()
-	i := slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+	i := s.hostIndex(name)
 	if i < 0 {
 		s.mu.Unlock()
-		return fmt.Errorf("no host %q", name)
+		return noHost(name)
 	}
 	s.state.Hosts[i].Boards = slices.DeleteFunc(s.state.Hosts[i].Boards, func(b string) bool { return b == dir })
 	open := s.openOf(name, dir)
@@ -377,10 +379,10 @@ func (s *Shell) OpenRemote(name, dir string) (uint, error) {
 		return 0, err
 	}
 	s.mu.Lock()
-	ok := slices.ContainsFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+	ok := s.hostIndex(name) >= 0
 	s.mu.Unlock()
 	if !ok {
-		return 0, fmt.Errorf("no host %q", name)
+		return 0, noHost(name)
 	}
 	return s.OpenProject(remote.Key(name, dir)), nil
 }
@@ -397,14 +399,14 @@ type HostCheck struct {
 // bridge, over ssh, within 15 seconds.
 func (s *Shell) CheckHost(name string) HostCheck {
 	s.mu.Lock()
-	i := slices.IndexFunc(s.state.Hosts, func(x Host) bool { return x.Name == name })
+	i := s.hostIndex(name)
 	var h Host
 	if i >= 0 {
 		h = s.state.Hosts[i]
 	}
 	s.mu.Unlock()
 	if i < 0 {
-		return HostCheck{Error: fmt.Sprintf("no host %q", name)}
+		return HostCheck{Error: noHost(name).Error()}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
 	defer cancel()

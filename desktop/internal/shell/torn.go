@@ -103,7 +103,7 @@ func (s *Shell) Layout(window uint) (Layout, error) {
 	defer s.mu.Unlock()
 	p, _ := s.owner(window)
 	if p == nil {
-		return Layout{}, fmt.Errorf("no project window %d", window)
+		return Layout{}, noWindow(window)
 	}
 	return layoutOf(s.state.Projects[p.path]), nil
 }
@@ -114,7 +114,7 @@ func (s *Shell) change(window uint, f func(canvas.Project) canvas.Project) error
 	p, _ := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	s.edit(p, f)
 	s.mu.Unlock()
@@ -151,13 +151,13 @@ func (s *Shell) SetPlaces(window uint, places map[string]canvas.Place) error {
 // brings that window forward, and returns its id.
 func (s *Shell) TearOff(window uint, note string) (uint, error) {
 	if strings.TrimSpace(note) == "" {
-		return 0, fmt.Errorf("which note?")
+		return 0, ErrNoNote
 	}
 	s.mu.Lock()
 	p, _ := s.owner(window)
 	if p == nil || p.closed {
 		s.mu.Unlock()
-		return 0, fmt.Errorf("no project window %d", window)
+		return 0, noWindow(window)
 	}
 	if tw := p.torn[note]; tw != nil {
 		w := tw.win
@@ -192,7 +192,7 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 	p, _ := s.owner(window)
 	if p == nil || p.closed {
 		s.mu.Unlock()
-		return nil, fmt.Errorf("no project window %d", window)
+		return nil, noWindow(window)
 	}
 	type tear struct {
 		tw *tornWin
@@ -244,7 +244,7 @@ func (s *Shell) PutBackAll(window uint, notes []string) error {
 	p, _ := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	var wins []Window
 	for _, note := range notes {
@@ -410,7 +410,7 @@ func (s *Shell) PutBack(window uint, note string) error {
 	p, self := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	if note == "" && self != nil {
 		note = self.note

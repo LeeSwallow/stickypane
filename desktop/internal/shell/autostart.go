@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -18,9 +17,6 @@ type AutostartState struct {
 	Enabled   bool   `json:"enabled"`
 	Error     string `json:"error,omitempty"`
 }
-
-// ErrNoAutostart: this desktop cannot open the app at login.
-var ErrNoAutostart = errors.New("opening at login is not supported here")
 
 // AutostartState says whether the app opens at login.
 func (s *Shell) AutostartState() AutostartState {

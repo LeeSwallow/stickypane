@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,7 +36,7 @@ func (s *Shell) openIndex() {
 	case <-time.After(s.cfg.IndexDeadline):
 		s.mu.Lock()
 		if s.ix == nil && s.ixErr == nil {
-			s.ixErr = fmt.Errorf("index: not open after %v (is another app holding %s?)", s.cfg.IndexDeadline, filepath.Join(s.cfg.Home, "stickypane.db"))
+			s.ixErr = fmt.Errorf("%w after %v (is another app holding %s?)", ErrIndexNotOpen, s.cfg.IndexDeadline, filepath.Join(s.cfg.Home, "stickypane.db"))
 		}
 		s.mu.Unlock()
 	case <-s.quit:
@@ -50,7 +49,7 @@ func (s *Shell) index() (Index, error) {
 	select {
 	case <-s.ixReady:
 	case <-time.After(s.cfg.IndexDeadline + time.Second): // Start was not called
-		return nil, errors.New("index: not started")
+		return nil, ErrIndexNotStarted
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -60,7 +59,7 @@ func (s *Shell) index() (Index, error) {
 	if s.ixErr != nil {
 		return nil, s.ixErr
 	}
-	return nil, errors.New("index: not open")
+	return nil, ErrIndexNotOpen
 }
 
 // Ensure makes the home folder (that the app is used is what makes
