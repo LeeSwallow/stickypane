@@ -82,6 +82,13 @@ type Admin struct{}
 // ErrCancelled: the person closed the password dialog.
 var ErrCancelled = errors.New("cancelled")
 
+// How the password dialogs say they were closed: osascript writes
+// "User canceled. (-128)", pkexec exits 126. Neither has a better sign.
+const (
+	osascriptCancelled = "-128"
+	pkexecDismissed    = 126
+)
+
 // Run runs script as an administrator.
 func (Admin) Run(ctx context.Context, script string) error {
 	var cmd *exec.Cmd
@@ -99,10 +106,10 @@ func (Admin) Run(ctx context.Context, script string) error {
 	}
 	text := strings.TrimSpace(string(out))
 	// osascript says -128 when the dialog is cancelled; pkexec exits 126
-	if strings.Contains(text, "-128") || cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 126 {
+	if strings.Contains(text, osascriptCancelled) || cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == pkexecDismissed {
 		return ErrCancelled
 	}
-	return fmt.Errorf("%v: %s", err, text)
+	return fmt.Errorf("%w: %s", err, text)
 }
 
 // AppleScript is the osascript line that runs script with a password.

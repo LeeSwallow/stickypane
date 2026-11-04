@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	gosqlite "github.com/glebarez/go-sqlite"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -27,14 +28,41 @@ type corruptError struct{ why string }
 
 func (e *corruptError) Error() string { return "index: damaged database: " + e.why }
 
-// looksCorrupt says whether a SQLite error means a damaged file.
+// SQLite's primary result codes the store tells apart
+// (https://sqlite.org/rescode.html).
+const (
+	sqliteBusy    = 5  // SQLITE_BUSY: another connection holds the lock
+	sqliteLocked  = 6  // SQLITE_LOCKED
+	sqliteCorrupt = 11 // SQLITE_CORRUPT: "database disk image is malformed"
+	sqliteNotADB  = 26 // SQLITE_NOTADB: "file is not a database"
+)
+
+// sqliteCode is the primary result code of a SQLite error, when err is
+// (or wraps) one.
+func sqliteCode(err error) (int, bool) {
+	var se *gosqlite.Error
+	if errors.As(err, &se) {
+		return se.Code() & 0xff, true // an extended code keeps the primary in its low byte
+	}
+	return 0, false
+}
+
+// looksCorrupt says whether a SQLite error means a damaged file. An error
+// that has lost the driver's type is read by its words.
 func looksCorrupt(err error) bool {
+	if c, ok := sqliteCode(err); ok {
+		return c == sqliteCorrupt || c == sqliteNotADB
+	}
 	m := strings.ToLower(err.Error())
 	return strings.Contains(m, "file is not a database") ||
 		strings.Contains(m, "malformed") || strings.Contains(m, "(26)") || strings.Contains(m, "(11)")
 }
 
+// isBusy says whether another connection holds the database for now.
 func isBusy(err error) bool {
+	if c, ok := sqliteCode(err); ok {
+		return c == sqliteBusy || c == sqliteLocked
+	}
 	m := err.Error()
 	return strings.Contains(m, "SQLITE_BUSY") || strings.Contains(m, "locked")
 }
@@ -55,6 +83,15 @@ func wrap(err error) error {
 // path.broken-<time> and made again empty; rebuilt says so, and the
 // caller then reads every record again.
 func Open(path string) (s *Store, rebuilt bool, err error) {
+	return OpenAt(path, ports.SystemClock{})
+}
+
+// brokenStamp is the time in the name of a database set aside:
+// stickypane.db.broken-20261028-140211.000.
+const brokenStamp = "20060102-150405.000"
+
+// OpenAt is Open with the clock that names a database set aside.
+func OpenAt(path string, clock ports.Clock) (s *Store, rebuilt bool, err error) {
 	s, err = openFile(path)
 	if err == nil {
 		return s, false, nil
@@ -63,12 +100,14 @@ func Open(path string) (s *Store, rebuilt bool, err error) {
 	if !errors.As(err, &ce) {
 		return nil, false, err
 	}
-	stamp := time.Now().Format("20060102-150405.000")
-	if rerr := os.Rename(path, path+".broken-"+stamp); rerr != nil {
-		return nil, false, fmt.Errorf("%w (and could not move it aside: %v)", err, rerr)
+	aside := path + ".broken-" + clock.Now().Format(brokenStamp)
+	if rerr := os.Rename(path, aside); rerr != nil {
+		return nil, false, fmt.Errorf("%w (and could not move it aside: %w)", err, rerr)
 	}
-	os.Remove(path + "-wal")
-	os.Remove(path + "-shm")
+	// The journal of a file set aside is no use to the new one; one that
+	// is not there is the usual case.
+	_ = os.Remove(path + "-wal")
+	_ = os.Remove(path + "-shm")
 	s, err = openFile(path)
 	if err != nil {
 		return nil, false, err

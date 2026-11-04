@@ -230,9 +230,9 @@ func (c *Client) launch(ctx context.Context) (*proc, Hello, error) {
 	hctx, cancel := context.WithTimeout(ctx, helloTimeout)
 	defer cancel()
 	var h Hello
-	if err := p.call(hctx, "hello", nil, &h); err != nil {
+	if err := p.call(hctx, MethodHello, nil, &h); err != nil {
 		p.kill()
-		return nil, Hello{}, fmt.Errorf("bridge: hello: %w%s", err, p.errs.suffix())
+		return nil, Hello{}, &StartError{Err: err, Stderr: p.errs.text()}
 	}
 	if h.Protocol != Protocol {
 		p.kill()
@@ -507,12 +507,33 @@ func (t *tail) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// suffix is ": " and the tail, or nothing when the bridge said nothing.
-func (t *tail) suffix() string {
+// text is the tail, trimmed: what the bridge said last on stderr.
+func (t *tail) text() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if s := strings.TrimSpace(string(t.b)); s != "" {
+	return strings.TrimSpace(string(t.b))
+}
+
+// suffix is ": " and the tail, or nothing when the bridge said nothing.
+func (t *tail) suffix() string { return stderrSuffix(t.text()) }
+
+func stderrSuffix(s string) string {
+	if s != "" {
 		return ": " + s
 	}
 	return ""
 }
+
+// StartError is a bridge that did not say hello: Err is why (often
+// ErrConnectionLost: the program ended first), Stderr the end of what it
+// wrote on stderr, ssh's own words when it could not connect.
+type StartError struct {
+	Err    error
+	Stderr string
+}
+
+func (e *StartError) Error() string {
+	return "bridge: hello: " + e.Err.Error() + stderrSuffix(e.Stderr)
+}
+
+func (e *StartError) Unwrap() error { return e.Err }

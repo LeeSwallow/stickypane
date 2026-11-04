@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
@@ -28,16 +27,10 @@ const (
 	noteGap     = 16
 )
 
-// CanvasEvent tells a project window its layout changed outside it: a note
-// torn off, put back or gone.
-func CanvasEvent(window uint) string {
-	return "canvas.changed:" + strconv.FormatUint(uint64(window), 10)
-}
-
 // NoteURL is the page of a torn-off note's window; fit asks it to take
 // its note's height, the first time it opens.
 func NoteURL(note string, fit bool) string {
-	u := "/?window=note&note=" + url.QueryEscape(note)
+	u := pageNote + "&note=" + url.QueryEscape(note)
 	if fit {
 		u += "&fit=1"
 	}
@@ -78,6 +71,33 @@ func (s *Shell) owner(window uint) (*project, *tornWin) {
 	return nil, nil
 }
 
+// frameFor is where a note is to be torn off to: where it was left, or,
+// the first time, nowhere yet and pinned, for a sticky note stays on top
+// until unpinned. The caller holds mu.
+func (s *Shell) frameFor(p *project, note string) canvas.Frame {
+	if f, ok := s.state.Projects[p.path].Torn[note]; ok {
+		return f
+	}
+	return canvas.Frame{Pinned: true}
+}
+
+// keepFrame keeps a torn-off note's frame in its project's layout. The
+// caller holds mu.
+func (s *Shell) keepFrame(tw *tornWin, f canvas.Frame) {
+	s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+}
+
+// boardForward brings a project's board forward, where a note put back
+// now is, unless its window has gone.
+func (s *Shell) boardForward(p *project) {
+	s.mu.Lock()
+	board, closed := p.win, p.closed
+	s.mu.Unlock()
+	if board != nil && !closed {
+		raise(board)
+	}
+}
+
 // edit changes a project's layout in the state. The caller holds mu.
 func (s *Shell) edit(p *project, f func(canvas.Project) canvas.Project) {
 	next := f(s.state.Projects[p.path])
@@ -110,7 +130,7 @@ func (s *Shell) Layout(window uint) (Layout, error) {
 	defer s.mu.Unlock()
 	p, _ := s.owner(window)
 	if p == nil {
-		return Layout{}, fmt.Errorf("no project window %d", window)
+		return Layout{}, noWindow(window)
 	}
 	return layoutOf(s.state.Projects[p.path]), nil
 }
@@ -121,7 +141,7 @@ func (s *Shell) change(window uint, f func(canvas.Project) canvas.Project) error
 	p, _ := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	s.edit(p, f)
 	s.mu.Unlock()
@@ -158,13 +178,13 @@ func (s *Shell) SetPlaces(window uint, places map[string]canvas.Place) error {
 // brings that window forward, and returns its id.
 func (s *Shell) TearOff(window uint, note string) (uint, error) {
 	if strings.TrimSpace(note) == "" {
-		return 0, fmt.Errorf("which note?")
+		return 0, ErrNoNote
 	}
 	s.mu.Lock()
 	p, _ := s.owner(window)
 	if p == nil || p.closed {
 		s.mu.Unlock()
-		return 0, fmt.Errorf("no project window %d", window)
+		return 0, noWindow(window)
 	}
 	if tw := p.torn[note]; tw != nil {
 		w := tw.win
@@ -172,20 +192,16 @@ func (s *Shell) TearOff(window uint, note string) (uint, error) {
 		if w == nil {
 			return 0, nil // being made by another caller
 		}
-		w.Show()
-		w.Focus()
+		raise(w)
 		return w.ID(), nil
 	}
-	f, ok := s.state.Projects[p.path].Torn[note]
-	if !ok {
-		f = canvas.Frame{Pinned: true} // a sticky note stays on top until unpinned
-	}
+	f := s.frameFor(p, note)
 	tw := &tornWin{p: p, note: note}
 	p.torn[note] = tw
 	n := len(p.torn) - 1
 	s.mu.Unlock()
 	id := s.openTorn(tw, f, cascade(s.cfg.Platform.WorkArea(), n))
-	s.save()
+	s.keep("TearOff")
 	s.emitLayout(p)
 	return id, nil
 }
@@ -199,7 +215,7 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 	p, _ := s.owner(window)
 	if p == nil || p.closed {
 		s.mu.Unlock()
-		return nil, fmt.Errorf("no project window %d", window)
+		return nil, noWindow(window)
 	}
 	type tear struct {
 		tw *tornWin
@@ -211,10 +227,7 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 		if strings.TrimSpace(note) == "" || p.torn[note] != nil {
 			continue
 		}
-		f, ok := s.state.Projects[p.path].Torn[note]
-		if !ok {
-			f = canvas.Frame{Pinned: true}
-		}
+		f := s.frameFor(p, note)
 		if !f.Placed() {
 			fresh++
 		}
@@ -251,7 +264,7 @@ func (s *Shell) PutBackAll(window uint, notes []string) error {
 	p, _ := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	var wins []Window
 	for _, note := range notes {
@@ -263,17 +276,13 @@ func (s *Shell) PutBackAll(window uint, notes []string) error {
 			}
 		}
 	}
-	board, closed := p.win, p.closed
 	s.mu.Unlock()
 	for _, w := range wins {
 		w.Close()
 	}
 	err := s.save()
 	s.emitLayout(p)
-	if board != nil && !closed {
-		board.Show()
-		board.Focus()
-	}
+	s.boardForward(p)
 	return err
 }
 
@@ -324,7 +333,7 @@ func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, at Rect) uint {
 	}
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindNote,
-		Name:      "note:" + tw.p.path + "#" + tw.note,
+		Name:      prefixNote + tw.p.path + "#" + tw.note,
 		Title:     strings.TrimSuffix(path.Base(tw.note), ".md"),
 		URL:       NoteURL(tw.note, !f.Placed()),
 		Bounds:    b,
@@ -343,12 +352,11 @@ func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, at Rect) uint {
 	}
 	s.tornByWin[id] = tw
 	f.ScreenX, f.ScreenY, f.W, f.H = b.X, b.Y, b.Width, b.Height
-	s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+	s.keepFrame(tw, f)
 	s.mu.Unlock()
 	w.OnMoved(func() { s.tornMoved(tw) })
 	w.OnClosing(func() { s.tornClosing(tw) })
-	w.Show()
-	w.Focus()
+	raise(w)
 	return id
 }
 
@@ -376,7 +384,7 @@ func (s *Shell) tornMoved(tw *tornWin) {
 		return
 	}
 	if f, ok := s.frameOf(tw, b); ok {
-		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+		s.keepFrame(tw, f)
 	}
 }
 
@@ -398,13 +406,13 @@ func (s *Shell) tornClosing(tw *tornWin) {
 	keep := tw.quiet || s.stopped
 	if keep {
 		if f, ok := s.frameOf(tw, b); ok {
-			s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+			s.keepFrame(tw, f)
 		}
 	} else {
 		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.PutBack(tw.note) })
 	}
 	s.mu.Unlock()
-	s.save()
+	s.keep("tornClosing")
 	if !keep {
 		s.emitLayout(tw.p)
 	}
@@ -417,7 +425,7 @@ func (s *Shell) PutBack(window uint, note string) error {
 	p, self := s.owner(window)
 	if p == nil {
 		s.mu.Unlock()
-		return fmt.Errorf("no project window %d", window)
+		return noWindow(window)
 	}
 	if note == "" && self != nil {
 		note = self.note
@@ -433,14 +441,7 @@ func (s *Shell) PutBack(window uint, note string) error {
 	}
 	err := s.save()
 	s.emitLayout(p)
-	// the board comes forward, where the note now is
-	s.mu.Lock()
-	board, closed := p.win, p.closed
-	s.mu.Unlock()
-	if board != nil && !closed {
-		board.Show()
-		board.Focus()
-	}
+	s.boardForward(p)
 	return err
 }
 
@@ -559,7 +560,7 @@ func (s *Shell) keepNotes(p *project, result any) {
 	for _, w := range wins {
 		w.Close()
 	}
-	s.save()
+	s.keep("keepNotes")
 	if len(gone) > 0 {
 		s.emitLayout(p)
 	}
@@ -588,7 +589,7 @@ func (s *Shell) Renamed(window uint, from, to string) {
 		}
 	}
 	s.mu.Unlock()
-	s.save()
+	s.keep("Renamed")
 	s.emitLayout(p)
 	if tid != 0 {
 		s.cfg.Platform.Emit(StatusEvent(tid), s.Status(tid))
@@ -601,7 +602,7 @@ func (s *Shell) pinTorn(tw *tornWin, on bool) error {
 	f, ok := s.state.Projects[tw.p.path].Torn[tw.note]
 	if ok {
 		f.Pinned = on
-		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+		s.keepFrame(tw, f)
 	}
 	w := tw.win
 	s.mu.Unlock()

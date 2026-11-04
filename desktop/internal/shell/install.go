@@ -17,9 +17,9 @@ import (
 // stickypane, the person's home folder and login shell.
 func defaultInstaller(find func() (string, error)) Installer {
 	home, _ := os.UserHomeDir()
-	shell := os.Getenv("SHELL")
+	shell := os.Getenv(envShell)
 	if shell == "" {
-		shell = "/bin/zsh"
+		shell = defaultShell
 	}
 	return installsvc.New(installsvc.Config{
 		Files:  osys.Files{},

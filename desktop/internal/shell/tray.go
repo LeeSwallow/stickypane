@@ -10,6 +10,9 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+// trayRecent is how many recent boards the tray lists.
+const trayRecent = 5
+
 // Tray is what the tray shows: how many boards are moving now, and the
 // most recent five (08 §8.1).
 type Tray struct {

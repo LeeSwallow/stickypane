@@ -2,6 +2,7 @@ package bridgeclient
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -43,6 +44,28 @@ func TestStartArgvKeepsStderr(t *testing.T) {
 	}
 	if _, err := StartArgv(ctx(t), nil); err == nil {
 		t.Error("no command is an error")
+	}
+}
+
+// A start that ends before hello is a *StartError: ssh's words apart from
+// the reason, which is still ErrConnectionLost.
+func TestAStartThatEndsEarlyIsAStartError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("sh")
+	}
+	_, err := StartArgv(ctx(t), []string{"sh", "-c", "echo 'ssh: Could not resolve hostname dev.lan' >&2; exit 255"})
+	var se *StartError
+	if !errors.As(err, &se) {
+		t.Fatalf("err = %T %v, want a *StartError", err, err)
+	}
+	if !errors.Is(err, ErrConnectionLost) {
+		t.Errorf("err = %v, want ErrConnectionLost under it", err)
+	}
+	if se.Stderr != "ssh: Could not resolve hostname dev.lan" {
+		t.Errorf("Stderr = %q", se.Stderr)
+	}
+	if want := "bridge: hello: bridge: connection lost: ssh: Could not resolve hostname dev.lan"; err.Error() != want {
+		t.Errorf("Error() = %q, want %q", err, want)
 	}
 }
 

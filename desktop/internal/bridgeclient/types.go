@@ -21,6 +21,30 @@ const (
 	CodeFailed     = "failed"
 )
 
+// The bridge's methods (docs/desktop/02 §2.4.3), as the main module's
+// internal/surface/bridge names them. Call takes any name; these are the
+// ones the app sends.
+const (
+	MethodHello      = "hello"
+	MethodBoardLoad  = "board.load"
+	MethodBoardIndex = "board.index"
+	MethodKinds      = "kinds.list"
+	MethodThemes     = "themes.list"
+	MethodAct        = "note.act"
+	MethodCreate     = "note.create"
+	MethodArrange    = "note.arrange"
+	MethodOrder      = "tab.order"
+	MethodMove       = "note.move"
+	MethodArchive    = "note.archive"
+	MethodTrash      = "note.trash"
+	MethodRestore    = "note.restore"
+	MethodRun        = "note.run"
+	MethodSend       = "note.send"
+	MethodOpen       = "note.open"
+	MethodSettings   = "settings.get"
+	MethodSetSetting = "settings.set"
+)
+
 // MethodRestarted is the notification the client itself sends after it
 // started a dead bridge again: whatever the screen holds may be out of
 // date, so it loads the board again.

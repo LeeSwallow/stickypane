@@ -340,6 +340,20 @@ func TestInitRunsInTheProjectAndRefusesHomeAndRoot(t *testing.T) {
 	}
 }
 
+// A failed init says what init said, and keeps the run's own error under
+// it for errors.Is.
+func TestAFailedInitKeepsItsError(t *testing.T) {
+	g := newRig("/usr/bin")
+	g.r.out, g.r.err = "no space left\n", context.DeadlineExceeded
+	res, err := g.s.Init(ctx, "/work/p", "")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want the run's error under it", err)
+	}
+	if want := "stickypane init: " + context.DeadlineExceeded.Error() + ": no space left"; err.Error() != want || res.Output != "no space left" {
+		t.Errorf("%q %+v, want %q", err, res, want)
+	}
+}
+
 func TestTheLoginPathIsReadOnceAndFallsBackToTheApps(t *testing.T) {
 	g := newRig("/a:/b")
 	if p := g.s.LoginPath(ctx); strings.Join(p, ":") != "/a:/b" {

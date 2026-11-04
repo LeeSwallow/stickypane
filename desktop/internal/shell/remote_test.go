@@ -11,6 +11,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/remote"
 )
 
@@ -111,6 +112,25 @@ func TestARemoteBoardThatCannotConnectSaysWhatSSHSaid(t *testing.T) {
 	waitFor(t, "failed", func() bool { return r.s.Status(id).State == StateFailed })
 	if e := r.s.Status(id).Error; e != "ssh: Could not resolve hostname dev.lan" {
 		t.Errorf("error %q", e)
+	}
+}
+
+// The client's own *StartError reads the same: ssh's words, and nothing
+// of the bridge's.
+func TestARemoteStartErrorSaysWhatSSHSaid(t *testing.T) {
+	f := &sshFake{start: func([]string) (Board, error) {
+		return nil, &bridgeclient.StartError{Err: bridgeclient.ErrConnectionLost, Stderr: "ssh: connect to host dev.lan port 22: Connection refused"}
+	}}
+	r := remoteRig(t, f, devHost)
+	id, _ := r.s.OpenRemote("dev", "/home/min/my app")
+	waitFor(t, "failed", func() bool { return r.s.Status(id).State == StateFailed })
+	if e := r.s.Status(id).Error; e != "ssh: connect to host dev.lan port 22: Connection refused" {
+		t.Errorf("error %q", e)
+	}
+	// a start that failed for another reason says it whole
+	other := &bridgeclient.StartError{Err: bridgeclient.ErrProtocol, Stderr: "warning"}
+	if got := sshSaid(other); got != other.Error() {
+		t.Errorf("sshSaid(%v) = %q", other, got)
 	}
 }
 

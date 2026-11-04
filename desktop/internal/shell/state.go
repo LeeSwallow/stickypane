@@ -3,6 +3,7 @@ package shell
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -66,7 +67,7 @@ func LoadState(path string) (State, error) {
 		return s, err
 	}
 	if err := json.Unmarshal(b, &s); err != nil {
-		return State{Hotkey: DefaultHotkey}, err
+		return State{Hotkey: DefaultHotkey}, fmt.Errorf("%s: %w", path, err)
 	}
 	if s.Hotkey == "" {
 		s.Hotkey = DefaultHotkey
@@ -74,32 +75,46 @@ func LoadState(path string) (State, error) {
 	return s, nil
 }
 
+// stateTemp is the pattern of the temporary file a save writes first,
+// beside the state file.
+const stateTemp = ".overlay-*.json"
+
 // Save writes the state file whole: to a temporary file, synced to disk,
-// then renamed, so that a crash leaves the old file or the new one.
+// then renamed, so that a crash leaves the old file or the new one. A
+// save that fails leaves no temporary file behind.
 func (s State) Save(path string) error {
+	if err := s.save(path); err != nil {
+		return fmt.Errorf("save the app's state: %w", err)
+	}
+	return nil
+}
+
+func (s State) save(path string) (err error) {
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".overlay-*.json")
+	tmp, err := os.CreateTemp(dir, stateTemp)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil { // the temporary file goes; its own errors add nothing
+			_ = tmp.Close()
+			_ = os.Remove(tmp.Name())
+		}
+	}()
 	if _, err := tmp.Write(append(b, '\n')); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
 		return err
 	}
 	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
 		return err
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
 		return err
 	}
 	return os.Rename(tmp.Name(), path)

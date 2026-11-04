@@ -3,8 +3,8 @@ package shell
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
@@ -160,91 +160,86 @@ func window(ctx context.Context) (uint, error) {
 	if w, ok := ctx.Value(application.WindowKey).(application.Window); ok && w != nil {
 		return w.ID(), nil
 	}
-	return 0, errors.New("no window made this call")
+	return 0, ErrNoCaller
+}
+
+// from runs f for the window a call came from; a call from no window is
+// ErrNoCaller.
+func from[T any](ctx context.Context, f func(window uint) (T, error)) (T, error) {
+	id, err := window(ctx)
+	if err != nil {
+		var none T
+		return none, err
+	}
+	return f(id)
+}
+
+// fromDo is from for what answers only an error.
+func fromDo(ctx context.Context, f func(window uint) error) error {
+	_, err := from(ctx, func(id uint) (struct{}, error) { return struct{}{}, f(id) })
+	return err
 }
 
 func (p *ProjectService) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var out json.RawMessage
-	err = p.S.Call(ctx, id, method, params, &out)
-	return out, err
+	return from(ctx, func(id uint) (json.RawMessage, error) {
+		var out json.RawMessage
+		err := p.S.Call(ctx, id, method, params, &out)
+		return out, err
+	})
 }
 
 // Status is the window's project, its bridge's state and its pin.
 func (p *ProjectService) Status(ctx context.Context) (Status, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return Status{}, err
-	}
-	return p.S.Status(id), nil
+	return from(ctx, func(id uint) (Status, error) { return p.S.Status(id), nil })
 }
 
 // Pin keeps the window on top and shown when it loses focus.
 func (p *ProjectService) Pin(ctx context.Context, on bool) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return p.S.SetPin(id, on)
+	return fromDo(ctx, func(id uint) error { return p.S.SetPin(id, on) })
 }
 
 // MakeBoard makes a board in the window's folder, which had none, with
 // the app's own stickypane init, its welcome note in lang (the language
 // the window draws in), and opens it.
 func (p *ProjectService) MakeBoard(ctx context.Context, lang string) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return p.S.MakeBoardIn(id, lang)
+	return fromDo(ctx, func(id uint) error { return p.S.MakeBoardIn(id, lang) })
 }
 
 // OpenSettings opens the settings window on a section, for this window's board.
 func (p *ProjectService) OpenSettings(ctx context.Context, section string) (uint, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return p.S.OpenSettings(id, section), nil
+	return from(ctx, func(id uint) (uint, error) { return p.S.OpenSettings(id, section), nil })
 }
 
 // InitHere runs stickypane init again in the window's project (the agent
 // guide, after connecting the agents) and answers what it printed.
 func (p *ProjectService) InitHere(ctx context.Context) (installsvc.Result, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return installsvc.Result{}, err
-	}
-	return p.S.InitHere(id)
+	return from(ctx, p.S.InitHere)
 }
 
 // Load is board.load.
 func (p *ProjectService) Load(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "board.load", nil)
+	return p.call(ctx, bridgeclient.MethodBoardLoad, nil)
 }
 
 // Act is note.act.
 func (p *ProjectService) Act(ctx context.Context, a ActParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.act", a)
+	return p.call(ctx, bridgeclient.MethodAct, a)
 }
 
 // Arrange is note.arrange: open, size, rows, pin, colour, title.
 func (p *ProjectService) Arrange(ctx context.Context, a ArrangeParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.arrange", a)
+	return p.call(ctx, bridgeclient.MethodArrange, a)
 }
 
 // Order is tab.order.
 func (p *ProjectService) Order(ctx context.Context, o OrderParams) (json.RawMessage, error) {
-	return p.call(ctx, "tab.order", o)
+	return p.call(ctx, bridgeclient.MethodOrder, o)
 }
 
 // Move is note.move. The note's place on the canvas, and its torn-off
 // window, go with it to its new name.
 func (p *ProjectService) Move(ctx context.Context, m MoveParams) (json.RawMessage, error) {
-	out, err := p.call(ctx, "note.move", m)
+	out, err := p.call(ctx, bridgeclient.MethodMove, m)
 	if err != nil {
 		return out, err
 	}
@@ -269,67 +264,67 @@ func movedTo(out json.RawMessage) string {
 
 // Archive is note.archive.
 func (p *ProjectService) Archive(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.archive", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodArchive, noteParams{note})
 }
 
 // Trash is note.trash.
 func (p *ProjectService) Trash(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.trash", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodTrash, noteParams{note})
 }
 
 // Restore is note.restore.
 func (p *ProjectService) Restore(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.restore", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodRestore, noteParams{note})
 }
 
 // Create is note.create.
 func (p *ProjectService) Create(ctx context.Context, c CreateParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.create", c)
+	return p.call(ctx, bridgeclient.MethodCreate, c)
 }
 
 // Run is note.run: it answers when the script is done.
 func (p *ProjectService) Run(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.run", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodRun, noteParams{note})
 }
 
 // Send is note.send: it answers when the request is done.
 func (p *ProjectService) Send(ctx context.Context, s SendParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.send", s)
+	return p.call(ctx, bridgeclient.MethodSend, s)
 }
 
 // Open is note.open: the note in the person's editor.
 func (p *ProjectService) Open(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.open", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodOpen, noteParams{note})
 }
 
 // Kinds is kinds.list, with the examples in language: the language the
 // window draws in ("ko", "en"). "" asks for the board's.
 func (p *ProjectService) Kinds(ctx context.Context, language string) (json.RawMessage, error) {
 	if language == "" {
-		return p.call(ctx, "kinds.list", nil)
+		return p.call(ctx, bridgeclient.MethodKinds, nil)
 	}
-	return p.call(ctx, "kinds.list", map[string]string{"language": language})
+	return p.call(ctx, bridgeclient.MethodKinds, map[string]string{"language": language})
 }
 
 // Themes is themes.list: every theme's palette.
 func (p *ProjectService) Themes(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "themes.list", nil)
+	return p.call(ctx, bridgeclient.MethodThemes, nil)
 }
 
 // Index is board.index.
 func (p *ProjectService) Index(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "board.index", nil)
+	return p.call(ctx, bridgeclient.MethodBoardIndex, nil)
 }
 
 // Settings is settings.get.
 func (p *ProjectService) Settings(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "settings.get", nil)
+	return p.call(ctx, bridgeclient.MethodSettings, nil)
 }
 
 // SetSetting is settings.set. The board's windows read it again at once
 // (from the settings window, they would wait for the file to be seen).
 func (p *ProjectService) SetSetting(ctx context.Context, s SettingsParams) (json.RawMessage, error) {
-	out, err := p.call(ctx, "settings.set", s)
+	out, err := p.call(ctx, bridgeclient.MethodSetSetting, s)
 	if err == nil {
 		if id, werr := window(ctx); werr == nil {
 			p.S.Touched(id)
@@ -346,92 +341,58 @@ type CanvasService struct{ S *Shell }
 
 // Layout is the project's canvas: its mode, snap, places and torn-off notes.
 func (c *CanvasService) Layout(ctx context.Context) (Layout, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return Layout{}, err
-	}
-	return c.S.Layout(c.S.boardWindow(id))
+	return from(ctx, func(id uint) (Layout, error) { return c.S.Layout(c.S.boardWindow(id)) })
 }
 
 // SetMode is canvas or grid. From the settings window it is the board's
 // it was opened from, and that board's window is told.
 func (c *CanvasService) SetMode(ctx context.Context, mode string) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	board := c.S.boardWindow(id)
-	if err := c.S.SetMode(board, mode); err != nil {
-		return err
-	}
-	if board != id {
-		c.S.layoutChanged(board)
-	}
-	return nil
+	return fromDo(ctx, func(id uint) error {
+		board := c.S.boardWindow(id)
+		if err := c.S.SetMode(board, mode); err != nil {
+			return err
+		}
+		if board != id {
+			c.S.layoutChanged(board)
+		}
+		return nil
+	})
 }
 
 // ResetPlaces forgets where the notes sit on the canvas (03 §3.6.2).
 func (c *CanvasService) ResetPlaces(ctx context.Context) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return c.S.ResetPlaces(c.S.boardWindow(id))
+	return fromDo(ctx, func(id uint) error { return c.S.ResetPlaces(c.S.boardWindow(id)) })
 }
 
 // SetSnap makes notes land on the canvas's grid, or anywhere.
 func (c *CanvasService) SetSnap(ctx context.Context, on bool) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return c.S.SetSnap(id, on)
+	return fromDo(ctx, func(id uint) error { return c.S.SetSnap(id, on) })
 }
 
 // Place keeps where notes are on the canvas, by note name.
 func (c *CanvasService) Place(ctx context.Context, places map[string]canvas.Place) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return c.S.SetPlaces(id, places)
+	return fromDo(ctx, func(id uint) error { return c.S.SetPlaces(id, places) })
 }
 
 // TearOff opens a note in a window of its own and returns its id.
 func (c *CanvasService) TearOff(ctx context.Context, note string) (uint, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return c.S.TearOff(id, note)
+	return from(ctx, func(id uint) (uint, error) { return c.S.TearOff(id, note) })
 }
 
 // TearOffAll opens each note given, a tab's, in a window of its own, side
 // by side across the screen, and returns the windows it opened.
 func (c *CanvasService) TearOffAll(ctx context.Context, notes []string) ([]uint, error) {
-	id, err := window(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return c.S.TearOffAll(id, notes)
+	return from(ctx, func(id uint) ([]uint, error) { return c.S.TearOffAll(id, notes) })
 }
 
 // PutBackAll puts the notes given back on the board and closes their
 // windows.
 func (c *CanvasService) PutBackAll(ctx context.Context, notes []string) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return c.S.PutBackAll(id, notes)
+	return fromDo(ctx, func(id uint) error { return c.S.PutBackAll(id, notes) })
 }
 
 // PutBack puts a torn-off note back on the board and closes its window;
 // from that window, note "" is its own.
 func (c *CanvasService) PutBack(ctx context.Context, note string) error {
-	id, err := window(ctx)
-	if err != nil {
-		return err
-	}
-	return c.S.PutBack(id, note)
+	return fromDo(ctx, func(id uint) error { return c.S.PutBack(id, note) })
 }
