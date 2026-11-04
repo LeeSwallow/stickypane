@@ -23,12 +23,20 @@ type Env struct {
 	Shell      Shell
 	Pane       Pane
 	Locale     string // as found, such as "ko_KR.UTF-8" or "ko-KR"; "" for none
-	LocaleFrom string // the variable it came from, or "system"
+	LocaleFrom string // the variable it came from, or FromSystem
 
 	editor   []string // the settings' choice, over $VISUAL and $EDITOR
 	getenv   func(string) string
 	lookPath func(string) (string, error)
 }
+
+// The board's own variables, and what LocaleFrom says when no variable
+// named the locale and the system did.
+const (
+	LangVar    = "STICKYPANE_LANG"
+	UserVar    = "STICKYPANE_USER"
+	FromSystem = "system"
+)
 
 // Detect looks at the environment and returns what it found. Variables are
 // read on every call, since they are cheap and tests change them; asking
@@ -47,7 +55,7 @@ func cachedSystemLocale() string {
 
 // localeVars are read in order; the first that names a language wins. "C"
 // and "POSIX" name none.
-var localeVars = []string{"STICKYPANE_LANG", "LC_ALL", "LC_MESSAGES", "LANG"}
+var localeVars = []string{LangVar, "LC_ALL", "LC_MESSAGES", "LANG"}
 
 func detect(getenv func(string) string, goos string, system func() string) Env {
 	e := Env{OS: goos, getenv: getenv, lookPath: exec.LookPath}
@@ -60,7 +68,7 @@ func detect(getenv func(string) string, goos string, system func() string) Env {
 		}
 	}
 	if l := strings.TrimSpace(system()); l != "" {
-		e.Locale, e.LocaleFrom = l, "system"
+		e.Locale, e.LocaleFrom = l, FromSystem
 	}
 	return e
 }
@@ -69,7 +77,7 @@ func detect(getenv func(string) string, goos string, system func() string) Env {
 // user.name, else $USER or $USERNAME, else "me". Spaces are taken out, so
 // it can follow an @.
 func (e Env) User() string {
-	name := e.getenv("STICKYPANE_USER")
+	name := e.getenv(UserVar)
 	if name == "" {
 		if out, err := exec.Command("git", "config", "user.name").Output(); err == nil {
 			name = strings.TrimSpace(string(out))
