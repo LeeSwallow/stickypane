@@ -38,7 +38,7 @@ var Kind = widget.Kind{
 	Example: "@base = https://httpbin.org\n\n### Echo\nPOST {{base}}/anything\nContent-Type: application/json\n\n{\"user\": \"min\"}\n# @assert response.statusCode == 200\n# @assert response.json(\"json.user\") == \"min\"\n",
 	Keys:    "j k up down enter space e",
 	Size:    func(doc.Document) string { return widget.SizeHalf },
-	Template: func(string) []byte {
+	Template: func(string, widget.Env) []byte {
 		return []byte("### Example\nGET https://httpbin.org/get\n# @assert response.statusCode == 200\n")
 	},
 	Options: []widget.Option{
@@ -315,7 +315,7 @@ func data(d doc.Document, e widget.Env) any {
 
 // compose writes a new .http file of one request, named by the title, with
 // a check of its status when one is given.
-func compose(title string, opts map[string]string) ([]byte, error) {
+func compose(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 	url := opts["url"]
 	if url == "" || strings.ContainsAny(url, " \t") {
 		return nil, fmt.Errorf("%w: url of a request: %q is not a URL", widget.ErrBadOption, url)

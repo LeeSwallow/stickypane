@@ -23,7 +23,7 @@ var Kind = widget.Kind{
 	Usage:    "An .html or .htm file. The terminal shows the text of the page, without tags, scripts or styles; the desktop app draws the page itself. Nothing on it can be changed from a screen.",
 	Example:  "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
-	Template: func(string) []byte { return []byte("<!doctype html>\n<title></title>\n") },
+	Template: func(string, widget.Env) []byte { return []byte("<!doctype html>\n<title></title>\n") },
 	Options: []widget.Option{
 		{Name: "text", Type: widget.OptLines, Label: "Text"},
 	},
@@ -35,7 +35,7 @@ var Kind = widget.Kind{
 // compose writes a new page: the title as its title and heading, and each
 // line of text as a paragraph, all of it escaped, so what was typed is
 // shown and never run.
-func compose(title string, opts map[string]string) ([]byte, error) {
+func compose(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 	var b strings.Builder
 	b.WriteString("<!doctype html>\n<title>" + stdhtml.EscapeString(title) + "</title>\n")
 	if strings.TrimSpace(title) != "" {

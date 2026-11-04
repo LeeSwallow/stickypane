@@ -22,7 +22,7 @@ func TestKind(t *testing.T) {
 	if widget.Width(Kind.Icon) != 1 || Kind.Blurb == "" || Kind.Example == "" || !Kind.Handles("enter") || !Kind.Handles("space") {
 		t.Errorf("Kind needs an icon, a blurb, an example and the keys that run it: %+v", Kind)
 	}
-	if got := string(Kind.Template("Deploy")); !strings.HasPrefix(got, "#!/bin/sh\n") || strings.Contains(got, "---") {
+	if got := string(Kind.Template("Deploy", widget.Env{})); !strings.HasPrefix(got, "#!/bin/sh\n") || strings.Contains(got, "---") {
 		t.Errorf("a new script is a shell script, without front matter: %q", got)
 	}
 }

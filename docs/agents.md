@@ -154,7 +154,11 @@ stickypane set plan title="The plan"         # to the note's front matter
 ```
 
 A note that does not exist yet is made, open on the screen, so an agent
-never has to know the file format for these. An item, a card or a column is
+never has to know the file format for these. A board made by `card add`
+starts with To do, Doing and Done in the board's language (할 일, 하는 중
+and 끝 on a Korean board, the English ones when `--to` names one of those),
+the card in the column `--to` names; `--to` a column that is none of them
+starts the board with that column alone. An item, a card or a column is
 named by its text, by a part of it that nothing else has, or by its
 position (`#2`). When the name fits nothing, or more than one thing, the
 error lists what there is.

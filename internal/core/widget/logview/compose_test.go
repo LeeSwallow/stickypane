@@ -10,7 +10,7 @@ import (
 
 func TestComposeWritesTheFirstEntries(t *testing.T) {
 	t.Parallel()
-	b, err := Kind.Make("Worklog", map[string]string{"entries": "started\nread the spec"})
+	b, err := Kind.Make("Worklog", map[string]string{"entries": "started\nread the spec"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}

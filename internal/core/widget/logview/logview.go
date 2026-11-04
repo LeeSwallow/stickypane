@@ -26,11 +26,11 @@ var Kind = widget.Kind{
 	Tail:     true,
 	Rows:     rows,
 	Size:     func(doc.Document) string { return widget.SizeHalf },
-	Template: func(title string) []byte { return widget.NewFile("log", title, "") },
+	Template: func(title string, _ widget.Env) []byte { return widget.NewFile("log", title, "") },
 	Options: []widget.Option{
 		{Name: "entries", Type: widget.OptLines, Label: "First entries"},
 	},
-	Compose: func(title string, opts map[string]string) ([]byte, error) {
+	Compose: func(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 		body := strings.Join(widget.Lines(opts["entries"]), "\n")
 		if body != "" {
 			body += "\n"

@@ -117,11 +117,16 @@ func TestEveryKindComposesFromItsOptions(t *testing.T) {
 				if ko.Labels[o.Label] == "" {
 					t.Errorf("option %s: label %q has no Korean in labels", o.Name, o.Label)
 				}
+				for _, w := range widget.Lines(o.Default) {
+					if o.Words && ko.Labels[w] == "" {
+						t.Errorf("option %s: the default %q has no Korean in labels", o.Name, w)
+					}
+				}
 			}
 			if len(k.Options) > 0 && k.Compose == nil {
 				t.Error("a kind with options needs Compose")
 			}
-			b, err := k.Make("Made here", nil)
+			b, err := k.Make("Made here", nil, widget.Env{})
 			if err != nil {
 				t.Fatalf("Make with the defaults: %v", err)
 			}

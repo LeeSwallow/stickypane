@@ -11,7 +11,7 @@ import (
 
 func TestComposeWritesAPageWithItsTitleEscaped(t *testing.T) {
 	t.Parallel()
-	b, err := Kind.Make("R&D <report>", map[string]string{"text": "fast & small\nsecond"})
+	b, err := Kind.Make("R&D <report>", map[string]string{"text": "fast & small\nsecond"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}

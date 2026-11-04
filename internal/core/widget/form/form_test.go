@@ -86,7 +86,7 @@ func TestKind(t *testing.T) {
 			t.Errorf("a form should take %q", k)
 		}
 	}
-	tmpl := string(kind.Template("Deploy"))
+	tmpl := string(kind.Template("Deploy", widget.Env{}))
 	if !strings.HasPrefix(tmpl, "---\ntype: form\ntitle: Deploy\n---\n") || !strings.Contains(tmpl, "- ( ) ") || !strings.Contains(tmpl, "[ Submit ]") {
 		t.Errorf("a new form should start with something to answer: %q", tmpl)
 	}

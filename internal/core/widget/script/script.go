@@ -29,11 +29,11 @@ var Kind = widget.Kind{
 	Example:  "#!/bin/sh\ngo test ./...\n",
 	Keys:     "enter space",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
-	Template: func(string) []byte { return []byte("#!/bin/sh\n") },
+	Template: func(string, widget.Env) []byte { return []byte("#!/bin/sh\n") },
 	Options: []widget.Option{
 		{Name: "commands", Type: widget.OptLines, Label: "Commands"},
 	},
-	Compose: func(_ string, opts map[string]string) ([]byte, error) {
+	Compose: func(_ string, opts map[string]string, _ widget.Env) ([]byte, error) {
 		// The commands as written: indentation means something in a script.
 		file := "#!/bin/sh\n"
 		if commands := strings.Trim(opts["commands"], "\n"); strings.TrimSpace(commands) != "" {

@@ -51,6 +51,16 @@ func (s shaped) Apply(d doc.Document) (doc.Document, error) {
 // the first of kinds, open on the screen. It returns the file name and the
 // note as it is afterwards.
 func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Document, error) {
+	return a.changeOrMake(name, kinds, op, nil)
+}
+
+// changeOrMake is change, with the file a Markdown note that does not
+// exist yet starts from before op: made(title), or the Template of the
+// first of kinds in the board's words (words) when made is nil.
+func (a *API) changeOrMake(name string, kinds []string, op doc.Op, made func(title string) []byte) (string, doc.Document, error) {
+	if made == nil {
+		made = func(title string) []byte { return a.reg.Lookup(kinds[0]).Template(title, a.words()) }
+	}
 	file, err := fileName(name)
 	if err != nil {
 		return "", doc.Document{}, err
@@ -71,7 +81,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		// open. Another file is what its extension makes it.
 		var d doc.Document
 		if store.IsMarkdown(file) {
-			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
+			d = created(doc.Parse(made(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return nil, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
 		}
@@ -143,16 +153,23 @@ func (a *API) Todo(name, action, item string) (Edited, error) {
 
 // Card changes a board: action "add" puts a new card in column to (the
 // first column when to is empty), "move" moves the card named by its text,
-// a part of it, or "#2" to column to.
+// a part of it, or "#2" to column to. A board that does not exist yet
+// starts with the usual columns in the board's words (or in English, when
+// to names one in English), the card in the one to names; a card for a
+// column that is none of them starts the board with that column alone
+// (board.Starting).
 func (a *API) Card(name, action, card, to string) (Edited, error) {
 	card, err := oneLine(card)
 	if err != nil {
 		return Edited{}, err
 	}
 	var op doc.Op
+	var made func(title string) []byte
 	switch action {
 	case "add":
-		op = board.Add{Card: card, To: strings.TrimSpace(to)}
+		words := a.words()
+		op = board.Add{Card: card, To: strings.TrimSpace(to), First: board.Columns(words)[0]}
+		made = func(title string) []byte { return board.Starting(title, to, words) }
 	case "move":
 		if strings.TrimSpace(to) == "" {
 			return Edited{}, errors.New("a move needs the column to move the card to")
@@ -161,7 +178,7 @@ func (a *API) Card(name, action, card, to string) (Edited, error) {
 	default:
 		return Edited{}, fmt.Errorf("unknown action %q: use add or move", action)
 	}
-	file, d, err := a.change(name, []string{"board"}, op)
+	file, d, err := a.changeOrMake(name, []string{"board"}, op, made)
 	if err != nil {
 		return Edited{}, err
 	}

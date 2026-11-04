@@ -23,7 +23,7 @@ func NewKind(render note.Renderer) widget.Kind {
 		Example: "## Where to deploy?\n- (x) staging\n- ( ) production\n\n## Note\n> after lunch\n\n[ Deploy ] [ Cancel ]\n",
 		Keys:    "j k up down h l left right space enter",
 		Size:    func(doc.Document) string { return widget.SizeHalf },
-		Template: func(title string) []byte {
+		Template: func(title string, _ widget.Env) []byte {
 			return widget.NewFile("form", title, "## Question\n- ( ) Yes\n- ( ) No\n\n[ "+defaultButton+" ]\n")
 		},
 		Options: []widget.Option{
@@ -43,7 +43,7 @@ func NewKind(render note.Renderer) widget.Kind {
 // compose writes a new form of one question: its heading, then its
 // options ("- ( )" for one choice, "- [ ]" for many) or a line to fill in,
 // then the buttons.
-func compose(title string, opts map[string]string) ([]byte, error) {
+func compose(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 	var b strings.Builder
 	if q := opts["question"]; q != "" {
 		b.WriteString("## " + q + "\n")
