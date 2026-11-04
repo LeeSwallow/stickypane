@@ -52,6 +52,11 @@ own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
 a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
 `z` is the way to zoom into one.
 
+A count before a key repeats it: `3J` moves a note three rows down. A
+digit alone goes to its tab once no key follows it. With the Korean
+2-set layout on, the board reads `ㅓ` as `j` and every other jamo as the
+key it is on.
+
 These are the keys as they come. Each board key belongs to a named action
 (`note-archive`, `jot`), and `stickypane keys` lists them with the keys
 they have now; [configuration.md](configuration.md#keys) says how to

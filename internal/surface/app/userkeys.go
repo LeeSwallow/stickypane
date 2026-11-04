@@ -144,10 +144,6 @@ func NormalKeys(keys []string) ([]string, error) {
 	return out, nil
 }
 
-// errSequence is a key written as several keys. A later board will read
-// them as a sequence ("g g"); this one takes one key at a time.
-var errSequence = errors.New("is a sequence of keys; for now a key is one key")
-
 // modifiers are the modifiers a key may have, in the order the terminal
 // writes them: "ctrl+alt+x", never "alt+ctrl+x".
 var modifiers = []string{"ctrl", "alt", "shift", "meta", "hyper", "super"}
@@ -171,15 +167,39 @@ var keyAliases = map[string]string{"pgdn": "pgdown", "escape": "esc", "return": 
 // how the board matches it: a character ("x", "X", "?", "가"), or a named
 // key ("enter", "pgdown", "f5"), after modifiers ("ctrl+x", "shift+tab").
 // Modifiers are put in the terminal's order, "pgdn" is "pgdown", and
-// "shift+x" is "X", which is what the terminal says for it. ctrl+c is not
-// a key the board can give: it always quits.
+// "shift+x" is "X", which is what the terminal says for it; a jamo of the
+// Korean 2-set layout is the Latin key it is on ("ㅓ" is "j"). ctrl+c is
+// not a key the board can give: it always quits.
+//
+// Keys written with spaces between are a sequence, pressed one after the
+// other ("g g"). A sequence cannot start with a digit, which is read as a
+// count, nor go on after esc, which drops the keys before it.
 func NormalKey(key string) (string, error) {
-	k := strings.TrimSpace(key)
-	switch {
-	case k == "":
+	parts := strings.Fields(key)
+	if len(parts) < 2 {
+		return normalKey(key)
+	}
+	for i, p := range parts {
+		n, err := normalKey(p)
+		if err != nil {
+			return "", fmt.Errorf("%q: %w", key, err)
+		}
+		switch {
+		case i == 0 && isDigit(n):
+			return "", fmt.Errorf("%q starts with a digit, which is read as a count", key)
+		case i > 0 && n == "esc":
+			return "", fmt.Errorf("%q goes on after esc, which drops the keys before it", key)
+		}
+		parts[i] = n
+	}
+	return strings.Join(parts, " "), nil
+}
+
+// normalKey is NormalKey of one key.
+func normalKey(key string) (string, error) {
+	k := latinKey(strings.TrimSpace(key))
+	if k == "" {
 		return "", errors.New("a key is empty")
-	case strings.ContainsFunc(k, unicode.IsSpace):
-		return "", fmt.Errorf("%q %w", k, errSequence)
 	}
 	base, mods := k, []string{}
 	if i := strings.LastIndex(k[:len(k)-1], "+"); i >= 0 {
@@ -228,6 +248,10 @@ func NormalKey(key string) (string, error) {
 	}
 	return out, nil
 }
+
+// ShowKey is a key as the board shows it: a sequence's characters side by
+// side, "g g" as gg.
+func ShowKey(key string) string { return showKey(key) }
 
 // keyed fills a message's placeholders, and the keys it names: an action's
 // name in CamelCase ({{.Undo}}, {{.ThemeNext}}) is its first key, "" when

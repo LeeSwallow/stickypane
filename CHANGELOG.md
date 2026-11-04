@@ -15,6 +15,12 @@ on GitHub are built from pull request labels.
   use keeps its keys, and the bottom line says which entries were left
   out. The help, the bottom line and messages such as "u brings it back"
   name the keys in effect.
+- Key sequences and counts. `keys set note-archive "d x"` binds two keys
+  in a row; the bottom line shows what waits (`d…`), `esc` drops it. `3J`
+  moves a note three rows; a digit alone still goes to its tab, after a
+  600 ms wait.
+- The Korean 2-set layout works on the board: `ㅓ` is `j`, `ㅌ` is `x`.
+  Prompts and the editor still type the jamo.
 
 ### Changed
 

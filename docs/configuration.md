@@ -89,6 +89,7 @@ ones you changed (`--json` for scripts).
 stickypane keys                          # every action and its keys
 stickypane keys set note-archive X       # X archives, x no longer does
 stickypane keys set jot N ctrl+n         # several keys; the first is the one hints show
+stickypane keys set note-archive "d x"   # a sequence: d, then x
 stickypane keys set theme-next           # no keys: the action has none
 stickypane keys reset note-archive       # back to x
 stickypane keys reset                    # every key as it comes
@@ -107,10 +108,26 @@ to edit as well:
 ```
 
 - An action not in the file keeps its keys; `[]` leaves it without one.
-- A key is one key for now: a character (`x`, `X`, `?`), a named key
-  (`enter`, `tab`, `space`, `esc`, `up`, `pgdown`, `f5`...), or either after
-  modifiers (`ctrl+x`, `alt+enter`, `shift+tab`). `shift+x` is written `X`.
-  `ctrl+c` always quits and cannot be given away.
+- A key is a character (`x`, `X`, `?`), a named key (`enter`, `tab`,
+  `space`, `esc`, `up`, `pgdown`, `f5`...), or either after modifiers
+  (`ctrl+x`, `alt+enter`, `shift+tab`). `shift+x` is written `X`. `ctrl+c`
+  always quits and cannot be given away.
+- Keys with spaces between are a sequence, pressed one after the other:
+  `"g g"`, `"d x"`. The bottom line shows what waits (`d…`) and what can
+  come next; `esc` drops it, and so does a key that continues nothing,
+  which is dropped with it. A sequence cannot start with a digit (that is
+  a count) or go on after `esc`. The help shows `"g g"` as `gg`.
+- A key may be whole and start a longer one (`g` and `g g`): after `g` the
+  board waits 600 ms, then runs `g`. A key that only starts others waits
+  as long as it takes.
+- Digits before a key are a count: `3J` moves a note three rows down.
+  Moving, resizing, focus, pages, screens and `(` `)` take one, up to 99;
+  other actions run once. A digit alone goes to its tab after the same
+  wait, `0` alone is `0`'s action, and after a digit `0` is a digit
+  (`10J`).
+- With the Korean 2-set layout on, the board reads jamo as the key under
+  them: `ㅓ` is `j`, `ㅌ` is `x`, `ㅃ` is `Q`. Prompts, the editor and the
+  search take what you type as it is. The file may name a key either way.
 - A key belongs to one action. To swap two keys, change both actions in
   the file, or set the one losing the key first.
 - What the board cannot use (an unknown action, a key it cannot read, a
@@ -122,7 +139,8 @@ to edit as well:
 - An open note's own keys come first: an open kanban takes `h` `j` `k` `l`
   and `H` `J` `K` `L`, a checklist `space` and `n`, before the board's
   actions see them. A board key you give an action that a focused shape
-  also uses works everywhere else.
+  also uses works everywhere else. A count does not take a key from the
+  shape (`3j` on a kanban is `j`); a sequence already waiting does.
 - Having `~/.stickypane/keys.json` turns no records on;
   [What stickypane records](#what-stickypane-records-on-this-machine)
   depends on the desktop app's own files there.
