@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -8,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/keyfile"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/surface/app"
 )
 
@@ -74,19 +76,20 @@ func setKeys(e env, path, shown, name string, keys []string) error {
 	if err != nil {
 		return fmt.Errorf("%s: %v; stickypane keys reset starts it again", shown, err)
 	}
+	tr := helpStrings()
 	normal, err := app.NormalKeys(keys)
 	if err != nil {
-		return fmt.Errorf("%s: %v", name, err)
+		return errors.New(i18n.Fill(tr.KeyRefused, map[string]any{"Action": name, "Why": app.SayKeyError(err, tr)}))
 	}
 	next := maps.Clone(want)
 	if next == nil {
 		next = map[string][]string{}
 	}
 	next[name] = normal
-	bindings, problems := app.Bindings(helpStrings(), next)
+	bindings, problems := app.Bindings(tr, next)
 	for _, p := range problems {
 		if p.Action == name {
-			return fmt.Errorf("%s; %s is left as it was", p, shown)
+			return errors.New(i18n.Fill(tr.KeyNotKept, map[string]any{"Action": name, "Why": p.Say(tr), "File": shown}))
 		}
 	}
 	if err := keyfile.Write(path, next); err != nil {

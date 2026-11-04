@@ -72,10 +72,12 @@
     white-space: nowrap;
     cursor: default;
     user-select: none;
+    /* no colour transition: a button drawn before the window's theme is
+       applied would ease from the browser's black, and a window that is
+       not in front may not run the easing, leaving it dark on dark */
     transition:
       background-color var(--t-short) var(--ease),
       border-color var(--t-short) var(--ease),
-      color var(--t-short) var(--ease),
       filter var(--t-short) var(--ease);
     --wails-draggable: no-drag;
   }

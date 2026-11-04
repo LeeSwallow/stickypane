@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -18,16 +19,73 @@ import (
 type KeyProblem struct {
 	Action string // the action, as the file names it
 	Why    string // in English
+	err    *KeyError
 }
 
 func (p KeyProblem) String() string { return p.Action + ": " + p.Why }
 
+// Say is why, in tr's language.
+func (p KeyProblem) Say(tr i18n.Strings) string {
+	if p.err == nil {
+		return p.Why
+	}
+	return p.err.Say(tr)
+}
+
+func problem(action string, e *KeyError) KeyProblem {
+	return KeyProblem{Action: action, Why: e.Error(), err: e}
+}
+
+// A KeyError is why a key cannot be had, in any language: the sentence of
+// i18n.Strings that pick chooses, filled with vals. Error is the English.
+type KeyError struct {
+	pick  func(i18n.Strings) string
+	vals  map[string]any
+	inner *KeyError // the key of a sequence that is wrong
+}
+
+func keyErr(pick func(i18n.Strings) string, vals map[string]any) *KeyError {
+	return &KeyError{pick: pick, vals: vals}
+}
+
+func (e *KeyError) Error() string { return e.Say(i18n.English()) }
+
+// Say is e in tr's language. The action called Other is named by its
+// words as OtherWords.
+func (e *KeyError) Say(tr i18n.Strings) string {
+	vals := maps.Clone(e.vals)
+	if vals == nil {
+		vals = map[string]any{}
+	}
+	if e.inner != nil {
+		vals["Why"] = e.inner.Say(tr)
+	}
+	if other, ok := vals["Other"].(string); ok {
+		vals["OtherWords"] = other
+		if a, ok := defaultKeys.byName[other]; ok {
+			vals["OtherWords"] = defaultKeys.actions[a].describe(tr)
+		}
+	}
+	return i18n.Fill(e.pick(tr), vals)
+}
+
+// SayKeyError is err in tr's language when it is a KeyError, else as it is.
+func SayKeyError(err error, tr i18n.Strings) string {
+	var ke *KeyError
+	if errors.As(err, &ke) {
+		return ke.Say(tr)
+	}
+	return err.Error()
+}
+
 // A Binding is one of the board's actions as stickypane keys lists it.
 type Binding struct {
-	Name    string   `json:"name"`
-	Keys    []string `json:"keys"`
-	Words   string   `json:"words"`
-	Changed bool     `json:"changed"` // the key file gave it these keys
+	Name     string   `json:"name"`
+	Keys     []string `json:"keys"`
+	Words    string   `json:"words"`
+	Changed  bool     `json:"changed"`  // the key file gave it these keys
+	Defaults []string `json:"defaults"` // the keys it comes with
+	Group    string   `json:"group"`    // what it is about (keyGroups)
 }
 
 // Bindings is every action of the board with the keys it has once want,
@@ -37,7 +95,10 @@ func Bindings(tr i18n.Strings, want map[string][]string) ([]Binding, []KeyProble
 	km, changed, problems := bindKeys(want)
 	out := make([]Binding, len(km.actions))
 	for i, a := range km.actions {
-		out[i] = Binding{Name: a.name, Keys: append([]string{}, a.keys...), Words: a.describe(tr), Changed: changed[a.name]}
+		out[i] = Binding{
+			Name: a.name, Keys: append([]string{}, a.keys...), Words: a.describe(tr), Changed: changed[a.name],
+			Defaults: append([]string{}, defaultKeys.keysOf(a.name)...), Group: groupOf(a.name),
+		}
 	}
 	return out, problems
 }
@@ -81,12 +142,12 @@ func bindKeys(want map[string][]string) (*keymap, map[string]bool, []KeyProblem)
 	for _, name := range slices.Sorted(maps.Keys(want)) {
 		i, ok := at[name]
 		if !ok {
-			problems = append(problems, KeyProblem{name, "there is no such action; stickypane keys lists them"})
+			problems = append(problems, problem(name, keyErr(func(t i18n.Strings) string { return t.KeyNoAction }, map[string]any{"Action": name})))
 			continue
 		}
 		keys, err := NormalKeys(want[name])
 		if err != nil {
-			problems = append(problems, KeyProblem{name, err.Error()})
+			problems = append(problems, problem(name, err.(*KeyError)))
 			continue
 		}
 		acts[i].keys, changed[name] = keys, true
@@ -102,13 +163,14 @@ func bindKeys(want map[string][]string) (*keymap, map[string]bool, []KeyProblem)
 		if !changed[acts[j].name] {
 			back, other = i, j
 		}
-		problems = append(problems, KeyProblem{acts[back].name, fmt.Sprintf("%s is %s's key too", key, acts[other].name)})
+		problems = append(problems, problem(acts[back].name, keyErr(func(t i18n.Strings) string { return t.KeyShared },
+			map[string]any{"Plain": key, "Key": strconv.Quote(key), "Other": acts[other].name})))
 		acts[back].keys = defaultKeys.keysOf(acts[back].name)
 		delete(changed, acts[back].name)
 	}
 	km, err := newKeymap(acts)
 	if err != nil { // cannot happen: no key is shared now
-		return defaultKeys, nil, append(problems, KeyProblem{"keys", err.Error()})
+		return defaultKeys, nil, append(problems, KeyProblem{Action: "keys", Why: err.Error()})
 	}
 	return km, changed, problems
 }
@@ -182,13 +244,15 @@ func NormalKey(key string) (string, error) {
 	for i, p := range parts {
 		n, err := normalKey(p)
 		if err != nil {
-			return "", fmt.Errorf("%q: %w", key, err)
+			e := keyErr(func(t i18n.Strings) string { return t.KeyInSeq }, map[string]any{"Seq": strconv.Quote(key)})
+			e.inner = err.(*KeyError)
+			return "", e
 		}
 		switch {
 		case i == 0 && isDigit(n):
-			return "", fmt.Errorf("%q starts with a digit, which is read as a count", key)
+			return "", keyErr(func(t i18n.Strings) string { return t.KeySeqDigit }, map[string]any{"Key": strconv.Quote(key)})
 		case i > 0 && n == "esc":
-			return "", fmt.Errorf("%q goes on after esc, which drops the keys before it", key)
+			return "", keyErr(func(t i18n.Strings) string { return t.KeySeqEsc }, map[string]any{"Key": strconv.Quote(key)})
 		}
 		parts[i] = n
 	}
@@ -198,8 +262,14 @@ func NormalKey(key string) (string, error) {
 // normalKey is NormalKey of one key.
 func normalKey(key string) (string, error) {
 	k := latinKey(strings.TrimSpace(key))
+	q := map[string]any{"Key": strconv.Quote(k)}
+	with := func(more map[string]any) map[string]any {
+		m := maps.Clone(q)
+		maps.Copy(m, more)
+		return m
+	}
 	if k == "" {
-		return "", errors.New("a key is empty")
+		return "", keyErr(func(t i18n.Strings) string { return t.KeyEmpty }, nil)
 	}
 	base, mods := k, []string{}
 	if i := strings.LastIndex(k[:len(k)-1], "+"); i >= 0 {
@@ -207,10 +277,10 @@ func normalKey(key string) (string, error) {
 		for _, mod := range strings.Split(k[:i], "+") {
 			mod = strings.ToLower(mod)
 			if !slices.Contains(modifiers, mod) {
-				return "", fmt.Errorf("%q: %q is not a modifier (%s)", k, mod, strings.Join(modifiers, ", "))
+				return "", keyErr(func(t i18n.Strings) string { return t.KeyBadModifier }, with(map[string]any{"Mod": strconv.Quote(mod), "Mods": strings.Join(modifiers, ", ")}))
 			}
 			if slices.Contains(mods, mod) {
-				return "", fmt.Errorf("%q: %s twice", k, mod)
+				return "", keyErr(func(t i18n.Strings) string { return t.KeyModTwice }, with(map[string]any{"Mod": mod}))
 			}
 			mods = append(mods, mod)
 		}
@@ -221,15 +291,15 @@ func normalKey(key string) (string, error) {
 			base = a
 		}
 		if !namedKeys[base] {
-			return "", fmt.Errorf("%q: %q is not a key the terminal names", k, base)
+			return "", keyErr(func(t i18n.Strings) string { return t.KeyUnknownName }, with(map[string]any{"Name": strconv.Quote(base)}))
 		}
 	} else if r, _ := utf8.DecodeRuneInString(base); !unicode.IsPrint(r) {
-		return "", fmt.Errorf("%q is not a key", k)
+		return "", keyErr(func(t i18n.Strings) string { return t.KeyNotAKey }, q)
 	}
 	if len(mods) == 1 && mods[0] == "shift" && utf8.RuneCountInString(base) == 1 {
 		r, _ := utf8.DecodeRuneInString(base)
 		if !unicode.IsLetter(r) {
-			return "", fmt.Errorf("%q: write the character shift makes instead", k)
+			return "", keyErr(func(t i18n.Strings) string { return t.KeyShiftChar }, q)
 		}
 		base, mods = string(unicode.ToUpper(r)), nil
 	}
@@ -244,7 +314,7 @@ func normalKey(key string) (string, error) {
 	slices.SortFunc(mods, func(a, b string) int { return slices.Index(modifiers, a) - slices.Index(modifiers, b) })
 	out := strings.Join(append(mods, base), "+")
 	if out == "ctrl+c" {
-		return "", errors.New("ctrl+c always quits; it cannot be given to an action")
+		return "", keyErr(func(t i18n.Strings) string { return t.KeyCtrlC }, nil)
 	}
 	return out, nil
 }

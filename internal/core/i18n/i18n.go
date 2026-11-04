@@ -93,6 +93,24 @@ type Strings struct {
 	KeysUnreadable      string `json:"keysUnreadable"`
 	KeysIgnored         string `json:"keysIgnored"`
 
+	// Why stickypane keys set refuses a key. {{.Key}} is the key quoted,
+	// {{.Action}} the action's name, {{.OtherWords}} what the other
+	// action does.
+	KeyEmpty       string `json:"keyEmpty"`
+	KeyBadModifier string `json:"keyBadModifier"`
+	KeyModTwice    string `json:"keyModTwice"`
+	KeyUnknownName string `json:"keyUnknownName"`
+	KeyNotAKey     string `json:"keyNotAKey"`
+	KeyShiftChar   string `json:"keyShiftChar"`
+	KeyCtrlC       string `json:"keyCtrlC"`
+	KeySeqDigit    string `json:"keySeqDigit"`
+	KeySeqEsc      string `json:"keySeqEsc"`
+	KeyInSeq       string `json:"keyInSeq"`
+	KeyNoAction    string `json:"keyNoAction"`
+	KeyShared      string `json:"keyShared"`
+	KeyRefused     string `json:"keyRefused"`
+	KeyNotKept     string `json:"keyNotKept"`
+
 	// The command line's answers. Command names stay English.
 	NotACommand      string `json:"notACommand"`
 	CommandAmbiguous string `json:"commandAmbiguous"`
@@ -178,6 +196,21 @@ func English() Strings {
 		WatchUnavailable:    "File watching is unavailable.{{with .Reload}} Press {{.}} to refresh.{{end}}",
 		KeysUnreadable:      "{{.File}} could not be read, so the keys are as they come. stickypane keys says why.",
 		KeysIgnored:         "{{.File}}: {{.Names}} kept the keys they come with. stickypane keys says why.",
+
+		KeyEmpty:       "a key is empty",
+		KeyBadModifier: "{{.Key}}: {{.Mod}} is not a modifier ({{.Mods}})",
+		KeyModTwice:    "{{.Key}}: {{.Mod}} twice",
+		KeyUnknownName: "{{.Key}}: {{.Name}} is not a key the terminal names",
+		KeyNotAKey:     "{{.Key}} is not a key",
+		KeyShiftChar:   "{{.Key}}: write the character shift makes instead",
+		KeyCtrlC:       "ctrl+c always quits; it cannot be given to an action",
+		KeySeqDigit:    "{{.Key}} starts with a digit, which is read as a count",
+		KeySeqEsc:      "{{.Key}} goes on after esc, which drops the keys before it",
+		KeyInSeq:       "{{.Seq}}: {{.Why}}",
+		KeyNoAction:    "there is no such action; stickypane keys lists them",
+		KeyShared:      "{{.Plain}} is {{.Other}}'s key too",
+		KeyRefused:     "{{.Action}}: {{.Why}}",
+		KeyNotKept:     "{{.Action}}: {{.Why}}; {{.File}} is left as it was",
 
 		NotACommand:      "Not a command: {{.Name}}",
 		CommandAmbiguous: "{{.Name}} could be {{.Choices}}.",

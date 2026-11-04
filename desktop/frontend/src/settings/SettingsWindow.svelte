@@ -59,6 +59,8 @@
   import HotkeyRecorder from './HotkeyRecorder.svelte'
   import Hosts from './Hosts.svelte'
   import { hostsService, type HostsApi } from '../services/hosts'
+  import BoardKeys from './BoardKeys.svelte'
+  import { keysService, type KeysApi } from '../services/keys'
   import Row from './Row.svelte'
   import Swatch from './Swatch.svelte'
   import Terminal from './Terminal.svelte'
@@ -69,9 +71,10 @@
     app,
     setup,
     hosts = hostsService,
+    keys = keysService,
     section: start = 'board',
     chrome = 'none',
-  }: { board: BoardSide; app: AppApi; setup: SetupApi; hosts?: HostsApi; section?: Section; chrome?: Chrome } = $props()
+  }: { board: BoardSide; app: AppApi; setup: SetupApi; hosts?: HostsApi; keys?: KeysApi; section?: Section; chrome?: Chrome } = $props()
 
   const GITHUB = 'https://github.com/LeeSwallow/stickypane'
   const DOCS = 'https://github.com/LeeSwallow/stickypane/tree/main/docs'
@@ -207,6 +210,7 @@
     app: { icon: 'computer', color: 2 },
     hosts: { icon: 'remote', color: 3 },
     cli: { icon: 'terminal', color: 3 },
+    keys: { icon: 'keys', color: 5 },
     about: { icon: 'info', color: 4 },
   }
   const id = $props.id()
@@ -261,6 +265,7 @@
                 {#if section === 'app'}<p class="where">{$tr('settings.app.where')}</p>{/if}
                 {#if section === 'hosts'}<p class="where">{$tr('settings.hosts.where')}</p>{/if}
                 {#if section === 'cli'}<p class="where">{$tr('settings.cli.where')}</p>{/if}
+                {#if section === 'keys'}<p class="where">{$tr('settings.keys.where')}</p>{/if}
               </header>
 
               {#if section === 'board'}
@@ -419,6 +424,8 @@
                 <Hosts api={hosts} />
               {:else if section === 'cli'}
                 <Terminal {setup} project={ready} />
+              {:else if section === 'keys'}
+                <BoardKeys api={keys} hotkey={prefs.hotkey} goto={(s) => (section = s)} />
               {:else}
                 <div class="about">
                   <Logo size={64} />

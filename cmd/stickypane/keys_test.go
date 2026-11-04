@@ -51,16 +51,23 @@ func TestKeysListsEveryAction(t *testing.T) {
 	}
 	_, out, _ = exec(t, "keys", "--json")
 	var got []struct {
-		Name    string
-		Keys    []string
-		Words   string
-		Changed bool
+		Name     string
+		Keys     []string
+		Words    string
+		Changed  bool
+		Defaults []string
+		Group    string
 	}
 	if err := json.Unmarshal([]byte(out), &got); err != nil || len(got) < 40 {
 		t.Fatalf("%v: %s", err, out)
 	}
-	if got[0].Name != "focus-left" || got[0].Keys[0] != "h" || got[0].Changed {
+	if got[0].Name != "focus-left" || got[0].Keys[0] != "h" || got[0].Changed || got[0].Group != "move" {
 		t.Errorf("%+v", got[0])
+	}
+	for _, b := range got {
+		if b.Name == "note-archive" && (b.Keys[0] != "X" || !b.Changed || len(b.Defaults) != 1 || b.Defaults[0] != "x" || b.Group != "notes") {
+			t.Errorf("the change and the default side by side: %+v", b)
+		}
 	}
 	t.Setenv("STICKYPANE_LANG", "ko")
 	if _, out, _ := exec(t, "keys"); !strings.Contains(out, "보관") {
@@ -168,5 +175,37 @@ func TestKeysWithABrokenFile(t *testing.T) {
 	}
 	if code, _, _ := exec(t, "keys", "reset"); code != 0 {
 		t.Error("reset")
+	}
+}
+
+// keys set refuses in the board's language, naming the other action by
+// what it does, and leaves keys.json as it was.
+func TestKeysSetRefusesInTheBoardsLanguage(t *testing.T) {
+	home := keysHome(t)
+	t.Setenv("STICKYPANE_LANG", "ko")
+	file := filepath.Join(home, "keys.json")
+	for _, c := range []struct {
+		args []string
+		why  string
+	}{
+		{[]string{"note-archive", "q"}, "stickypane: q는 이미 '종료' 키예요. 다른 키를 골라 주세요.\n"},
+		{[]string{"note-pin", "gx"}, "stickypane: \"gx\"는 터미널이 아는 키 이름이 아니에요.\n"},
+		{[]string{"note-pin", "1 g"}, "stickypane: 숫자는 횟수로 읽혀서 \"1 g\"처럼 숫자로 시작할 수 없어요.\n"},
+		{[]string{"note-pin", "g esc"}, "stickypane: esc는 앞의 키를 지워서 \"g esc\"처럼 esc 뒤로 이어 갈 수 없어요.\n"},
+		{[]string{"note-pin", "g gx"}, "stickypane: \"gx\"는 터미널이 아는 키 이름이 아니에요.\n"},
+		{[]string{"nope", "Q"}, "stickypane: nope라는 동작은 없어요. 목록은 stickypane keys에서 볼 수 있어요.\n"},
+		{[]string{"note-pin", "ctrl+c"}, "stickypane: ctrl+c는 언제나 종료라서 다른 동작에 줄 수 없어요.\n"},
+	} {
+		code, _, errOut := exec(t, append([]string{"keys", "set"}, c.args...)...)
+		if code == 0 || errOut != c.why {
+			t.Errorf("keys set %q: code = %d, stderr = %q", c.args, code, errOut)
+		}
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Errorf("a refused set wrote keys.json: %v", err)
+	}
+	t.Setenv("STICKYPANE_LANG", "en")
+	if _, _, errOut := exec(t, "keys", "set", "note-archive", "q"); !strings.Contains(errOut, "note-archive: q is quit's key too; ") {
+		t.Errorf("English: %q", errOut)
 	}
 }

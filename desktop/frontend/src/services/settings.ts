@@ -89,8 +89,8 @@ export async function setAppPref(api: Pick<SettingsApi, 'appPrefs' | 'setAppPref
 }
 
 /** The sections of the settings window. */
-export type Section = 'board' | 'app' | 'hosts' | 'cli' | 'about'
-export const SECTIONS: Section[] = ['board', 'app', 'hosts', 'cli', 'about']
+export type Section = 'board' | 'app' | 'hosts' | 'cli' | 'keys' | 'about'
+export const SECTIONS: Section[] = ['board', 'app', 'hosts', 'cli', 'keys', 'about']
 export const sectionOf = (s: string | null | undefined): Section => (SECTIONS.includes(s as Section) ? (s as Section) : 'board')
 
 /** Whether a hotkey can be had (the shell's HotkeyCheck). */

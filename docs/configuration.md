@@ -83,7 +83,8 @@ on `auto` and set `LANG`. Key names and the agent guide stay English.
 Every key of the terminal board belongs to a named action, and the names
 stay when the keys change. `stickypane keys` lists them: the action, its
 keys, what it does in the board's language, and `(keys.json)` beside the
-ones you changed (`--json` for scripts).
+ones you changed (`--json` for scripts, with each action's default keys
+and its group: move, notes, arrange, size, scroll, tabs, board).
 
 ```sh
 stickypane keys                          # every action and its keys
@@ -106,6 +107,9 @@ to edit as well:
   "theme-next": []
 }
 ```
+
+The desktop app's Settings → **Keys** lists and changes the same file,
+through the same `stickypane keys`.
 
 - An action not in the file keeps its keys; `[]` leaves it without one.
 - A key is a character (`x`, `X`, `?`), a named key (`enter`, `tab`,

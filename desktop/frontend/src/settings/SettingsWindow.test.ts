@@ -151,7 +151,7 @@ describe('the settings window', () => {
 
   it('opening at login is offered only where the desktop can', async () => {
     open(fakeBoard(), fakeApp(), 'app')
-    await screen.findByText('단축키')
+    await screen.findByText('앱 단축키')
     expect(screen.queryByText('로그인할 때 열기')).toBeNull()
     cleanup()
     const app = fakeApp({ autostart: vi.fn(async () => ({ supported: true, enabled: false })) })
@@ -166,7 +166,7 @@ describe('the settings window', () => {
     await screen.findByRole('tab', { name: '보드' })
     expect(list.getAttribute('aria-orientation')).toBe('vertical')
     const tabs = within(list).getAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['보드', '이 컴퓨터', '원격 호스트', '터미널과 에이전트', '정보'])
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['보드', '이 컴퓨터', '원격 호스트', '터미널과 에이전트', '단축키', '정보'])
     tabs[0].focus()
     await fireEvent.keyDown(list, { key: 'ArrowDown' })
     expect(within(list).getByRole('tab', { name: '이 컴퓨터' }).getAttribute('aria-selected')).toBe('true')

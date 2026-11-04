@@ -1,7 +1,7 @@
 <script lang="ts">
   // Dev only (?demo=screens&screen=home|home-list|empty|home-empty|board
   // |board-first|board-empty|canvas|torn|zoom|create|settings-board
-  // |settings-app|settings-hosts|settings-cli|settings-about|settings-none
+  // |settings-app|settings-hosts|settings-cli|settings-keys|settings-about|settings-none
   // &shape=board|form|chart…&mode=dark|light&lang=ko|en):
   // the real Home and Board screens over made-up data, so they can be seen
   // in a browser without the shell. With &bridge=<devbridge url>
@@ -18,8 +18,9 @@
   import { THEMES } from './themes'
   import { live } from './live'
   import SettingsWindow from '../settings/SettingsWindow.svelte'
+  import { fakeKeys } from '../settings/fakeKeys'
   import type { Host, HostsApi } from '../services/hosts'
-  import type { AppApi, AppPrefs } from '../services/settings'
+  import type { AppApi, AppPrefs, Section } from '../services/settings'
   import type { AgentRequest, AgentStatus, AgentsStatus, CommandState, SetupApi } from '../services/install'
 
   const q = new URLSearchParams(location.search)
@@ -278,6 +279,8 @@
     aliases: async () => [{ name: 'work', resolved: 'min@10.0.0.9:22' }, { name: 'gpu-lab', resolved: 'min@gpu.lab:2222' }],
   }
   const settingsSection = screen.startsWith('settings-') ? screen.slice(9) : ''
+  // the board's keys with two of them changed, as keys.json would
+  const demoKeys = fakeKeys({ 'note-archive': ['X'], 'focus-first': ['g g', 'ctrl+g'] })
   const noBoard = settingsSection === 'none'
   const settingsBoard = noBoard ? { ...boardApi, status: async () => ({ window: 2, path: '', state: 'closed', pinned: false }) } : boardApi
 </script>
@@ -288,7 +291,8 @@
     app={fakeApp}
     setup={setup ?? fakeSetup}
     hosts={fakeHosts}
-    section={(noBoard ? (q.get('section') ?? 'board') : settingsSection) as 'board' | 'app' | 'hosts' | 'cli' | 'about'}
+    keys={demoKeys.api}
+    section={(noBoard ? (q.get('section') ?? 'board') : settingsSection) as Section}
     chrome={(q.get('chrome') as 'mac' | 'own' | null) ?? 'mac'}
   />
 {:else if screen === 'torn'}

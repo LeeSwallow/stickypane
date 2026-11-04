@@ -89,6 +89,13 @@ export const CRAYONS = {
     { line: 'M5.5 9.75V13.6H8.75' },
     { line: 'M14.5 10.25V6.4H11.25' },
   ],
+  // two key caps, one pressed after the other (단축키)
+  keys: [
+    { fill: 'orange', d: 'M2.5 5H9.25V11.75H2.5Z' },
+    { fill: 'yellow', d: 'M10.75 8.25H17.5V15H10.75Z' },
+    { line: 'M5.9 7.25V9.5' },
+    { line: 'M13 11.75H15.25' },
+  ],
   info: [
     { fill: 'yellow', d: ring(10, 10, 7) },
     { line: 'M10 9V14' },

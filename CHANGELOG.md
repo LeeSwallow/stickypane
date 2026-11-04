@@ -25,6 +25,12 @@ on GitHub are built from pull request labels.
   `:e plan` zooms a note by name, `:new idea`, `:tab 2`, `:3` goes to the
   third note, `:help set`. Commands shorten to any unique start; `tab`
   completes, `↑` `↓` recall.
+- Settings → **Keys** in the app changes the terminal board's keys: every
+  action by group with its keys, a mark on the ones `keys.json` changed,
+  a field for new ones (`g g, ctrl+d`) or a recorder, and reset per key or
+  all at once. The board checks each change and says why it refuses one,
+  in the board's language (`keys set` speaks Korean too).
+  `stickypane keys --json` now gives each action's default keys and group.
 - `stickypane setup --status` says where Claude Code and Codex stand:
   the plugin's version and whether it loads, and the MCP server, scope by
   scope (user, this project, local). `--json` is for programs.
