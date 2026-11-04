@@ -80,7 +80,8 @@ stickypane setup
 ```
 
 Claude Code와 Codex에 보드 플러그인을 설치합니다. `stickypane setup --mcp`는
-MCP 서버도 등록합니다.
+MCP 서버도 등록합니다. 에이전트마다 상태는 `stickypane setup --status`로 봅니다.
+플러그인이 오래됐거나 망가졌으면 setup을 다시 실행하면 고쳐집니다.
 
 **3. 프로젝트에 보드를 만듭니다.** 프로젝트 폴더에서:
 

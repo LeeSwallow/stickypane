@@ -31,8 +31,24 @@ on GitHub are built from pull request labels.
   all at once. The board checks each change and says why it refuses one,
   in the board's language (`keys set` speaks Korean too).
   `stickypane keys --json` now gives each action's default keys and group.
+- `stickypane setup --status` says where Claude Code and Codex stand:
+  the plugin's version and whether it loads, and the MCP server, scope by
+  scope (user, this project, local). `--json` is for programs.
+- `stickypane setup --mcp --plugin=false` registers (or with `--undo`
+  removes) the MCP server only.
+- Settings → 터미널과 에이전트 in the app has a row for each agent: not
+  installed, not connected, connected with its version, update waiting or
+  broken. The skills (plugin) and the MCP server are each connected,
+  updated or removed there, with the plan shown first; opened from a
+  project's window, the project and local scopes are offered too.
 
 ### Changed
+
+- `stickypane setup` updates a plugin older than its own, and repairs a
+  marketplace added from a folder that is gone (a checkout that moved,
+  `failed to load … cache-miss`): it is pointed at `LeeSwallow/stickypane`
+  again and the plugin installed anew. `--undo` and `--mcp` act on the
+  `--scope` given only, and skip what is not there.
 
 - **Board keys are vim keys.** `h` `j` `k` `l` go to the note on that side,
   as the screen shows them, and `gg` `G` to the first and last; `tab`
@@ -62,6 +78,8 @@ on GitHub are built from pull request labels.
 
 ### Fixed
 
+- `codex plugin marketplace add LeeSwallow/stickypane` works again: Codex
+  0.166 refused the marketplace's `authentication: "NONE"`.
 - A note torn off into its own window starts right under its frame's top
   border: its head's controls float over the corner on a hover instead of
   keeping an empty row (a checklist showed ~80px of nothing above its

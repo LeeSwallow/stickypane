@@ -21,7 +21,7 @@
   import { fakeKeys } from '../settings/fakeKeys'
   import type { Host, HostsApi } from '../services/hosts'
   import type { AppApi, AppPrefs, Section } from '../services/settings'
-  import type { CommandState, SetupApi } from '../services/install'
+  import type { AgentRequest, AgentStatus, AgentsStatus, CommandState, SetupApi } from '../services/install'
 
   const q = new URLSearchParams(location.search)
   const asked = q.get('screen') ?? 'home'
@@ -207,12 +207,61 @@
     rcFile: '/Users/min/.zshrc',
     rcLine: 'export PATH="$HOME/.local/bin:$PATH"',
   }
+  // ?agents=off|ok|outdated|broken|missing|project: the agents' states, for
+  // captures of 터미널과 에이전트; ?plan=claude|codex opens a plan
+  const agentsAsked = q.get('agents') ?? 'mixed'
+  const app = '/Applications/stickypane.app/Contents/Helpers/stickypane'
+  const agent = (a: 'claude' | 'codex', over: Partial<AgentStatus> = {}): AgentStatus => ({
+    agent: a,
+    found: true,
+    path: `/Users/min/.local/bin/${a}`,
+    state: 'off',
+    scopes: a === 'claude' ? ['user', 'project', 'local'] : ['user'],
+    plugin: {},
+    mcp: {},
+    ...over,
+  })
+  const ok = (v = '0.4.0') => ({ version: v, state: 'ok' as const })
+  const github = { source: 'github', where: 'LeeSwallow/stickypane' }
+  function demoAgents(): AgentsStatus {
+    const project = settingsSection === 'none' ? '' : '/Users/min/Projects/Personal/my-app'
+    const both = (c: Partial<AgentStatus>, x: Partial<AgentStatus>) => ({ plugin: '0.4.0', project, agents: [agent('claude', c), agent('codex', x)] })
+    switch (agentsAsked) {
+      case 'off':
+        return both({}, {})
+      case 'ok':
+        return both({ state: 'ok', plugin: { user: ok() }, mcp: { user: { command: app } }, marketplace: github }, { state: 'ok', plugin: { user: ok() }, marketplace: github })
+      case 'outdated':
+        return both({ state: 'outdated', plugin: { user: { version: '0.2.1', state: 'outdated' } }, marketplace: github }, { state: 'outdated', plugin: { user: { version: '0.2.1', state: 'outdated' } }, mcp: { user: { command: app } } })
+      case 'broken':
+        return both(
+          { state: 'broken', plugin: { user: { version: '0.2.1', state: 'broken', error: 'Marketplace stickypane failed to load: cache-miss' } }, marketplace: { source: 'directory', where: '/Users/min/Projects/stickypane', gone: true } },
+          { state: 'broken', plugin: { user: { state: 'broken', error: 'failed to load configured marketplace snapshot(s): `stickypane` at /Users/min/Projects/stickypane: marketplace root does not contain a supported manifest' } }, marketplace: { source: 'local', where: '/Users/min/Projects/stickypane', gone: true } },
+        )
+      case 'missing':
+        return both({ found: false, state: 'missing', path: undefined }, { found: false, state: 'missing', path: undefined })
+      case 'project':
+        return both({ state: 'ok', plugin: { user: ok(), project: ok() }, mcp: { project: { command: app } }, marketplace: github }, { state: 'off' })
+      default:
+        return both({ state: 'ok', plugin: { user: ok() }, mcp: { user: { command: app } }, marketplace: github }, { found: false, state: 'missing', path: undefined })
+    }
+  }
+  function demoPlan(r: AgentRequest): string {
+    const s = r.agent === 'claude' ? ` --scope ${r.scope}` : ''
+    if (r.part === 'mcp') return `stickypane setup runs:\n  ${r.agent} mcp ${r.undo ? 'remove' : 'add'}${s} stickypane${r.undo ? '' : ` -- ${app} mcp`}`
+    if (r.undo) return `stickypane setup runs:\n  ${r.agent} plugin ${r.agent === 'claude' ? 'uninstall' : 'remove'} board@stickypane${s}`
+    const st = demoAgents().agents.find((a) => a.agent === r.agent)
+    if (st?.marketplace?.gone) return `stickypane setup runs:\n  ${r.agent} plugin marketplace remove stickypane\n  ${r.agent} plugin marketplace add LeeSwallow/stickypane\n  ${r.agent} plugin ${r.agent === 'claude' ? 'install' : 'add'} board@stickypane${s}`
+    if (st?.state === 'outdated') return r.agent === 'claude' ? `stickypane setup runs:\n  claude plugin marketplace update stickypane\n  claude plugin update board@stickypane${s}` : 'stickypane setup runs:\n  codex plugin marketplace upgrade stickypane\n  codex plugin add board@stickypane'
+    return `stickypane setup runs:\n  ${r.agent} plugin marketplace add LeeSwallow/stickypane\n  ${r.agent} plugin ${r.agent === 'claude' ? 'install' : 'add'} board@stickypane${s}`
+  }
   const fakeSetup: SetupApi = {
     command: async () => (screen === 'empty' ? { ...cmdState, links: cmdState.links.map((l) => ({ ...l, state: 'none' as const })), first: null, shadow: null } : cmdState),
     install: async () => ({ state: cmdState }),
     uninstall: async () => ({ state: cmdState }),
-    connectPlan: async (mcp) => ({ command: 'stickypane setup --dry-run', output: 'stickypane setup runs:\n  claude plugin marketplace add LeeSwallow/stickypane\n  claude plugin install board@stickypane --scope user' + (mcp ? '\n  claude mcp add stickypane -- stickypane mcp' : '') }),
-    connect: async () => ({ command: 'stickypane setup --yes', output: 'done' }),
+    agents: async () => demoAgents(),
+    agentPlan: async (r) => ({ command: `stickypane setup --agents ${r.agent} --dry-run`, output: demoPlan(r) }),
+    agentRun: async (r) => ({ command: `stickypane setup --agents ${r.agent} --yes`, output: demoPlan(r).replace('stickypane setup runs:\n', '') }),
     initHere: async () => ({ command: 'stickypane init', output: '' }),
   }
   let demoHosts: Host[] = [

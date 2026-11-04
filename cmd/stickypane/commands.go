@@ -54,10 +54,10 @@ func init() {
 		}},
 		{[]string{"setup"}, setupCmd, helpText{
 			group: "agents", brief: "install the board plugin for Claude Code and Codex",
-			what:     "Installs the board plugin through each agent's own commands, and asks first when run in a terminal. It makes no board: run stickypane init in a project, or let the agent's first change make one in a git repository.",
-			syntax:   "stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex] [--command PATH] [--undo] [--dry-run] [--yes]",
-			args:     "--scope S    user, project or local (Claude Code)\n--mcp        also register stickypane as an MCP server\n--agents L   claude, codex or both (default: those found)\n--command P  the stickypane the MCP server runs, a full path\n--undo       uninstall the plugin (and the MCP server with --mcp)\n--dry-run    print the plan and run nothing\n--yes        run without asking",
-			examples: []string{"stickypane setup --dry-run", "stickypane setup --mcp --yes", "stickypane setup --undo"},
+			what:     "Installs the board plugin through each agent's own commands, and asks first when run in a terminal. Where the plugin is older than this stickypane's it updates it, and where an agent's marketplace is a folder that is gone it points it at GitHub again. --status says where each agent stands, scope by scope, and runs nothing. It makes no board: run stickypane init in a project, or let the agent's first change make one in a git repository.",
+			syntax:   "stickypane setup [--scope user|project|local] [--mcp] [--plugin=false] [--agents claude,codex] [--command PATH] [--undo] [--dry-run] [--yes] [--status [--json]]",
+			args:     "--scope S       user, project or local (Claude Code; Codex has user only)\n--mcp           also register stickypane as an MCP server\n--plugin=false  leave the plugin as it is: with --mcp, the MCP server only (default true)\n--agents L      claude, codex or both (default: those found)\n--command P     the stickypane the MCP server runs, a full path\n--undo          uninstall the plugin (and the MCP server with --mcp)\n--dry-run       print the plan and run nothing\n--yes           run without asking\n--status        say where each agent stands, and run nothing\n--json          with --status, print it as JSON",
+			examples: []string{"stickypane setup --status", "stickypane setup --dry-run", "stickypane setup --mcp --yes", "stickypane setup --agents claude --mcp --plugin=false --yes", "stickypane setup --undo"},
 			related:  []string{"init", "mcp", "guide"},
 		}},
 		// theme and language are short for config theme and config

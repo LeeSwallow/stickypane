@@ -1,0 +1,23 @@
+{
+  "installed": [
+    {
+      "pluginId": "board@stickypane",
+      "name": "board",
+      "marketplaceName": "stickypane",
+      "version": "0.2.1",
+      "installed": true,
+      "enabled": true,
+      "source": {
+        "source": "local",
+        "path": "/Users/min/Projects/stickypane/plugin"
+      },
+      "marketplaceSource": {
+        "sourceType": "local",
+        "source": "/Users/min/Projects/stickypane"
+      },
+      "installPolicy": "AVAILABLE",
+      "authPolicy": "ON_USE"
+    }
+  ],
+  "available": []
+}

@@ -36,14 +36,17 @@ func (f *fakeInstaller) Install(_ context.Context, t model.Target, _ bool) (inst
 func (f *fakeInstaller) Uninstall(context.Context) (installsvc.CommandState, error) {
 	return f.Command(nil), f.err
 }
-func (f *fakeInstaller) Connect(_ context.Context, dry, mcp bool) (installsvc.Result, error) {
+func (f *fakeInstaller) Agents(_ context.Context, project string) (model.AgentsStatus, error) {
+	return model.AgentsStatus{Plugin: "0.2.1", Project: project}, f.err
+}
+func (f *fakeInstaller) SetupAgent(_ context.Context, project string, r model.AgentRequest, dry bool) (installsvc.Result, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	what := "run"
 	if dry {
 		what = "plan"
 	}
-	f.connects = append(f.connects, what)
+	f.connects = append(f.connects, what+" "+r.Agent+" "+r.Part+" "+r.Scope+" "+project)
 	return installsvc.Result{Command: "stickypane setup", Output: what}, f.err
 }
 func (f *fakeInstaller) Init(_ context.Context, dir, lang string) (installsvc.Result, error) {
@@ -139,10 +142,31 @@ func TestSetupServiceSaysOccupiedAndCancelled(t *testing.T) {
 		t.Errorf("targets %q", r.inst.installed)
 	}
 	r.inst.err = nil
-	if p, err := x.ConnectPlan(true); err != nil || p.Output != "plan" {
+	req := model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}
+	if p, err := x.AgentPlan(context.Background(), req); err != nil || p.Output != "plan" {
 		t.Errorf("plan %+v %v", p, err)
 	}
-	if p, err := x.Connect(true); err != nil || p.Output != "run" {
+	if p, err := x.AgentRun(context.Background(), req); err != nil || p.Output != "run" {
 		t.Errorf("run %+v %v", p, err)
+	}
+	if got := r.inst.connects; len(got) != 2 || got[0] != "plan codex mcp user " || got[1] != "run codex mcp user " {
+		t.Errorf("a call from no window has no project: %q", got)
+	}
+}
+
+// The project's scopes are those of the board the settings were opened
+// from, or of the board's own window; none from the settings of the home.
+func TestTheAgentsProjectIsTheBoardsTheSettingsCameFrom(t *testing.T) {
+	r := newRig(t)
+	a, pathA := readyProject(t, r, "a")
+	if got := r.s.AgentsProject(a); got != pathA {
+		t.Errorf("a board's window: %q, want %q", got, pathA)
+	}
+	sid := r.s.OpenSettings(a, "cli")
+	if got := r.s.AgentsProject(sid); got != pathA {
+		t.Errorf("the settings over a board: %q, want %q", got, pathA)
+	}
+	if again := r.s.OpenSettings(0, "cli"); again != sid || r.s.AgentsProject(sid) != "" {
+		t.Errorf("the settings from the home: %q", r.s.AgentsProject(sid))
 	}
 }

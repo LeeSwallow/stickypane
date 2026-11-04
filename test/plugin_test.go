@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -34,6 +35,36 @@ func TestPluginManifestsParse(t *testing.T) {
 		b, err := os.ReadFile(filepath.Join(pluginRoot, f))
 		if err != nil || !strings.HasPrefix(string(b), "---\ndescription: ") {
 			t.Errorf("%s should start with a description: %v", f, err)
+		}
+	}
+}
+
+// Codex reads the policy of each plugin in its marketplace strictly: a
+// value it does not know (authentication "NONE" did, in Codex 0.166)
+// fails `codex plugin marketplace add` for the whole repository.
+func TestCodexMarketplacePolicyIsOneCodexKnows(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join(repoRoot, ".agents/plugins/marketplace.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m struct {
+		Plugins []struct {
+			Name   string `json:"name"`
+			Policy struct {
+				Installation   string `json:"installation"`
+				Authentication string `json:"authentication"`
+			} `json:"policy"`
+		} `json:"plugins"`
+	}
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range m.Plugins {
+		if !slices.Contains([]string{"NOT_AVAILABLE", "AVAILABLE", "INSTALLED_BY_DEFAULT"}, p.Policy.Installation) {
+			t.Errorf("%s: installation %q", p.Name, p.Policy.Installation)
+		}
+		if !slices.Contains([]string{"ON_INSTALL", "ON_USE"}, p.Policy.Authentication) {
+			t.Errorf("%s: authentication %q", p.Name, p.Policy.Authentication)
 		}
 	}
 }

@@ -1,0 +1,2 @@
+Error: failed to load configured marketplace snapshot(s):
+- `stickypane` at /Users/min/Projects/stickypane: marketplace root does not contain a supported manifest

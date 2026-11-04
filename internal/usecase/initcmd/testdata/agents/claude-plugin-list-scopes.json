@@ -1,0 +1,24 @@
+[
+  {
+    "id": "board@stickypane",
+    "version": "0.2.1",
+    "scope": "project",
+    "enabled": true,
+    "installPath": "/Users/min/.claude/plugins/cache/stickypane/board/0.2.1",
+    "installedAt": "2026-11-04T11:05:07.976Z",
+    "lastUpdated": "2026-11-04T11:05:07.976Z",
+    "projectPath": "/Users/min/work/app",
+    "projectEnabled": true
+  },
+  {
+    "id": "board@stickypane",
+    "version": "0.2.1",
+    "scope": "local",
+    "enabled": true,
+    "installPath": "/Users/min/.claude/plugins/cache/stickypane/board/0.2.1",
+    "installedAt": "2026-11-04T11:05:08.493Z",
+    "lastUpdated": "2026-11-04T11:05:08.493Z",
+    "projectPath": "/Users/min/work/app",
+    "projectEnabled": true
+  }
+]

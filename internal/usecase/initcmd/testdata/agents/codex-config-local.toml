@@ -1,0 +1,11 @@
+
+[marketplaces.stickypane]
+source_type = "local"
+source = "/Users/min/Projects/stickypane"
+
+[plugins."board@stickypane"]
+enabled = true
+
+[mcp_servers.stickypane]
+command = "/usr/local/bin/stickypane"
+args = ["mcp"]
