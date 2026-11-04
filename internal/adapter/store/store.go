@@ -58,7 +58,7 @@ var extensions = map[string]bool{
 // Such a file belongs to the project, not to the board: what the board
 // arranges about it is kept in sticky.json, never written into it.
 func (s *Store) Linked(name string) bool {
-	fi, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	fi, err := os.Lstat(s.onDisk(name))
 	return err == nil && fi.Mode()&os.ModeSymlink != 0
 }
 
@@ -66,7 +66,7 @@ func (s *Store) Linked(name string) bool {
 // relative to the note's folder or an absolute one. It never writes over
 // what is at name: that is an error that is fs.ErrExist.
 func (s *Store) Link(name, target string) error {
-	return os.Symlink(target, filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return os.Symlink(target, s.onDisk(name))
 }
 
 // IsNote reports whether a file name is one the board shows.
@@ -105,6 +105,12 @@ type Store struct {
 	mu    sync.Mutex
 	known map[string]readNote // notes read by the last Load, by path
 	fresh map[string]readNote // what this Load has read so far
+}
+
+// onDisk is where the note or folder called name, a slash-separated path
+// inside the notes folder, is on this system.
+func (s *Store) onDisk(name string) string {
+	return filepath.Join(s.Dir, filepath.FromSlash(name))
 }
 
 // readNote is a note as read, with what its file looked like then. A file
@@ -239,7 +245,7 @@ func (s *Store) scan(set Settings) ([]Tab, error) {
 // notesIn reads the notes of a folder: its files, and when books is set,
 // its folders as books.
 func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Note {
-	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
+	entries, err := os.ReadDir(s.onDisk(dir))
 	if err != nil {
 		return nil
 	}
@@ -250,7 +256,7 @@ func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Not
 		if strings.HasPrefix(name, ".") || ignored(full) {
 			continue
 		}
-		if isDir(e, filepath.Join(s.Dir, filepath.FromSlash(full))) {
+		if isDir(e, s.onDisk(full)) {
 			if books {
 				if book, ok := s.book(full, ignored); ok {
 					notes = append(notes, book)
@@ -281,7 +287,7 @@ func (s *Store) Scan() ([]Note, error) {
 
 // book reads a folder as one note. A folder without notes is not a book.
 func (s *Store) book(name string, ignored func(string) bool) (Note, bool) {
-	b := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
+	b := Note{Name: name, Path: s.onDisk(name)}
 	b.Pages = s.notesIn(name, ignored, false)
 	for _, p := range b.Pages {
 		if p.ModTime.After(b.ModTime) {
@@ -316,7 +322,7 @@ func (s *Store) read(name string) Note {
 // load reads a note, or hands back what it read last time when the file
 // kept its size and time.
 func (s *Store) load(name string) Note {
-	n := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
+	n := Note{Name: name, Path: s.onDisk(name)}
 	fi, err := os.Stat(n.Path)
 	if err != nil {
 		n.Err = err
@@ -417,7 +423,7 @@ func (s *Store) Rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 }
 
 func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	path := s.onDisk(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	}
@@ -440,7 +446,7 @@ func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 
 // Read returns a note's bytes exactly as they are on disk.
 func (s *Store) Read(name string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return os.ReadFile(s.onDisk(name))
 }
 
 // Write replaces a note with content in one step, or creates it. Unlike
@@ -451,7 +457,7 @@ func (s *Store) Write(name string, content []byte) error {
 }
 
 func (s *Store) write(name string, content []byte) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	path := s.onDisk(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	} else if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -465,7 +471,7 @@ func (s *Store) write(name string, content []byte) error {
 // a file made a moment before, which Write would. The folder is made when
 // it is not there.
 func (s *Store) WriteNew(name string, content []byte) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	path := s.onDisk(name)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
@@ -535,7 +541,7 @@ func (s *Store) put(name, dst string) (to string, err error) {
 }
 
 func (s *Store) putLocked(name, dst string) (string, error) {
-	src := filepath.Join(s.Dir, filepath.FromSlash(name))
+	src := s.onDisk(name)
 	if _, err := os.Lstat(src); err != nil {
 		return "", err
 	}
@@ -546,7 +552,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 		if i > 1 {
 			target = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		full := filepath.Join(s.Dir, filepath.FromSlash(target))
+		full := s.onDisk(target)
 		if _, err := os.Lstat(full); err == nil {
 			continue
 		} else if !errors.Is(err, fs.ErrNotExist) {
@@ -566,7 +572,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 // tidy removes the folder a note was in when the folder is now empty.
 func (s *Store) tidy(name string) {
 	if dir := path.Dir(name); dir != "." && dir != "/" {
-		_ = os.Remove(filepath.Join(s.Dir, filepath.FromSlash(dir))) // fails, rightly, unless empty
+		_ = os.Remove(s.onDisk(dir)) // fails, rightly, unless empty
 	}
 }
 
@@ -599,7 +605,7 @@ func (s *Store) Trashed(name string) (string, bool) {
 	ext := path.Ext(name)
 	stem := path.Base(strings.TrimSuffix(name, ext))
 	dir := path.Dir(TrashDir + "/" + name)
-	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
+	entries, err := os.ReadDir(s.onDisk(dir))
 	if err != nil {
 		return "", false
 	}
@@ -629,8 +635,8 @@ func (s *Store) Move(name, to string) error {
 }
 
 func (s *Store) move(name, to string) error {
-	src := filepath.Join(s.Dir, filepath.FromSlash(name))
-	dst := filepath.Join(s.Dir, filepath.FromSlash(to))
+	src := s.onDisk(name)
+	dst := s.onDisk(to)
 	if _, err := os.Lstat(src); err != nil {
 		return err
 	}
@@ -693,7 +699,7 @@ func (s *Store) locked(f func() error) error {
 
 // Delete removes a note for good.
 func (s *Store) Delete(name string) error {
-	return os.Remove(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return os.Remove(s.onDisk(name))
 }
 
 // Bare is a name without the number in front that orders it: "10-plan" is
