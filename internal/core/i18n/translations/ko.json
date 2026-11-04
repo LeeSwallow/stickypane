@@ -175,7 +175,6 @@
   "keyShared": "{{.Plain}}는 이미 '{{.OtherWords}}' 키예요. 다른 키를 골라 주세요.",
   "keyRefused": "{{.Why}}",
   "keyNotKept": "{{.Why}}",
-  "notACommand": "없는 명령입니다: {{.Name}}",
   "notACommand": "없는 명령이에요: {{.Name}}",
   "commandAmbiguous": "{{.Name}}(으)로 시작하는 명령이 여럿이에요: {{.Choices}}",
   "commandUsage": "사용법: {{.Usage}}",
