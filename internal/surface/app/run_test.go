@@ -169,3 +169,24 @@ func TestAScriptRunsAgainWithTheMouseAlone(t *testing.T) {
 		t.Errorf("the log is still held after the run: %v", err)
 	}
 }
+
+func TestOpeningAPaneThatCannotBeSavedSaysSo(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("on Windows a folder's mode bits do not stop writing to its files")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root can write everywhere")
+	}
+	m, dir := newModel(t, map[string]string{"a.md": "# a\n"})
+	if err := os.Chmod(dir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+	if m.openPane("a.md") {
+		t.Fatal("openPane should report that the choice was not saved")
+	}
+	if !strings.Contains(m.status, "arrangement was not saved") {
+		t.Errorf("status = %q, want why the pane is not open", m.status)
+	}
+}

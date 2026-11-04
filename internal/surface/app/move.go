@@ -121,7 +121,9 @@ func (m *Model) moveTo(folder string) {
 	to = moved.To
 	// The board follows the note into its tab.
 	if tab := m.store.TabOf(to); tab != m.tabName {
-		_ = m.store.SetTab(tab)
+		if err := m.store.SetTab(tab); err != nil {
+			m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+		}
 		m.focus = ""
 	}
 	m.reload()

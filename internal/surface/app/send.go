@@ -9,7 +9,6 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/adapter/runner"
-	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // httpExts are the files whose Run sends a request instead of running a
@@ -60,15 +59,14 @@ func (m *Model) askSend(name string, part int) {
 // send sends the request in the background; its log shows in the note's
 // pane when it is back.
 func (m *Model) send(name string, part int) tea.Cmd {
-	if n := strings.Count(name, "/"); n == 0 || (n == 1 && m.store.TabOf(name) != "") {
-		open := true
-		_ = m.store.SetView(name, func(v *store.View) { v.Open = &open })
-	}
+	opened := m.openPane(name)
 	if m.running == nil {
 		m.running = map[string]bool{}
 	}
 	m.running[name] = true
-	m.status = say(m.tr.Sending, map[string]any{"Name": path.Base(name)})
+	if opened { // else the status says why the pane is not open
+		m.status = say(m.tr.Sending, map[string]any{"Name": path.Base(name)})
+	}
 	calls := m.calls()
 	return func() tea.Msg {
 		res, err := calls.SendPart(context.Background(), name, part, "")

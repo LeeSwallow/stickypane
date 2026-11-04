@@ -2,6 +2,7 @@ package app
 
 import (
 	"image/color"
+	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
@@ -72,6 +73,22 @@ func (m *Model) setView(name string, change func(*store.View)) {
 		m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
 	}
 	m.reload()
+}
+
+// openPane opens a note whose output is about to show in its pane: a
+// script being run, a request being sent. A page of a book is shown by its
+// book, so only a note at the top of a tab is opened. When the choice
+// cannot be saved, the status says so and openPane reports false; the run
+// or the send goes on.
+func (m *Model) openPane(name string) bool {
+	if n := strings.Count(name, "/"); n == 0 || (n == 1 && m.store.TabOf(name) != "") {
+		open := true
+		if err := m.store.SetView(name, func(v *store.View) { v.Open = &open }); err != nil {
+			m.status = say(m.tr.ArrangementNotSaved, map[string]any{"Err": err.Error()})
+			return false
+		}
+	}
+	return true
 }
 
 // grid is how many columns the screen draws: the "columns" setting, fewer
