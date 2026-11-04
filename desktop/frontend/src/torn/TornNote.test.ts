@@ -147,6 +147,26 @@ describe('a torn-off note of every shape', () => {
     await waitFor(() => expect(a.send).toHaveBeenCalledWith('api.http', 2))
   })
 
+  // the window's bar names the note, so the note's head keeps no row of its
+  // own: its controls float over the top corner and the shape starts right
+  // under the frame's top border (a torn checklist opened with ~80px of
+  // nothing above its progress bar)
+  for (const name of ['readme.md', 'plan.md', 'work.md', 'build.log', 'deploy.md']) {
+    it(`starts ${name} right under the frame's top border`, async () => {
+      torn(name)
+      const frame = await waitFor(() => {
+        const f = document.querySelector<HTMLElement>(`[data-frame="${name}"]`)
+        if (!f) throw new Error('no frame yet')
+        return f
+      })
+      const head = frame.querySelector<HTMLElement>('[data-head]')!
+      expect(head.dataset.head).toBe('float')
+      expect(head.querySelector('h3')).toBeNull()
+      const body = frame.querySelector<HTMLElement>('[data-shape-body]')!
+      expect(body.classList.contains('flush')).toBe(true)
+    })
+  }
+
   it('has no tear-off of its own', async () => {
     torn('plan.md')
     await screen.findByText('Plan')
