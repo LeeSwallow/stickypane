@@ -25,9 +25,12 @@ type Pref struct {
 	Help    string          // what it changes, in a line
 	Default string          // the value when none is set: the first of Values
 	Values  func() []string // every value it may take
+	More    bool            // left off the panel: set with stickypane config
 }
 
-// All are the settings, in the panel's order.
+// All are the settings, in the order they are listed. Those marked More keep their
+// default for most people and are not on the panel; stickypane config
+// still lists and sets them.
 var All = []Pref{
 	{
 		Key: "theme", Label: "Theme", Default: "auto",
@@ -40,17 +43,17 @@ var All = []Pref{
 		Values: func() []string { return append([]string{"auto"}, i18n.Languages()...) },
 	},
 	{
-		Key: "time", Label: "Time format", Default: "auto",
+		Key: "time", Label: "Time format", More: true, Default: "auto",
 		Help:   "how days and times are written; auto follows the country of the locale",
 		Values: func() []string { return []string{"auto", "ko", "en-US", "en-GB", "ja", "de", "fr", "iso"} },
 	},
 	{
-		Key: "editor", Label: "Editor", Default: "auto",
+		Key: "editor", Label: "Editor", More: true, Default: "auto",
 		Help:   "what E opens; auto is $VISUAL, $EDITOR, then the first editor found",
 		Values: func() []string { return append([]string{"auto"}, env.Detect().InstalledEditors()...) },
 	},
 	{
-		Key: "stale", Label: "Cards stall after", Default: "30m",
+		Key: "stale", Label: "Cards stall after", More: true, Default: "30m",
 		Help:   "when a kanban card that has not moved is flagged ⚠",
 		Values: func() []string { return []string{"30m", "15m", "1h", "4h", "1d", "off"} },
 	},
@@ -59,6 +62,17 @@ var All = []Pref{
 		Help:   "how many columns the board has; a note with a size of its own spans its share",
 		Values: func() []string { return []string{"3", "4", "1", "2"} },
 	},
+}
+
+// Panel are the settings the panel (S) lists: theme, language, columns.
+func Panel() []Pref {
+	var out []Pref
+	for _, p := range All {
+		if !p.More {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ColumnsAuto is the value of "columns" that boards had before it: as many

@@ -89,6 +89,7 @@
     "change": "바꾸기",
     "close": "닫기",
     "default": "기본값",
+    "more: stickypane config": "나머지 설정: stickypane config",
     "the colors; auto follows the terminal's background": "색; auto는 터미널 배경을 따릅니다",
     "the screen's words; auto follows STICKYPANE_LANG, LANG and the system": "화면 언어; auto는 STICKYPANE_LANG, LANG, 시스템 설정을 따릅니다",
     "how days and times are written; auto follows the country of the locale": "날짜와 시각 표기; auto는 로캘의 국가를 따릅니다",
