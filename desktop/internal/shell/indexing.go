@@ -83,18 +83,20 @@ func (s *Shell) Sessions() (index.Groups, error) {
 	if err != nil {
 		return index.Groups{}, err
 	}
-	g, err := sessions(ix)
+	g, err := s.sessions(ix)
 	if err == nil {
 		s.cfg.Platform.SetTray(trayOf(g))
 	}
 	return g, err
 }
 
-func sessions(ix Index) (index.Groups, error) {
+// sessions reads new events into ix, tidies it, and makes the home list,
+// all at one time by the shell's clock.
+func (s *Shell) sessions(ix Index) (index.Groups, error) {
 	if err := ix.Ingest(); err != nil {
 		return index.Groups{}, err
 	}
-	now := time.Now()
+	now := s.cfg.Now()
 	if _, err := ix.Prune(now); err != nil {
 		return index.Groups{}, err
 	}
@@ -118,7 +120,7 @@ func (s *Shell) refreshTray() {
 	if ix == nil {
 		return
 	}
-	if g, err := sessions(ix); err == nil {
+	if g, err := s.sessions(ix); err == nil {
 		s.cfg.Platform.SetTray(trayOf(g))
 	}
 }

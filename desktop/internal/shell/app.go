@@ -87,6 +87,8 @@ type Config struct {
 	// SSHAliases lists the hosts of the person's ssh config; nil reads
 	// ~/.ssh/config.
 	SSHAliases func() []string
+	// Now is the clock the home list is made by; nil is the machine's.
+	Now func() time.Time
 }
 
 // Installer is the install use cases: *installsvc.Service.
@@ -189,6 +191,9 @@ func New(cfg Config) (*Shell, error) {
 	}
 	if cfg.SSHAliases == nil {
 		cfg.SSHAliases = defaultAliases
+	}
+	if cfg.Now == nil {
+		cfg.Now = time.Now
 	}
 	if cfg.OpenIndex == nil {
 		cfg.OpenIndex = func(home string) (Index, error) {
