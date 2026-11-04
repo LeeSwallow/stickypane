@@ -1,0 +1,12 @@
+[
+  {
+    "id": "board@stickypane",
+    "version": "0.2.1",
+    "scope": "user",
+    "enabled": true,
+    "installPath": "/Users/min/.claude/plugins/cache/stickypane/board/0.2.1",
+    "installedAt": "2026-11-04T10:58:42.970Z",
+    "lastUpdated": "2026-11-04T10:58:42.970Z",
+    "projectEnabled": true
+  }
+]

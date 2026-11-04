@@ -11,6 +11,7 @@ import (
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/model"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/osys"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
+	"github.com/LeeSwallow/stickypane/desktop/internal/remote"
 )
 
 // defaultInstaller is the install use cases on this machine: the app's own
@@ -105,16 +106,54 @@ func (x *SetupService) UninstallCommand() (InstallAnswer, error) {
 	return answerOf(st, err, "")
 }
 
-// ConnectPlan is what connecting the agents would run (setup --dry-run).
-func (x *SetupService) ConnectPlan(mcp bool) (installsvc.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
+// The agents are set up one at a time, Claude Code apart from Codex: the
+// app never runs a setup that does every agent found.
+
+// Agents says where Claude Code and Codex stand, each scope by scope
+// (setup --status). From the settings opened over a board, or a board's
+// own window, the project's and local scopes are that board's folder's.
+func (x *SetupService) Agents(ctx context.Context) (model.AgentsStatus, error) {
+	project := x.S.agentsProject(ctx)
+	ctx, cancel := context.WithTimeout(context.Background(), installTimeout)
 	defer cancel()
-	return x.S.cfg.Install.Connect(ctx, true, mcp)
+	return x.S.cfg.Install.Agents(ctx, project)
 }
 
-// Connect runs it.
-func (x *SetupService) Connect(mcp bool) (installsvc.Result, error) {
+// AgentPlan is what one agent's setup would run (setup --dry-run): its
+// skills (the plugin) or its MCP server, at a scope.
+func (x *SetupService) AgentPlan(ctx context.Context, r model.AgentRequest) (installsvc.Result, error) {
+	project := x.S.agentsProject(ctx)
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
-	return x.S.cfg.Install.Connect(ctx, false, mcp)
+	return x.S.cfg.Install.SetupAgent(ctx, project, r, true)
+}
+
+// AgentRun runs it.
+func (x *SetupService) AgentRun(ctx context.Context, r model.AgentRequest) (installsvc.Result, error) {
+	project := x.S.agentsProject(ctx)
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
+	defer cancel()
+	return x.S.cfg.Install.SetupAgent(ctx, project, r, false)
+}
+
+// agentsProject is the local folder of the board the calling window acts
+// on: its own, or the one the settings were opened from; "" for none, or
+// for a board on another computer.
+func (s *Shell) agentsProject(ctx context.Context) string {
+	id, err := window(ctx)
+	if err != nil {
+		return ""
+	}
+	return s.AgentsProject(id)
+}
+
+// AgentsProject is agentsProject for a window.
+func (s *Shell) AgentsProject(id uint) string {
+	s.mu.Lock()
+	p, _ := s.ownerOf(id)
+	s.mu.Unlock()
+	if p == nil || remote.IsRemote(p.path) {
+		return ""
+	}
+	return p.path
 }

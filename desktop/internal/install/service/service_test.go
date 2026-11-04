@@ -260,10 +260,12 @@ func TestNoBundledCopyNoInstall(t *testing.T) {
 	}
 }
 
-func TestConnectRunsTheBundledSetupInAFolderOfItsOwn(t *testing.T) {
+// The app sets up one agent at a time, through the bundled stickypane's
+// setup, in a folder of its own for the user's scope.
+func TestSetupAgentRunsTheBundledSetupForOneAgent(t *testing.T) {
 	g := newRig("/opt/homebrew/bin:/usr/bin")
-	g.r.out = "stickypane setup runs:\n  claude plugin install board@stickypane --scope user\n"
-	res, err := g.s.Connect(ctx, true, true)
+	g.r.out = "stickypane setup runs:\n  claude mcp add --scope user stickypane -- " + bundled + " mcp\n"
+	res, err := g.s.SetupAgent(ctx, "/work/p", model.AgentRequest{Agent: "claude", Part: "mcp", Scope: "user"}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,14 +273,14 @@ func TestConnectRunsTheBundledSetupInAFolderOfItsOwn(t *testing.T) {
 		t.Fatalf("ran %+v", g.r.ran)
 	}
 	c := g.r.ran[0]
-	want := "setup --scope user --mcp --command " + bundled + " --dry-run"
+	want := "setup --agents claude --scope user --mcp --plugin=false --command " + bundled + " --dry-run"
 	if c.Name != bundled || strings.Join(c.Args, " ") != want || c.Dir != "/tmp/stickypane-setup-1" {
 		t.Errorf("ran %+v", c)
 	}
 	if !strings.HasPrefix(c.Path, "/opt/homebrew/bin:/usr/bin:/bin:"+home+"/.local/bin") {
 		t.Errorf("PATH %q", c.Path)
 	}
-	if res.Command != "stickypane "+want || !strings.Contains(res.Output, "claude plugin install") {
+	if res.Command != "stickypane "+want || !strings.Contains(res.Output, "claude mcp add") {
 		t.Errorf("result %+v", res)
 	}
 	if g.f.dirs["/tmp/stickypane-setup-1"] {
@@ -286,23 +288,101 @@ func TestConnectRunsTheBundledSetupInAFolderOfItsOwn(t *testing.T) {
 	}
 }
 
-func TestConnectRegistersTheLinkedCommandWhenThereIsOne(t *testing.T) {
-	g := newRig(home + "/.local/bin")
-	g.f.links[userLnk] = bundled
-	if _, err := g.s.Connect(ctx, false, true); err != nil {
+// A project's scope runs in the project, and needs one.
+func TestSetupAgentAtAProjectsScopeRunsInIt(t *testing.T) {
+	g := newRig("/usr/bin")
+	r := model.AgentRequest{Agent: "claude", Part: "plugin", Scope: "local", Undo: true}
+	if _, err := g.s.SetupAgent(ctx, "/work/p", r, false); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(g.r.ran[0].Args, " "); got != "setup --scope user --mcp --command "+userLnk+" --yes" {
+	if c := g.r.ran[0]; c.Dir != "/work/p" || strings.Join(c.Args, " ") != "setup --agents claude --scope local --undo --yes" {
+		t.Errorf("ran %+v", c)
+	}
+	if _, err := g.s.SetupAgent(ctx, "", r, true); !errors.Is(err, ErrNoProject) {
+		t.Errorf("no project: %v", err)
+	}
+	for _, bad := range []model.AgentRequest{{Agent: "codex", Part: "plugin", Scope: "project"}, {Part: "plugin", Scope: "user"}, {Agent: "claude", Scope: "user"}} {
+		if _, err := g.s.SetupAgent(ctx, "/work/p", bad, true); err == nil {
+			t.Errorf("%+v ran", bad)
+		}
+	}
+	if len(g.r.ran) != 1 {
+		t.Errorf("ran %d", len(g.r.ran))
+	}
+}
+
+// Every run the app makes names one agent: never the setup of every agent
+// found.
+func TestTheAppNeverSetsUpEveryAgentAtOnce(t *testing.T) {
+	g := newRig("/usr/bin")
+	g.r.out = `{"plugin":"0.2.1","agents":[]}`
+	for _, a := range []string{"claude", "codex"} {
+		for _, part := range []string{"plugin", "mcp"} {
+			for _, undo := range []bool{false, true} {
+				for _, dry := range []bool{false, true} {
+					g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: a, Part: part, Scope: "user", Undo: undo}, dry)
+				}
+			}
+		}
+	}
+	g.s.Agents(ctx, "")
+	for _, c := range g.r.ran {
+		args := strings.Join(c.Args, " ")
+		if args == strings.Join(model.StatusArgs, " ") {
+			continue
+		}
+		if strings.Count(args, "--agents ") != 1 || !(strings.Contains(args, "--agents claude ") || strings.Contains(args, "--agents codex ")) {
+			t.Errorf("a setup for every agent: %q", args)
+		}
+	}
+	if len(g.r.ran) != 17 {
+		t.Errorf("ran %d", len(g.r.ran))
+	}
+}
+
+func TestSetupAgentRegistersTheLinkedCommandWhenThereIsOne(t *testing.T) {
+	g := newRig(home + "/.local/bin")
+	g.f.links[userLnk] = bundled
+	if _, err := g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(g.r.ran[0].Args, " "); got != "setup --agents codex --scope user --mcp --plugin=false --command "+userLnk+" --yes" {
 		t.Errorf("args %q", got)
 	}
 }
 
-func TestConnectRefusesAFolderThatIsHome(t *testing.T) {
+func TestSetupAgentRefusesAFolderThatIsHome(t *testing.T) {
 	g := newRig("/usr/bin")
 	g.f.temps = nil
 	g.s.cfg.Files = homeTemp{g.f}
-	if _, err := g.s.Connect(ctx, true, false); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
+	if _, err := g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: "claude", Part: "plugin", Scope: "user"}, true); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
 		t.Errorf("%v %v", err, g.r.ran)
+	}
+	if _, err := g.s.Agents(ctx, home); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
+		t.Errorf("status in the home folder: %v", err)
+	}
+}
+
+// The agents' status is what setup --status --json says, read in the
+// project when there is one.
+func TestAgentsReadsSetupStatus(t *testing.T) {
+	g := newRig("/usr/bin")
+	g.r.out = "warning from an agent\n" + `{"plugin":"0.2.1","agents":[{"agent":"claude","found":true,"state":"broken","scopes":["user","project","local"],"plugin":{"user":{"version":"0.2.1","state":"broken","error":"cache-miss"}},"mcp":{"project":{"command":"/x/stickypane"}},"marketplace":{"source":"directory","where":"/gone","gone":true}}]}`
+	st, err := g.s.Agents(ctx, "/work/p")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := g.r.ran[0]; c.Dir != "/work/p" || strings.Join(c.Args, " ") != "setup --status --json" {
+		t.Errorf("ran %+v", c)
+	}
+	a := st.Agents[0]
+	if st.Project != "/work/p" || a.State != "broken" || a.Plugin["user"].Error != "cache-miss" || a.MCP["project"].Command != "/x/stickypane" || !a.Marketplace.Gone {
+		t.Errorf("status %+v", st)
+	}
+	g.r.out = "stickypane: flag provided but not defined: -status"
+	g.r.err = errors.New("exit status 2")
+	if _, err := g.s.Agents(ctx, ""); err == nil || !strings.Contains(err.Error(), "not defined") {
+		t.Errorf("an older stickypane: %v", err)
 	}
 }
 

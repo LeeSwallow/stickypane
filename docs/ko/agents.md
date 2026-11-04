@@ -19,6 +19,11 @@
 보드는 프로젝트에서 `stickypane init`으로 만듭니다. `setup --undo`는 플러그인을 지우고,
 `--mcp`를 붙이면 MCP 서버도 지웁니다. 보드와 안내문은 그대로 둡니다.
 
+`stickypane setup --status`는 에이전트마다, 범위(user, project, local)마다 플러그인
+버전과 MCP 서버를 보여 줍니다. Codex는 user 범위만 있습니다. setup을 다시 실행하면
+오래된 플러그인은 업데이트하고, 사라진 폴더를 가리키는 마켓플레이스는 GitHub로 다시
+잇습니다.
+
 플러그인은 계층으로 되어 있습니다. 입구 스킬 `using-the-board`가 일에 맞는 스킬을
 알려 줍니다: 진행 추적(`tracking-progress`), 묻기(`asking-the-user`), 채팅
 (`talking-in-chat`), 노트 연결(`connecting-notes`). 에이전트 안내문

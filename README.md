@@ -81,6 +81,8 @@ stickypane setup
 
 This installs the board plugin for Claude Code and Codex.
 `stickypane setup --mcp` also registers the MCP server.
+`stickypane setup --status` says where each agent stands; run setup again
+to update an older plugin or repair a broken one.
 
 **3. Give the project a board.** In the project's folder:
 

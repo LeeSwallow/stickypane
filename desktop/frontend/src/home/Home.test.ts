@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setLanguage, t } from '../i18n'
 import type { Groups, HomeApi, Row } from '../services/home'
-import { fakeSetup } from '../settings/fakeSetup'
+import { agentOff, fakeSetup } from '../settings/fakeSetup'
 import Home from './Home.svelte'
 
 const NOW = new Date(2026, 9, 28, 15, 0, 0)
@@ -79,7 +79,7 @@ describe('home', () => {
   })
 
   it('the welcome says where each step stands, and does steps 2 and 3 (08 §8.2)', async () => {
-    const f = fakeSetup({}, { connectPlan: vi.fn(async () => ({ command: 'stickypane setup --dry-run', output: 'Nothing to do: the board plugin is set up for every agent found.' })) })
+    const f = fakeSetup({}, {}, { agents: [agentOff('claude', { state: 'ok', plugin: { user: { version: '0.2.1', state: 'ok' } } }), agentOff('codex', { found: false, state: 'missing' })] })
     const api = fakeApi(empty)
     mount(api, f.api)
     expect(await screen.findByText('첫 보드까지 세 걸음')).toBeTruthy()

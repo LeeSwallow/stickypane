@@ -35,21 +35,41 @@ the plugin now teaches.
 stickypane setup                       # asks, then installs for Claude Code and Codex
 stickypane setup --scope project --mcp --yes
 stickypane setup --undo                # uninstalls the plugin again
+stickypane setup --status              # where each agent stands, scope by scope
 ```
 
 `--scope` is where Claude Code installs it: `user` (every project, the
-default), `project` (this repository, shared with the team) or `local`
-(this repository, just you). `--mcp` also registers `stickypane mcp` as an
+default), `project` (this repository, shared with the team through
+`.claude/settings.json` and `.mcp.json`) or `local` (this repository, just
+you). Codex has the user's scope only. `--mcp` also registers `stickypane mcp` as an
 MCP server, `--command` gives the full path of the stickypane that server
-runs (the desktop app passes its own copy; a server registered before
-with another command is removed and added again with it), `--agents claude,codex` limits
+runs (the desktop app passes its own copy; a server registered in that
+scope with another command is removed and added again with it),
+`--plugin=false` leaves the plugin alone, so that `--mcp` registers (or
+with `--undo` removes) the MCP server only, `--agents claude,codex` limits
 it to some agents, and `--dry-run` prints the commands without running
 them. `--undo`
 uninstalls the plugin from each agent found (from Claude Code at the
 `--scope` given, `user` unless you say); with `--mcp` it also removes the
-`stickypane` MCP server. It leaves the marketplace entry, the boards and
+`stickypane` MCP server from that scope. It leaves the marketplace entry, the boards and
 any guide `init` wrote in place. In a terminal it
 asks for what the flags did not say.
+
+Run again, setup puts right what it finds wrong. A plugin older than the
+one this stickypane carries is updated from its marketplace (`claude
+plugin update`, or `codex plugin add` after a marketplace upgrade). A
+marketplace added from a folder that is no longer there (a checkout that
+moved: Claude Code says `failed to load … cache-miss`) is removed, added
+again from `LeeSwallow/stickypane` on GitHub, and the plugin installed
+anew at each scope it had.
+
+`--status` runs nothing and says, for each agent: whether its command is
+on the `PATH`, the plugin's version and whether it loads in each scope,
+where the MCP server points in each scope, and the marketplace. The
+project's scopes are those of the repository around the current folder.
+`--status --json` is the same for programs; the desktop app's settings
+read it. Each agent's `state` is `missing`, `off`, `ok`, `outdated` or
+`broken`.
 
 The plugin is in layers. The way in, `using-the-board`, says which of four
 skills fits a job: `tracking-progress`, `asking-the-user`,

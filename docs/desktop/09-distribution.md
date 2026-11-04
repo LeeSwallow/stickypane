@@ -93,7 +93,9 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 - `~/.local/bin`이 PATH에 없으면: 셸의 시작 파일(`~/.zshrc`, `~/.bashrc`, fish는 `config.fish`, 그 밖은 `~/.profile`)과 넣을 한 줄(`export PATH="$HOME/.local/bin:$PATH"`).
 - PATH에서 앱의 것보다 먼저 오는 다른 `stickypane`이 있으면(예: Homebrew의 0.1.1): 그 경로와 `stickypane version`이 말한 버전, 그리고 고치는 법. Homebrew cask면 `brew uninstall --cask stickypane`, formula면 `brew uninstall stickypane`, 그 밖은 `rm <경로>`. 또는 PATH에서 링크 폴더를 그 폴더보다 앞에 둔다.
 
-**에이전트 연결.** 앱 안의 `stickypane setup`을 사용자 범위(`--scope user`)로 돌린다. 먼저 `setup --dry-run`의 계획을 보이고, **실행**을 누를 때만 `setup --yes`를 돌려 그 출력을 보인다. setup은 앱이 만든 빈 임시 폴더에서 돌고 끝나면 지운다. 루트나 홈 폴더(심볼릭 링크를 따라간 경로까지)에서는 돌지 않는다. PATH는 로그인 셸의 것에 `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`을 더한다. 그래야 setup이 `claude`·`codex`를 찾는다. **MCP 서버로도 등록**(기본 켬)은 `--mcp --command <전체 경로>`로 등록한다. 앱의 터미널 명령 링크가 있으면 그 링크를(앱을 업데이트해도 맞다), 없으면 앱 안의 `stickypane`을 쓴다. 그러면 에이전트가 PATH의 옛 사본을 띄우지 않는다. 이미 `stickypane`이라는 MCP 서버가 다른 명령(PATH의 맨 `stickypane` 등)으로 등록돼 있으면(`claude mcp get stickypane`, Codex의 `config.toml`) setup의 계획에 그 등록을 지우고(`mcp remove`, Claude Code는 원래 범위로) 전체 경로로 다시 더하는 두 줄이 들어가, 실행 전에 보인다. 연결한 뒤 프로젝트 창에서는 **이 프로젝트에도 stickypane init**을 권한다. 다시 돌려도 안전하다.
+**에이전트 연결.** Claude Code와 Codex는 따로 다룬다. 둘을 한 번에 연결하는 동작은 없고, 앱이 돌리는 setup은 언제나 `--agents claude`나 `--agents codex` 하나만 붙는다. 상태는 앱 안의 `stickypane setup --status --json`이 말한다: 에이전트마다 명령이 PATH에 있는지, 범위(사용자·이 프로젝트·로컬)마다 플러그인 버전과 로드되는지, MCP 서버가 무엇을 실행하는지, 마켓플레이스. 앱은 이를 **설치 안 됨 · 연결 안 됨 · 연결됨 vX.Y.Z · 업데이트 있음 · 고장**으로 보인다. 에이전트마다 **스킬(플러그인)**은 연결·업데이트(고장이면 고치기)·해제를, **MCP 서버**는 등록 스위치를 가진다. 각각 `setup --agents <하나> --scope <범위> [--mcp --plugin=false --command <전체 경로>] [--undo] --dry-run`의 계획을 먼저 보이고, **실행**을 누를 때만 `--yes`로 돌려 그 출력을 보인 뒤 상태를 다시 읽는다. 업데이트·고치기는 setup이 정한다: 앱의 플러그인보다 오래된 것은 마켓플레이스를 새로 받아 업데이트하고, 마켓플레이스가 사라진 폴더를 가리키면 지우고 `LeeSwallow/stickypane`으로 다시 더한 뒤 플러그인을 새로 설치한다.
+
+범위는 사용자가 기본이다. 보드 창에서, 또는 보드 위에서 연 설정에서는 Claude Code에 **이 프로젝트**(저장소의 `.claude/settings.json`·`.mcp.json`에 기록되어 팀과 공유)와 **로컬**(이 컴퓨터에서 이 프로젝트만)도 고를 수 있다. Codex는 사용자 범위만 있다고 한 줄로 말한다. 사용자 범위의 setup은 앱이 만든 빈 임시 폴더에서 돌고 끝나면 지우고, 프로젝트 범위와 상태 읽기는 그 보드의 폴더에서 돈다. 루트나 홈 폴더(심볼릭 링크를 따라간 경로까지)에서는 돌지 않는다. PATH는 로그인 셸의 것에 `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`을 더한다. 그래야 setup이 `claude`·`codex`를 찾는다. MCP 서버는 `--command <전체 경로>`로 등록한다. 앱의 터미널 명령 링크가 있으면 그 링크를(앱을 업데이트해도 맞다), 없으면 앱 안의 `stickypane`을 쓴다. 그러면 에이전트가 PATH의 옛 사본을 띄우지 않는다. 그 범위에 `stickypane` MCP 서버가 다른 명령으로 등록돼 있으면 setup의 계획에 지우고 다시 더하는 두 줄이 들어가, 실행 전에 보인다. 실행한 뒤 프로젝트 창에서는 **이 프로젝트에도 stickypane init**을 권한다. 다시 돌려도 안전하다.
 
 **보드 만들기.** 홈에서 고른 폴더에 `.sticky/`가 없으면 묻고(**보드 만들기**) 앱 안의 `stickypane init`을 그 폴더에서 돌린다. 앱이 띄운 프로젝트 창의 폴더에 보드가 없으면(`no_board`) 창 안에 같은 버튼을 두고, 만든 뒤 bridge를 다시 띄운다. 홈 폴더와 루트는 셸(`refuseInit`)과 본체(`stickypane init`) 둘 다 거절한다.
 
@@ -178,8 +180,9 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 
 이 단계는 실제 `~/.claude`·`~/.codex` 설정을 바꿉니다. 원하지 않으면 계획(--dry-run)까지만 봅니다.
 
-- [ ] **에이전트 연결**을 누르면 실행할 명령(`stickypane setup --scope user … --dry-run`의 계획)이 먼저 보이고, 아직 아무것도 바뀌지 않는다.
-- [ ] **실행**을 누르면 `setup --yes`가 돌고 "연결했어요."가 보인다. `claude plugin list`에 board 플러그인이 있다. **MCP 서버로도 등록**을 켰다면 `claude mcp list`에 stickypane이 앱 안의 CLI 전체 경로로 있다.
+- [ ] Claude Code와 Codex가 따로 한 줄씩 있고, 각자 상태(설치 안 됨·연결 안 됨·연결됨 vX.Y.Z·업데이트 있음·고장)를 말한다. `stickypane setup --status`와 같다.
+- [ ] Claude Code의 스킬 **연결**을 누르면 실행할 명령(`stickypane setup --agents claude --scope user --dry-run`의 계획)이 먼저 보이고, 아직 아무것도 바뀌지 않는다. Codex는 그대로다.
+- [ ] **실행**을 누르면 `--yes`로 돌고 상태가 "연결됨 vX.Y.Z"가 된다. `claude plugin list`에 board 플러그인이 있다. **MCP 서버**를 켜고 실행하면 `claude mcp list`에 stickypane이 앱 안의 CLI 전체 경로로 있다.
 - [ ] Claude Code를 이 시험 폴더에서 열고 "보드에 체크리스트 하나 붙여 줘"라고 하면 앱 창에 노트가 나타난다.
 - [ ] 되돌리기: `stickypane setup --undo`(또는 시작 전 상태 메모대로).
 

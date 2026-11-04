@@ -1,11 +1,9 @@
 package initcmd
 
 import (
-	"bufio"
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // pluginName is the board plugin as Claude Code and Codex name it.
@@ -60,34 +58,14 @@ func claudeHasPlugin(root string) bool {
 	return false
 }
 
-// codexHasPlugin reads Codex's config.toml for the plugin's table, and takes
-// `enabled = false` under it to mean it is off.
+// codexHasPlugin reads Codex's config.toml (CodexHasPlugin).
 func codexHasPlugin() bool {
 	home := agentHome("CODEX_HOME", ".codex")
 	if home == "" {
 		return false
 	}
-	f, err := os.Open(filepath.Join(home, "config.toml"))
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-	found := false
-	scan := bufio.NewScanner(f)
-	for scan.Scan() {
-		line := strings.TrimSpace(scan.Text())
-		if strings.HasPrefix(line, "[") {
-			if found {
-				break
-			}
-			found = line == `[plugins."`+pluginName+`"]`
-			continue
-		}
-		if found && strings.ReplaceAll(line, " ", "") == "enabled=false" {
-			return false
-		}
-	}
-	return found
+	b, err := os.ReadFile(filepath.Join(home, "config.toml"))
+	return err == nil && CodexHasPlugin(string(b))
 }
 
 // sameDir says whether a and b are the same folder, following links.

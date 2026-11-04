@@ -6,89 +6,159 @@ import (
 	"testing"
 )
 
-func lookFor(have ...string) func(string) (string, error) {
-	return func(name string) (string, error) {
-		for _, h := range have {
-			if h == name {
-				return "/bin/" + name, nil
-			}
-		}
-		return "", errors.New("not found")
+// agentsAt is a status: the agents found, each with the plugin at the
+// scopes given ("user", "project", ...) at version 1.0.0, and nothing else.
+func agentsAt(found ...string) Status {
+	st := Status{Plugin: "1.0.0"}
+	for _, a := range found {
+		st.Agents = append(st.Agents, AgentStatus{Agent: a, Found: true, Scopes: scopesOf[a], Plugin: map[string]PluginStatus{}, MCP: map[string]MCPStatus{}})
 	}
+	return st
 }
 
-func cmds(steps []Step) []string {
+// with gives agent the plugin at scope, in state, and returns st.
+func (st Status) with(agent, scope, state string) Status {
+	for _, a := range st.Agents {
+		if a.Agent == agent {
+			a.Plugin[scope] = PluginStatus{Version: "1.0.0", State: state}
+		}
+	}
+	return st
+}
+
+func (st Status) mcp(agent, scope, command string) Status {
+	for _, a := range st.Agents {
+		if a.Agent == agent {
+			a.MCP[scope] = MCPStatus{Command: command}
+		}
+	}
+	return st
+}
+
+func (st Status) market(agent string, m Marketplace) Status {
+	for i := range st.Agents {
+		if st.Agents[i].Agent == agent {
+			st.Agents[i].Marketplace = &m
+		}
+	}
+	return st
+}
+
+func cmds(steps []Step) string {
 	var out []string
 	for _, s := range steps {
 		out = append(out, strings.Join(s.Cmd, " "))
 	}
-	return out
+	return strings.Join(out, "\n")
+}
+
+func plan(t *testing.T, o SetupOptions, st Status, want ...string) {
+	t.Helper()
+	if got := cmds(PlanSetup(o, st)); got != strings.Join(want, "\n") {
+		t.Errorf("plan =\n%s\nwant\n%s", got, strings.Join(want, "\n"))
+	}
 }
 
 // setup installs the plugin for every agent it finds, through the agents'
 // own commands, in the scope the user chose; the MCP server only when asked.
 func TestSetupPlansTheAgentsOwnCommands(t *testing.T) {
-	got := cmds(PlanSetup(SetupOptions{Scope: "project", MCP: true}, lookFor("claude", "codex"), func() (bool, bool) { return false, false }))
-	want := []string{
+	plan(t, SetupOptions{Scope: "project", MCP: true}, agentsAt("claude", "codex"),
 		"claude plugin marketplace add LeeSwallow/stickypane",
 		"claude plugin install board@stickypane --scope project",
 		"claude mcp add --scope project stickypane -- stickypane mcp",
 		"codex plugin marketplace add LeeSwallow/stickypane",
 		"codex plugin add board@stickypane",
 		"codex mcp add stickypane -- stickypane mcp",
-	}
-	if strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("plan =\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
-	}
+	)
 }
 
 func TestSetupSkipsWhatIsThereAndWhatIsMissing(t *testing.T) {
 	// Codex is not installed; Claude Code has the plugin already.
-	got := cmds(PlanSetup(SetupOptions{}, lookFor("claude"), func() (bool, bool) { return true, false }))
-	if len(got) != 0 {
-		t.Errorf("nothing to do, got %q", got)
-	}
+	st := agentsAt("claude").with("claude", "user", StateOK)
+	st.Agents = append(st.Agents, AgentStatus{Agent: "codex", State: StateMissing})
+	plan(t, SetupOptions{}, st)
 	// Only the agents asked for.
-	got = cmds(PlanSetup(SetupOptions{Agents: []string{"codex"}}, lookFor("claude", "codex"), func() (bool, bool) { return false, false }))
-	if len(got) != 2 || !strings.HasPrefix(got[0], "codex ") {
-		t.Errorf("only codex: %q", got)
-	}
-	// The MCP step skips itself when the server is registered.
-	steps := PlanSetup(SetupOptions{MCP: true}, lookFor("claude"), func() (bool, bool) { return true, false })
-	if len(steps) != 1 || strings.Join(steps[0].Unless, " ") != "claude mcp get stickypane" {
-		t.Errorf("mcp step = %+v", steps)
-	}
+	plan(t, SetupOptions{Agents: []string{"codex"}}, agentsAt("claude", "codex"),
+		"codex plugin marketplace add LeeSwallow/stickypane",
+		"codex plugin add board@stickypane")
+	// A marketplace already there is not added again.
+	plan(t, SetupOptions{}, agentsAt("claude").market("claude", Marketplace{Source: "github", Where: "LeeSwallow/stickypane"}),
+		"claude plugin install board@stickypane --scope user")
+	// The MCP server registered in the scope with the same command: nothing.
+	plan(t, SetupOptions{MCP: true}, agentsAt("claude").with("claude", "user", StateOK).mcp("claude", "user", "stickypane"))
+	// The plugin in the user's scope is not the project's.
+	plan(t, SetupOptions{Scope: "project"}, agentsAt("claude").with("claude", "user", StateOK).market("claude", Marketplace{Source: "github"}),
+		"claude plugin install board@stickypane --scope project")
+}
+
+// Codex has the user's scope only: a project scope asked for is the user's.
+func TestSetupCodexHasTheUsersScopeOnly(t *testing.T) {
+	plan(t, SetupOptions{Scope: "local", MCP: true}, agentsAt("codex").with("codex", "user", StateOK),
+		"codex mcp add stickypane -- stickypane mcp")
+}
+
+// --plugin=false leaves the plugin: the MCP server only, added or removed.
+func TestSetupMCPOnly(t *testing.T) {
+	plan(t, SetupOptions{MCP: true, NoPlugin: true}, agentsAt("claude", "codex"),
+		"claude mcp add --scope user stickypane -- stickypane mcp",
+		"codex mcp add stickypane -- stickypane mcp")
+	st := agentsAt("claude", "codex").with("claude", "user", StateOK).with("codex", "user", StateOK).mcp("claude", "user", "x").mcp("codex", "user", "x")
+	plan(t, SetupOptions{MCP: true, NoPlugin: true, Undo: true}, st,
+		"claude mcp remove --scope user stickypane",
+		"codex mcp remove stickypane")
 }
 
 // Command names the stickypane the MCP server runs, by its full path.
 func TestSetupMCPRunsTheCommandGiven(t *testing.T) {
 	const app = "/Applications/Stickypane.app/Contents/Helpers/stickypane"
-	got := cmds(PlanSetup(SetupOptions{MCP: true, Command: app}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
-	want := []string{
-		"claude mcp add --scope user stickypane -- " + app + " mcp",
-		"codex mcp add stickypane -- " + app + " mcp",
-	}
-	if strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("mcp with a command =\n%s", strings.Join(got, "\n"))
-	}
+	st := agentsAt("claude", "codex").with("claude", "user", StateOK).with("codex", "user", StateOK)
+	plan(t, SetupOptions{MCP: true, Command: app}, st,
+		"claude mcp add --scope user stickypane -- "+app+" mcp",
+		"codex mcp add stickypane -- "+app+" mcp")
 }
 
 func TestSetupUndoRemovesWhatItAdded(t *testing.T) {
-	got := cmds(PlanSetup(SetupOptions{Undo: true, Scope: "user", MCP: true}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
-	want := []string{
+	st := agentsAt("claude", "codex").with("claude", "user", StateOK).with("codex", "user", StateOK).mcp("claude", "user", "stickypane").mcp("codex", "user", "stickypane")
+	plan(t, SetupOptions{Undo: true, Scope: "user", MCP: true}, st,
 		"claude plugin uninstall board@stickypane --scope user",
-		"claude mcp remove stickypane",
+		"claude mcp remove --scope user stickypane",
 		"codex plugin remove board@stickypane",
-		"codex mcp remove stickypane",
-	}
-	if strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("undo =\n%s", strings.Join(got, "\n"))
-	}
+		"codex mcp remove stickypane")
 	// Without --mcp, undo takes out the plugin only, as the README says.
-	got = cmds(PlanSetup(SetupOptions{Undo: true}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
-	if strings.Join(got, "\n") != "claude plugin uninstall board@stickypane --scope user\ncodex plugin remove board@stickypane" {
-		t.Errorf("undo without --mcp =\n%s", strings.Join(got, "\n"))
-	}
+	plan(t, SetupOptions{Undo: true}, st,
+		"claude plugin uninstall board@stickypane --scope user",
+		"codex plugin remove board@stickypane")
+	// Nothing in the scope asked for: nothing to take out.
+	plan(t, SetupOptions{Undo: true, Scope: "local", MCP: true}, agentsAt("claude").with("claude", "user", StateOK))
+}
+
+// A plugin older than this stickypane's, or one that fails to load, is
+// updated from its marketplace.
+func TestSetupUpdatesAnOlderPlugin(t *testing.T) {
+	st := agentsAt("claude", "codex").with("claude", "user", StateOutdated).with("codex", "user", StateBroken)
+	plan(t, SetupOptions{}, st,
+		"claude plugin marketplace update stickypane",
+		"claude plugin update board@stickypane --scope user",
+		"codex plugin marketplace upgrade stickypane",
+		"codex plugin add board@stickypane")
+}
+
+// A marketplace added from a folder that is gone (a checkout that moved)
+// is pointed at GitHub again, and the plugin installed anew: in Claude
+// Code at every scope it had, since removing the marketplace uninstalls it.
+func TestSetupRepairsAMarketplaceWhoseFolderIsGone(t *testing.T) {
+	gone := Marketplace{Source: "directory", Where: "/Users/min/Projects/stickypane", Gone: true}
+	st := agentsAt("claude").with("claude", "user", StateBroken).with("claude", "local", StateBroken).market("claude", gone)
+	plan(t, SetupOptions{}, st,
+		"claude plugin marketplace remove stickypane",
+		"claude plugin marketplace add LeeSwallow/stickypane",
+		"claude plugin install board@stickypane --scope user",
+		"claude plugin install board@stickypane --scope local")
+	gone.Source = "local"
+	plan(t, SetupOptions{}, agentsAt("codex").with("codex", "user", StateBroken).market("codex", gone),
+		"codex plugin marketplace remove stickypane",
+		"codex plugin marketplace add LeeSwallow/stickypane",
+		"codex plugin add board@stickypane")
 }
 
 func TestRunSetupRunsStepsAndStopsAtAFailure(t *testing.T) {
@@ -111,47 +181,23 @@ func TestRunSetupRunsStepsAndStopsAtAFailure(t *testing.T) {
 	}
 }
 
-// An MCP server registered with another command (a bare stickypane from
-// the PATH) is removed and added again with the full path asked for; one
-// that has it already is left.
+// An MCP server registered in the scope with another command (a bare
+// stickypane from the PATH) is removed and added again with the full path
+// asked for; one that has it already is left.
 func TestSetupReplacesAnMCPServerThatRunsAnotherCommand(t *testing.T) {
 	const app = "/Applications/Stickypane.app/Contents/Helpers/stickypane"
-	reg := func(cmd string) func(string) (MCPServer, bool) {
-		return func(agent string) (MCPServer, bool) {
-			if agent == "claude" {
-				return MCPServer{Command: cmd, Scope: "local"}, true
-			}
-			return MCPServer{Command: cmd}, true
-		}
-	}
-	got := cmds(PlanSetup(SetupOptions{MCP: true, Command: app, Registered: reg("stickypane")}, lookFor("claude", "codex"), func() (bool, bool) { return true, true }))
-	want := []string{
+	st := agentsAt("claude", "codex").with("claude", "local", StateOK).with("codex", "user", StateOK).mcp("claude", "local", "stickypane").mcp("codex", "user", "stickypane")
+	plan(t, SetupOptions{MCP: true, Command: app, Scope: "local"}, st,
 		"claude mcp remove --scope local stickypane",
-		"claude mcp add --scope user stickypane -- " + app + " mcp",
+		"claude mcp add --scope local stickypane -- "+app+" mcp",
 		"codex mcp remove stickypane",
-		"codex mcp add stickypane -- " + app + " mcp",
-	}
-	if strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("replace =\n%s", strings.Join(got, "\n"))
-	}
-	steps := PlanSetup(SetupOptions{MCP: true, Command: app, Registered: reg(app)}, lookFor("claude"), func() (bool, bool) { return true, true })
-	if len(steps) != 1 || len(steps[0].Unless) == 0 {
-		t.Errorf("already the full path: %+v", steps)
-	}
+		"codex mcp add stickypane -- "+app+" mcp")
+	plan(t, SetupOptions{MCP: true, Command: app, Scope: "local"}, agentsAt("claude").with("claude", "local", StateOK).mcp("claude", "local", app))
 	// without --command nothing is replaced
-	if got := cmds(PlanSetup(SetupOptions{MCP: true, Registered: reg("/old/stickypane")}, lookFor("claude"), func() (bool, bool) { return true, true })); len(got) != 1 {
-		t.Errorf("no command: %q", got)
-	}
+	plan(t, SetupOptions{MCP: true, Scope: "local"}, st)
 }
 
-func TestParseTheAgentsMCPRegistrations(t *testing.T) {
-	out := "stickypane:\n  Scope: User config (available in all your projects)\n  Status: ✓ Connected\n  Type: stdio\n  Command: stickypane\n  Args: mcp\n"
-	if m, ok := ParseClaudeMCP(out); !ok || m.Command != "stickypane" || m.Scope != "user" {
-		t.Errorf("claude: %+v %v", m, ok)
-	}
-	if _, ok := ParseClaudeMCP("No MCP server found"); ok {
-		t.Error("claude: none")
-	}
+func TestParseCodexMCP(t *testing.T) {
 	toml := "[mcp_servers.other]\ncommand = \"x\"\n\n[mcp_servers.stickypane]\ncommand = \"/usr/local/bin/stickypane\"\nargs = [\"mcp\"]\n"
 	if m, ok := ParseCodexMCP(toml); !ok || m.Command != "/usr/local/bin/stickypane" {
 		t.Errorf("codex: %+v %v", m, ok)
