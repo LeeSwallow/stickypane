@@ -195,11 +195,34 @@ func TestBindingsListEveryAction(t *testing.T) {
 		t.Fatalf("%d bindings, problems %v", len(bs), problems)
 	}
 	for _, b := range bs {
-		if b.Name == "note-archive" && (!b.Changed || !slices.Equal(b.Keys, []string{"X"}) || b.Words != "move to archive") {
+		if b.Name == "note-archive" && (!b.Changed || !slices.Equal(b.Keys, []string{"X"}) || b.Words != "move to archive" ||
+			!slices.Equal(b.Defaults, []string{"x"}) || b.Group != "notes") {
 			t.Errorf("%+v", b)
+		}
+		if b.Group == "" {
+			t.Errorf("%s has no group", b.Name)
 		}
 		if b.Name == "tab-3" && b.Words != "tab 3" {
 			t.Errorf("%+v", b)
+		}
+	}
+}
+
+// Every action is in one group, and a group names only actions.
+func TestEveryActionIsInOneGroup(t *testing.T) {
+	t.Parallel()
+	in := map[string]int{}
+	for _, g := range keyGroups {
+		for _, n := range g.actions {
+			if _, ok := defaultKeys.byName[n]; !ok {
+				t.Errorf("group %s names %q, which is no action", g.name, n)
+			}
+			in[n]++
+		}
+	}
+	for _, a := range actions() {
+		if in[a.name] != 1 {
+			t.Errorf("%s is in %d groups", a.name, in[a.name])
 		}
 	}
 }

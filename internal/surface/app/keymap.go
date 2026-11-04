@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -171,6 +172,32 @@ var boardHelp = []helpLine{
 	{actions: []string{"help"}},
 	{actions: []string{"command-line"}},
 	{actions: []string{"quit"}},
+}
+
+// keyGroups put every action under what it is about, in the order a list
+// of the keys shows them: stickypane keys --json says each action's group,
+// and the desktop app's settings list the keys by it.
+var keyGroups = []struct {
+	name    string
+	actions []string
+}{
+	{"move", []string{"focus-left", "focus-down", "focus-up", "focus-right", "focus-first", "focus-last", "focus-next", "focus-prev"}},
+	{"notes", []string{"note-open", "note-zoom", "note-toggle", "jot", "add", "note-edit", "note-editor", "note-copy", "note-pin", "note-color", "note-rename", "note-archive", "note-delete", "undo"}},
+	{"arrange", []string{"note-move-earlier", "note-move-later", "note-move-up", "note-move-down", "note-to-folder"}},
+	{"size", []string{"note-wider", "note-narrower", "note-taller", "note-shorter", "note-taller-5", "note-shorter-5", "note-fit"}},
+	{"scroll", []string{"scroll-down", "scroll-up", "scroll-half-down", "scroll-half-up", "scroll-page-down", "scroll-page-up", "page-prev", "page-next", "screen-prev", "screen-next"}},
+	{"tabs", []string{"tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7", "tab-8", "tab-9", "tab-next", "tab-prev"}},
+	{"board", []string{"reload", "theme-next", "index", "links", "settings", "help", "command-line", "quit"}},
+}
+
+// groupOf is the group of the action called name, "" when none has it.
+func groupOf(name string) string {
+	for _, g := range keyGroups {
+		if slices.Contains(g.actions, name) {
+			return g.name
+		}
+	}
+	return ""
 }
 
 // helpKeyColumn is how wide the keys of a help line are, with their gap.

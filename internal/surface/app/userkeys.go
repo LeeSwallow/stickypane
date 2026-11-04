@@ -24,10 +24,12 @@ func (p KeyProblem) String() string { return p.Action + ": " + p.Why }
 
 // A Binding is one of the board's actions as stickypane keys lists it.
 type Binding struct {
-	Name    string   `json:"name"`
-	Keys    []string `json:"keys"`
-	Words   string   `json:"words"`
-	Changed bool     `json:"changed"` // the key file gave it these keys
+	Name     string   `json:"name"`
+	Keys     []string `json:"keys"`
+	Words    string   `json:"words"`
+	Changed  bool     `json:"changed"`  // the key file gave it these keys
+	Defaults []string `json:"defaults"` // the keys it comes with
+	Group    string   `json:"group"`    // what it is about (keyGroups)
 }
 
 // Bindings is every action of the board with the keys it has once want,
@@ -37,7 +39,10 @@ func Bindings(tr i18n.Strings, want map[string][]string) ([]Binding, []KeyProble
 	km, changed, problems := bindKeys(want)
 	out := make([]Binding, len(km.actions))
 	for i, a := range km.actions {
-		out[i] = Binding{Name: a.name, Keys: append([]string{}, a.keys...), Words: a.describe(tr), Changed: changed[a.name]}
+		out[i] = Binding{
+			Name: a.name, Keys: append([]string{}, a.keys...), Words: a.describe(tr), Changed: changed[a.name],
+			Defaults: append([]string{}, defaultKeys.keysOf(a.name)...), Group: groupOf(a.name),
+		}
 	}
 	return out, problems
 }

@@ -51,16 +51,23 @@ func TestKeysListsEveryAction(t *testing.T) {
 	}
 	_, out, _ = exec(t, "keys", "--json")
 	var got []struct {
-		Name    string
-		Keys    []string
-		Words   string
-		Changed bool
+		Name     string
+		Keys     []string
+		Words    string
+		Changed  bool
+		Defaults []string
+		Group    string
 	}
 	if err := json.Unmarshal([]byte(out), &got); err != nil || len(got) < 40 {
 		t.Fatalf("%v: %s", err, out)
 	}
-	if got[0].Name != "focus-left" || got[0].Keys[0] != "h" || got[0].Changed {
+	if got[0].Name != "focus-left" || got[0].Keys[0] != "h" || got[0].Changed || got[0].Group != "move" {
 		t.Errorf("%+v", got[0])
+	}
+	for _, b := range got {
+		if b.Name == "note-archive" && (b.Keys[0] != "X" || !b.Changed || len(b.Defaults) != 1 || b.Defaults[0] != "x" || b.Group != "notes") {
+			t.Errorf("the change and the default side by side: %+v", b)
+		}
 	}
 	t.Setenv("STICKYPANE_LANG", "ko")
 	if _, out, _ := exec(t, "keys"); !strings.Contains(out, "보관") {
