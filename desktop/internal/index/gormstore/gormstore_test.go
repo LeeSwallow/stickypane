@@ -2,12 +2,16 @@ package gormstore
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	_ "github.com/glebarez/go-sqlite" // the driver, to write a database as the first version did
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/model"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/ports"
@@ -99,6 +103,46 @@ func TestADamagedDatabaseIsSetAsideAtTheClocksTime(t *testing.T) {
 	if _, err := os.Stat(path + ".broken-20261028-140211.000"); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// A file that is no database is told by SQLite's own code, not its words.
+func TestNotADatabaseIsToldByItsCode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "stickypane.db")
+	if err := os.WriteFile(path, []byte("not a database, not at all, not even close to one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := openFile(path)
+	var ce *corruptError
+	if !errors.As(err, &ce) {
+		t.Fatalf("err = %v, want a damaged database", err)
+	}
+	if c, ok := sqliteCode(rawOpenErr(t, path)); !ok || c != sqliteNotADB {
+		t.Errorf("code = %d, %v; want %d", c, ok, sqliteNotADB)
+	}
+	// and through GORM, as openFile meets it
+	db, gerr := gorm.Open(sqlite.Open("file:"+path), &gorm.Config{Logger: logger.Discard})
+	if gerr == nil {
+		var mode string
+		gerr = db.Raw("PRAGMA journal_mode=WAL").Row().Scan(&mode)
+		if sqlDB, err := db.DB(); err == nil {
+			sqlDB.Close()
+		}
+	}
+	if c, ok := sqliteCode(gerr); !ok || c != sqliteNotADB {
+		t.Errorf("through GORM: code = %d, %v (%v); want %d", c, ok, gerr, sqliteNotADB)
+	}
+}
+
+// rawOpenErr is the driver's own error at reading path's schema.
+func rawOpenErr(t *testing.T, path string) error {
+	t.Helper()
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var mode string
+	return db.QueryRow("PRAGMA journal_mode=WAL").Scan(&mode)
 }
 
 func TestRepositories(t *testing.T) {
