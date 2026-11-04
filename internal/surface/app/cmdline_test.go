@@ -315,7 +315,7 @@ func TestTheCommandLineInKorean(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"sticky.json": `{"language":"ko"}`, "a.md": opened("one\n")})
 	runLine(m, "foo")
-	if m.status != "없는 명령입니다: foo" {
+	if m.status != "없는 명령이에요: foo" {
 		t.Errorf("Korean: %q", m.status)
 	}
 	press(m, ":")

@@ -93,7 +93,7 @@ describe('the settings window', () => {
   it('style, language, layout and where it opens each go where they are kept', async () => {
     const board = fakeBoard()
     open(board)
-    await fireEvent.click(await screen.findByRole('radio', { name: /단정/ }))
+    await fireEvent.click(await screen.findByRole('radio', { name: /깔끔/ }))
     expect(board.setSettings).toHaveBeenCalledWith({ style: 'neat' })
     await fireEvent.click(screen.getByRole('radio', { name: 'English' }))
     expect(board.setSettings).toHaveBeenCalledWith({ language: 'en' })
@@ -137,7 +137,7 @@ describe('the settings window', () => {
     const field = await screen.findByRole('button', { name: /단축키/ })
     await fireEvent.click(field)
     await fireEvent.keyDown(field, { code: 'KeyK', key: 'k', ctrlKey: true, altKey: true })
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', '⌃⌥K는 다른 앱이 이미 써요.')
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', '⌃⌥K는 다른 앱이 이미 쓰고 있어요.')
     expect(app.api.setPrefs).not.toHaveBeenCalled()
     await fireEvent.click(field)
     await fireEvent.keyDown(field, { code: 'KeyJ', key: 'j', metaKey: true, shiftKey: true })

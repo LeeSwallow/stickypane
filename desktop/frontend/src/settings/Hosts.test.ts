@@ -46,7 +46,7 @@ describe('원격 호스트', () => {
     const board = { status: vi.fn(async () => ({ window: 0, path: '', state: 'closed', pinned: false })), load: vi.fn(), themes: vi.fn(async () => []), setSettings: vi.fn(), layout: vi.fn(), setMode: vi.fn() }
     render(SettingsWindow, { board, app, setup: fakeSetup().api, hosts: f.api, section: 'hosts' })
     expect(await screen.findByRole('heading', { name: '원격 호스트' })).toBeTruthy()
-    expect(screen.getByText(/비밀번호는 저장하지 않아요/)).toBeTruthy()
+    expect(screen.getByText(/비밀번호는 남지 않아요/)).toBeTruthy()
     expect(await screen.findByRole('region', { name: 'dev' })).toBeTruthy()
   })
 

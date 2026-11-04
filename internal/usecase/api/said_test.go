@@ -30,8 +30,8 @@ func TestAnEditSaysTheSummaryInTheEnvsWords(t *testing.T) {
 		want Edited
 	}{
 		{func() (Edited, error) { return a.Todo("plan", "add", "테스트 작성") }, Edited{Note: "plan.md", Action: "add", Item: "테스트 작성", Summary: "0/1"}},
-		{func() (Edited, error) { return a.Card("work", "add", "로그인", "") }, Edited{Note: "work.md", Action: "add", Item: "로그인", Summary: "카드 1개"}},
-		{func() (Edited, error) { return a.Card("work", "add", "결제", "") }, Edited{Note: "work.md", Action: "add", Item: "결제", Summary: "카드 2개"}},
+		{func() (Edited, error) { return a.Card("work", "add", "로그인", "") }, Edited{Note: "work.md", Action: "add", Item: "로그인", Summary: "카드 1장"}},
+		{func() (Edited, error) { return a.Card("work", "add", "결제", "") }, Edited{Note: "work.md", Action: "add", Item: "결제", Summary: "카드 2장"}},
 		{func() (Edited, error) { return a.Chart("tokens", "set", "input", "1,200") }, Edited{Note: "tokens.md", Action: "set", Item: "input", Value: "1,200", Summary: "값 1개"}},
 		{func() (Edited, error) { return a.Log("worklog", "테스트 통과") }, Edited{Note: "worklog.md", Action: "log", Item: "테스트 통과", Summary: "1줄"}},
 		{func() (Edited, error) { return a.Log("worklog", "리뷰 끝") }, Edited{Note: "worklog.md", Action: "log", Item: "리뷰 끝", Summary: "2줄"}},

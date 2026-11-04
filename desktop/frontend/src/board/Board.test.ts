@@ -50,7 +50,7 @@ describe('the board window', () => {
     const writeText = vi.fn(async () => {})
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     render(Board, { props: { api: api(boardOf([])), bus: fakeBus().bus } })
-    expect(await screen.findByText('아직 비어 있어요. 이렇게 시작해요')).toBeTruthy()
+    expect(await screen.findByText('아직 비어 있어요. 이렇게 시작해 보세요')).toBeTruthy()
     const ask = screen.getByText('에이전트에게 부탁하기').closest('.card') as HTMLElement
     await fireEvent.click(within(ask).getByRole('button', { name: '복사' }))
     expect(writeText).toHaveBeenCalledWith('오늘 할 일을 my-app 보드에 체크리스트로 붙여 줘.')

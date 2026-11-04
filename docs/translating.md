@@ -40,3 +40,13 @@ The language comes from `sticky.json` (`stickypane config language ko`) or, with
    typo cannot hide.
 4. Add the language to the table in `README.md` and open a pull request
    labelled `docs`.
+
+## Korean
+
+One voice for the app (`desktop/frontend/src/i18n/ko.json`) and the board
+(`internal/core/i18n/translations/ko.json`):
+
+- **Buttons, labels, menus:** a bare noun or verb, no ending — `보드 추가`, `연결…`, `기본값으로`.
+- **Hints under a setting:** a noun phrase or one plain sentence; say only what the label does not. Cut before you reword.
+- **Messages (confirm, result, error):** 해요체, one sentence, the thing first — `'a' 노트를 보관했어요. u 키로 되돌릴 수 있어요.` An error says what happened and what to do.
+- **Words:** one term per thing (노트, 보드, 탭, 칸, 카드 n장); code, commands and paths stay as written. `stickypane help` is reference text and keeps 합니다체, like the tagline.
