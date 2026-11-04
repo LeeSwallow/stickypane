@@ -18,6 +18,12 @@ var ErrGone = errors.New("index: file gone")
 // Clock tells the time.
 type Clock interface{ Now() time.Time }
 
+// SystemClock is this machine's clock, the one Clock the app runs with;
+// a test passes its own.
+type SystemClock struct{}
+
+func (SystemClock) Now() time.Time { return time.Now() }
+
 // ProcessChecker says whether the process pid, recorded as started at
 // started, is still that process (not one that reused its pid).
 type ProcessChecker interface {

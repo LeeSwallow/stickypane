@@ -55,6 +55,15 @@ func wrap(err error) error {
 // path.broken-<time> and made again empty; rebuilt says so, and the
 // caller then reads every record again.
 func Open(path string) (s *Store, rebuilt bool, err error) {
+	return OpenAt(path, ports.SystemClock{})
+}
+
+// brokenStamp is the time in the name of a database set aside:
+// stickypane.db.broken-20261028-140211.000.
+const brokenStamp = "20060102-150405.000"
+
+// OpenAt is Open with the clock that names a database set aside.
+func OpenAt(path string, clock ports.Clock) (s *Store, rebuilt bool, err error) {
 	s, err = openFile(path)
 	if err == nil {
 		return s, false, nil
@@ -63,12 +72,14 @@ func Open(path string) (s *Store, rebuilt bool, err error) {
 	if !errors.As(err, &ce) {
 		return nil, false, err
 	}
-	stamp := time.Now().Format("20060102-150405.000")
-	if rerr := os.Rename(path, path+".broken-"+stamp); rerr != nil {
+	aside := path + ".broken-" + clock.Now().Format(brokenStamp)
+	if rerr := os.Rename(path, aside); rerr != nil {
 		return nil, false, fmt.Errorf("%w (and could not move it aside: %v)", err, rerr)
 	}
-	os.Remove(path + "-wal")
-	os.Remove(path + "-shm")
+	// The journal of a file set aside is no use to the new one; one that
+	// is not there is the usual case.
+	_ = os.Remove(path + "-wal")
+	_ = os.Remove(path + "-shm")
 	s, err = openFile(path)
 	if err != nil {
 		return nil, false, err

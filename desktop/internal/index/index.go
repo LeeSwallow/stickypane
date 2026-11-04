@@ -13,11 +13,11 @@ package index
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/boardfs"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/gormstore"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/model"
+	"github.com/LeeSwallow/stickypane/desktop/internal/index/ports"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/procs"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/registryfs"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index/service"
@@ -49,7 +49,8 @@ func Open(home string) (*Index, error) {
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		return nil, err
 	}
-	store, rebuilt, err := gormstore.Open(filepath.Join(home, File))
+	clock := ports.SystemClock{}
+	store, rebuilt, err := gormstore.OpenAt(filepath.Join(home, File), clock)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func Open(home string) (*Index, error) {
 			Store:   store,
 			Records: registryfs.Home(home),
 			Boards:  boardfs.Disk{},
-			Clock:   systemClock{},
+			Clock:   clock,
 			Procs:   procs.PS{},
 		},
 		store: store,
@@ -74,7 +75,3 @@ func Open(home string) (*Index, error) {
 
 // Close closes the database.
 func (ix *Index) Close() error { return ix.store.Close() }
-
-type systemClock struct{}
-
-func (systemClock) Now() time.Time { return time.Now() }
