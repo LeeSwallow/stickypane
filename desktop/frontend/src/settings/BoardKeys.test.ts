@@ -67,7 +67,7 @@ describe('단축키', () => {
     expect(field.value).toBe('x')
     await fireEvent.input(field, { target: { value: 'q' } })
     await fireEvent.click(within(archive).getByRole('button', { name: '저장' }))
-    await waitFor(() => expect(within(archive).getByText(/q is quit's key too/)).toBeTruthy())
+    await waitFor(() => expect(within(archive).getByText("q는 이미 '끝내기' 키예요. 다른 키를 골라 주세요.")).toBeTruthy())
     expect(f.state.file['note-archive']).toBeUndefined()
     await fireEvent.input(field, { target: { value: 'X, d x' } })
     await fireEvent.click(within(archive).getByRole('button', { name: '저장' }))

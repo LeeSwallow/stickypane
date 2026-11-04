@@ -34,10 +34,13 @@ export function fakeKeys(file: Record<string, string[]> = {}, over: Partial<Keys
       state.calls.push(`set ${action} ${JSON.stringify(keys)}`)
       for (const k of keys) {
         if (/^[a-z]{2,}$/.test(k) && !['space', 'enter', 'tab', 'esc', 'up', 'down', 'pgup', 'pgdown'].includes(k)) {
-          throw new Error(`${action}: "${k}": "${k}" is not a key the terminal names`)
+          throw new Error(lang === 'ko' ? `"${k}"는 터미널이 아는 키 이름이 아니에요.` : `${action}: "${k}": "${k}" is not a key the terminal names`)
         }
         const other = list(lang).bindings.find((b) => b.name !== action && b.keys.includes(k))
-        if (other) throw new Error(`${action}: ${k} is ${other.name}'s key too; keys.json is left as it was`)
+        if (other) {
+          // as stickypane keys set says it, in the language asked for
+          throw new Error(lang === 'ko' ? `${k}는 이미 '${other.words}' 키예요. 다른 키를 골라 주세요.` : `${action}: ${k} is ${other.name}'s key too; keys.json is left as it was`)
+        }
       }
       state.file[action] = keys
       return list(lang)
