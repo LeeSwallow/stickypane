@@ -59,6 +59,9 @@ func refuseInit(dir string) error {
 	return nil
 }
 
+// initTimeout bounds a run of `stickypane init`.
+const initTimeout = 60 * time.Second
+
 // InitProject makes a board in dir with the app's own `stickypane init`.
 func (s *Shell) InitProject(dir string) error { return s.InitProjectIn(dir, "") }
 
@@ -72,7 +75,7 @@ func (s *Shell) InitProjectIn(dir, lang string) error {
 	if lang == "" {
 		lang = s.Prefs().Language
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), initTimeout)
 	defer cancel()
 	_, err := s.cfg.Install.Init(ctx, dir, lang)
 	return err
@@ -115,7 +118,7 @@ func (s *Shell) InitHere(window uint) (installsvc.Result, error) {
 	if err := refuseInit(p.path); err != nil {
 		return installsvc.Result{}, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), initTimeout)
 	defer cancel()
 	return s.cfg.Install.Init(ctx, p.path, s.Prefs().Language)
 }

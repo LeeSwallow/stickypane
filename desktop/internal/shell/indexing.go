@@ -9,6 +9,14 @@ import (
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 )
 
+// defaultIndexDeadline is how long the first open of the index may take
+// (Config.IndexDeadline); startGrace how much longer a caller waits
+// before it takes it that Start was never called.
+const (
+	defaultIndexDeadline = 10 * time.Second
+	startGrace           = time.Second
+)
+
 // openIndex opens the index in the background. Open retries while the
 // database is locked and can take long; after IndexDeadline the home
 // window is told it failed, and a late success is still taken.
@@ -36,7 +44,7 @@ func (s *Shell) openIndex() {
 	case <-time.After(s.cfg.IndexDeadline):
 		s.mu.Lock()
 		if s.ix == nil && s.ixErr == nil {
-			s.ixErr = fmt.Errorf("%w after %v (is another app holding %s?)", ErrIndexNotOpen, s.cfg.IndexDeadline, filepath.Join(s.cfg.Home, "stickypane.db"))
+			s.ixErr = fmt.Errorf("%w after %v (is another app holding %s?)", ErrIndexNotOpen, s.cfg.IndexDeadline, filepath.Join(s.cfg.Home, index.File))
 		}
 		s.mu.Unlock()
 	case <-s.quit:
@@ -48,7 +56,7 @@ func (s *Shell) openIndex() {
 func (s *Shell) index() (Index, error) {
 	select {
 	case <-s.ixReady:
-	case <-time.After(s.cfg.IndexDeadline + time.Second): // Start was not called
+	case <-time.After(s.cfg.IndexDeadline + startGrace): // Start was not called
 		return nil, ErrIndexNotStarted
 	}
 	s.mu.Lock()

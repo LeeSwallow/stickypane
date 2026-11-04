@@ -203,7 +203,7 @@ func New(cfg Config) (*Shell, error) {
 		cfg.Install = defaultInstaller(cfg.Find)
 	}
 	if cfg.IndexDeadline == 0 {
-		cfg.IndexDeadline = 10 * time.Second
+		cfg.IndexDeadline = defaultIndexDeadline
 	}
 	path := filepath.Join(cfg.Home, StateFile)
 	st, err := LoadState(path)

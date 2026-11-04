@@ -18,6 +18,11 @@ import (
 const (
 	ProjectWidth  = 720
 	ProjectHeight = 640
+	// On a screen too small for it, the first size leaves screenMargin
+	// of the work area free, and is never under the least size.
+	screenMargin       = 48
+	projectLeastWidth  = 400
+	projectLeastHeight = 360
 )
 
 // The states of a project window's bridge.
@@ -115,9 +120,9 @@ func (s *Shell) OpenProject(path string) uint {
 	}
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindProject,
-		Name:      "project:" + path,
+		Name:      prefixProject + path,
 		Title:     title,
-		URL:       "/?window=project",
+		URL:       pageProject,
 		Bounds:    bounds,
 		Placed:    placed && ws.Width > 0,
 		Frameless: true,
@@ -145,11 +150,11 @@ func (s *Shell) OpenProject(path string) uint {
 // ProjectHeight, within the screen's work area.
 func firstSize(area Rect) Rect {
 	w, h := ProjectWidth, ProjectHeight
-	if area.Width > 0 && w > area.Width-48 {
-		w = max(area.Width-48, 400)
+	if area.Width > 0 && w > area.Width-screenMargin {
+		w = max(area.Width-screenMargin, projectLeastWidth)
 	}
-	if area.Height > 0 && h > area.Height-48 {
-		h = max(area.Height-48, 360)
+	if area.Height > 0 && h > area.Height-screenMargin {
+		h = max(area.Height-screenMargin, projectLeastHeight)
 	}
 	return Rect{Width: w, Height: h}
 }

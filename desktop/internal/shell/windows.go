@@ -15,6 +15,27 @@ const (
 	KindNote    = "note" // a note torn off its board (torn.go)
 )
 
+// The page each kind of window opens: the frontend tells them apart by
+// ?window= (src/lib/shell.ts windowKind), so these are its words too.
+const (
+	pageHome     = "/"
+	pageProject  = "/?window=project"
+	pageNote     = "/?window=note"     // &note=<name>[&fit=1]
+	pageSettings = "/?window=settings" // &section=<section>
+)
+
+// The names Wails keeps the windows by. A board's adds its project's key,
+// a torn-off note's the key and the note.
+const (
+	nameHome      = "home"
+	nameSettings  = "settings"
+	prefixProject = "project:"
+	prefixNote    = "note:"
+)
+
+// fallbackArea is the work area taken when the desktop names no screen.
+var fallbackArea = Rect{Width: 1440, Height: 900}
+
 // The smallest a torn-off note's window gets.
 const (
 	NoteMinWidth  = 200
@@ -184,7 +205,7 @@ func webviewOptions(o WindowOptions, goos string) application.WebviewWindowOptio
 func (p *Wails) WorkArea() Rect {
 	s := p.App.Screen.GetPrimary()
 	if s == nil {
-		return Rect{Width: 1440, Height: 900}
+		return fallbackArea
 	}
 	a := s.WorkArea
 	return Rect{X: a.X, Y: a.Y, Width: a.Width, Height: a.Height}

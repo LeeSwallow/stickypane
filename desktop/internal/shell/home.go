@@ -14,9 +14,9 @@ func (s *Shell) ShowHome() {
 	if w == nil {
 		nw := s.cfg.Platform.NewWindow(WindowOptions{
 			Kind:   KindHome,
-			Name:   "home",
+			Name:   nameHome,
 			Title:  "stickypane",
-			URL:    "/",
+			URL:    pageHome,
 			Bounds: Rect{Width: HomeWidth, Height: HomeHeight},
 			// our title bar, with the OS's window buttons (03 §3.11.6)
 			Frameless: true,
