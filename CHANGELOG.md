@@ -10,6 +10,8 @@ on GitHub are built from pull request labels.
 
 ### Added
 
+- The desktop app is on the release: a DMG for Apple silicon Macs and a
+  Linux tar.gz, built by the release workflow on the same tag (#10).
 - Remote hosts in the app (#76). Settings → 원격 호스트 keeps a list of
   hosts (a name, an ssh target from `~/.ssh/config` or `user@host`, the
   command to run there), checks each one and can import them from the ssh

@@ -15,13 +15,13 @@ brew install --cask LeeSwallow/tap/stickypane
 
 ## The desktop app
 
-The app is built and tested on this repository but not released yet; the
-DMG and the Linux archive come with its first release, on the
-[releases page](https://github.com/LeeSwallow/stickypane/releases). It
-carries its own `stickypane`, so it is the only thing to install.
+Each release from v0.2.1 on carries the app beside the command line
+program, on the [releases page](https://github.com/LeeSwallow/stickypane/releases):
+a DMG for Apple silicon Macs and a tar.gz for Linux on amd64. It carries
+its own `stickypane`, so it is the only thing to install.
 
 macOS: open `stickypane-<version>-<arch>.dmg` and drag **Stickypane** to
-**Applications**. The first release is not notarized, so the first open is
+**Applications**. The app is not notarized, so the first open is
 held back: open **System Settings → Privacy & Security** and choose **Open
 Anyway**. Then, in a board's settings, **Terminal and agents** installs the
 `stickypane` command for your terminals and connects Claude Code and Codex.
