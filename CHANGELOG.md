@@ -8,6 +8,10 @@ on GitHub are built from pull request labels.
 
 ### Fixed
 
+- A note torn off into its own window starts right under its frame's top
+  border: its head's controls float over the corner on a hover instead of
+  keeping an empty row (a checklist showed ~80px of nothing above its
+  progress bar), and the window's first height follows.
 - A new board speaks the board's language: on a Korean board it starts
   with 할 일, 하는 중 and 끝, from `card add`, `write --type board --opt`,
   the terminal's `a` and the app's create form alike. A card added with

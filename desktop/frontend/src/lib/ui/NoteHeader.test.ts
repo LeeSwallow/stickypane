@@ -29,6 +29,19 @@ for (const key of ['F2', 'Enter']) {
   })
 }
 
+test("a note on the board keeps its head's row; one in its own window floats its controls over the corner", () => {
+  render(NoteHeader, { title: 'Plan', color: '#8FD694' })
+  expect(document.querySelector<HTMLElement>('[data-head]')!.dataset.head).toBe('row')
+  cleanup()
+  render(NoteHeader, { title: 'Plan', color: '#8FD694', titled: false })
+  expect(document.querySelector<HTMLElement>('[data-head]')!.dataset.head).toBe('float')
+  cleanup()
+  // a book's pager stays in sight, on a row of its own
+  const book = { page: 1, total: 2, onprev: () => {}, onnext: () => {} }
+  render(NoteHeader, { title: 'Plan', color: '#8FD694', titled: false, book })
+  expect(document.querySelector<HTMLElement>('[data-head]')!.dataset.head).toBe('row')
+})
+
 test('a title that cannot be renamed takes no focus and no keys', async () => {
   render(NoteHeader, { title: 'Plan', color: '#8FD694', editable: false, onrename: vi.fn() })
   expect(title().hasAttribute('tabindex')).toBe(false)

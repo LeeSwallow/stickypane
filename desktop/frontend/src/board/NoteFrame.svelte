@@ -67,6 +67,8 @@
   let dragW: number | null = $state(null)
   let landing: Fraction | null = $state(null)
   let body: HTMLElement | undefined = $state()
+  // torn off, the head floats over the corner (NoteHeader): the shape starts at the top
+  const flush = $derived(!titled && pages.length < 2)
   const fixed = $derived(zoomed || free ? null : (dragH ?? heightOfRows(note.rows)))
 
   let colours = $state(false)
@@ -236,7 +238,7 @@
         {/each}
       </div>
     {/if}
-    <div class="body" bind:this={body} class:fixed={fixed !== null} style:height={fixed !== null ? `${fixed}px` : null}>
+    <div class="body" bind:this={body} class:flush data-shape-body class:fixed={fixed !== null} style:height={fixed !== null ? `${fixed}px` : null}>
       {#key shown.name}
         <Shape note={shown} narrow={narrow || small} />
       {/key}
@@ -312,6 +314,9 @@
   }
   .body {
     margin-top: var(--space-2);
+  }
+  .body.flush {
+    margin-top: 0;
   }
   .body.fixed {
     overflow: auto;
