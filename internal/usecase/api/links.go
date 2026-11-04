@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // linkRe finds [[name]], [[name#item]] and [[name|alias]] (and the same
@@ -29,7 +31,7 @@ func LinkTargets(body string) []string {
 func Resolve(target string, files []string) string {
 	target = strings.TrimSpace(target)
 	for _, f := range files {
-		if f == target || f == target+".md" {
+		if f == target || f == target+store.MarkdownExt {
 			return f
 		}
 	}

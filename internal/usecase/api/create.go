@@ -23,7 +23,7 @@ const MaxSameName = 1000
 // fs.ErrNotExist.
 func (a *API) CreateFrom(tab, text, ext string, opts Options, body []byte) (string, error) {
 	if ext == "" {
-		ext = ".md"
+		ext = store.MarkdownExt
 	}
 	if tab = strings.Trim(tab, "/"); tab != "" {
 		tabs, err := a.st.Tabs()

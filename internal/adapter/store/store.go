@@ -48,7 +48,7 @@ var (
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
 var extensions = map[string]bool{
-	".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true,
+	MarkdownExt: true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true,
 	".http": true, ".rest": true, ".html": true, ".htm": true,
 }
 
@@ -73,8 +73,12 @@ func IsNote(name string) bool {
 	return !strings.HasPrefix(base, ".") && extensions[strings.ToLower(filepath.Ext(base))]
 }
 
-// isMarkdown reports whether a file may start with front matter.
-func isMarkdown(name string) bool { return strings.EqualFold(filepath.Ext(name), ".md") }
+// MarkdownExt is the extension of a note that is Markdown, the one kind of
+// file that may start with front matter, and of a note named without one.
+const MarkdownExt = ".md"
+
+// IsMarkdown reports whether a file may start with front matter.
+func IsMarkdown(name string) bool { return strings.EqualFold(filepath.Ext(name), MarkdownExt) }
 
 // Note is one file in the notes folder, or one folder: a book, whose pages
 // are the files in it.
@@ -341,7 +345,7 @@ func (s *Store) load(name string) Note {
 	}
 	defer func() { s.remember(readNote{fi.Size(), n.ModTime, n}) }()
 	parse := func(b []byte) doc.Document {
-		if isMarkdown(name) {
+		if IsMarkdown(name) {
 			return doc.Parse(displayable(b))
 		}
 		return doc.Document{Body: string(displayable(b))}
@@ -363,7 +367,7 @@ func (s *Store) load(name string) Note {
 		return n
 	}
 	d := parse(head)
-	if isMarkdown(name) && d.Type() != "log" {
+	if IsMarkdown(name) && d.Type() != "log" {
 		n.Err = ErrTooLarge
 		return n
 	}

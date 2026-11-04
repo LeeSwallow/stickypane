@@ -70,7 +70,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		// Only Markdown says in front matter what it is and that it is
 		// open. Another file is what its extension makes it.
 		var d doc.Document
-		if strings.EqualFold(filepath.Ext(file), ".md") {
+		if store.IsMarkdown(file) {
 			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return nil, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
@@ -285,7 +285,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 			set = append(set, key)
 		}
 		change, isView, err := arrange.Change(key, value)
-		if key == "title" && (book || !strings.EqualFold(filepath.Ext(file), ".md") || a.st.Linked(file)) {
+		if key == "title" && (book || !store.IsMarkdown(file) || a.st.Linked(file)) {
 			// A note without front matter is named in sticky.json.
 			change, isView = func(v *store.View) { v.Title = value }, true
 		}
@@ -296,7 +296,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 			views = append(views, change)
 		case book:
 			return Keyed{}, fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
-		case !strings.EqualFold(filepath.Ext(file), ".md"):
+		case !store.IsMarkdown(file):
 			return Keyed{}, fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
 		case value == "":
 			op.remove = append(op.remove, key)
@@ -349,7 +349,7 @@ func (a *API) existing(name, file string) string {
 	if a.st.Exists(file) {
 		return file
 	}
-	stem := strings.TrimSuffix(file, ".md")
+	stem := strings.TrimSuffix(file, store.MarkdownExt)
 	for _, ext := range otherExts {
 		if a.st.Exists(stem + ext) {
 			return stem + ext
