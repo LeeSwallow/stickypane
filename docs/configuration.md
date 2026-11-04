@@ -108,6 +108,9 @@ to edit as well:
 }
 ```
 
+The desktop app's Settings → **Keys** lists and changes the same file,
+through the same `stickypane keys`.
+
 - An action not in the file keeps its keys; `[]` leaves it without one.
 - A key is a character (`x`, `X`, `?`), a named key (`enter`, `tab`,
   `space`, `esc`, `up`, `pgdown`, `f5`...), or either after modifiers
