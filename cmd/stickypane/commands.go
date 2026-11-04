@@ -355,7 +355,7 @@ func initCmd(e env, args []string) error {
 			return err
 		}
 	}
-	registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+	recordInit(dir)
 	return nil
 }
 
@@ -400,4 +400,9 @@ func live(kind string) (end func()) {
 		return func() {}
 	}
 	return registry.Live(filepath.Dir(dir), kind)
+}
+
+// recordInit notes in the registry that the board dir has been set up.
+func recordInit(dir string) {
+	registry.Append(registry.Event{Type: registry.ProjectInit, Project: filepath.Dir(dir)})
 }

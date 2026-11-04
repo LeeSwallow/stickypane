@@ -32,7 +32,7 @@ func (w Writer) Live(project, kind string) (end func()) {
 	if !exists(w.Home) {
 		return func() {}
 	}
-	file := filepath.Join(w.Home, "run", strconv.Itoa(w.PID)+".json")
+	file := filepath.Join(w.Home, runDir, strconv.Itoa(w.PID)+runExt)
 	if os.MkdirAll(filepath.Dir(file), atomicfile.DirMode) == nil {
 		b, err := json.Marshal(Run{
 			Kind:    kind,
@@ -45,9 +45,9 @@ func (w Writer) Live(project, kind string) (end func()) {
 			_ = atomicfile.WriteFile(file, b, atomicfile.FileMode)
 		}
 	}
-	w.Append(Event{Type: "session.start", Project: project, PID: w.PID, Kind: kind})
+	w.Append(Event{Type: SessionStart, Project: project, PID: w.PID, Kind: kind})
 	return func() {
-		w.Append(Event{Type: "session.end", Project: project, PID: w.PID})
+		w.Append(Event{Type: SessionEnd, Project: project, PID: w.PID})
 		os.Remove(file)
 	}
 }
@@ -63,7 +63,7 @@ func (w Writer) Touch(project, cmd string) {
 	}
 	now := w.now()
 	sum := sha1.Sum([]byte(project + "\x00" + cmd))
-	marker := filepath.Join(w.Home, "run", touchPrefix+hex.EncodeToString(sum[:])[:12])
+	marker := filepath.Join(w.Home, runDir, touchPrefix+hex.EncodeToString(sum[:])[:12])
 	if fi, err := os.Stat(marker); err == nil && now.Sub(fi.ModTime()) < touchEvery {
 		return
 	}
@@ -73,7 +73,7 @@ func (w Writer) Touch(project, cmd string) {
 	if os.WriteFile(marker, nil, atomicfile.FileMode) != nil || os.Chtimes(marker, now, now) != nil {
 		return
 	}
-	w.Append(Event{Type: "project.touch", Project: project, Cmd: cmd})
+	w.Append(Event{Type: ProjectTouch, Project: project, Cmd: cmd})
 }
 
 // touchPrefix begins the name of a touch marker in run/.

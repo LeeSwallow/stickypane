@@ -210,7 +210,7 @@ func openBoard(e env, start string) error {
 		}
 		dir, err = store.Resolve(root)
 		if err == nil {
-			registry.Append(registry.Event{Type: "project.init", Project: filepath.Dir(dir)})
+			recordInit(dir)
 		}
 	}
 	if err != nil {
@@ -234,7 +234,7 @@ func openBoard(e env, start string) error {
 // runBoardLive runs the board as a session of its project.
 func runBoardLive(e env, dir, status string) error {
 	prune()
-	defer registry.Live(filepath.Dir(dir), "tui")()
+	defer registry.Live(filepath.Dir(dir), registry.KindTUI)()
 	return runBoard(e.ctx, dir, status)
 }
 

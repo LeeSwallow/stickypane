@@ -39,7 +39,7 @@ func Prune(home string, now time.Time) error {
 			first = err
 		}
 	}
-	run := filepath.Join(home, "run")
+	run := filepath.Join(home, runDir)
 	ents, err := os.ReadDir(run)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		first = err
@@ -52,14 +52,14 @@ func Prune(home string, now time.Time) error {
 			if fi, err := e.Info(); err == nil && now.Sub(fi.ModTime()) > keepMarker {
 				remove(filepath.Join(run, name))
 			}
-		case strings.HasSuffix(name, ".json"):
-			pid, err := strconv.Atoi(strings.TrimSuffix(name, ".json"))
+		case strings.HasSuffix(name, runExt):
+			pid, err := strconv.Atoi(strings.TrimSuffix(name, runExt))
 			if err == nil && pid > 0 && !alive(pid) {
 				remove(filepath.Join(run, name))
 			}
 		}
 	}
-	events := filepath.Join(home, "events")
+	events := filepath.Join(home, eventDir)
 	ents, err = os.ReadDir(events)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) && first == nil {
 		first = err
@@ -67,7 +67,7 @@ func Prune(home string, now time.Time) error {
 	// The oldest day kept, as a date in now's zone: dates compare as text.
 	oldest := now.Add(-keepEvents).Format(when.Date)
 	for _, e := range ents {
-		day, ok := strings.CutSuffix(e.Name(), ".jsonl")
+		day, ok := strings.CutSuffix(e.Name(), eventExt)
 		if e.IsDir() || !ok {
 			continue
 		}
