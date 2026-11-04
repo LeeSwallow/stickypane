@@ -253,7 +253,7 @@ flowchart LR
 ```
 
 To list your boards, the app reads `~/.stickypane`, where each stickypane
-session notes which board it is on, if that folder exists (see the [FAQ](#faq)).
+session notes which board it is on, once the app has set that folder up (see the [FAQ](#faq)).
 
 ### Layers
 
@@ -371,8 +371,6 @@ Arrange
   archive   move a note out of sight into archive/
 
 Settings
-  theme     list the themes or choose one
-  language  list the screen's languages or choose one
   config    list, read or change a setting
   keys      list the board's keys or change them
 
@@ -399,17 +397,17 @@ index, moving notes and `stickypane watch`.
 
 ## Configuration
 
-Nothing has to be set. `S` on the board opens the settings, and
-`stickypane config` does the same from the command line.
+Nothing has to be set. `S` on the board changes the first three;
+`stickypane config` changes all six (`stickypane config theme nord`).
 
 | Setting | Default | Changes |
 | --- | --- | --- |
 | `theme` | `auto` | the colors; 10 themes, including Catppuccin, Tokyo Night, Gruvbox, Nord and Dracula |
 | `language` | `auto` | the board's language: English or Korean |
+| `columns` | `3` | how many notes sit in a row: `1` to `4` |
 | `time` | `auto` | how days and times are written |
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
-| `columns` | `3` | how many notes sit in a row: `1` to `4` |
 
 The board's keys are yours too: `stickypane keys` lists them, and
 `stickypane keys set note-archive X` makes `X` archive, in
@@ -433,10 +431,10 @@ config.
 **macOS will not open the downloaded program.** Run
 `xattr -d com.apple.quarantine stickypane`, or install with Homebrew.
 
-**Does it send anything anywhere?** No. If `~/.stickypane` exists (the
-desktop app makes it), stickypane notes there which boards are used, so
-the app can list them, and clears out old entries itself. It never writes
-note text there, and it never makes the folder
+**Does it send anything anywhere?** No. If the desktop app has written its
+`~/.stickypane/overlay.json`, stickypane notes there which boards are used,
+so the app can list them, and clears out old entries itself. It never writes
+note text there, and it never makes the folder or that file
 ([details](docs/configuration.md#what-stickypane-records-on-this-machine)).
 
 **How is it different from a Markdown kanban?**

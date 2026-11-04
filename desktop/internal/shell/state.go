@@ -75,6 +75,32 @@ func LoadState(path string) (State, error) {
 	return s, nil
 }
 
+// emptyState is what makeStateFile writes: every setting at its default,
+// so that a default changed later is not pinned by a first launch.
+const emptyState = "{}\n"
+
+// makeStateFile writes emptyState to path if nothing is there. It never
+// replaces a file, whatever is in it, nor leaves half of one behind.
+func makeStateFile(path string) (err error) {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("make the app's state: %w", err)
+	}
+	if _, err = f.WriteString(emptyState); err != nil {
+		_ = f.Close()
+		_ = os.Remove(path)
+		return fmt.Errorf("make the app's state: %w", err)
+	}
+	if err = f.Close(); err != nil {
+		_ = os.Remove(path)
+		return fmt.Errorf("make the app's state: %w", err)
+	}
+	return nil
+}
+
 // stateTemp is the pattern of the temporary file a save writes first,
 // beside the state file.
 const stateTemp = ".overlay-*.json"

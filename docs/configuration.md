@@ -13,26 +13,31 @@ it is. This page is for when you want to change something. Back to the
 
 ## Settings
 
-`S` on the board opens the settings panel: `j` `k` pick a setting, `h` `l`
-change it, and it applies at once. `stickypane config` does the same from
-the command line.
+`S` on the board opens the settings panel with the three most people
+change: theme, language and columns. `j` `k` pick one, `h` `l` change it,
+and it applies at once. `stickypane config` changes those and three more,
+which keep their defaults until you set them.
 
-![The settings panel: theme, language, time format, editor and when a card counts as stalled, each with a default](../demo/screenshots/5-settings.png)
+![The settings panel: theme, language and notes per row, each with a default](../demo/screenshots/5-settings.png)
 
 | Setting | Default | Changes |
 | --- | --- | --- |
 | `theme` | `auto` | the colors; `auto` follows the terminal's background |
 | `language` | `auto` | the screen's words |
-| `time` | `auto` | how days and times are written; `auto` follows the locale's country |
-| `editor` | `auto` | what `E` opens; `auto` is `$VISUAL`, `$EDITOR`, then the first editor found |
-| `stale` | `30m` | when a kanban card that has not moved is flagged; `off` never |
 | `columns` | `3` | how many columns the board has, `1` to `4`; a note with a size spans its share of them. `auto`, the layout of before, is still read |
+| `time` | `auto` | how days and times are written; `auto` follows the locale's country. Only `stickypane config` |
+| `editor` | `auto` | what `E` opens; `auto` is `$VISUAL`, `$EDITOR`, then the first editor found. Only `stickypane config` |
+| `stale` | `30m` | when a kanban card that has not moved is flagged; `off` never. Only `stickypane config` |
 
 ```sh
 stickypane config                # every setting, its value, and which are defaults
+stickypane config theme nord
 stickypane config stale 1h
-stickypane config columns 4
 ```
+
+`stickypane theme` and `stickypane language` are short for
+`stickypane config theme` and `stickypane config language`; alone, they list
+the themes and the languages.
 
 A setting at its default is not written; the others go to the root
 `sticky.json`.
@@ -42,7 +47,7 @@ A setting at its default is not written; the others go to the root
 Everything on the screen is drawn from a dozen color roles (text, muted,
 accent, selection, good, warn, bad, info, and the six note colors), so a
 theme is one palette and the whole board follows it. `T` tries the next
-theme, `stickypane theme` lists them and `stickypane theme nord` chooses one;
+theme, `stickypane theme` lists them and `stickypane config theme nord` chooses one;
 the choice is kept in `sticky.json` as `"theme"`. With no choice (`auto`) the
 board asks the terminal whether it is dark and picks `stickypane-dark` or
 `stickypane-light`.
@@ -69,7 +74,7 @@ it is unreadable on a light background.
 
 ## Languages
 
-The screen speaks English and Korean: `stickypane language ko`, or leave it
+The screen speaks English and Korean: `stickypane config language ko`, or leave it
 on `auto` and set `LANG`. Key names and the agent guide stay English.
 [translating.md](translating.md) says how to add a language.
 
@@ -158,7 +163,7 @@ are only in the root file.
 | `title` | a name for a book, a log or a script | `R` |
 
 Next to `notes`, `theme` names the theme (`T` on the board), `language` the
-language of the screen (`stickypane language ko`; `auto` follows `LANG`),
+language of the screen (`stickypane config language ko`; `auto` follows `LANG`),
 `order` lists the notes you moved with `H` `J` `K` `L` or `{` `}` (the others follow by
 name), and `ignore` lists names or patterns the board should not show.
 `ignore` is the one part you write by hand.
@@ -186,10 +191,12 @@ shown for that run, so what your agent just wrote is in front of you at once.
 
 ## What stickypane records on this machine
 
-Only if the folder `~/.stickypane` (or `$STICKYPANE_HOME`) already exists.
-stickypane never makes it: the desktop app does, so a person who only uses
-the terminal gets nothing in their home. Where it exists, stickypane writes
-two things there, to let the desktop app list your boards:
+Only if the desktop app's settings file `overlay.json` is in `~/.stickypane`
+(or `$STICKYPANE_HOME`). stickypane never makes the folder or the file: the
+app writes the file on its first start, so a person who only uses the
+terminal gets nothing recorded, even with the folder there for something
+else. Where the file is, stickypane writes two things beside it, to let the
+desktop app list your boards:
 
 - `events/YYYY-MM-DD.jsonl`, one JSON line per event, `{v: 1, at, type, …}`:
   the time, the type (`session.start`, `session.end`, `project.init`,

@@ -1,7 +1,11 @@
 # 설정
 
-설정할 것은 없습니다. 모든 설정에 기본값이 있고, 보드에서 `S`를 누르거나
-`stickypane config`로 바꿉니다. 테마 목록과 `sticky.json`의 키는 영문
+설정할 것은 없습니다. 모든 설정에 기본값이 있습니다. 보드의 `S`로는 테마·언어·칸 수를
+바꾸고, 시간 형식(`time`)·에디터(`editor`)·카드 멈춤 기준(`stale`)은
+`stickypane config`로만 바꿉니다(`stickypane config stale 1h`).
+`stickypane theme`과 `stickypane language`는 `stickypane config theme`,
+`stickypane config language`의 줄임이고, 값 없이 쓰면 목록을 보여 줍니다.
+테마 목록과 `sticky.json`의 키는 영문
 [configuration.md](../configuration.md)에 있습니다.
 [README로 돌아가기](../../README.ko.md)
 
@@ -56,9 +60,10 @@ stickypane keys reset                    # 모든 키를 처음대로
 
 ## 이 컴퓨터에 남는 기록
 
-`~/.stickypane`(또는 `$STICKYPANE_HOME`) 폴더가 **이미 있을 때만** 씁니다. 폴더는
-stickypane이 만들지 않고 데스크톱 앱이 만들므로, 터미널만 쓰면 홈에 아무것도
-생기지 않습니다. 있으면 보드 목록을 보여 주려고 두 가지를 적습니다.
+`~/.stickypane`(또는 `$STICKYPANE_HOME`)에 데스크톱 앱의 설정 파일 `overlay.json`이
+**있을 때만** 씁니다. 폴더도 파일도 stickypane이 만들지 않고, 파일은 앱이 처음 켜질 때
+씁니다. 그래서 터미널만 쓰면 다른 일로 폴더가 있어도 아무것도 기록되지 않습니다.
+파일이 있으면 보드 목록을 보여 주려고 두 가지를 적습니다.
 
 - `events/YYYY-MM-DD.jsonl`: 한 줄에 사건 하나, `{v: 1, at, type, …}`. 시각, 종류(`session.start`,
   `session.end`, `project.init`, `project.touch`), 프로젝트 경로, 세션이면 프로세스

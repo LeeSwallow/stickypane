@@ -37,11 +37,12 @@ func put(t *testing.T, home, rel string, mod time.Time) {
 	}
 }
 
+// left lists the files under home, but for the app's AppFile.
 func left(t *testing.T, home string) []string {
 	t.Helper()
 	var out []string
 	filepath.WalkDir(home, func(p string, d os.DirEntry, err error) error {
-		if err == nil && !d.IsDir() {
+		if err == nil && !d.IsDir() && d.Name() != AppFile {
 			rel, _ := filepath.Rel(home, p)
 			out = append(out, filepath.ToSlash(rel))
 		}
@@ -52,7 +53,7 @@ func left(t *testing.T, home string) []string {
 }
 
 func TestPruneRemovesDeadRunsOldEventsAndStaleMarkers(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	fakeAlive(t, 10)
 	now := fixed
 	put(t, home, "run/10.json", now)                            // alive: kept
@@ -97,8 +98,23 @@ func TestPruneDoesNothingWithoutTheHomeFolder(t *testing.T) {
 	}
 }
 
-func TestPruneKeepsTheGoldenHome(t *testing.T) {
+// A home without the app's file is not where records are kept: its files
+// are not stickypane's to delete.
+func TestPruneLeavesAHomeWithoutTheAppsFile(t *testing.T) {
 	home := t.TempDir()
+	fakeAlive(t)
+	put(t, home, "events/2025-01-01.jsonl", fixed)
+	put(t, home, "run/11.json", fixed)
+	if err := Prune(home, fixed); err != nil {
+		t.Fatal(err)
+	}
+	if got := left(t, home); len(got) != 2 {
+		t.Fatalf("left = %v, want both files", got)
+	}
+}
+
+func TestPruneKeepsTheGoldenHome(t *testing.T) {
+	home := appHome(t)
 	writeGolden(home)
 	fakeAlive(t, 4242)
 	before := files(t, home)

@@ -46,7 +46,7 @@ where a stamp is made.
 | 10 | `adapter/store` | the notes folder: files, sticky.json, watching |
 | 6 | `adapter/keyfile` | `keys.json` in the same home: the board's keys a user changed, read and written only here; what its names and keys mean is `surface/app`'s |
 | 5 | `adapter/httpfile` | sending `.http` requests and keeping their log |
-| 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has made it: written, read and pruned only here |
+| 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has written its `overlay.json` there: written, read and pruned only here |
 | 3 | `adapter/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `adapter/wsock`, `adapter/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `adapter/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
@@ -163,8 +163,9 @@ title come from three places, in order: the user's choice in `sticky.json`,
 the note's front matter, the note's kind. `internal/usecase/arrange` is the only
 code that decides; the screen and `stickypane list` and `set` ask it.
 
-**The registry.** The records in `~/.stickypane` have one writer, `internal/adapter/registry`
-(`keys.json` beside them has its own, `internal/adapter/keyfile`):
+**The registry.** `~/.stickypane` has one writer of records, `internal/adapter/registry`,
+and it writes only where the app's `overlay.json` (`registry.AppFile`) is
+(`keys.json` beside them has its own writer, `internal/adapter/keyfile`):
 `registry.Event` is a line of `events/<date>.jsonl`, `registry.Run` the
 file `run/<pid>.json`, and a `registry.Writer` writes them on its own
 clock, through `internal/core/when`. `registry.Read` reads them back for the

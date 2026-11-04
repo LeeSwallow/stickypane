@@ -234,8 +234,9 @@ func New(cfg Config) (*Shell, error) {
 	return s, nil
 }
 
-// Start runs once the app runs: it registers the hotkey and opens the
-// index off the caller's thread, bounded by IndexDeadline.
+// Start runs once the app runs: it makes the home (Ensure), registers the
+// hotkey and opens the index off the caller's thread, bounded by
+// IndexDeadline.
 func (s *Shell) Start() {
 	s.mu.Lock()
 	if s.started {
@@ -246,6 +247,11 @@ func (s *Shell) Start() {
 	accel := s.state.Hotkey
 	s.mu.Unlock()
 
+	// The home and its state file come first: stickypane records the
+	// boards for the home list only where the state file is.
+	if _, err := s.Ensure(); err != nil {
+		s.cfg.Logf("make the home: %v", err)
+	}
 	s.registerHotkey(accel)
 	go s.openIndex()
 }

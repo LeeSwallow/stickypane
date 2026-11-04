@@ -60,26 +60,14 @@ func init() {
 			examples: []string{"stickypane setup --dry-run", "stickypane setup --mcp --yes", "stickypane setup --undo"},
 			related:  []string{"init", "mcp", "guide"},
 		}},
-		{[]string{"theme"}, themeCmd, helpText{
-			group: "settings", brief: "list the themes or choose one",
-			what:     "Lists the themes with the current one marked, or chooses one. \"auto\" follows the terminal's background.",
-			syntax:   "stickypane theme [name]",
-			examples: []string{"stickypane theme", "stickypane theme nord", "stickypane theme auto"},
-			related:  []string{"config", "language"},
-		}},
-		{[]string{"language"}, languageCmd, helpText{
-			group: "settings", brief: "list the screen's languages or choose one",
-			what:     "Lists the languages of the screen, or chooses one. \"auto\" follows LANG. Help follows it too; the agent guide stays English.",
-			syntax:   "stickypane language [code]",
-			examples: []string{"stickypane language", "stickypane language ko", "stickypane language auto"},
-			related:  []string{"config", "theme", "env"},
-		}},
-		{[]string{"config"}, configCmd, helpText{
+		// theme and language are short for config theme and config
+		// language; alone, they list the themes or the languages.
+		{[]string{"config", "theme", "language"}, configCmd, helpText{
 			group: "settings", brief: "list, read or change a setting",
-			what:     "Lists the settings with their values, prints one, or changes one: theme, language, time, editor, stale, columns. Each has a default; S on the board shows them too.",
+			what:     "Lists the settings with their values, prints one, or changes one: theme, language and columns, then time, editor and stale. Each has a default; S on the board changes the first three. stickypane theme and stickypane language list the themes and the languages.",
 			syntax:   "stickypane config [key [value]]",
-			examples: []string{"stickypane config", "stickypane config language", "stickypane config theme nord"},
-			related:  []string{"theme", "language"},
+			examples: []string{"stickypane config", "stickypane config theme nord", "stickypane config columns 4", "stickypane config stale 1h"},
+			related:  []string{"env"},
 		}},
 		{[]string{"keys"}, keysCmd, helpText{
 			group: "settings", brief: "list the board's keys or change them",
@@ -87,7 +75,7 @@ func init() {
 			syntax:   "stickypane keys [set <action> <key>... | reset [action]] [--json]",
 			args:     "--json  print the keys as JSON",
 			examples: []string{"stickypane keys", "stickypane keys set note-archive X", "stickypane keys reset note-archive", "stickypane keys reset"},
-			related:  []string{"config", "theme"},
+			related:  []string{"config", "env"},
 		}},
 		{[]string{"kinds"}, kindsCmd, helpText{
 			group: "start", brief: "list the shapes a note can take",
@@ -102,7 +90,7 @@ func init() {
 			syntax:   "stickypane env [--json]",
 			args:     "--json  print what was found as JSON",
 			examples: []string{"stickypane env", "stickypane env --json"},
-			related:  []string{"language", "start"},
+			related:  []string{"config", "start"},
 		}},
 		{[]string{"guide"}, guideCmd, helpText{
 			group: "agents", brief: "print the agent guide",

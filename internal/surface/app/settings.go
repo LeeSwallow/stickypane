@@ -1,9 +1,10 @@
 package app
 
 import (
-	"fmt"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/theme"
@@ -13,6 +14,10 @@ import (
 
 // settingsWidth is the dialog that lists the settings.
 const settingsWidth = 64
+
+// settingsLabel is the cells a setting's name takes, so the values line up
+// in every language.
+const settingsLabel = 16
 
 func init() {
 	handlers[modeSettings] = settingsUpdate
@@ -45,7 +50,7 @@ func settingsUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	if !ok {
 		return nil
 	}
-	n := len(prefs.All)
+	n := len(prefs.Panel())
 	switch k.String() {
 	case "j", "down", "tab":
 		m.settingsAt = (m.settingsAt + 1) % n
@@ -64,7 +69,7 @@ func settingsUpdate(m *Model, msg tea.Msg) tea.Cmd {
 // changePref moves the chosen setting to its next or previous value,
 // writes it and applies it.
 func (m *Model) changePref(step int) {
-	p := prefs.All[m.settingsAt]
+	p := prefs.Panel()[m.settingsAt]
 	next := p.Next(prefs.Get(m.store.Settings(), p.Key), step)
 	if err := m.calls().ChangeSettings(api.Setting{Key: p.Key, Value: next}); err != nil {
 		m.status = err.Error()
@@ -73,28 +78,28 @@ func (m *Model) changePref(step int) {
 	m.reload()
 }
 
-// settingsBody lists the settings with their values in a dialog; a value at
-// its default says so, and the chosen setting shows what it changes.
+// settingsBody lists the panel's settings with their values in a dialog; a
+// value at its default says so, and the chosen setting shows what it
+// changes.
 func settingsBody(m *Model, h int) []string {
 	set := m.store.Settings()
+	panel := prefs.Panel()
 	var lines []string
-	for i, p := range prefs.All {
+	for i, p := range panel {
 		v := prefs.Get(set, p.Key)
-		value := v
-		if v == p.Default {
-			value += m.env.Styles.Faint.Render(" (" + m.tr.L("default") + ")")
-		}
-		label := fmt.Sprintf("%-20s", m.tr.L(p.Label))
-		line := "  " + label + "‹ " + value + " ›"
+		label := m.tr.L(p.Label)
+		label += strings.Repeat(" ", max(0, settingsLabel-ansi.StringWidth(label)))
+		line := "  " + label + "‹ " + v + " ›"
 		if i == m.settingsAt {
 			line = m.env.Styles.Selected.Render("› " + label + "‹ " + v + " ›")
-			if v == p.Default {
-				line += m.env.Styles.Faint.Render(" (" + m.tr.L("default") + ")")
-			}
+		}
+		if v == p.Default {
+			line += m.env.Styles.Faint.Render(" (" + m.tr.L("default") + ")")
 		}
 		lines = append(lines, line)
 	}
-	lines = append(lines, "", m.env.Styles.Faint.Render(m.tr.L(prefs.All[m.settingsAt].Help)))
+	lines = append(lines, "", m.env.Styles.Faint.Render(m.tr.L(panel[m.settingsAt].Help)),
+		m.env.Styles.Faint.Render(m.tr.L("more: stickypane config")))
 	if m.width < settingsWidth || h < len(lines)+2 {
 		return lines
 	}

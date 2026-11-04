@@ -36,12 +36,13 @@ func writeGolden(home string) {
 }
 
 // files lists the records under home, by path relative to it, leaving out
-// the touch markers, which are empty and named by a hash.
+// the touch markers, which are empty and named by a hash, and the app's
+// AppFile, which is not a record.
 func files(t *testing.T, home string) map[string]string {
 	t.Helper()
 	out := map[string]string{}
 	err := filepath.WalkDir(home, func(p string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || strings.HasPrefix(d.Name(), "touch-") {
+		if err != nil || d.IsDir() || strings.HasPrefix(d.Name(), "touch-") || d.Name() == AppFile {
 			return err
 		}
 		b, err := os.ReadFile(p)
@@ -56,7 +57,7 @@ func files(t *testing.T, home string) map[string]string {
 }
 
 func TestTheWriterWritesTheGoldenFiles(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	writeGolden(home)
 	got := files(t, home)
 	if *update {
@@ -104,7 +105,7 @@ func TestTheRunFileKeepsItsFormat(t *testing.T) {
 }
 
 func TestTouchIsThrottledByTheWritersClock(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	now := fixed
 	w := Writer{Home: home, PID: 1, Now: func() time.Time { return now }}
 	log := filepath.Join(home, "events", "2026-10-28.jsonl")

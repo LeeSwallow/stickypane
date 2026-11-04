@@ -25,7 +25,7 @@ type choice struct {
 
 // run lists the options with the current one marked, or chooses one.
 func (c choice) run(e env, args []string) error {
-	words, err := parse(newFlags(c.cmd), c.cmd, args, 0, 1)
+	words, err := parse(newFlags("config"), "config", args, 0, 1)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (c choice) run(e env, args []string) error {
 	return err
 }
 
-// themeCmd lists the themes or chooses one.
+// themeCmd, stickypane theme, lists the themes or chooses one.
 func themeCmd(e env, args []string) error {
 	return choice{
 		cmd: "theme",
@@ -84,7 +84,8 @@ func themeCmd(e env, args []string) error {
 	}.run(e, args)
 }
 
-// languageCmd lists the languages the screen can speak or chooses one.
+// languageCmd, stickypane language, lists the languages the screen can
+// speak or chooses one.
 func languageCmd(e env, args []string) error {
 	return choice{
 		cmd: "language",

@@ -70,17 +70,14 @@ Usage:
                          install the board plugin for Claude Code and Codex
                          through their own commands; asks in a terminal
   stickypane config [key [value]]  list the settings with their values, print
-                         one, or change one: theme, language, time, editor,
-                         stale, columns. Each has a default; S on the board
-                         shows them
+                         one, or change one: theme, language, columns, then
+                         time, editor, stale. Each has a default; S on the
+                         board changes the first three. stickypane theme and
+                         stickypane language list the themes and languages
   stickypane keys [set <action> <key>... | reset [action]] [--json]
                          list the board's keys: each action, its keys, what it
                          does; set changes an action's keys in keys.json in
                          ~/.stickypane, reset takes the change back
-  stickypane theme [name]  list the themes, or choose one ("auto" follows the
-                         terminal's background)
-  stickypane language [code]  list the languages of the screen, or choose one
-                         ("auto" follows LANG); the agent guide stays English
   stickypane kinds [shape]  list the shapes a note can take, or show one in
                          full: the command, a file to copy, how it behaves
   stickypane env [--json]  say what the board found about where it runs: the

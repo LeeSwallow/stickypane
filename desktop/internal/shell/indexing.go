@@ -72,10 +72,16 @@ func (s *Shell) index() (Index, error) {
 	return nil, ErrIndexNotOpen
 }
 
-// Ensure makes the home folder (that the app is used is what makes
-// stickypane keep records there) and returns its path.
+// Ensure makes the home folder and, where it is missing, the state file
+// in it, and returns the folder's path. The state file is what makes
+// stickypane keep records in the home (internal/adapter/registry): that
+// the app is used turns them on. A state file already there, even a
+// damaged one, is left as it is.
 func (s *Shell) Ensure() (string, error) {
-	return s.cfg.Home, os.MkdirAll(s.cfg.Home, 0o755)
+	if err := os.MkdirAll(s.cfg.Home, 0o755); err != nil {
+		return s.cfg.Home, err
+	}
+	return s.cfg.Home, makeStateFile(s.statePath)
 }
 
 // Sessions reads new events, tidies away folders that are gone, and

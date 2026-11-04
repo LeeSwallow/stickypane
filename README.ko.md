@@ -240,8 +240,8 @@ flowchart LR
     index -.-> window
 ```
 
-앱은 보드 목록을 `~/.stickypane`에서 읽습니다. 그 폴더가 있으면 stickypane 세션이
-저마다 어느 보드에 있는지 거기에 적어 둡니다([자주 묻는 질문](#자주-묻는-질문) 참고).
+앱은 보드 목록을 `~/.stickypane`에서 읽습니다. 앱이 그 폴더를 마련해 두면 stickypane
+세션이 저마다 어느 보드에 있는지 거기에 적어 둡니다([자주 묻는 질문](#자주-묻는-질문) 참고).
 
 ### 계층
 
@@ -355,8 +355,6 @@ stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신
   archive   노트를 archive/로 보관합니다
 
 설정
-  theme     테마 목록을 보거나 하나를 고릅니다
-  language  화면의 언어 목록을 보거나 하나를 고릅니다
   config    설정을 보거나 읽거나 바꿉니다
   keys      보드의 키를 보거나 바꿉니다
 
@@ -383,17 +381,17 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 
 ## 설정
 
-꼭 설정해야 할 것은 없습니다. 보드에서 `S`를 누르면 설정 창이 열리고,
-`stickypane config`도 같은 일을 합니다.
+꼭 설정해야 할 것은 없습니다. 보드의 `S`로는 위의 셋을 바꾸고,
+`stickypane config`로는 여섯 가지 모두 바꿉니다(`stickypane config theme nord`).
 
 | 설정 | 기본값 | 바꾸는 것 |
 | --- | --- | --- |
 | `theme` | `auto` | 색. Catppuccin, Tokyo Night, Gruvbox, Nord, Dracula를 포함해 테마 10개 |
 | `language` | `auto` | 보드의 언어: 영어나 한국어 |
+| `columns` | `3` | 한 줄에 놓는 노트 수: `1`–`4` |
 | `time` | `auto` | 날짜와 시각을 쓰는 방식 |
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
-| `columns` | `3` | 한 줄에 놓는 노트 수: `1`–`4` |
 
 보드의 키도 바꿀 수 있습니다. `stickypane keys`가 키를 보여 주고,
 `stickypane keys set note-archive X`를 하면 `X`로 보관합니다.
@@ -416,10 +414,10 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 **macOS에서 내려받은 프로그램이 열리지 않습니다.**
 `xattr -d com.apple.quarantine stickypane`을 실행하거나 Homebrew로 설치하세요.
 
-**어딘가로 무언가를 보내나요?** 보내지 않습니다. `~/.stickypane` 폴더가 있으면
-(데스크톱 앱이 만듭니다) stickypane은 앱이 보드 목록을 보여 줄 수 있게 어느 보드가
-쓰이는지 적고, 오래된 기록은 스스로 지웁니다. stickypane은 노트 내용을 적지 않고,
-그 폴더를 만들지도 않습니다([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
+**어딘가로 무언가를 보내나요?** 보내지 않습니다. 데스크톱 앱이
+`~/.stickypane/overlay.json`을 써 두었으면 stickypane은 앱이 보드 목록을 보여 줄 수
+있게 어느 보드가 쓰이는지 적고, 오래된 기록은 스스로 지웁니다. stickypane은 노트
+내용을 적지 않고, 그 폴더도 그 파일도 만들지 않습니다([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
 
 **마크다운 칸반과 무엇이 다른가요?**
 [kanban-md](https://github.com/antopolskiy/kanban-md)와
