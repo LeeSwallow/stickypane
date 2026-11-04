@@ -345,23 +345,19 @@ func (s *server) noteCreate(params json.RawMessage) (any, error) {
 		if k.New != "" {
 			ext, opts = k.New, api.Options{}
 			if p.Body == "" {
-				body = k.Template(p.Title)
+				body = k.Template(p.Title, s.api.Env())
 			}
 		}
 	}
 	if p.Options != nil {
 		// The shape writes its own file from the options: one writer of
-		// each format, for the terminal and every other screen.
-		name := kind
-		if name == "" {
-			name = "note"
-		}
-		k, _ := s.kindNamed(name)
+		// each format, for the terminal and every other screen, in the
+		// board's words where it has words of its own.
 		given, err := optionValues(p.Options)
 		if err != nil {
 			return nil, err
 		}
-		if body, err = k.Make(p.Title, given); err != nil {
+		if body, _, err = s.api.Make(kind, p.Title, given); err != nil {
 			return nil, badRequest(err.Error())
 		}
 	}

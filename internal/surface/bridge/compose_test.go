@@ -11,6 +11,7 @@ import (
 // kinds.list says what each shape asks before it is made, so a screen
 // draws its create form from data.
 func TestBridgeKindsListsEachShapesOptions(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
 	s := serve(t, board(t, nil))
 	var kinds []struct {
 		Name    string `json:"name"`
@@ -148,5 +149,37 @@ func TestBridgeRefusesBadOptionsClearly(t *testing.T) {
 	}
 	if notes, _ := filepath.Glob(filepath.Join(dir, "*.md")); len(notes) > 0 {
 		t.Errorf("bad options wrote notes: %v", notes)
+	}
+}
+
+// On a Korean board the create form offers a board's usual columns in
+// Korean, and a board made without columns given gets them in Korean too.
+func TestBridgeOffersABoardsColumnsInTheBoardsLanguage(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	dir := board(t, map[string]string{"sticky.json": `{"language": "ko"}`})
+	s := serve(t, dir)
+	var kinds []struct {
+		Name    string `json:"name"`
+		Options []struct {
+			Name    string `json:"name"`
+			Default string `json:"default"`
+		} `json:"options"`
+	}
+	s.ok("kinds.list", nil, &kinds)
+	for _, k := range kinds {
+		if k.Name == "board" && (len(k.Options) == 0 || k.Options[0].Default != "할 일\n하는 중\n끝") {
+			t.Errorf("board options on a Korean board = %+v", k.Options)
+		}
+	}
+	s.ok("kinds.list", map[string]any{"language": "en"}, &kinds)
+	for _, k := range kinds {
+		if k.Name == "board" && (len(k.Options) == 0 || k.Options[0].Default != "To do\nDoing\nDone") {
+			t.Errorf("board options in English = %+v", k.Options)
+		}
+	}
+	var got struct{ Note string }
+	s.ok("note.create", map[string]any{"kind": "board", "title": "Sprint", "options": map[string]any{"cards": "x"}}, &got)
+	if b := read(t, dir, got.Note); !strings.Contains(b, "## 할 일\n- x") || !strings.Contains(b, "\n\n## 하는 중\n\n## 끝\n") {
+		t.Errorf("file: %q", b)
 	}
 }

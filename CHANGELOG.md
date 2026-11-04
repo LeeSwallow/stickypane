@@ -6,6 +6,14 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Fixed
+
+- A new board speaks the board's language: on a Korean board it starts
+  with 할 일, 하는 중 and 끝, from `card add`, `write --type board --opt`,
+  the terminal's `a` and the app's create form alike. A card added with
+  `--to` a column of its own to a board not made yet starts the board with
+  that column alone, with no empty To do, Doing and Done beside it.
+
 ## [0.2.1] - 2026-11-04
 
 ### Added

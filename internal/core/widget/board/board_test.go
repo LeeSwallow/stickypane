@@ -344,7 +344,7 @@ func TestKindDescribesItself(t *testing.T) {
 
 func TestKind(t *testing.T) {
 	t.Parallel()
-	got := string(Kind.Template("Auth"))
+	got := string(Kind.Template("Auth", widget.Env{}))
 	want := "---\ntype: board\ntitle: Auth\n---\n## To do\n\n## Doing\n\n## Done\n"
 	if got != want {
 		t.Errorf("Template = %q", got)

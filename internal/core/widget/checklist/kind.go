@@ -19,11 +19,11 @@ var Kind = widget.Kind{
 	Example:  "- [x] Add endpoint\n- [x] Validate input\n- [ ] Write tests\n",
 	Keys:     "j k up down space n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
-	Template: func(title string) []byte { return widget.NewFile("checklist", title, "") },
+	Template: func(title string, _ widget.Env) []byte { return widget.NewFile("checklist", title, "") },
 	Options: []widget.Option{
 		{Name: "items", Type: widget.OptLines, Label: "Items"},
 	},
-	Compose: func(title string, opts map[string]string) ([]byte, error) {
+	Compose: func(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 		var b strings.Builder
 		for _, item := range widget.Lines(opts["items"]) {
 			b.WriteString("- [ ] " + item + "\n")

@@ -21,13 +21,16 @@ const (
 // board's columns, a chart's view. Label is the English phrase shown for
 // it, and the key of its translation in the "labels" of a language file.
 // Default is what the note gets when the option is not given; a lines
-// option's values are separated by "\n".
+// option's values are separated by "\n". Words says the default is
+// English phrases, a board's columns: a note made in another language
+// gets them in its words, and a screen shows them so (OptionsIn).
 type Option struct {
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`
 	Label   string   `json:"label"`
 	Choices []string `json:"choices,omitempty"`
 	Default string   `json:"default"`
+	Words   bool     `json:"-"`
 }
 
 // ErrBadOption is the error for options a kind does not take, or values
@@ -35,27 +38,44 @@ type Option struct {
 var ErrBadOption = errors.New("bad option")
 
 // Make writes a new note of this kind called title from options a screen
-// filled in: each option of k.Options, checked and with its default where
-// it is not given, handed to k.Compose. A kind without Compose takes no
-// options and is made from its Template. The result is the whole file, as
-// Template's is; nothing is written.
-func (k Kind) Make(title string, given map[string]string) ([]byte, error) {
+// filled in: each option of k.Options, checked and with its default in
+// e's words where it is not given, handed to k.Compose. A kind without
+// Compose takes no options and is made from its Template. The result is
+// the whole file, as Template's is; nothing is written.
+func (k Kind) Make(title string, given map[string]string, e Env) ([]byte, error) {
 	if k.Compose == nil {
 		if len(given) > 0 {
 			return nil, fmt.Errorf("%w: a %s takes no options", ErrBadOption, k.Name)
 		}
-		return k.Template(title), nil
+		return k.Template(title, e), nil
 	}
-	opts, err := k.checkOptions(given)
+	opts, err := k.checkOptions(given, e)
 	if err != nil {
 		return nil, err
 	}
-	return k.Compose(title, opts)
+	return k.Compose(title, opts, e)
+}
+
+// OptionsIn is k.Options as a screen of e's language shows them: the
+// default of an option of Words in e's words, a phrase a line.
+func (k Kind) OptionsIn(e Env) []Option {
+	out := make([]Option, 0, len(k.Options))
+	for _, o := range k.Options {
+		if o.Words {
+			lines := strings.Split(o.Default, "\n")
+			for i, l := range lines {
+				lines[i] = e.T(l)
+			}
+			o.Default = strings.Join(lines, "\n")
+		}
+		out = append(out, o)
+	}
+	return out
 }
 
 // checkOptions returns every option of the kind with its value: the one
-// given, checked against its type, else the default.
-func (k Kind) checkOptions(given map[string]string) (map[string]string, error) {
+// given, checked against its type, else the default in e's words.
+func (k Kind) checkOptions(given map[string]string, e Env) (map[string]string, error) {
 	known := map[string]Option{}
 	var names []string
 	for _, o := range k.Options {
@@ -73,7 +93,7 @@ func (k Kind) checkOptions(given map[string]string) (map[string]string, error) {
 		return nil, fmt.Errorf("%w: a %s has no option %q; it takes %s", ErrBadOption, k.Name, unknown[0], strings.Join(names, ", "))
 	}
 	out := map[string]string{}
-	for _, o := range k.Options {
+	for _, o := range k.OptionsIn(e) {
 		v, ok := given[o.Name]
 		if !ok {
 			v = o.Default

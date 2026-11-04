@@ -72,7 +72,7 @@ func catalogUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case "enter":
 		kind := m.reg[m.catalogIdx]
 		m.mode = modeBoard
-		m.ask(m.tr.Title, "", func(title string) { m.create(title, kind.New, kind.Template(title)) })
+		m.ask(m.tr.Title, "", func(title string) { m.create(title, kind.New, kind.Template(title, m.env)) })
 	}
 	return nil
 }

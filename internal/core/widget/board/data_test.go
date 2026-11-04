@@ -157,7 +157,7 @@ func TestDataMarksAStalledCard(t *testing.T) {
 	if c[0].Who[0] != "alice" || c[0].Detail[0] != "note" || c[0].Moved == "" {
 		t.Errorf("card = %+v", c[0])
 	}
-	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B")), widget.DefaultEnv())); !strings.Contains(string(raw), `"desc":[]`) {
+	if raw, _ := json.Marshal(Kind.Data(doc.Parse(Kind.Template("B", widget.Env{})), widget.DefaultEnv())); !strings.Contains(string(raw), `"desc":[]`) {
 		t.Errorf("empty board = %s", raw)
 	}
 }

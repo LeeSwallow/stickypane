@@ -10,7 +10,7 @@ import (
 
 func TestComposeWritesTheCommands(t *testing.T) {
 	t.Parallel()
-	b, err := Kind.Make("Build", map[string]string{"commands": "go vet ./...\ngo test ./..."})
+	b, err := Kind.Make("Build", map[string]string{"commands": "go vet ./...\ngo test ./..."}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestComposeWritesTheCommands(t *testing.T) {
 	if got := parse(doc.Document{Body: string(b)}, widget.DefaultEnv()).lines; strings.Join(got, "|") != "#!/bin/sh|go vet ./...|go test ./..." {
 		t.Errorf("read back %q", got)
 	}
-	if b, _ := Kind.Make("Empty", nil); string(b) != string(Kind.Template("Empty")) {
+	if b, _ := Kind.Make("Empty", nil, widget.Env{}); string(b) != string(Kind.Template("Empty", widget.Env{})) {
 		t.Errorf("no commands is the template: %q", b)
 	}
 }

@@ -21,7 +21,7 @@ var Kind = widget.Kind{
 	Usage:    "Messages are \"@name HH:MM text\" lines under a \"## YYYY-MM-DD\" heading; indented lines continue one. n on the board writes as you (git's user.name or $USER); stickypane say writes as --as. Each message is a message.added event, so an agent waits for the user with stickypane watch --once --note chat --type message.",
 	Keys:     "n enter",
 	Tail:     true,
-	Template: func(title string) []byte { return widget.NewFile("chat", title, "") },
+	Template: func(title string, _ widget.Env) []byte { return widget.NewFile("chat", title, "") },
 	Parse:    func(d doc.Document, e widget.Env) widget.Widget { return parse(d, e) },
 	Events:   events,
 	Data:     data,

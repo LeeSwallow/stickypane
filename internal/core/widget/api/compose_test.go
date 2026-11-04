@@ -10,7 +10,7 @@ import (
 
 func TestComposeWritesOneRequest(t *testing.T) {
 	t.Parallel()
-	b, err := Kind.Make("Log in", map[string]string{"method": "post", "url": "http://localhost:8080/login", "status": "201"})
+	b, err := Kind.Make("Log in", map[string]string{"method": "post", "url": "http://localhost:8080/login", "status": "201"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,11 +22,11 @@ func TestComposeWritesOneRequest(t *testing.T) {
 	if r.Name != "Log in" || r.Method != "POST" || r.URL != "http://localhost:8080/login" || len(r.Asserts) != 1 || r.Asserts[0] != "response.statusCode == 201" {
 		t.Errorf("request = %+v", r)
 	}
-	b, _ = Kind.Make("", map[string]string{"status": ""})
+	b, _ = Kind.Make("", map[string]string{"status": ""}, widget.Env{})
 	if r := httpfile.Parse(string(b)).Requests[0]; r.Name == "" || len(r.Asserts) != 0 || r.Method != "GET" {
 		t.Errorf("defaults without a check: %+v", r)
 	}
-	if _, err := Kind.Make("x", map[string]string{"url": ""}); !errors.Is(err, widget.ErrBadOption) {
+	if _, err := Kind.Make("x", map[string]string{"url": ""}, widget.Env{}); !errors.Is(err, widget.ErrBadOption) {
 		t.Errorf("a request needs a URL: %v", err)
 	}
 }

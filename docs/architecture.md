@@ -191,8 +191,10 @@ network, `os/exec` or `internal/adapter/httpfile` (the API note reads its file w
 `internal/core/httpfile/syntax`); `internal/layers` checks both.
 
 **The Env.** A widget keeps no package variables. What it reads that is not
-in its file comes in a `widget.Env`, handed to `Kind.Parse`, `Kind.Data` and
-`Kind.Act`: the clock, the translator, the theme's styles, how long a card
+in its file comes in a `widget.Env`, handed to `Kind.Parse`, `Kind.Data`,
+`Kind.Act`, and to `Kind.Template` and `Kind.Compose`, which write a new
+note's own words (a board's columns) in its translator's language: the
+clock, the translator, the theme's styles, how long a card
 may stall, how a time is written (`when.Formatter`) and how to find the
 note a `![[name]]` line shows. The screen makes one from its own clock and
 settings and makes its widgets again when it changes; the command line and
@@ -212,7 +214,9 @@ To add a shape:
    `Kind.Make` checks the answers and fills in the defaults; the bridge's
    `kinds.list` and `note.create` and `stickypane write --opt` use it, so
    no screen writes a shape's format itself. An option's label is a key
-   of the "labels" in `internal/core/i18n/translations`; its `Example` in
+   of the "labels" in `internal/core/i18n/translations`, and so is each
+   line of a default marked `Words`, which `Kind.OptionsIn` and `Make`
+   give in the Env's language; its `Example` in
    another language is under that file's "examples", by the shape's name.
 4. Add one line to `internal/core/kinds.Default`.
 5. If the command line should change one thing in it, add a function to

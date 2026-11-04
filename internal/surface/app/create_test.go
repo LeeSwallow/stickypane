@@ -9,6 +9,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/kinds"
+	"github.com/LeeSwallow/stickypane/internal/core/widget"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/board"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
@@ -86,7 +87,7 @@ func TestTheScreenMakesNotesAsTheAPIDoes(t *testing.T) {
 		named string
 	}{
 		{[]string{"N"}, "Ship it", "", []byte("Ship it\n"), "ship-it.md"},
-		{[]string{"a", "j", "enter"}, "Auth work", ".md", board.Kind.Template("Auth work"), "auth-work.md"},
+		{[]string{"a", "j", "enter"}, "Auth work", ".md", board.Kind.Template("Auth work", widget.Env{}), "auth-work.md"},
 	} {
 		m, dir := newModel(t, nil)
 		m.now = func() time.Time { return clock }
@@ -132,7 +133,7 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 	}
 	typeText(m, "Auth work")
 	press(m, "enter")
-	want := string(board.Kind.Template("Auth work"))
+	want := string(board.Kind.Template("Auth work", widget.Env{}))
 	if got := plain(readFile(t, dir, "auth-work.md")); got != want || isOpenIn(t, dir, "auth-work.md") != "true" {
 		t.Errorf("file = %q\nwant  %q", got, want)
 	}
@@ -141,6 +142,20 @@ func TestCatalogCreatesTheChosenShape(t *testing.T) {
 	}
 	if s := screen(m); !strings.Contains(s, "To do (0)") {
 		t.Errorf("the new board should be open:\n%s", s)
+	}
+}
+
+// A board made from the catalog on a Korean screen has its columns in
+// Korean.
+func TestCatalogMakesABoardInTheScreensLanguage(t *testing.T) {
+	t.Setenv("STICKYPANE_LANG", "en")
+	m, dir := newModel(t, map[string]string{"sticky.json": `{"language":"ko"}`})
+	m.useLanguage(m.store.Language())
+	press(m, "a", "j", "enter")
+	typeText(m, "Auth work")
+	press(m, "enter")
+	if got := plain(readFile(t, dir, "auth-work.md")); !strings.HasSuffix(got, "---\n## 할 일\n\n## 하는 중\n\n## 끝\n") {
+		t.Errorf("file = %q", got)
 	}
 }
 

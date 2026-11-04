@@ -220,7 +220,35 @@ func TestWaitRejectsANegativeTimeout(t *testing.T) {
 	}
 }
 
+// On a Korean board a board made from the command line starts with the
+// usual columns in Korean; a card for a column of its own starts the
+// board with that column alone. What the command prints stays English.
+func TestABoardMadeFromTheCommandLineSpeaksTheBoardsLanguage(t *testing.T) {
+	english(t)
+	root := t.TempDir()
+	t.Chdir(root)
+	if code, _, errOut := exec(t, "init", "--no-agent-docs", "--language", "ko"); code != 0 {
+		t.Fatalf("init failed: %s", errOut)
+	}
+	for _, s := range []struct {
+		args            []string
+		out, file, want string
+	}{
+		{[]string{"card", "진행", "add", "x", "--to", "진행 중"}, "진행.md: 1 card\n", "진행.md", "---\n## 진행 중\n- x\n"},
+		{[]string{"card", "a", "add", "y"}, "a.md: 1 card\n", "a.md", "---\n## 할 일\n- y\n\n## 하는 중\n\n## 끝\n"},
+		{[]string{"write", "b", "--type", "board", "--opt", "cards=z"}, "wrote b.md\n", "b.md", "---\n## 할 일\n- z\n\n## 하는 중\n\n## 끝\n"},
+	} {
+		if code, out, errOut := exec(t, s.args...); code != 0 || out != s.out {
+			t.Errorf("%v: code = %d, out = %q, stderr = %q", s.args, code, out, errOut)
+		}
+		if b, _ := os.ReadFile(filepath.Join(root, ".sticky", s.file)); !strings.HasSuffix(plain(string(b)), s.want) {
+			t.Errorf("%s = %q, want it to end %q", s.file, b, s.want)
+		}
+	}
+}
+
 func TestSmallEditsFromTheCommandLine(t *testing.T) {
+	english(t)
 	root := project(t)
 	steps := []struct {
 		args []string

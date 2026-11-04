@@ -104,7 +104,7 @@ func TestKind(t *testing.T) {
 	if k.Name != "note" || k.Keys != "" || k.Tail || k.Rows != 0 {
 		t.Errorf("kind = %+v", k)
 	}
-	if got := string(k.Template("Plan")); got != "---\ntitle: Plan\n---\n" {
+	if got := string(k.Template("Plan", widget.Env{})); got != "---\ntitle: Plan\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 }

@@ -263,7 +263,7 @@ func (s *server) kindsList(params json.RawMessage) (any, error) {
 	for _, k := range s.reg {
 		example := k.ExampleFileIn(words)
 		info := kindInfo{Name: k.Name, Icon: k.Icon, Label: k.Label, Blurb: k.Blurb, Example: example, Data: json.RawMessage("null"), Options: []widget.Option{}}
-		info.Options = append(info.Options, k.Options...)
+		info.Options = append(info.Options, k.OptionsIn(env)...)
 		if k.Data != nil {
 			info.Data = data("example"+k.New, k.Data(doc.Parse([]byte(example)), env))
 		}

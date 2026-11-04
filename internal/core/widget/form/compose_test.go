@@ -31,7 +31,7 @@ func readBack(t *testing.T, b []byte) (questions, options []string, radio bool, 
 
 func TestComposeWritesOneChoice(t *testing.T) {
 	t.Parallel()
-	b, err := NewKind(nil).Make("Deploy", map[string]string{"question": "Where to?", "answer": "one", "choices": "staging\nproduction", "buttons": "Deploy\nCancel"})
+	b, err := NewKind(nil).Make("Deploy", map[string]string{"question": "Where to?", "answer": "one", "choices": "staging\nproduction", "buttons": "Deploy\nCancel"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestComposeWritesOneChoice(t *testing.T) {
 
 func TestComposeWritesManyChoicesAndText(t *testing.T) {
 	t.Parallel()
-	b, err := NewKind(nil).Make("Pick", map[string]string{"answer": "many", "choices": "a\nb\nc"})
+	b, err := NewKind(nil).Make("Pick", map[string]string{"answer": "many", "choices": "a\nb\nc"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestComposeWritesManyChoicesAndText(t *testing.T) {
 	if strings.Join(opts, "|") != "a|b|c" || radio || strings.Join(buttons, "|") != defaultButton {
 		t.Errorf("many: %q %v %q from %q", opts, radio, buttons, b)
 	}
-	b, err = NewKind(nil).Make("Why", map[string]string{"question": "Why?", "answer": "text"})
+	b, err = NewKind(nil).Make("Why", map[string]string{"question": "Why?", "answer": "text"}, widget.Env{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestComposeRefusesWhatAFormCannotHold(t *testing.T) {
 		{"buttons": "[ x ]"},
 		{"answer": "maybe"},
 	} {
-		if _, err := NewKind(nil).Make("x", opts); !errors.Is(err, widget.ErrBadOption) {
+		if _, err := NewKind(nil).Make("x", opts, widget.Env{}); !errors.Is(err, widget.ErrBadOption) {
 			t.Errorf("%v: err = %v", opts, err)
 		}
 	}

@@ -40,11 +40,11 @@ func NewKind(render Renderer) widget.Kind {
 		Usage:    "Any Markdown; a one-line file is a complete note. A ```mermaid block (graph, flowchart, sequence, erDiagram) is drawn as a diagram.",
 		Example:  "Decided: tokens live in a session cookie.\n\n- revisit when we add SSO\n",
 		Size:     size,
-		Template: func(title string) []byte { return widget.NewFile("note", title, "") },
+		Template: func(title string, _ widget.Env) []byte { return widget.NewFile("note", title, "") },
 		Options: []widget.Option{
 			{Name: "text", Type: widget.OptLines, Label: "Text"},
 		},
-		Compose: func(title string, opts map[string]string) ([]byte, error) {
+		Compose: func(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 			body := opts["text"]
 			if body != "" && !strings.HasSuffix(body, "\n") {
 				body += "\n"

@@ -132,9 +132,6 @@ func (o AddCard) Apply(d doc.Document) (doc.Document, error) {
 	return d, nil
 }
 
-// firstColumn is the column an empty board gets when a card is added.
-const firstColumn = "To do"
-
 // Move moves a card to the end of another column for a caller that names
 // both instead of pointing at them: Card and To are the text, a part of it,
 // or a position ("#2"; cards count across the whole board). A card already
@@ -175,8 +172,10 @@ func (o Move) Apply(d doc.Document) (doc.Document, error) {
 
 // Add puts a new card at the end of column To, named like Move names it.
 // Without To the card goes to the first column. A column that does not
-// exist yet is added at the end of the board.
-type Add struct{ Card, To string }
+// exist yet is added at the end of the board. A board without columns
+// gets column First for a card without To: the first of Columns in the
+// board's words, or in English when First is empty.
+type Add struct{ Card, To, First string }
 
 // Apply implements doc.Op.
 func (o Add) Apply(d doc.Document) (doc.Document, error) {
@@ -189,8 +188,10 @@ func (o Add) Apply(d doc.Document) (doc.Document, error) {
 	switch {
 	case col == "" && len(cols) > 0:
 		col = titles[0]
+	case col == "" && o.First != "":
+		col = o.First
 	case col == "":
-		col = firstColumn
+		col = columns[0]
 	default:
 		i, err := widget.Pick(titles, col, "column")
 		switch {

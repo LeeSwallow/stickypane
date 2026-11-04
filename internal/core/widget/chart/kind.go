@@ -18,7 +18,7 @@ var Kind = widget.Kind{
 	Usage:    "Each \"label: number\" line is a value; other lines are text above the chart. \"view: spark\" draws a one-line trend and \"view: heat\" a calendar when the labels are dates. `set` replaces a value, `add` counts it up.",
 	Example:  "app: 61\nboard: 31\nchecklist: 21\nstore: 16\n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },
-	Template: func(title string) []byte { return widget.NewFile("chart", title, "") },
+	Template: func(title string, _ widget.Env) []byte { return widget.NewFile("chart", title, "") },
 	Options: []widget.Option{
 		{Name: "view", Type: widget.OptChoice, Label: "View", Choices: []string{"bar", "spark", "heat"}, Default: "bar"},
 		{Name: "values", Type: widget.OptLines, Label: "Values"},
@@ -32,7 +32,7 @@ var Kind = widget.Kind{
 
 // compose writes a new chart: its view when it is not bars, the note it
 // counts from when it has one, and each "label: number" value.
-func compose(title string, opts map[string]string) ([]byte, error) {
+func compose(title string, opts map[string]string, _ widget.Env) ([]byte, error) {
 	var b strings.Builder
 	for _, l := range widget.Lines(opts["values"]) {
 		m := dataRe.FindStringSubmatch(l)

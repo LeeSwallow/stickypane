@@ -62,7 +62,7 @@ func TestKind(t *testing.T) {
 	if got := Kind.Size(doc.Document{}); got != widget.SizeHalf {
 		t.Errorf("Size = %q", got)
 	}
-	if got := string(Kind.Template("Work log")); got != "---\ntype: log\ntitle: Work log\n---\n" {
+	if got := string(Kind.Template("Work log", widget.Env{})); got != "---\ntype: log\ntitle: Work log\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 }

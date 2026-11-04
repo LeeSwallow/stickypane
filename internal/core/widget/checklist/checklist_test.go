@@ -247,13 +247,13 @@ func TestSyncClampsCursor(t *testing.T) {
 
 func TestKind(t *testing.T) {
 	t.Parallel()
-	if got := string(Kind.Template("Release")); got != "---\ntype: checklist\ntitle: Release\n---\n" {
+	if got := string(Kind.Template("Release", widget.Env{})); got != "---\ntype: checklist\ntitle: Release\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 	if Kind.Size(doc.Document{}) != widget.SizeHalf {
 		t.Errorf("Size = %q", Kind.Size(doc.Document{}))
 	}
-	w := Kind.Parse(doc.Parse(Kind.Template("Release")), widget.DefaultEnv())
+	w := Kind.Parse(doc.Parse(Kind.Template("Release", widget.Env{})), widget.DefaultEnv())
 	if lines, _ := draw(w, 50, false); strings.Contains(strings.Join(lines, "\n"), "0/1") {
 		t.Errorf("a new checklist must not contain a blank item: %q", lines)
 	}

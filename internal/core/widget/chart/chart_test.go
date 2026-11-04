@@ -344,7 +344,7 @@ func TestKind(t *testing.T) {
 	if Kind.Icon == "" || widget.Width(Kind.Icon) != 1 || Kind.Blurb == "" || Kind.Example == "" {
 		t.Errorf("Kind needs a one-cell icon, a blurb and an example: %+v", Kind)
 	}
-	if got := string(Kind.Template("Tokens")); got != "---\ntype: chart\ntitle: Tokens\n---\n" {
+	if got := string(Kind.Template("Tokens", widget.Env{})); got != "---\ntype: chart\ntitle: Tokens\n---\n" {
 		t.Errorf("Template = %q", got)
 	}
 }

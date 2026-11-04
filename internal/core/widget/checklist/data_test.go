@@ -34,7 +34,7 @@ func TestDataOfAList(t *testing.T) {
 
 func TestDataOfAnEmptyList(t *testing.T) {
 	t.Parallel()
-	got := dataOf(t, doc.Parse(Kind.Template("Plan")))
+	got := dataOf(t, doc.Parse(Kind.Template("Plan", widget.Env{})))
 	want := `{"items":[],"prose":[],"done":0,"total":0}`
 	if got != want {
 		t.Errorf("Data = %s, want %s", got, want)
