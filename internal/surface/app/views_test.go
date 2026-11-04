@@ -199,7 +199,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 	m.useLanguage(m.store.Language())
 	m.reload()
 	s := screen(m)
-	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
+	if !strings.Contains(s, "열린 노트가 없어요") || !strings.Contains(s, "도움말") {
 		t.Errorf("the screen and the hints should be Korean:\n%s", s)
 	}
 	press(m, "o", "d", "d")
@@ -220,7 +220,7 @@ func TestALanguageChosenFromOutsideIsFollowed(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"a.md": "note a\n"})
 	writeView(t, dir, `{"language":"ko"}`)
 	m.Update(changedMsg{})
-	if s := screen(m); !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
+	if s := screen(m); !strings.Contains(s, "열린 노트가 없어요") || !strings.Contains(s, "도움말") {
 		t.Errorf("the screen should turn Korean without a restart:\n%s", s)
 	}
 	writeView(t, dir, `{"language":"en"}`)

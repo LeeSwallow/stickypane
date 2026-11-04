@@ -88,7 +88,7 @@ describe('home', () => {
     // ③ is not: install puts the command on the PATH
     await fireEvent.click(await screen.findByRole('button', { name: '설치' }))
     expect(f.api.install).toHaveBeenCalledWith('user', false)
-    expect(await screen.findByText('됐어요')).toBeTruthy()
+    expect(await screen.findByText('완료')).toBeTruthy()
   })
 
   it('a step not done goes on in the settings window', async () => {
@@ -125,7 +125,7 @@ describe('home', () => {
     expect(screen.getByText('멈춤 1')).toBeTruthy()
     expect(screen.getByText('@claude')).toBeTruthy()
     // a board never opened here says so
-    expect(screen.getByText('· 아직 여기서 안 열어 봤어요')).toBeTruthy()
+    expect(screen.getByText('· 앱에서 연 적 없음')).toBeTruthy()
   })
 
   it('the search narrows the cards by name and folder', async () => {
