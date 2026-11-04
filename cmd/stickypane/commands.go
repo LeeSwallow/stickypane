@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -318,20 +319,20 @@ func initCmd(e env, args []string) error {
 	var changes []api.Setting
 	mode, ok := viewOf(*view)
 	if !ok {
-		return usagef("init", "--view is terminal, app or both, not %q", *view)
+		return usageSay("init", "init.badView", map[string]any{"Value": strconv.Quote(*view)})
 	}
 	if mode != "" {
 		changes = append(changes, api.Setting{Key: "view", Value: mode})
 	}
 	if *style != "" {
 		if _, err := prefs.Normal("style", *style); err != nil {
-			return usagef("init", "--style is doodle or neat, not %q", *style)
+			return usageSay("init", "init.badStyle", map[string]any{"Value": strconv.Quote(*style)})
 		}
 		changes = append(changes, api.Setting{Key: "style", Value: *style})
 	}
 	if *lang != "" {
 		if _, err := prefs.Normal("language", *lang); err != nil {
-			return usagef("init", "--language is %s or auto, not %q", strings.Join(i18n.Languages(), ", "), *lang)
+			return usageSay("init", "init.badLanguage", map[string]any{"Languages": strings.Join(i18n.Languages(), ", "), "Value": strconv.Quote(*lang)})
 		}
 		changes = append(changes, api.Setting{Key: "language", Value: *lang})
 	}

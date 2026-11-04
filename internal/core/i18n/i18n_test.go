@@ -3,7 +3,10 @@ package i18n
 import (
 	"github.com/LeeSwallow/stickypane/internal/adapter/env"
 
+	"errors"
+	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -169,6 +172,64 @@ func TestFillLeavesABrokenTemplateReadable(t *testing.T) {
 	}
 	if got := Fill("Delete {{.Name", map[string]any{"Name": "x"}); got != "Delete {{.Name" {
 		t.Errorf("a broken template is returned as it is: %q", got)
+	}
+}
+
+// What the command line says to a person is said whole in every language:
+// each sentence translated, with the placeholders the English fills, and
+// no sentence the English does not have.
+func TestEverySayIsTranslatedWithItsPlaceholders(t *testing.T) {
+	for _, code := range Languages()[1:] {
+		s, err := Load(code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, key := range SaysKeys() {
+			got, ok := s.Says[key]
+			if !ok || got == "" {
+				t.Errorf("%s: says.%s is not translated", code, key)
+				continue
+			}
+			if want, have := Placeholders(says[key]), Placeholders(got); !slices.Equal(want, have) {
+				t.Errorf("%s: says.%s fills %v, the English %v", code, key, have, want)
+			}
+		}
+		for key := range s.Says {
+			if _, ok := says[key]; !ok {
+				t.Errorf("%s: says.%s is no sentence of the English", code, key)
+			}
+		}
+	}
+}
+
+// A Message says itself in the language asked, with an error among its
+// values said in it too; Speak keeps what wraps it.
+func TestAMessageSpeaksTheLanguageItIsShownIn(t *testing.T) {
+	ko, err := Load("ko")
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner := Err("setting.noTheme", map[string]any{"Value": `"x"`})
+	outer := Err("app.cannotOpen", map[string]any{"Err": inner})
+	if outer.Error() != `could not open the stickypane app: there is no theme "x"` {
+		t.Errorf("English: %q", outer.Error())
+	}
+	if got := Speak(outer, ko); got != ko.Say("app.cannotOpen", map[string]any{"Err": inner.Say(ko)}) || !strings.Contains(got, `"x"`) || got == outer.Error() {
+		t.Errorf("Korean: %q", got)
+	}
+	wrapped := fmt.Errorf("keys.json: %w", inner)
+	if got := Speak(wrapped, ko); !strings.HasPrefix(got, "keys.json: ") || got == wrapped.Error() {
+		t.Errorf("wrapped: %q", got)
+	}
+	if got := Speak(errors.New("plain"), ko); got != "plain" {
+		t.Errorf("a plain error is its English: %q", got)
+	}
+	cause := errors.New("cause")
+	if !errors.Is(&Message{Key: "setup.none", Cause: cause}, cause) {
+		t.Error("a Message's cause is found under it")
+	}
+	if got := English().List([]string{"a", "b", "c"}, true); got != "a, b or c" {
+		t.Errorf("List = %q", got)
 	}
 }
 

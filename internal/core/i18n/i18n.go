@@ -138,6 +138,11 @@ type Strings struct {
 	// missing here keeps it (see T).
 	CLI map[string]string `json:"cli"`
 
+	// Says holds what the command line says to a person (tables, plans,
+	// questions, refusals), keyed like "setup.carries". The English is in
+	// says.go; a key missing here keeps it (see Say).
+	Says map[string]string `json:"says"`
+
 	// Examples maps a shape's name ("checklist") to its catalog example in
 	// this language: the same lines as the English Kind.Example, in the
 	// language's words. A shape that is not here, or whose example is code

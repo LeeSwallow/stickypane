@@ -111,6 +111,10 @@ func TestSetChangesASetting(t *testing.T) {
 	if m.store.Language() != "ko" || m.tr.Keys != mustLoad(t, "ko").Keys {
 		t.Errorf(":lang ko: stored %q", m.store.Language())
 	}
+	runLine(m, "set columns 9")
+	if m.status != `columns에는 3, 4, 1, 2만 쓸 수 있어요: "9"` {
+		t.Errorf("a value refused is said in the board's language: %q", m.status)
+	}
 }
 
 func mustLoad(t *testing.T, code string) i18n.Strings {

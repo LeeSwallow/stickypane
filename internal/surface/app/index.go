@@ -31,7 +31,7 @@ func init() {
 func openIndex(m *Model) tea.Cmd {
 	idx, err := api.NewWithEnv(m.store, m.reg, m.env).Index()
 	if err != nil {
-		m.status = err.Error()
+		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return nil
 	}
 	m.indexAll, m.indexAt = idx, 0

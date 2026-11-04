@@ -42,12 +42,17 @@ func envCmd(e env, args []string) error {
 		Scripts:    map[string]string{},
 		Editor:     d.Editor(),
 	}
+	// The rows are named as --json names them; what follows each is in
+	// the person's language, and --json stays English.
+	tr := helpStrings()
+	shown := map[string]string{}
 	for _, ext := range []string{".sh", ".ps1"} {
 		prog, _, err := d.Script("script" + ext)
 		if err != nil {
 			r.Scripts[ext] = "not available: " + err.Error()
+			shown[ext] = tr.Say("env.noScript", map[string]any{"Err": err})
 		} else {
-			r.Scripts[ext] = prog
+			r.Scripts[ext], shown[ext] = prog, prog
 		}
 	}
 	if *asJSON {
@@ -57,24 +62,24 @@ func envCmd(e env, args []string) error {
 	fmt.Fprintf(w, "system\t%s\n", r.System)
 	fmt.Fprintf(w, "shell\t%s\n", r.Shell)
 	if r.Split != "" {
-		fmt.Fprintf(w, "pane\t%s: `%s` opens the board next to your agent\n", r.Pane, r.Split)
+		fmt.Fprintf(w, "pane\t%s\n", tr.Say("env.split", map[string]any{"Pane": r.Pane, "Split": r.Split}))
 	} else {
-		fmt.Fprintf(w, "pane\tno tmux, Zellij, WezTerm or Windows Terminal here: run `stickypane` in a terminal beside your agent\n")
+		fmt.Fprintf(w, "pane\t%s\n", tr.Say("env.noPane", nil))
 	}
-	from := "nothing set, so English"
+	from := tr.Say("env.langNone", nil)
 	if r.LocaleFrom != "" {
-		from = fmt.Sprintf("from %s=%s", r.LocaleFrom, r.Locale)
+		from = tr.Say("env.langFrom", map[string]any{"Var": r.LocaleFrom, "Value": r.Locale})
 		if r.LocaleFrom == environment.FromSystem {
-			from = "from the system's locale " + r.Locale
+			from = tr.Say("env.langSystem", map[string]any{"Locale": r.Locale})
 		}
 	}
 	other := "ko"
 	if r.Language == "ko" {
 		other = "en"
 	}
-	fmt.Fprintf(w, "language\t%s (%s); to change it: `%s`, or `stickypane config language %s`\n", r.Language, from, d.Shell.SetVar(environment.LangVar, other), other)
-	fmt.Fprintf(w, "scripts\t.sh: %s\n", r.Scripts[".sh"])
-	fmt.Fprintf(w, "\t.ps1: %s\n", r.Scripts[".ps1"])
+	fmt.Fprintf(w, "language\t%s\n", tr.Say("env.language", map[string]any{"Language": r.Language, "From": from, "Set": d.Shell.SetVar(environment.LangVar, other), "Other": other}))
+	fmt.Fprintf(w, "scripts\t.sh: %s\n", shown[".sh"])
+	fmt.Fprintf(w, "\t.ps1: %s\n", shown[".ps1"])
 	fmt.Fprintf(w, "editor\t%s\n", strings.Join(r.Editor, " "))
 	return w.Flush()
 }

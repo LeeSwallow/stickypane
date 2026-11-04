@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
@@ -18,9 +19,9 @@ import (
 // (prefs.Normal), and it is written as every front end writes settings
 // (api.ChangeSettings); the command only says so.
 type choice struct {
-	cmd     string                                      // the command, which is the setting's key
-	list    func(w io.Writer, mark func(string) string) // every option, marked
-	missing string                                      // "there is no theme %q. The themes are:"
+	cmd     string                                                       // the command, which is the setting's key
+	list    func(w io.Writer, tr i18n.Strings, mark func(string) string) // every option, marked
+	missing string                                                       // the sentence that a value is not one: "theme.missing"
 }
 
 // run lists the options with the current one marked, or chooses one.
@@ -37,8 +38,9 @@ func (c choice) run(e env, args []string) error {
 	if current == "" {
 		current = "auto"
 	}
+	tr := helpStrings()
 	list := func(w io.Writer) {
-		c.list(w, func(name string) string {
+		c.list(w, tr, func(name string) string {
 			if strings.EqualFold(name, current) {
 				return "* "
 			}
@@ -53,9 +55,8 @@ func (c choice) run(e env, args []string) error {
 	var refused *prefs.Refused
 	if errors.As(err, &refused) {
 		var b strings.Builder
-		fmt.Fprintf(&b, c.missing+"\n", words[0])
 		list(&b)
-		return errors.New(strings.TrimRight(b.String(), "\n"))
+		return i18n.Err(c.missing, map[string]any{"Value": strconv.Quote(words[0]), "List": "\n" + strings.TrimRight(b.String(), "\n")})
 	} else if err != nil {
 		return err
 	}
@@ -70,17 +71,17 @@ func (c choice) run(e env, args []string) error {
 func themeCmd(e env, args []string) error {
 	return choice{
 		cmd: "theme",
-		list: func(w io.Writer, mark func(string) string) {
-			fmt.Fprintf(w, "%sauto  (follows the terminal: %s or %s)\n", mark("auto"), theme.DefaultDark, theme.DefaultLight)
+		list: func(w io.Writer, tr i18n.Strings, mark func(string) string) {
+			fmt.Fprintf(w, "%sauto  (%s)\n", mark("auto"), tr.Say("theme.auto", map[string]any{"Dark": theme.DefaultDark, "Light": theme.DefaultLight}))
 			for _, t := range theme.All() {
-				kind := "dark"
+				kind := tr.Say("theme.dark", nil)
 				if !t.Dark {
-					kind = "light"
+					kind = tr.Say("theme.light", nil)
 				}
 				fmt.Fprintf(w, "%s%s  (%s)\n", mark(t.Name), t.Name, kind)
 			}
 		},
-		missing: "there is no theme %q. The themes are:",
+		missing: "theme.missing",
 	}.run(e, args)
 }
 
@@ -89,12 +90,12 @@ func themeCmd(e env, args []string) error {
 func languageCmd(e env, args []string) error {
 	return choice{
 		cmd: "language",
-		list: func(w io.Writer, mark func(string) string) {
-			fmt.Fprintf(w, "%sauto  (follows STICKYPANE_LANG, LC_ALL, LC_MESSAGES, LANG; now %s)\n", mark("auto"), i18n.Detect(environment.Detect().Locale))
+		list: func(w io.Writer, tr i18n.Strings, mark func(string) string) {
+			fmt.Fprintf(w, "%sauto  (%s)\n", mark("auto"), tr.Say("language.auto", map[string]any{"Now": i18n.Detect(environment.Detect().Locale)}))
 			for _, code := range i18n.Languages() {
 				fmt.Fprintf(w, "%s%s\n", mark(code), code)
 			}
 		},
-		missing: "there is no translation for %q. The languages are:",
+		missing: "language.missing",
 	}.run(e, args)
 }

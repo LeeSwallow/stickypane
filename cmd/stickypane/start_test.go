@@ -21,6 +21,9 @@ func TestMain(m *testing.M) {
 	// The registry is off where its folder does not exist: the tests must
 	// not write to the real ~/.stickypane. Those that test it make a folder.
 	os.Setenv("STICKYPANE_HOME", filepath.Join(tmp, "no-registry"))
+	// English, whatever the machine running the tests speaks; a test that
+	// wants another language sets it.
+	os.Setenv("STICKYPANE_LANG", "en")
 	// No pane tool, so the next step a test sees is the plain one.
 	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)

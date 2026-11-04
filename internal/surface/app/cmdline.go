@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 	"github.com/LeeSwallow/stickypane/internal/surface/lineedit"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
@@ -415,7 +416,7 @@ func (m *Model) setting(key, value string) {
 		return
 	}
 	if err := m.calls().ChangeSettings(api.Setting{Key: key, Value: value}); err != nil {
-		m.status = err.Error()
+		m.status = i18n.Speak(err, m.tr)
 		return
 	}
 	m.reload()
@@ -444,7 +445,7 @@ func (m *Model) noteNames() []string {
 func (m *Model) editByName(name string) {
 	idx, err := m.calls().Index()
 	if err != nil {
-		m.status = err.Error()
+		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
 		return
 	}
 	want := strings.ToLower(name)

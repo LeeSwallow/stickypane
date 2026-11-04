@@ -53,6 +53,7 @@ func TestVersionComesFromTheReleaseElseTheModule(t *testing.T) {
 }
 
 func TestVersionAndHelp(t *testing.T) {
+	t.Chdir(t.TempDir()) // away from a board that chose its own language
 	for _, arg := range []string{"version", "--version", "-v"} {
 		if code, out, _ := exec(t, arg); code != 0 || out != "stickypane dev\n" {
 			t.Errorf("%s: code = %d, out = %q", arg, code, out)

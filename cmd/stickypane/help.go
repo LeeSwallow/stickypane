@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	environment "github.com/LeeSwallow/stickypane/internal/adapter/env"
@@ -67,11 +68,17 @@ stickypane help --all       every command with every option`
 // helpStrings are the words of the help: the board's language when there
 // is a board and it chose one, else what the environment asks for.
 func helpStrings() i18n.Strings {
+	s, _ := i18n.Load(helpLanguage())
+	return s
+}
+
+// helpLanguage is the code of the language helpStrings speaks.
+func helpLanguage() string {
 	choice := ""
 	if dir, err := store.Resolve("."); err == nil {
 		choice = store.Open(dir).Language()
 	}
-	return i18n.Pick(choice, environment.Detect().Locale)
+	return i18n.Resolve(choice, environment.Detect().Locale)
 }
 
 // hasBoard says whether there is a board here or above.
@@ -91,8 +98,10 @@ func helpCmd(e env, args []string) error {
 	}
 	s := helpStrings()
 	switch {
-	case *all:
+	case *all && helpLanguage() == "en":
 		_, err = io.WriteString(e.stdout, usage)
+	case *all:
+		_, err = io.WriteString(e.stdout, allHelp(s))
 	case len(words) == 0:
 		if !hasBoard() {
 			fmt.Fprintln(e.stdout, s.T("start", startText))
@@ -123,13 +132,10 @@ func helpOn(w io.Writer, s i18n.Strings, want string) error {
 		}
 		return nil
 	}
-	msg := fmt.Sprintf("no command or shape is called %q", want)
 	if near := closest(want); near != "" {
-		msg += fmt.Sprintf("; did you mean %q? (stickypane help %s)", near, near)
-	} else {
-		msg += "; stickypane help lists the commands, stickypane kinds the shapes"
+		return usageSay("help", "help.unknownNear", map[string]any{"Name": strconv.Quote(want), "Near": strconv.Quote(near), "Cmd": near})
 	}
-	return usagef("help", "%s", msg)
+	return usageSay("help", "help.unknown", map[string]any{"Name": strconv.Quote(want)})
 }
 
 // findShape finds the shape a word names: a kind of note or a folder.
@@ -219,6 +225,31 @@ func commandHelp(s i18n.Strings, c command) string {
 	if len(h.related) > 0 {
 		fmt.Fprintf(&b, "\n%s: %s  (stickypane help <%s>)\n", s.T("label.related", "Related"), strings.Join(h.related, ", "), s.T("label.name", "name"))
 	}
+	return b.String()
+}
+
+// allHelp is help --all in a language other than English: every command's
+// usage line, what it is for and its options, grouped as the overview is,
+// from the same table the help of one command is made of.
+func allHelp(s i18n.Strings) string {
+	var b strings.Builder
+	b.WriteString(s.T("overview.head", overviewHead) + "\n")
+	for _, g := range helpGroups {
+		fmt.Fprintf(&b, "\n%s\n", s.T("group."+g.key, g.title))
+		for _, c := range commands {
+			if c.help.group != g.key {
+				continue
+			}
+			name := c.names[0]
+			fmt.Fprintf(&b, "  %s\n      %s\n", c.help.syntax, s.T(name+".brief", c.help.brief))
+			if c.help.args != "" {
+				for _, l := range strings.Split(s.T(name+".args", c.help.args), "\n") {
+					b.WriteString("      " + l + "\n")
+				}
+			}
+		}
+	}
+	b.WriteString("\n" + s.T("overview.foot", overviewFoot) + "\n")
 	return b.String()
 }
 

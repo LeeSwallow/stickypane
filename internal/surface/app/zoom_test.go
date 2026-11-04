@@ -29,6 +29,9 @@ func TestZoomGivesOneNoteTheWholeScreen(t *testing.T) {
 	if !strings.Contains(s, "long.md") {
 		t.Errorf("an untitled zoomed note should be named by its file:\n%s", s)
 	}
+	if !strings.Contains(s, ": command") {
+		t.Errorf("the command line works on a zoomed note, so its line says so:\n%s", s)
+	}
 	press(m, "esc")
 	if m.mode != modeBoard || !strings.Contains(screen(m), "payments") {
 		t.Error("esc should return to the open notes")

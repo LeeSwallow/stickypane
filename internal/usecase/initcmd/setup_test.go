@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
 // agentsAt is a status: the agents found, each with the plugin at the
@@ -172,7 +174,7 @@ func TestRunSetupRunsStepsAndStopsAtAFailure(t *testing.T) {
 	}
 	steps := []Step{{Cmd: []string{"ok", "1"}}, {Cmd: []string{"skip"}, Unless: []string{"ok", "check"}}, {Cmd: []string{"fail"}}, {Cmd: []string{"never"}}}
 	var out strings.Builder
-	err := RunSetup(steps, run, run, &out)
+	err := RunSetup(steps, run, run, &out, i18n.English())
 	if err == nil || strings.Join(ran, ",") != "ok 1,ok check,fail" {
 		t.Errorf("ran %q, err %v", ran, err)
 	}
