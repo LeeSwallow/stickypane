@@ -46,6 +46,7 @@
   import { connect } from './session'
   import { logged, report } from '../services/errors'
   import { baseName } from '../lib/path'
+  import { fold } from '../lib/fold'
   import { frameOf, keyAction } from './keys'
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
   import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
@@ -170,37 +171,23 @@
 
   // --- loading -----------------------------------------------------------
 
-  let loading: Promise<void> | null = null
-  let again = false
-
   /** refresh reads the status and the board again; calls during one are folded into one more. */
-  function refresh(): Promise<void> {
-    if (loading) {
-      again = true
-      return loading
+  const refresh = fold(async () => {
+    try {
+      status = await api.status()
+      if (!stopLayout && status.window) stopLayout = api.onLayout(status.window, (l) => (layout = l))
+      if (status.state !== 'ready') return
+      const b = await api.load()
+      const before = board?.settings.tab ?? null
+      board = b
+      view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
+      seen = seeAll(seen, allNotes(b.tabs))
+      if (!layoutRead) await readLayout()
+      failed = ''
+    } catch (e) {
+      failed = report('board.refresh', e)
     }
-    loading = (async () => {
-      do {
-        again = false
-        try {
-          status = await api.status()
-          if (!stopLayout && status.window) stopLayout = api.onLayout(status.window, (l) => (layout = l))
-          if (status.state !== 'ready') continue
-          const b = await api.load()
-          const before = board?.settings.tab ?? null
-          board = b
-          view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
-          seen = seeAll(seen, allNotes(b.tabs))
-          if (!layoutRead) await readLayout()
-          failed = ''
-        } catch (e) {
-          failed = report('board.refresh', e)
-        }
-      } while (again)
-      loading = null
-    })()
-    return loading
-  }
+  })
 
   /** readLayout asks the shell where the notes sit; without an answer the canvas starts empty. */
   async function readLayout() {

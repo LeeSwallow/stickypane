@@ -28,6 +28,7 @@
   import Toast from '../lib/ui/Toast.svelte'
   import { events, type Bus, type Status } from '../services/board'
   import { logged, report } from '../services/errors'
+  import { fold } from '../lib/fold'
   import { projectService, type ProjectApi } from '../services/project'
   import { act, arrange } from '../board/actions'
   import { boardContext, noteHex, type BoardCtx } from '../board/context'
@@ -122,30 +123,16 @@
     document.title = note?.title || name
   })
 
-  let loading: Promise<void> | null = null
-  let again = false
-
   /** refresh reads the status and the board again; calls during one are folded into one more. */
-  function refresh(): Promise<void> {
-    if (loading) {
-      again = true
-      return loading
+  const refresh = fold(async () => {
+    try {
+      status = await api.status()
+      if (status.state === 'ready') board = await api.load()
+      failed = ''
+    } catch (e) {
+      failed = report('torn.refresh', e)
     }
-    loading = (async () => {
-      do {
-        again = false
-        try {
-          status = await api.status()
-          if (status.state === 'ready') board = await api.load()
-          failed = ''
-        } catch (e) {
-          failed = report('torn.refresh', e)
-        }
-      } while (again)
-      loading = null
-    })()
-    return loading
-  }
+  })
 
   const update = (patch: (b: Board) => Board) => {
     if (board) board = patch(board)
