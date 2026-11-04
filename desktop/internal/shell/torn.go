@@ -71,6 +71,33 @@ func (s *Shell) owner(window uint) (*project, *tornWin) {
 	return nil, nil
 }
 
+// frameFor is where a note is to be torn off to: where it was left, or,
+// the first time, nowhere yet and pinned, for a sticky note stays on top
+// until unpinned. The caller holds mu.
+func (s *Shell) frameFor(p *project, note string) canvas.Frame {
+	if f, ok := s.state.Projects[p.path].Torn[note]; ok {
+		return f
+	}
+	return canvas.Frame{Pinned: true}
+}
+
+// keepFrame keeps a torn-off note's frame in its project's layout. The
+// caller holds mu.
+func (s *Shell) keepFrame(tw *tornWin, f canvas.Frame) {
+	s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+}
+
+// boardForward brings a project's board forward, where a note put back
+// now is, unless its window has gone.
+func (s *Shell) boardForward(p *project) {
+	s.mu.Lock()
+	board, closed := p.win, p.closed
+	s.mu.Unlock()
+	if board != nil && !closed {
+		raise(board)
+	}
+}
+
 // edit changes a project's layout in the state. The caller holds mu.
 func (s *Shell) edit(p *project, f func(canvas.Project) canvas.Project) {
 	next := f(s.state.Projects[p.path])
@@ -165,14 +192,10 @@ func (s *Shell) TearOff(window uint, note string) (uint, error) {
 		if w == nil {
 			return 0, nil // being made by another caller
 		}
-		w.Show()
-		w.Focus()
+		raise(w)
 		return w.ID(), nil
 	}
-	f, ok := s.state.Projects[p.path].Torn[note]
-	if !ok {
-		f = canvas.Frame{Pinned: true} // a sticky note stays on top until unpinned
-	}
+	f := s.frameFor(p, note)
 	tw := &tornWin{p: p, note: note}
 	p.torn[note] = tw
 	n := len(p.torn) - 1
@@ -204,10 +227,7 @@ func (s *Shell) TearOffAll(window uint, notes []string) ([]uint, error) {
 		if strings.TrimSpace(note) == "" || p.torn[note] != nil {
 			continue
 		}
-		f, ok := s.state.Projects[p.path].Torn[note]
-		if !ok {
-			f = canvas.Frame{Pinned: true}
-		}
+		f := s.frameFor(p, note)
 		if !f.Placed() {
 			fresh++
 		}
@@ -256,17 +276,13 @@ func (s *Shell) PutBackAll(window uint, notes []string) error {
 			}
 		}
 	}
-	board, closed := p.win, p.closed
 	s.mu.Unlock()
 	for _, w := range wins {
 		w.Close()
 	}
 	err := s.save()
 	s.emitLayout(p)
-	if board != nil && !closed {
-		board.Show()
-		board.Focus()
-	}
+	s.boardForward(p)
 	return err
 }
 
@@ -336,12 +352,11 @@ func (s *Shell) openTorn(tw *tornWin, f canvas.Frame, at Rect) uint {
 	}
 	s.tornByWin[id] = tw
 	f.ScreenX, f.ScreenY, f.W, f.H = b.X, b.Y, b.Width, b.Height
-	s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+	s.keepFrame(tw, f)
 	s.mu.Unlock()
 	w.OnMoved(func() { s.tornMoved(tw) })
 	w.OnClosing(func() { s.tornClosing(tw) })
-	w.Show()
-	w.Focus()
+	raise(w)
 	return id
 }
 
@@ -369,7 +384,7 @@ func (s *Shell) tornMoved(tw *tornWin) {
 		return
 	}
 	if f, ok := s.frameOf(tw, b); ok {
-		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+		s.keepFrame(tw, f)
 	}
 }
 
@@ -391,7 +406,7 @@ func (s *Shell) tornClosing(tw *tornWin) {
 	keep := tw.quiet || s.stopped
 	if keep {
 		if f, ok := s.frameOf(tw, b); ok {
-			s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+			s.keepFrame(tw, f)
 		}
 	} else {
 		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.PutBack(tw.note) })
@@ -426,14 +441,7 @@ func (s *Shell) PutBack(window uint, note string) error {
 	}
 	err := s.save()
 	s.emitLayout(p)
-	// the board comes forward, where the note now is
-	s.mu.Lock()
-	board, closed := p.win, p.closed
-	s.mu.Unlock()
-	if board != nil && !closed {
-		board.Show()
-		board.Focus()
-	}
+	s.boardForward(p)
 	return err
 }
 
@@ -594,7 +602,7 @@ func (s *Shell) pinTorn(tw *tornWin, on bool) error {
 	f, ok := s.state.Projects[tw.p.path].Torn[tw.note]
 	if ok {
 		f.Pinned = on
-		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+		s.keepFrame(tw, f)
 	}
 	w := tw.win
 	s.mu.Unlock()

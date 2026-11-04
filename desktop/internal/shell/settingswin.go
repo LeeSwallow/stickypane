@@ -49,8 +49,7 @@ func (s *Shell) OpenSettings(from uint, section string) uint {
 		w := sw.win
 		s.mu.Unlock()
 		s.cfg.Platform.Emit(SettingsEvent, map[string]string{"section": section})
-		w.Show()
-		w.Focus()
+		raise(w)
 		return w.ID()
 	}
 	sw := &settingsWin{p: p}
@@ -75,8 +74,7 @@ func (s *Shell) OpenSettings(from uint, section string) uint {
 		}
 		s.mu.Unlock()
 	})
-	w.Show()
-	w.Focus()
+	raise(w)
 	return w.ID()
 }
 

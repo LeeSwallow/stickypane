@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
-	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 	"github.com/LeeSwallow/stickypane/desktop/internal/install/model"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
@@ -319,7 +318,7 @@ func (s *Shell) Shutdown() {
 		b := tw.win.Bounds()
 		s.mu.Lock()
 		if f, ok := s.frameOf(tw, b); ok {
-			s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.Tear(tw.note, f) })
+			s.keepFrame(tw, f)
 		}
 		s.mu.Unlock()
 	}

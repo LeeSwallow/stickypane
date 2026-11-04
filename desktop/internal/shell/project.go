@@ -93,8 +93,7 @@ func (s *Shell) OpenProject(path string) uint {
 		w := p.win
 		s.mu.Unlock()
 		if w != nil {
-			w.Show()
-			w.Focus()
+			raise(w)
 			return w.ID()
 		}
 		return 0 // it is being made by another caller
@@ -139,8 +138,7 @@ func (s *Shell) OpenProject(path string) uint {
 	w.OnFocus(func() { s.focused(p) })
 	w.OnMoved(func() { s.moved(p) })
 	w.OnClosing(func() { s.closing(p) })
-	w.Show()
-	w.Focus()
+	raise(w)
 	go s.connect(ctx, p)
 	s.reopenTorn(p)
 	return id

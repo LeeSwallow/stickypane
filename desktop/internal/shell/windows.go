@@ -122,6 +122,12 @@ type Window interface {
 	OnClosing(func()) // the window is about to go, for good
 }
 
+// raise shows a window and gives it the focus.
+func raise(w Window) {
+	w.Show()
+	w.Focus()
+}
+
 // Platform is the desktop: windows, the hotkey, events to the frontend,
 // the tray and dialogs.
 type Platform interface {

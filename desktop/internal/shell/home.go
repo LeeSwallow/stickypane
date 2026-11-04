@@ -35,8 +35,7 @@ func (s *Shell) ShowHome() {
 			nw.OnClosing(func() { go s.trayHint(nw) })
 		}
 	}
-	w.Show()
-	w.Focus()
+	raise(w)
 }
 
 // Toggle is the hotkey: it hides the last project window when it is in
@@ -54,8 +53,7 @@ func (s *Shell) Toggle() {
 	case w != nil && w.Visible() && w.Focused():
 		w.Hide()
 	case w != nil:
-		w.Show()
-		w.Focus()
+		raise(w)
 	case last != "":
 		s.OpenProject(last)
 	default:
@@ -78,6 +76,5 @@ func (s *Shell) Reopen() {
 		s.ShowHome()
 		return
 	}
-	w.Show()
-	w.Focus()
+	raise(w)
 }
