@@ -72,7 +72,7 @@ func envCmd(e env, args []string) error {
 	if r.Language == "ko" {
 		other = "en"
 	}
-	fmt.Fprintf(w, "language\t%s (%s); to change it: `%s`, or `stickypane language %s`\n", r.Language, from, d.Shell.SetVar(environment.LangVar, other), other)
+	fmt.Fprintf(w, "language\t%s (%s); to change it: `%s`, or `stickypane config language %s`\n", r.Language, from, d.Shell.SetVar(environment.LangVar, other), other)
 	fmt.Fprintf(w, "scripts\t.sh: %s\n", r.Scripts[".sh"])
 	fmt.Fprintf(w, "\t.ps1: %s\n", r.Scripts[".ps1"])
 	fmt.Fprintf(w, "editor\t%s\n", strings.Join(r.Editor, " "))

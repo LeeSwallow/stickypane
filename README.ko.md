@@ -355,8 +355,6 @@ stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신
   archive   노트를 archive/로 보관합니다
 
 설정
-  theme     테마 목록을 보거나 하나를 고릅니다
-  language  화면의 언어 목록을 보거나 하나를 고릅니다
   config    설정을 보거나 읽거나 바꿉니다
 
 에이전트
@@ -382,17 +380,17 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 
 ## 설정
 
-꼭 설정해야 할 것은 없습니다. 보드에서 `S`를 누르면 설정 창이 열리고,
-`stickypane config`도 같은 일을 합니다.
+꼭 설정해야 할 것은 없습니다. 보드의 `S`로는 위의 셋을 바꾸고,
+`stickypane config`로는 여섯 가지 모두 바꿉니다(`stickypane config theme nord`).
 
 | 설정 | 기본값 | 바꾸는 것 |
 | --- | --- | --- |
 | `theme` | `auto` | 색. Catppuccin, Tokyo Night, Gruvbox, Nord, Dracula를 포함해 테마 10개 |
 | `language` | `auto` | 보드의 언어: 영어나 한국어 |
+| `columns` | `3` | 한 줄에 놓는 노트 수: `1`–`4` |
 | `time` | `auto` | 날짜와 시각을 쓰는 방식 |
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
-| `columns` | `3` | 한 줄에 놓는 노트 수: `1`–`4` |
 
 `sticky.json`과 이 컴퓨터에 남는 기록은 [docs/ko/configuration.md](docs/ko/configuration.md)에,
 테마 목록은 영문 [docs/configuration.md](docs/configuration.md)에 있습니다.

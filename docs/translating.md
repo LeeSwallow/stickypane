@@ -28,7 +28,7 @@ by the action's name (`note-archive`) or a line of the help (`help.size`);
 the English, and the list of names, is the table in
 `internal/surface/app/keymap.go`.
 
-The language comes from `sticky.json` (`stickypane language ko`) or, with
+The language comes from `sticky.json` (`stickypane config language ko`) or, with
 `auto`, from `STICKYPANE_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`.
 
 ## Adding a language
