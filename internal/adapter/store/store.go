@@ -42,7 +42,7 @@ var (
 	// ErrNotFound means no notes folder exists at or above the start path.
 	ErrNotFound = errors.New("no " + DirName + " directory found")
 	// ErrTooLarge marks a note that is too big to show.
-	ErrTooLarge = errors.New("file is larger than 1 MB")
+	ErrTooLarge = fmt.Errorf("file is larger than %d MB", MaxSize>>20)
 )
 
 // extensions are the files that are notes. Only Markdown has front matter;
