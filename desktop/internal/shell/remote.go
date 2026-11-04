@@ -137,14 +137,30 @@ func (s *Shell) connectRemote(ctx context.Context, p *project) (Board, error) {
 	}
 	b, err := s.cfg.StartArgv(ctx, s.ssh().Bridge(h, dir))
 	if err != nil {
-		return nil, errors.New(sshSaid(err))
+		return nil, &sshError{said: sshSaid(err), err: err}
 	}
 	return b, nil
 }
 
+// sshError is a remote board's failed start, said in ssh's words; under
+// it is the start's own error.
+type sshError struct {
+	said string
+	err  error
+}
+
+func (e *sshError) Error() string { return e.said }
+func (e *sshError) Unwrap() error { return e.err }
+
 // sshSaid is a failed start in ssh's words: when ssh ended before the
 // bridge said hello, what it wrote on stderr is the whole story.
 func sshSaid(err error) string {
+	var se *bridgeclient.StartError
+	if errors.As(err, &se) && errors.Is(se.Err, bridgeclient.ErrConnectionLost) && se.Stderr != "" {
+		return se.Stderr
+	}
+	// An error that has lost its type on the way (a stand-in's for ssh)
+	// still reads the same.
 	s := err.Error()
 	if rest, ok := strings.CutPrefix(s, "bridge: hello: "+bridgeclient.ErrConnectionLost.Error()+": "); ok && rest != "" {
 		return rest
