@@ -33,7 +33,7 @@ function fakeApp(over: Partial<AppApi> = {}) {
     checkHotkey: vi.fn(async (accel: string) => (accel === 'Ctrl+Option+K' ? { ok: false, accel, code: 'taken' } : { ok: true, accel })),
     autostart: vi.fn(async () => ({ supported: false, enabled: false })),
     setAutostart: vi.fn(async (on: boolean) => ({ supported: true, enabled: on })),
-    about: vi.fn(async () => ({ app: '0.1.0', stickypane: { found: true, bridge: true, path: '/x/stickypane', version: '0.4.0' } })),
+    about: vi.fn(async () => ({ app: '0.2.1', stickypane: { found: true, bridge: true, path: '/x/stickypane', version: '0.4.0' } })),
     onBoard: vi.fn(() => () => {}),
     openURL: vi.fn(async () => {}),
     ...over,
@@ -171,7 +171,7 @@ describe('the settings window', () => {
     await fireEvent.keyDown(list, { key: 'ArrowDown' })
     expect(within(list).getByRole('tab', { name: '이 컴퓨터' }).getAttribute('aria-selected')).toBe('true')
     await fireEvent.keyDown(list, { key: 'End' })
-    expect(await screen.findByText('0.1.0')).toBeTruthy()
+    expect(await screen.findByText('0.2.1')).toBeTruthy()
     expect(screen.getByText('0.4.0')).toBeTruthy()
   })
 })

@@ -6,7 +6,36 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-02
+
+### Added
+
+- Remote hosts in the app (#76). Settings → 원격 호스트 keeps a list of
+  hosts (a name, an ssh target from `~/.ssh/config` or `user@host`, the
+  command to run there), checks each one and can import them from the ssh
+  config. A remote board opens over your own ssh (`BatchMode`, one shared
+  connection per host) and runs `stickypane bridge` there; its key is
+  `ssh://<name><path>`. Home lists remote boards under 원격 and the board
+  window names its host. Remote boards are not indexed, and are not opened
+  in an editor or made from the app.
+
 ### Changed
+
+- The app and the plugin manifests say 0.2.1; in 0.2.0 they still said
+  0.1.0 and 0.1.1 (#80).
+
+## [0.2.0] - 2026-11-02
+
+Tagged before remote hosts were merged; they are in 0.2.1.
+
+### Changed
+
+- The board is a grid of columns: `columns` 1–4, three by default
+  (`stickypane config columns 4`, the S panel, Settings → 보드 in the app).
+  A note with no size takes one column and the unsized notes of a row share
+  its width; `H`/`L` move a note one place and `J`/`K` one row, kanban
+  cards keep `H J K L`. **Existing boards become three columns**;
+  `stickypane config columns auto` keeps the old layout (#78).
 
 - A note keeps the width and height chosen for it when other notes share
   the screen, on the terminal and in the app. A row whose sized notes do
@@ -66,6 +95,10 @@ on GitHub are built from pull request labels.
   - Packaged as a DMG drawn on graph paper (drag to Applications) and a
     Linux tar.gz with a `.desktop` entry and `install.sh` (#23). The DMG
     comes with the first app release.
+  - Settings in a window of its own (⌘,), first screens for home and an
+    empty board, and ⋯ 정렬 (⌥⌘L) and 배치 초기화 with undo (#63).
+  - Any note can be torn off, and a tab's notes (⌥⌘T) or the whole board
+    (⇧⌥⌘T) at once; a torn-off note opens as tall as its content (#74).
 - `stickypane bridge`: serves the board as JSON lines on standard input and
   output, for the desktop app. It is not for agents. `themes.list` gives
   every theme's colours.
@@ -118,6 +151,10 @@ on GitHub are built from pull request labels.
   changes the board makes it in a git repository, and any other tool says
   to run `stickypane init` (#26).
 - The plugin manifests say 0.1.1 (#26).
+- The app takes a stickypane that has the bridge even when an older copy
+  comes first, and a torn-off note's board stays on screen (#62).
+- A note's edges resize from the border you see, on the grid and the
+  canvas (#66).
 
 ## [0.1.1] - 2026-10-10
 

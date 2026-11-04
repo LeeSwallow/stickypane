@@ -21,7 +21,7 @@ import (
 
 // appVersion is the app's version: build/config.yml's info.version
 // (version_test.go keeps them the same).
-const appVersion = "0.1.0"
+const appVersion = "0.2.1"
 
 // The frontend build output is embedded into the binary.
 //
