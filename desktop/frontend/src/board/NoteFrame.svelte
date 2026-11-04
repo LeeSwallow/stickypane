@@ -24,7 +24,7 @@
   import { columnSteps } from '../lib/sizes'
   import type { Note } from './model'
   import { manageItems, type Manage } from './manage'
-  import { capture, MOVED } from './pointer'
+  import { follow, MOVED } from './pointer'
 
   let {
     note,
@@ -103,34 +103,22 @@
 
   /**
    * drag follows a pointer on an edge until it is let go (save) or taken
-   * away (cancel). It listens on the window, not the edge: a webview may
-   * refuse or drop the pointer capture (#66), and the pointer leaves the
-   * thin edge as soon as it moves.
+   * away (cancel: the system took the pointer, keep what it had).
    */
   function drag(e: PointerEvent, move: (m: PointerEvent) => void, done: (save: boolean) => void) {
     if (e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    capture(e)
-    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
     // a press that does not move (a click, half a double-click) saves nothing
     let went = false
-    const moved = mine((m) => {
-      went ||= Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) >= MOVED
-      if (went) move(m)
-    })
-    const end = (save: boolean) =>
-      mine(() => {
-        window.removeEventListener('pointermove', moved)
-        window.removeEventListener('pointerup', up)
-        window.removeEventListener('pointercancel', cancel)
-        done(save && went)
-      })
-    const up = end(true)
-    const cancel = end(false) // the system took the pointer: keep what it had
-    window.addEventListener('pointermove', moved)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', cancel)
+    follow(
+      e,
+      (m) => {
+        went ||= Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) >= MOVED
+        if (went) move(m)
+      },
+      (save) => done(save && went),
+    )
   }
 
   function startHeight(e: PointerEvent) {

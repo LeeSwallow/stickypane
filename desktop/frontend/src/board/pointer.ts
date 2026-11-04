@@ -16,3 +16,33 @@ export function capture(e: PointerEvent): void {
     // the drag follows the window's pointer events instead
   }
 }
+
+/**
+ * follow is a drag of the pointer e went down with: move hears each move
+ * of it, and end hears it let go (keep) or taken away by the system (not
+ * keep), once, after which nothing more is heard. It listens on the
+ * window, not the element: a webview may refuse or drop the capture, and
+ * the pointer leaves a thin edge or a handle as soon as it moves (#66).
+ */
+export function follow(
+  e: PointerEvent,
+  move: (m: PointerEvent) => void,
+  end: (keep: boolean) => void,
+  on: Pick<EventTarget, 'addEventListener' | 'removeEventListener'> = window,
+): void {
+  capture(e)
+  const mine = (f: (m: PointerEvent) => void) => (m: Event) => (m as PointerEvent).pointerId === e.pointerId && f(m as PointerEvent)
+  const moved = mine(move)
+  const stop = (keep: boolean) =>
+    mine(() => {
+      on.removeEventListener('pointermove', moved)
+      on.removeEventListener('pointerup', up)
+      on.removeEventListener('pointercancel', cancel)
+      end(keep)
+    })
+  const up = stop(true)
+  const cancel = stop(false)
+  on.addEventListener('pointermove', moved)
+  on.addEventListener('pointerup', up)
+  on.addEventListener('pointercancel', cancel)
+}

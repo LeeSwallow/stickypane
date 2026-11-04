@@ -15,7 +15,7 @@
   import { CARD_PX } from './layout'
   import type { Note } from './model'
   import NoteFrame from './NoteFrame.svelte'
-  import { capture } from './pointer'
+  import { follow as followPointer } from './pointer'
 
   let {
     notes,
@@ -90,31 +90,21 @@
     if (!start || e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    // the window's events, not the handle's: the webview may refuse the
-    // capture, and the pointer leaves the handle as it moves (#66)
-    capture(e)
     const x0 = e.clientX
     const y0 = e.clientY
     const up = raise(all, name)
     const z = (up ?? start).z
     drag = { name, at: { ...start, z } }
-    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
-    const move = mine((m) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } }))
-    const end = (keep: boolean) =>
-      mine(() => {
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', done)
-        window.removeEventListener('pointercancel', cancel)
+    followPointer(
+      e,
+      (m) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } }),
+      (keep) => {
         const at = drag?.at
         drag = null
         if (keep && at && !samePlace(at, start)) onplace({ [name]: at })
         else if (up) onplace({ [name]: up })
-      })
-    const done = end(true)
-    const cancel = end(false)
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', done)
-    window.addEventListener('pointercancel', cancel)
+      },
+    )
   }
 
   const startMove = (e: PointerEvent, name: string) => follow(e, name, (s, dx, dy, on) => moved(s, dx, dy, scale, on))
