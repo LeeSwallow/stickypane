@@ -352,7 +352,7 @@ func (s *Service) Init(ctx context.Context, dir, lang string) (Result, error) {
 	res.Output, err = s.cfg.Runner.Run(ctx, c)
 	res.Output = strings.TrimSpace(res.Output)
 	if err != nil {
-		return res, fmt.Errorf("stickypane init: %v: %s", err, res.Output)
+		return res, fmt.Errorf("stickypane init: %w: %s", err, res.Output)
 	}
 	return res, nil
 }

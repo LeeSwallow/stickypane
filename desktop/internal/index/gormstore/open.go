@@ -102,7 +102,7 @@ func OpenAt(path string, clock ports.Clock) (s *Store, rebuilt bool, err error) 
 	}
 	aside := path + ".broken-" + clock.Now().Format(brokenStamp)
 	if rerr := os.Rename(path, aside); rerr != nil {
-		return nil, false, fmt.Errorf("%w (and could not move it aside: %v)", err, rerr)
+		return nil, false, fmt.Errorf("%w (and could not move it aside: %w)", err, rerr)
 	}
 	// The journal of a file set aside is no use to the new one; one that
 	// is not there is the usual case.
