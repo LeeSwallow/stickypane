@@ -230,7 +230,7 @@ func (c *Client) launch(ctx context.Context) (*proc, Hello, error) {
 	hctx, cancel := context.WithTimeout(ctx, helloTimeout)
 	defer cancel()
 	var h Hello
-	if err := p.call(hctx, "hello", nil, &h); err != nil {
+	if err := p.call(hctx, MethodHello, nil, &h); err != nil {
 		p.kill()
 		return nil, Hello{}, fmt.Errorf("bridge: hello: %w%s", err, p.errs.suffix())
 	}

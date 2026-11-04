@@ -267,11 +267,11 @@ func (s *Shell) Call(ctx context.Context, window uint, method string, params, re
 		return fmt.Errorf("%w (%s)", ErrNoBoard, state)
 	}
 	far := remote.IsRemote(p.path)
-	if far && method == "note.open" {
+	if far && method == bridgeclient.MethodOpen {
 		return fmt.Errorf("%w: its notes open in an editor there, not here", ErrRemote)
 	}
 	err := b.Call(ctx, method, params, result)
-	if err == nil && method == "board.load" {
+	if err == nil && method == bridgeclient.MethodBoardLoad {
 		if !far { // the index is of this computer's boards
 			s.retitle(p.path, result)
 		}

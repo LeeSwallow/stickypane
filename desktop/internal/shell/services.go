@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
 	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/index"
 	installsvc "github.com/LeeSwallow/stickypane/desktop/internal/install/service"
@@ -222,28 +223,28 @@ func (p *ProjectService) InitHere(ctx context.Context) (installsvc.Result, error
 
 // Load is board.load.
 func (p *ProjectService) Load(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "board.load", nil)
+	return p.call(ctx, bridgeclient.MethodBoardLoad, nil)
 }
 
 // Act is note.act.
 func (p *ProjectService) Act(ctx context.Context, a ActParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.act", a)
+	return p.call(ctx, bridgeclient.MethodAct, a)
 }
 
 // Arrange is note.arrange: open, size, rows, pin, colour, title.
 func (p *ProjectService) Arrange(ctx context.Context, a ArrangeParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.arrange", a)
+	return p.call(ctx, bridgeclient.MethodArrange, a)
 }
 
 // Order is tab.order.
 func (p *ProjectService) Order(ctx context.Context, o OrderParams) (json.RawMessage, error) {
-	return p.call(ctx, "tab.order", o)
+	return p.call(ctx, bridgeclient.MethodOrder, o)
 }
 
 // Move is note.move. The note's place on the canvas, and its torn-off
 // window, go with it to its new name.
 func (p *ProjectService) Move(ctx context.Context, m MoveParams) (json.RawMessage, error) {
-	out, err := p.call(ctx, "note.move", m)
+	out, err := p.call(ctx, bridgeclient.MethodMove, m)
 	if err != nil {
 		return out, err
 	}
@@ -268,67 +269,67 @@ func movedTo(out json.RawMessage) string {
 
 // Archive is note.archive.
 func (p *ProjectService) Archive(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.archive", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodArchive, noteParams{note})
 }
 
 // Trash is note.trash.
 func (p *ProjectService) Trash(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.trash", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodTrash, noteParams{note})
 }
 
 // Restore is note.restore.
 func (p *ProjectService) Restore(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.restore", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodRestore, noteParams{note})
 }
 
 // Create is note.create.
 func (p *ProjectService) Create(ctx context.Context, c CreateParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.create", c)
+	return p.call(ctx, bridgeclient.MethodCreate, c)
 }
 
 // Run is note.run: it answers when the script is done.
 func (p *ProjectService) Run(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.run", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodRun, noteParams{note})
 }
 
 // Send is note.send: it answers when the request is done.
 func (p *ProjectService) Send(ctx context.Context, s SendParams) (json.RawMessage, error) {
-	return p.call(ctx, "note.send", s)
+	return p.call(ctx, bridgeclient.MethodSend, s)
 }
 
 // Open is note.open: the note in the person's editor.
 func (p *ProjectService) Open(ctx context.Context, note string) (json.RawMessage, error) {
-	return p.call(ctx, "note.open", noteParams{note})
+	return p.call(ctx, bridgeclient.MethodOpen, noteParams{note})
 }
 
 // Kinds is kinds.list, with the examples in language: the language the
 // window draws in ("ko", "en"). "" asks for the board's.
 func (p *ProjectService) Kinds(ctx context.Context, language string) (json.RawMessage, error) {
 	if language == "" {
-		return p.call(ctx, "kinds.list", nil)
+		return p.call(ctx, bridgeclient.MethodKinds, nil)
 	}
-	return p.call(ctx, "kinds.list", map[string]string{"language": language})
+	return p.call(ctx, bridgeclient.MethodKinds, map[string]string{"language": language})
 }
 
 // Themes is themes.list: every theme's palette.
 func (p *ProjectService) Themes(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "themes.list", nil)
+	return p.call(ctx, bridgeclient.MethodThemes, nil)
 }
 
 // Index is board.index.
 func (p *ProjectService) Index(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "board.index", nil)
+	return p.call(ctx, bridgeclient.MethodBoardIndex, nil)
 }
 
 // Settings is settings.get.
 func (p *ProjectService) Settings(ctx context.Context) (json.RawMessage, error) {
-	return p.call(ctx, "settings.get", nil)
+	return p.call(ctx, bridgeclient.MethodSettings, nil)
 }
 
 // SetSetting is settings.set. The board's windows read it again at once
 // (from the settings window, they would wait for the file to be seen).
 func (p *ProjectService) SetSetting(ctx context.Context, s SettingsParams) (json.RawMessage, error) {
-	out, err := p.call(ctx, "settings.set", s)
+	out, err := p.call(ctx, bridgeclient.MethodSetSetting, s)
 	if err == nil {
 		if id, werr := window(ctx); werr == nil {
 			p.S.Touched(id)
