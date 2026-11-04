@@ -2,6 +2,7 @@
 # Checks the plugin's own files: manifests parse, scripts are valid shell,
 # every skill has a name and a description and every command a description.
 # The plugin is plugin/; the two marketplaces at the root point at it.
+# mods/claude/ is board-mod, the Claude Code mod; its manifests parse too.
 # The Go tests check the rest (go test ./test/). Exit code 1 when
 # any check fails.
 set -u
@@ -10,7 +11,7 @@ fail=0
 ok() { printf '✅ %s\n' "$1"; }
 bad() { printf '❌ %s\n' "$1"; fail=1; }
 
-for f in .claude-plugin/marketplace.json .agents/plugins/marketplace.json plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json plugin/hooks/claude-hooks.json plugin/hooks/codex-hooks.json; do
+for f in .claude-plugin/marketplace.json .agents/plugins/marketplace.json plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json plugin/hooks/claude-hooks.json plugin/hooks/codex-hooks.json mods/claude/.claude-plugin/plugin.json mods/claude/hooks/hooks.json; do
   if python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$here/$f" 2>/dev/null; then ok "$f parses"; else bad "$f is not valid JSON"; fi
 done
 for f in plugin/scripts/*.sh scripts/*.sh; do

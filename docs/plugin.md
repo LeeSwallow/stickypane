@@ -1,7 +1,8 @@
 # The plugin
 
 This repository is also a Claude Code and Codex marketplace, `stickypane`,
-with one plugin, `board`, in the folder `plugin/`. For how to use the
+with the plugin `board`, in the folder `plugin/`, and for Claude Code
+alone the mod `board-mod`, in `mods/claude/`. For how to use the
 board, see the [README](../README.md); this page is for changing the plugin.
 
 ## Layout
@@ -14,7 +15,7 @@ folder are in it.
 
 | Path | Is |
 | --- | --- |
-| `.claude-plugin/marketplace.json` (root) | the Claude Code marketplace `stickypane`: the plugin `board` at `./plugin` |
+| `.claude-plugin/marketplace.json` (root) | the Claude Code marketplace `stickypane`: the plugin `board` at `./plugin`, the mod `board-mod` at `./mods/claude` |
 | `.agents/plugins/marketplace.json` (root) | the same for Codex |
 | `.claude-plugin/plugin.json` | the Claude Code plugin `board` |
 | `.codex-plugin/plugin.json` | the same for Codex |
@@ -28,6 +29,8 @@ folder are in it.
 | `harness.go` (root), `internal/usecase/harness` | the same skills, rules, commands and guide carried in the program, for MCP prompts, `stickypane guide` and `stickypane init` |
 
 `scripts/` at the root is for developing stickypane, not part of the plugin.
+`mods/claude/` (root) is `board-mod`, a plugin of its own: see
+[The mod](#the-mod).
 
 The plugin is layered: a command names a skill, a skill points to the rules
 and, when needed, to its references, and `using-the-board` is the way in
@@ -66,3 +69,26 @@ installed.
    starts with "Use when". Put the commands first and the rules after, in
    under 80 lines.
 2. Run `sh scripts/selfcheck.sh` and `go test ./test/ ./internal/usecase/initcmd/`.
+
+## The mod
+
+`mods/claude/` is `board-mod`, a Claude Code mod installed on its own
+(`/plugin install board-mod --marketplace LeeSwallow/stickypane`). Its
+hooks module, `hooks/register.tsx`, reads the board only through the
+command line: `stickypane index --json` for the pane, `stickypane cat` for
+a note, and `stickypane watch --json` for the session's life. An event
+that arrives while one of the agent's tool calls runs, or within 1.5 s
+after one ends, is taken as the agent's and not announced. What it makes
+of those lines is in `hooks/board.ts`, which touches no engine API; the
+shape of a note in the index is `types/index.d.ts`. Its version is the
+release's, like the plugin's.
+
+```sh
+claude plugin validate mods/claude    # what the engine would refuse
+claude plugin test mods/claude        # hooks/*.test.ts(x)
+claude --plugin-dir mods/claude       # a session with the mod loaded
+```
+
+The types it is checked against are written by Claude Code into
+`mods/claude/.claude-plugin/types/` when it loads the mod; that folder is
+not committed.

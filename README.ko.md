@@ -313,6 +313,11 @@ sequenceDiagram
 에이전트용 명령은 [docs/ko/agents.md](docs/ko/agents.md)에, 스킬과 MCP 도구,
 `setup` 옵션은 영문 [docs/agents.md](docs/agents.md)에 있습니다.
 
+두 번째 플러그인 `board-mod`(실험)는 Claude Code 모드입니다. `/stickypane`이
+Claude Code 안의 창에 보드를 띄우고, 보드에서 바꾼 것을 토스트로 알려 줍니다.
+[`mods/claude/`](mods/claude/)에 있고, 설치 방법은 영문
+[docs/agents.md](docs/agents.md#inside-claude-code-experimental)에 있습니다.
+
 ## 사용법
 
 도움말은 프로그램 안에 영어와 한국어로 들어 있습니다. 아래는 `stickypane help`입니다.

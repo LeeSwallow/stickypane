@@ -327,6 +327,12 @@ The plugin lives in [`plugin/`](plugin/). Its slash commands are
 `/board:say` and `/board:setup`. [docs/agents.md](docs/agents.md) has the
 skills, the commands for agents, the MCP tools and the setup options.
 
+A second plugin, `board-mod` (experimental), is a Claude Code mod: `/stickypane`
+shows the board in a pane inside Claude Code, and what you change on the
+board shows as a toast. It lives in [`mods/claude/`](mods/claude/);
+[docs/agents.md](docs/agents.md#inside-claude-code-experimental) says how
+to install it.
+
 ## Usage reference
 
 The help is in the program, in English or Korean. This is

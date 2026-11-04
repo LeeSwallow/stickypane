@@ -248,6 +248,11 @@ prompts and as topics of the `guide` tool, and to `stickypane guide`;
 tests in `test/` keep the layers pointing at each other: every
 command names a skill that exists, and the way in names every skill.
 
+`mods/claude/` is `board-mod`, a Claude Code mod in TypeScript and a
+plugin of its own in the same marketplace. It is outside the Go module's
+layers: it runs the `stickypane` command (`index --json`, `cat`,
+`watch --json`) and imports nothing of the program.
+
 ## The command line
 
 `cmd/stickypane` follows the shape of Go's own `cmd/go`, with the standard
