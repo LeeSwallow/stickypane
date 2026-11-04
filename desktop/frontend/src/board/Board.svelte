@@ -45,6 +45,7 @@
   import Grid from './Grid.svelte'
   import { connect } from './session'
   import { errorText } from '../services/errors'
+  import { baseName } from '../lib/path'
   import { frameOf, keyAction } from './keys'
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
   import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
@@ -697,7 +698,7 @@
 
 <div class="window" bind:clientWidth={width}>
   <TitleBar
-    title={board?.title || (status?.path ?? '').split('/').filter(Boolean).pop() || ''}
+    title={board?.title || baseName(status?.path ?? '')}
     path={status?.path ?? ''}
     {hotkey}
     {chrome}

@@ -58,6 +58,17 @@ export function agentColor(name: string, notes: string[], chosen = ''): string {
 
 export const noteColors = (p: Palette): string[] => p.notes.slice(0, 6)
 
+/**
+ * folderColor is the colour of a board on the home, by its folder (or
+ * ssh:// key): the note colour the key hashes to among the board's own six
+ * when this computer has seen them, else among the app's notes.
+ */
+export function folderColor(key: string, own: readonly string[] | null | undefined, notes: readonly string[]): string {
+  const i = noteIndexOf(key)
+  if (own?.length === NOTE_NAMES.length) return own[i % NOTE_NAMES.length]
+  return notes[i % Math.max(notes.length, 1)] ?? 'currentColor'
+}
+
 export interface CardColors {
   /** the light fill of the card */
   wash: string

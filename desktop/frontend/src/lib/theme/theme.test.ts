@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { THEMES } from '../../demo/themes'
-import { agentColor, cardColors, contrast, deriveTokens, fnv1a, mix, noteColors, seedOf } from './tokens'
+import { agentColor, cardColors, contrast, deriveTokens, fnv1a, folderColor, mix, noteIndexOf, noteColors, seedOf } from './tokens'
 import { resolveDark, resolveThemeName } from './mode'
 import { normalizePalette } from './palette'
 
@@ -138,4 +138,13 @@ describe('contrast is at least 4.5:1 for every theme x mode x card colour', () =
       })
     }
   }
+})
+
+test('a board on the home takes its own colour by its folder, else the app\'s', () => {
+  const own = ['#000001', '#000002', '#000003', '#000004', '#000005', '#000006']
+  const app = ['#a00000', '#b00000']
+  const i = noteIndexOf('/Users/me/proj')
+  expect(folderColor('/Users/me/proj', own, app)).toBe(own[i])
+  expect(folderColor('/Users/me/proj', own.slice(0, 3), app)).toBe(app[i % 2])
+  expect(folderColor('/Users/me/proj', null, [])).toBe('currentColor')
 })

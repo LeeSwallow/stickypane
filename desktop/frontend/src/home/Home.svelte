@@ -13,6 +13,7 @@
   import { fallbackPalette } from '../lib/theme/fallback'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { applyTheme } from '../lib/theme/tokens'
+  import { homeOf } from '../lib/path'
   import Button from '../lib/ui/Button.svelte'
   import { chromeOf } from '../lib/ui/chrome'
   import { windowActions } from '../services/window'
@@ -136,7 +137,7 @@
     try {
       const dir = await api.ensure()
       // the person's home, for ~ in the cards' folders
-      if (dir.endsWith('/.stickypane')) homeDir = dir.slice(0, -'/.stickypane'.length)
+      homeDir = homeOf(dir)
     } catch (e) {
       failure = String((e as Error)?.message ?? e)
     }

@@ -8,7 +8,8 @@
   import { language, relativeTime, tr, type Lang } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
-  import { agentColor, noteIndexOf } from '../lib/theme/tokens'
+  import { agentColor, folderColor } from '../lib/theme/tokens'
+  import { baseName, shortPath, tildePath } from '../lib/path'
   import Badge from '../lib/ui/Badge.svelte'
   import Chip from '../lib/ui/Chip.svelte'
   import type { Peek, Row } from '../services/home'
@@ -36,14 +37,10 @@
   const notes = $derived(look.palette?.notes ?? [])
   // the board's own colours when this computer has seen it, else one from its folder
   const own = $derived(peek?.colors?.length === 6 ? peek.colors : null)
-  const color = $derived(own ? own[noteIndexOf(row.Path) % 6] : (notes[noteIndexOf(row.Path) % Math.max(notes.length, 1)] ?? 'currentColor'))
-  const name = $derived(row.Title || row.Path.split('/').filter(Boolean).pop() || row.Path)
-  const path = $derived.by(() => {
-    const p = home && row.Path.startsWith(home + '/') ? '~' + row.Path.slice(home.length) : row.Path
-    // a long folder keeps its end, where its name is
-    const parts = p.split('/')
-    return p.length > 34 && parts.length > 3 ? '…/' + parts.slice(-2).join('/') : p
-  })
+  const color = $derived(folderColor(row.Path, own, notes))
+  const name = $derived(row.Title || baseName(row.Path))
+  // a long folder keeps its end, where its name is
+  const path = $derived(shortPath(tildePath(row.Path, home)))
   const when = $derived.by(() => {
     const d = new Date(row.LastAt)
     const lang: Lang = $language
