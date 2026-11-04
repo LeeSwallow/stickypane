@@ -55,7 +55,7 @@ func (a *API) Order(tab string, names []string) error {
 	if err := a.st.SetOrder(tab, names); err != nil {
 		return err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return nil
 }
 

@@ -70,7 +70,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 		// Only Markdown says in front matter what it is and that it is
 		// open. Another file is what its extension makes it.
 		var d doc.Document
-		if strings.EqualFold(filepath.Ext(file), ".md") {
+		if store.IsMarkdown(file) {
 			d = created(doc.Parse(a.reg.Lookup(kinds[0]).Template(arrange.FileTitle(file))).Set("open", "true"), a.now())
 		} else if have := a.reg.For(file, d).Name; !slices.Contains(kinds, have) {
 			return nil, fmt.Errorf("%s would be a %s, not a %s", file, have, kinds[0])
@@ -85,7 +85,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 	if err != nil {
 		return file, doc.Document{}, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, after, nil
 }
 
@@ -268,7 +268,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 		return Keyed{}, errors.New("nothing to set: give key=value pairs")
 	}
 	if _, err := a.st.Read(file); err != nil && !book {
-		return Keyed{}, fmt.Errorf("there is no note %s", file)
+		return Keyed{}, noNote(file)
 	}
 	var op setKeys
 	var views []func(*store.View)
@@ -285,7 +285,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 			set = append(set, key)
 		}
 		change, isView, err := arrange.Change(key, value)
-		if key == "title" && (book || !strings.EqualFold(filepath.Ext(file), ".md") || a.st.Linked(file)) {
+		if key == "title" && (book || !store.IsMarkdown(file) || a.st.Linked(file)) {
 			// A note without front matter is named in sticky.json.
 			change, isView = func(v *store.View) { v.Title = value }, true
 		}
@@ -296,7 +296,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 			views = append(views, change)
 		case book:
 			return Keyed{}, fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
-		case !strings.EqualFold(filepath.Ext(file), ".md"):
+		case !store.IsMarkdown(file):
 			return Keyed{}, fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
 		case value == "":
 			op.remove = append(op.remove, key)
@@ -346,12 +346,12 @@ func (a *API) existing(name, file string) string {
 	if filepath.Ext(strings.TrimSpace(name)) != "" {
 		return file
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err == nil {
+	if a.st.Exists(file) {
 		return file
 	}
-	stem := strings.TrimSuffix(file, ".md")
+	stem := strings.TrimSuffix(file, store.MarkdownExt)
 	for _, ext := range otherExts {
-		if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(stem+ext))); err == nil {
+		if a.st.Exists(stem + ext) {
 			return stem + ext
 		}
 	}
@@ -371,7 +371,7 @@ func (a *API) isBook(name string) bool {
 	if !bookName(name) {
 		return false
 	}
-	fi, err := os.Stat(filepath.Join(a.st.Dir, filepath.FromSlash(name)))
+	fi, err := os.Stat(a.st.Path(name))
 	return err == nil && fi.IsDir()
 }
 
@@ -400,11 +400,11 @@ func (a *API) Remove(name string) (Moved, error) {
 	}
 	to, err := a.st.Trash(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Moved{}, fmt.Errorf("there is no note %s", file)
+		return Moved{}, noNote(file)
 	} else if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return Moved{From: file, To: to}, nil
 }
 
@@ -439,7 +439,7 @@ func (a *API) Return(m Moved) (Moved, error) {
 	if err := a.st.Restore(m.To, m.From); err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: m.To, To: m.From}, nil
 }
 
@@ -452,11 +452,11 @@ func (a *API) Archive(name string) (Moved, error) {
 	}
 	to, err := a.st.Archive(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Moved{}, fmt.Errorf("there is no note %s", file)
+		return Moved{}, noNote(file)
 	} else if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: file, To: to}, nil
 }
 
@@ -469,7 +469,7 @@ func (a *API) Move(name, to string) (Moved, error) {
 	if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: file, To: dest}, nil
 }
 
@@ -478,6 +478,9 @@ type missing string
 
 func (m missing) Error() string        { return string(m) }
 func (m missing) Is(target error) bool { return target == fs.ErrNotExist }
+
+// noNote says that there is no note file on the board.
+func noNote(file string) error { return missing("there is no note " + file) }
 
 // move does what Move says and returns the names it moved from and to.
 func (a *API) move(name, to string) (from, dest string, err error) {
@@ -523,7 +526,7 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 		move = a.st.Move
 	}
 	if err := move(file, dest); errors.Is(err, fs.ErrNotExist) {
-		return "", "", fmt.Errorf("there is no note %s", file)
+		return "", "", noNote(file)
 	} else if err != nil {
 		return "", "", err
 	}
@@ -631,8 +634,8 @@ func (a *API) Show(target string) (Shown, error) {
 	if err != nil {
 		return Shown{}, err
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return Shown{}, fmt.Errorf("there is no note %s", file)
+	if !a.st.Exists(file) {
+		return Shown{}, noNote(file)
 	}
 	open := true
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
@@ -650,11 +653,7 @@ func (a *API) Show(target string) (Shown, error) {
 // hasNote reports whether name is a note on the board.
 func (a *API) hasNote(name string) bool {
 	file, _, err := a.target(name)
-	if err != nil {
-		return false
-	}
-	_, err = os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file)))
-	return err == nil
+	return err == nil && a.st.Exists(file)
 }
 
 // Hide folds a note away.
@@ -663,8 +662,8 @@ func (a *API) Hide(name string) (Shown, error) {
 	if err != nil {
 		return Shown{}, err
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return Shown{}, fmt.Errorf("there is no note %s", file)
+	if !a.st.Exists(file) {
+		return Shown{}, noNote(file)
 	}
 	open := false
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {

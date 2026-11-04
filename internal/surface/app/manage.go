@@ -3,8 +3,6 @@ package app
 import (
 	"fmt"
 	"os/exec"
-	"path"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -59,7 +57,7 @@ func init() {
 	// folder is not renamed either way.
 	boardKeys["R"] = onFocused(func(m *Model, it item) tea.Cmd {
 		file := it.file()
-		if len(it.pages) > 0 || !strings.EqualFold(path.Ext(file.Name), ".md") || m.store.Linked(file.Name) {
+		if len(it.pages) > 0 || !store.IsMarkdown(file.Name) || m.store.Linked(file.Name) {
 			name := it.note.Name
 			m.ask(m.tr.Name, m.views[name].Title, func(title string) {
 				m.setView(name, func(v *store.View) { v.Title = title })

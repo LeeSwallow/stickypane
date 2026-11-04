@@ -58,7 +58,7 @@ func (a *API) Apply(name, version string, act widget.Action) (string, error) {
 	if err := a.st.Apply(file, acted{a, file, version, act, &after}); err != nil {
 		return "", err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return widget.Version(after), nil
 }
 
@@ -70,7 +70,7 @@ func (a *API) Do(name string, op doc.Op) error {
 	if err := a.st.Apply(name, tended{a, name, op}); err != nil {
 		return err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return nil
 }
 
@@ -106,6 +106,6 @@ func (a *API) Save(name string, was, body []byte) error {
 	if err != nil {
 		return err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return nil
 }

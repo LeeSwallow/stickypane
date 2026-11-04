@@ -16,6 +16,14 @@ import (
 // digits, so nothing that looks for ".json" or ".md" takes it.
 const tmpInfix = ".tmp-"
 
+// The modes of what stickypane makes: a file anyone may read and its owner
+// write, and a folder likewise. A file that holds a secret is made 0o600 by
+// its writer instead.
+const (
+	FileMode fs.FileMode = 0o644
+	DirMode  fs.FileMode = 0o755
+)
+
 // WriteFile replaces the file at path with data in one step: data goes to
 // a temporary file in the same folder, is synced to the disk, and is then
 // renamed over path, and the folder is synced where the system allows it.

@@ -23,13 +23,13 @@ func Read(home string) (runs []Run, events []Event, err error) {
 	if !exists(home) {
 		return nil, nil, nil
 	}
-	run := filepath.Join(home, "run")
+	run := filepath.Join(home, runDir)
 	ents, err := os.ReadDir(run)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, nil, err
 	}
 	for _, e := range ents {
-		name, ok := strings.CutSuffix(e.Name(), ".json")
+		name, ok := strings.CutSuffix(e.Name(), runExt)
 		if e.IsDir() || !ok {
 			continue
 		}
@@ -45,13 +45,13 @@ func Read(home string) (runs []Run, events []Event, err error) {
 	}
 	sort.Slice(runs, func(i, j int) bool { return runs[i].PID < runs[j].PID })
 
-	dir := filepath.Join(home, "events")
+	dir := filepath.Join(home, eventDir)
 	ents, err = os.ReadDir(dir) // sorted by name, so by day
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, nil, err
 	}
 	for _, e := range ents {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".jsonl") {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), eventExt) {
 			continue
 		}
 		b, err := os.ReadFile(filepath.Join(dir, e.Name()))

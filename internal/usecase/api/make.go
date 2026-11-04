@@ -1,6 +1,10 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+)
 
 // Make writes a new note of kind called title from create options, by the
 // kind's own Compose, and returns it with the extension a file of the kind
@@ -22,7 +26,7 @@ func (a *API) Make(kind, title string, given map[string]string) (body []byte, ex
 		if k.New != "" {
 			return body, k.New, nil
 		}
-		return body, ".md", nil
+		return body, store.MarkdownExt, nil
 	}
 	return nil, "", fmt.Errorf("%w %q", ErrUnknownType, kind)
 }

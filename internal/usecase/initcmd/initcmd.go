@@ -157,7 +157,7 @@ func MakeBoard(root, lang string) (string, bool, error) {
 	case !errors.Is(err, fs.ErrNotExist):
 		return "", false, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, atomicfile.DirMode); err != nil {
 		return "", false, err
 	}
 	if err := store.Open(dir).WriteNew("welcome.md", []byte(welcome)); err != nil {
@@ -168,7 +168,7 @@ func MakeBoard(root, lang string) (string, bool, error) {
 	// tokens a .http note captured from responses, nor the lock file
 	// writers take where the system needs one (Windows).
 	ignore := store.TrashDir + "/\n" + httpfile.SavedFile + "\n" + filelock.Name + "\n"
-	if err := atomicfile.WriteFile(filepath.Join(dir, ".gitignore"), []byte(ignore), 0o644); err != nil {
+	if err := atomicfile.WriteFile(filepath.Join(dir, ".gitignore"), []byte(ignore), atomicfile.FileMode); err != nil {
 		return "", false, err
 	}
 	return dir, true, nil
@@ -308,10 +308,10 @@ func put(root, name string, change func(string) string, r *report) error {
 		r.current = append(r.current, filepath.ToSlash(name))
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 		return err
 	}
-	if err := atomicfile.WriteFile(path, []byte(text), 0o644); err != nil {
+	if err := atomicfile.WriteFile(path, []byte(text), atomicfile.FileMode); err != nil {
 		return err
 	}
 	r.added = append(r.added, filepath.ToSlash(name))
@@ -347,11 +347,11 @@ func strip(root, name string, r *report) error {
 	case before == "" && after == "":
 		return os.Remove(path)
 	case before == "":
-		return atomicfile.WriteFile(path, []byte(after), 0o644)
+		return atomicfile.WriteFile(path, []byte(after), atomicfile.FileMode)
 	case after == "":
-		return atomicfile.WriteFile(path, []byte(before+nl), 0o644)
+		return atomicfile.WriteFile(path, []byte(before+nl), atomicfile.FileMode)
 	}
-	return atomicfile.WriteFile(path, []byte(before+nl+nl+after), 0o644)
+	return atomicfile.WriteFile(path, []byte(before+nl+nl+after), atomicfile.FileMode)
 }
 
 // find returns where an earlier guide starts and ends in content.

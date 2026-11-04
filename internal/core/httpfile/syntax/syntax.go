@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// Exts are the extensions of a .http file; a new one takes the first.
+func Exts() []string { return []string{".http", ".rest"} }
+
 // Var is a variable the file declares: "@base = http://localhost" or
 // "# @file base http://localhost". A value "env:NAME" is read from the
 // environment when the request is sent.

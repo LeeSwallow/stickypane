@@ -5,8 +5,8 @@
 //
 // The files: internal/core/httpfile/syntax reads a file, vars.go fills in
 // {{variables}} from the file, the environment and earlier responses,
-// run.go sends a request and checks what came back, and log.go writes it
-// down for the board and the agent.
+// run.go sends a request, response.go checks what came back, and log.go
+// writes it down for the board and the agent.
 package httpfile
 
 import "github.com/LeeSwallow/stickypane/internal/core/httpfile/syntax"
@@ -22,6 +22,9 @@ type (
 	GRPC      = syntax.GRPC
 	File      = syntax.File
 )
+
+// Exts are the extensions of a .http file; a new one takes the first.
+func Exts() []string { return syntax.Exts() }
 
 // Parse reads a .http file.
 func Parse(text string) File { return syntax.Parse(text) }

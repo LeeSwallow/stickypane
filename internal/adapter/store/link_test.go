@@ -27,3 +27,22 @@ func TestLinkPutsAProjectFileOnTheBoard(t *testing.T) {
 		t.Fatalf("a second link over the first: err = %v, want fs.ErrExist", err)
 	}
 }
+
+func TestExistsSeesANoteABookAndALinkToNothing(t *testing.T) {
+	s := newStore(t)
+	if err := s.Write("deploy/plan.md", []byte("x\n")); err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(s.Dir, "deploy", "plan.md"); s.Path("deploy/plan.md") != want {
+		t.Errorf("Path = %q, want %q", s.Path("deploy/plan.md"), want)
+	}
+	if !s.Exists("deploy/plan.md") || !s.Exists("deploy") || s.Exists("missing.md") {
+		t.Error("Exists should see the page and its book, and nothing that is not there")
+	}
+	if err := s.Link("gone.md", "nowhere.md"); err != nil {
+		t.Skip("no symbolic links here:", err)
+	}
+	if !s.Exists("gone.md") {
+		t.Error("a link to nothing is still there")
+	}
+}

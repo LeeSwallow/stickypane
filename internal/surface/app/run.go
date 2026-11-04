@@ -3,7 +3,6 @@ package app
 import (
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/core/when"
@@ -11,7 +10,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/runner"
-	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 )
 
 // scriptDoneMsg arrives when a script has ended.
@@ -48,12 +46,8 @@ func (m *Model) run(name string) tea.Cmd {
 		m.status = say(m.tr.CannotWriteLog, map[string]any{"Log": log, "Err": err.Error()})
 		return nil
 	}
-	// The script is opened, and its log shows in its pane. A page of a book
-	// is shown by its book.
-	if n := strings.Count(name, "/"); n == 0 || (n == 1 && m.store.TabOf(name) != "") {
-		open := true
-		_ = m.store.SetView(name, func(v *store.View) { v.Open = &open })
-	}
+	// The script is opened, and its log shows in its pane.
+	m.openPane(name)
 	if m.running == nil {
 		m.running = map[string]bool{}
 	}

@@ -124,7 +124,7 @@ func (r *Run) launch() {
 // the script's alone while it runs, so writing on from its end is the
 // same.
 func openLog(name string) (*os.File, error) {
-	f, err := os.OpenFile(name, os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(name, os.O_WRONLY, 0) // Prepare made it: no mode to give
 	if err != nil {
 		return nil, err
 	}

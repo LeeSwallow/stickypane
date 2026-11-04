@@ -34,7 +34,7 @@ func (f Filter) Match(e Event) bool {
 	ok := len(f.Notes) == 0
 	for _, n := range f.Notes {
 		n = strings.TrimSuffix(strings.TrimSpace(n), "/")
-		if e.Note == n || e.Note == n+".md" || strings.HasPrefix(e.Note, n+"/") {
+		if e.Note == n || e.Note == n+store.MarkdownExt || strings.HasPrefix(e.Note, n+"/") {
 			ok = true
 		}
 	}

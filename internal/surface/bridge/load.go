@@ -219,7 +219,7 @@ func (s *server) link(name string) (bool, string) {
 	if !st.Linked(name) {
 		return false, ""
 	}
-	full := filepath.Join(st.Dir, filepath.FromSlash(name))
+	full := st.Path(name)
 	if target, err := filepath.EvalSymlinks(full); err == nil {
 		return true, target
 	}

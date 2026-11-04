@@ -245,6 +245,22 @@ func TestShowAndHide(t *testing.T) {
 	}
 }
 
+func TestANoteThatIsNotThereIsNotExist(t *testing.T) {
+	a, _ := newAPI(t, map[string]string{"plan.md": "the plan\n"})
+	_, hide := a.Hide("missing")
+	_, set := a.Set("missing", []string{"owner=me"})
+	_, archive := a.Archive("missing")
+	_, move := a.Move("missing", "elsewhere")
+	for what, err := range map[string]error{"Hide": hide, "Set": set, "Archive": archive, "Move": move} {
+		if !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("%s of a missing note = %v, want an error that is fs.ErrNotExist", what, err)
+		}
+		if err == nil || err.Error() != "there is no note missing.md" {
+			t.Errorf("%s of a missing note says %v", what, err)
+		}
+	}
+}
+
 func TestShowSwitchesTheBoardToTheNotesTab(t *testing.T) {
 	a, dir := newAPI(t, map[string]string{"plan.md": "root\n"})
 	if _, err := a.Write("deploy/notes", Options{}, []byte("deploy\n")); err != nil {

@@ -34,6 +34,12 @@ var (
 	cardRe = regexp.MustCompile(`^[-*] `)
 )
 
+// follow brings the charts computed from other notes up to date after a
+// change. It is best-effort: the change that called it is written
+// already and stands, and a chart that could not be written now is
+// computed again on the next change.
+func (a *API) follow() { _, _ = a.Derive() }
+
 // Derive computes every chart with from: and writes those whose values
 // changed. It returns how many it wrote.
 func (a *API) Derive() (int, error) {

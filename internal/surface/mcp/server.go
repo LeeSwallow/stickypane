@@ -29,8 +29,24 @@ import (
 const defaultProtocol = "2025-06-18"
 
 const (
-	maxWait   = 600 // seconds read_answers waits at most
-	waitEvery = 200 * time.Millisecond
+	maxWait          = 600 // seconds read_answers and wait_event wait at most
+	defaultEventWait = 60  // seconds wait_event waits when not told
+	waitEvery        = 200 * time.Millisecond
+)
+
+// jsonrpcVersion is the version every response names.
+const jsonrpcVersion = "2.0"
+
+// The methods the server branches on before it answers.
+const (
+	methodToolsCall = "tools/call"
+	methodCancelled = "notifications/cancelled"
+)
+
+// The tools that may wait for the user, so run on the side (mayWait).
+const (
+	toolReadAnswers = "read_answers"
+	toolWaitEvent   = "wait_event"
 )
 
 // JSON-RPC error codes.
@@ -196,7 +212,7 @@ var tools = []tool{
 		}),
 	},
 	{
-		Name:        "read_answers",
+		Name:        toolReadAnswers,
 		Description: "Read what the user chose and wrote in a form note (type: form) and which button they pressed. With wait_seconds it waits up to that long for a button to be pressed, then returns the answers so far.",
 		InputSchema: object([]string{"name"}, map[string]any{
 			"name":         str(`The form's file name, such as "deploy" or "deploy.md".`),
@@ -204,7 +220,7 @@ var tools = []tool{
 		}),
 	},
 	{
-		Name:        "wait_event",
+		Name:        toolWaitEvent,
 		Description: "Wait for something to happen on the board and return it as JSON: a note made or removed, an item ticked, a card moved, a form sent, a line logged, a chart value changed. Use it to react to what the user does without being told.",
 		InputSchema: object(nil, map[string]any{
 			"notes":        str(`Only these notes or folders, comma-separated, such as "plan,deploy". Omit for all.`),
@@ -263,7 +279,7 @@ func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 			_ = json.Unmarshal(line, &req)
 			id := string(bytes.TrimSpace(req.ID))
 			switch {
-			case req.Method == "notifications/cancelled":
+			case req.Method == methodCancelled:
 				var p struct {
 					RequestID json.RawMessage `json:"requestId"`
 				}
@@ -323,26 +339,26 @@ func plain(v any) string {
 
 // mayWait reports whether a request is a tool call that may wait for the user.
 func mayWait(req request) bool {
-	if req.Method != "tools/call" {
+	if req.Method != methodToolsCall {
 		return false
 	}
 	var p struct {
 		Name string `json:"name"`
 	}
 	_ = json.Unmarshal(req.Params, &p)
-	return p.Name == "read_answers" || p.Name == "wait_event"
+	return p.Name == toolReadAnswers || p.Name == toolWaitEvent
 }
 
 // handle answers one message. Notifications, which carry no id, get no answer.
 func (s *Server) handle(ctx context.Context, line []byte) *response {
 	var req request
 	if err := json.Unmarshal(line, &req); err != nil {
-		return &response{JSONRPC: "2.0", ID: json.RawMessage("null"), Error: &rpcError{codeParse, "the message is not valid JSON"}}
+		return &response{JSONRPC: jsonrpcVersion, ID: json.RawMessage("null"), Error: &rpcError{codeParse, "the message is not valid JSON"}}
 	}
 	if req.ID == nil {
 		return nil
 	}
-	resp := &response{JSONRPC: "2.0", ID: req.ID}
+	resp := &response{JSONRPC: jsonrpcVersion, ID: req.ID}
 	switch req.Method {
 	case "initialize":
 		var p struct {
@@ -368,7 +384,7 @@ func (s *Server) handle(ctx context.Context, line []byte) *response {
 		if resp.Error != nil {
 			resp.Result = nil
 		}
-	case "tools/call":
+	case methodToolsCall:
 		result, rpcErr := s.call(ctx, req.Params)
 		resp.Result, resp.Error = result, rpcErr
 		if rpcErr != nil {
@@ -460,7 +476,7 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 			pairs[i] = k + "=" + plain(a.Keys[k])
 		}
 		text, err = said(b.Set(a.Name, pairs))(keyed)
-	case "read_answers":
+	case toolReadAnswers:
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
 		got, aerr := b.Wait(wctx, a.Name, waitEvery)
 		cancel()
@@ -475,10 +491,10 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		if idx, err = b.Index(); err == nil {
 			text = api.IndexMarkdown(idx, "board")
 		}
-	case "wait_event":
+	case toolWaitEvent:
 		wait := a.Wait
 		if wait <= 0 {
-			wait = 60
+			wait = defaultEventWait
 		}
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(wait, maxWait)*float64(time.Second)))
 		f := api.Filter{Notes: split(a.Notes), Types: split(a.Types)}
@@ -490,8 +506,10 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		cancel()
 		switch {
 		case got != nil:
-			b, _ := json.Marshal(got)
-			text = string(b)
+			var b []byte
+			if b, err = json.Marshal(got); err == nil {
+				text = string(b)
+			}
 		case errors.Is(werr, context.DeadlineExceeded) || errors.Is(werr, context.Canceled):
 			text = "nothing happened"
 		default:
@@ -538,7 +556,7 @@ func arrange(b *api.API, name, action, to string) (string, error) {
 // changes the board, so that a missing board may be made for it. The guide
 // needs no board.
 var boardTools = map[string]bool{
-	"read_note": false, "read_answers": false, "api": false, "index": false, "wait_event": false, "arrange_note": false,
+	"read_note": false, toolReadAnswers: false, "api": false, "index": false, toolWaitEvent: false, "arrange_note": false,
 	"write_note": true, "todo": true, "card": true, "chart": true, "log": true, "say": true, "set_keys": true,
 }
 

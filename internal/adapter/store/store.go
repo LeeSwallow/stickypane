@@ -8,10 +8,8 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,13 +42,13 @@ var (
 	// ErrNotFound means no notes folder exists at or above the start path.
 	ErrNotFound = errors.New("no " + DirName + " directory found")
 	// ErrTooLarge marks a note that is too big to show.
-	ErrTooLarge = errors.New("file is larger than 1 MB")
+	ErrTooLarge = fmt.Errorf("file is larger than %d MB", MaxSize>>20)
 )
 
 // extensions are the files that are notes. Only Markdown has front matter;
 // the others are shown as they are.
 var extensions = map[string]bool{
-	".md": true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true,
+	MarkdownExt: true, ".log": true, ".txt": true, ".out": true, ".sh": true, ".ps1": true,
 	".http": true, ".rest": true, ".html": true, ".htm": true,
 }
 
@@ -58,7 +56,7 @@ var extensions = map[string]bool{
 // Such a file belongs to the project, not to the board: what the board
 // arranges about it is kept in sticky.json, never written into it.
 func (s *Store) Linked(name string) bool {
-	fi, err := os.Lstat(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	fi, err := os.Lstat(s.Path(name))
 	return err == nil && fi.Mode()&os.ModeSymlink != 0
 }
 
@@ -66,7 +64,7 @@ func (s *Store) Linked(name string) bool {
 // relative to the note's folder or an absolute one. It never writes over
 // what is at name: that is an error that is fs.ErrExist.
 func (s *Store) Link(name, target string) error {
-	return os.Symlink(target, filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return os.Symlink(target, s.Path(name))
 }
 
 // IsNote reports whether a file name is one the board shows.
@@ -75,8 +73,12 @@ func IsNote(name string) bool {
 	return !strings.HasPrefix(base, ".") && extensions[strings.ToLower(filepath.Ext(base))]
 }
 
-// isMarkdown reports whether a file may start with front matter.
-func isMarkdown(name string) bool { return strings.EqualFold(filepath.Ext(name), ".md") }
+// MarkdownExt is the extension of a note that is Markdown, the one kind of
+// file that may start with front matter, and of a note named without one.
+const MarkdownExt = ".md"
+
+// IsMarkdown reports whether a file may start with front matter.
+func IsMarkdown(name string) bool { return strings.EqualFold(filepath.Ext(name), MarkdownExt) }
 
 // Note is one file in the notes folder, or one folder: a book, whose pages
 // are the files in it.
@@ -105,6 +107,20 @@ type Store struct {
 	mu    sync.Mutex
 	known map[string]readNote // notes read by the last Load, by path
 	fresh map[string]readNote // what this Load has read so far
+}
+
+// Path is where the note or folder called name, a slash-separated path
+// inside the notes folder, is on this system. It is for reading and for
+// handing to another program; a note is written through the store.
+func (s *Store) Path(name string) string {
+	return filepath.Join(s.Dir, filepath.FromSlash(name))
+}
+
+// Exists reports whether anything is at name: a note, a book, or a link,
+// even one to nothing.
+func (s *Store) Exists(name string) bool {
+	_, err := os.Lstat(s.Path(name))
+	return err == nil
 }
 
 // readNote is a note as read, with what its file looked like then. A file
@@ -239,7 +255,7 @@ func (s *Store) scan(set Settings) ([]Tab, error) {
 // notesIn reads the notes of a folder: its files, and when books is set,
 // its folders as books.
 func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Note {
-	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
+	entries, err := os.ReadDir(s.Path(dir))
 	if err != nil {
 		return nil
 	}
@@ -250,7 +266,7 @@ func (s *Store) notesIn(dir string, ignored func(string) bool, books bool) []Not
 		if strings.HasPrefix(name, ".") || ignored(full) {
 			continue
 		}
-		if isDir(e, filepath.Join(s.Dir, filepath.FromSlash(full))) {
+		if isDir(e, s.Path(full)) {
 			if books {
 				if book, ok := s.book(full, ignored); ok {
 					notes = append(notes, book)
@@ -281,7 +297,7 @@ func (s *Store) Scan() ([]Note, error) {
 
 // book reads a folder as one note. A folder without notes is not a book.
 func (s *Store) book(name string, ignored func(string) bool) (Note, bool) {
-	b := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
+	b := Note{Name: name, Path: s.Path(name)}
 	b.Pages = s.notesIn(name, ignored, false)
 	for _, p := range b.Pages {
 		if p.ModTime.After(b.ModTime) {
@@ -316,7 +332,7 @@ func (s *Store) read(name string) Note {
 // load reads a note, or hands back what it read last time when the file
 // kept its size and time.
 func (s *Store) load(name string) Note {
-	n := Note{Name: name, Path: filepath.Join(s.Dir, filepath.FromSlash(name))}
+	n := Note{Name: name, Path: s.Path(name)}
 	fi, err := os.Stat(n.Path)
 	if err != nil {
 		n.Err = err
@@ -329,7 +345,7 @@ func (s *Store) load(name string) Note {
 	}
 	defer func() { s.remember(readNote{fi.Size(), n.ModTime, n}) }()
 	parse := func(b []byte) doc.Document {
-		if isMarkdown(name) {
+		if IsMarkdown(name) {
 			return doc.Parse(displayable(b))
 		}
 		return doc.Document{Body: string(displayable(b))}
@@ -351,7 +367,7 @@ func (s *Store) load(name string) Note {
 		return n
 	}
 	d := parse(head)
-	if isMarkdown(name) && d.Type() != "log" {
+	if IsMarkdown(name) && d.Type() != "log" {
 		n.Err = ErrTooLarge
 		return n
 	}
@@ -417,7 +433,7 @@ func (s *Store) Rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 }
 
 func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, error)) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	path := s.Path(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
 	}
@@ -431,7 +447,7 @@ func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 		return err
 	}
 	if !ok {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 			return err // a new page of a new book needs its folder
 		}
 	}
@@ -440,7 +456,7 @@ func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 
 // Read returns a note's bytes exactly as they are on disk.
 func (s *Store) Read(name string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(s.Dir, filepath.FromSlash(name)))
+	return os.ReadFile(s.Path(name))
 }
 
 // Write replaces a note with content in one step, or creates it. Unlike
@@ -451,10 +467,10 @@ func (s *Store) Write(name string, content []byte) error {
 }
 
 func (s *Store) write(name string, content []byte) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
+	path := s.Path(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
-	} else if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	} else if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 		return err // a new page of a new book needs its folder
 	}
 	return writeAtomic(path, content)
@@ -465,16 +481,18 @@ func (s *Store) write(name string, content []byte) error {
 // a file made a moment before, which Write would. The folder is made when
 // it is not there.
 func (s *Store) WriteNew(name string, content []byte) error {
-	path := filepath.Join(s.Dir, filepath.FromSlash(name))
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	path := s.Path(name)
+	if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 		return err
 	}
-	return atomicfile.Create(path, content, 0o644)
+	return atomicfile.Create(path, content, atomicfile.FileMode)
 }
 
-// writeAtomic replaces the file at path in one step. A new file is 0644; a
-// file that is there keeps its mode.
-func writeAtomic(path string, data []byte) error { return atomicfile.WriteFile(path, data, 0o644) }
+// writeAtomic replaces the file at path in one step. A new file is
+// atomicfile.FileMode; a file that is there keeps its mode.
+func writeAtomic(path string, data []byte) error {
+	return atomicfile.WriteFile(path, data, atomicfile.FileMode)
+}
 
 // Create writes a new note named after text, with the extension ext, and
 // returns the file name. It never overwrites: a taken name gets "-2", "-3"
@@ -486,7 +504,7 @@ func (s *Store) Create(text, ext string, content []byte, now time.Time) (string,
 		if i > 1 {
 			name = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		err := atomicfile.Create(filepath.Join(s.Dir, name), content, 0o644)
+		err := atomicfile.Create(filepath.Join(s.Dir, name), content, atomicfile.FileMode)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
@@ -522,159 +540,6 @@ func Slug(text string, now time.Time) string {
 	return "note-" + when.Slug(now)
 }
 
-// put moves the note called name to dst, a path inside the notes folder.
-// It never writes over what is there: a taken name gets "-2", "-3" and so
-// on. It returns where the note went. A folder that is left without
-// anything in it is removed.
-func (s *Store) put(name, dst string) (to string, err error) {
-	err = s.locked(func() error {
-		to, err = s.putLocked(name, dst)
-		return err
-	})
-	return to, err
-}
-
-func (s *Store) putLocked(name, dst string) (string, error) {
-	src := filepath.Join(s.Dir, filepath.FromSlash(name))
-	if _, err := os.Lstat(src); err != nil {
-		return "", err
-	}
-	ext := path.Ext(dst)
-	base := strings.TrimSuffix(dst, ext)
-	for i := 1; ; i++ {
-		target := dst
-		if i > 1 {
-			target = fmt.Sprintf("%s-%d%s", base, i, ext)
-		}
-		full := filepath.Join(s.Dir, filepath.FromSlash(target))
-		if _, err := os.Lstat(full); err == nil {
-			continue
-		} else if !errors.Is(err, fs.ErrNotExist) {
-			return "", err
-		}
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			return "", err
-		}
-		if err := os.Rename(src, full); err != nil {
-			return "", err
-		}
-		s.tidy(name)
-		return target, nil
-	}
-}
-
-// tidy removes the folder a note was in when the folder is now empty.
-func (s *Store) tidy(name string) {
-	if dir := path.Dir(name); dir != "." && dir != "/" {
-		_ = os.Remove(filepath.Join(s.Dir, filepath.FromSlash(dir))) // fails, rightly, unless empty
-	}
-}
-
-// Archive moves a note out of sight into the archive folder and returns
-// where it went. The archive is one flat folder: a page leaves its book.
-func (s *Store) Archive(name string) (string, error) {
-	return s.put(name, ArchiveDir+"/"+path.Base(name))
-}
-
-// Trash moves a note, a page or a whole book to the trash folder and
-// returns where it went. Nothing is removed from the disk: Restore brings it
-// back. The trash keeps the note's place, so a page goes back to its book.
-func (s *Store) Trash(name string) (string, error) {
-	return s.put(name, TrashDir+"/"+name)
-}
-
-// Restore moves what Trash or Archive put at from back to name. It does
-// not write over a note that is there.
-func (s *Store) Restore(from, name string) error {
-	clean := path.Clean(from)
-	if clean != from || !(strings.HasPrefix(from, TrashDir+"/") || strings.HasPrefix(from, ArchiveDir+"/")) {
-		return fmt.Errorf("%s is not in the trash or the archive", from)
-	}
-	return s.Move(from, name)
-}
-
-// Trashed returns where in the trash the note called name is. When several
-// notes of that name were deleted it is the one deleted last.
-func (s *Store) Trashed(name string) (string, bool) {
-	ext := path.Ext(name)
-	stem := path.Base(strings.TrimSuffix(name, ext))
-	dir := path.Dir(TrashDir + "/" + name)
-	entries, err := os.ReadDir(filepath.Join(s.Dir, filepath.FromSlash(dir)))
-	if err != nil {
-		return "", false
-	}
-	best, found := 0, ""
-	for _, e := range entries {
-		rest, ok := strings.CutPrefix(strings.TrimSuffix(e.Name(), ext), stem)
-		if !ok || !strings.HasSuffix(e.Name(), ext) {
-			continue
-		}
-		n := 1
-		if rest != "" {
-			if n, err = strconv.Atoi(strings.TrimPrefix(rest, "-")); err != nil || !strings.HasPrefix(rest, "-") {
-				continue
-			}
-		}
-		if n > best {
-			best, found = n, dir+"/"+e.Name()
-		}
-	}
-	return found, best > 0
-}
-
-// Move renames a note: under a new name, into a book, or out of one. It
-// does not write over a note that is there.
-func (s *Store) Move(name, to string) error {
-	return s.locked(func() error { return s.move(name, to) })
-}
-
-func (s *Store) move(name, to string) error {
-	src := filepath.Join(s.Dir, filepath.FromSlash(name))
-	dst := filepath.Join(s.Dir, filepath.FromSlash(to))
-	if _, err := os.Lstat(src); err != nil {
-		return err
-	}
-	if _, err := os.Lstat(dst); err == nil {
-		return fmt.Errorf("%s: %w", to, fs.ErrExist)
-	}
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-	if err := os.Rename(src, dst); err != nil {
-		return err
-	}
-	s.tidy(name)
-	return nil
-}
-
-// MoveArranged moves a note as Move does, and gives the new name what
-// sticky.json arranged for the old one. It is all or nothing: when the
-// arrangement cannot be written, the note is moved back and the error
-// returned. A note with nothing arranged, or whose tab's file cannot be
-// read, is only moved.
-func (s *Store) MoveArranged(name, to string) error {
-	return s.locked(func() error { return s.moveArranged(name, to) })
-}
-
-func (s *Store) moveArranged(name, to string) error {
-	tab, inside := s.split(name)
-	_, views, err := s.readViews(tab)
-	v, had := views[inside]
-	if err := s.move(name, to); err != nil {
-		return err
-	}
-	if err != nil || !had {
-		return nil
-	}
-	if err := s.setView(to, func(n *View) { *n = v }); err != nil {
-		if back := s.move(to, name); back != nil {
-			return fmt.Errorf("%w; and %s could not be moved back from %s: %v", err, name, to, back)
-		}
-		return err
-	}
-	return nil
-}
-
 // lockWait is how long a writer waits for another to let go of the board.
 const lockWait = 10 * time.Second
 
@@ -689,11 +554,6 @@ func (s *Store) locked(f func() error) error {
 	}
 	defer unlock()
 	return f()
-}
-
-// Delete removes a note for good.
-func (s *Store) Delete(name string) error {
-	return os.Remove(filepath.Join(s.Dir, filepath.FromSlash(name)))
 }
 
 // Bare is a name without the number in front that orders it: "10-plan" is

@@ -512,7 +512,7 @@ func (s *server) noteOpen(params json.RawMessage) (any, error) {
 	if n.Book() {
 		return nil, badRequest(fmt.Sprintf("%s is a book, a folder: open one of its pages", p.Note))
 	}
-	file := filepath.Join(s.api.Store().Dir, filepath.FromSlash(n.Name)) // read only: where the file is
+	file := s.api.Store().Path(n.Name) // read only: where the file is
 	cmd := env.Detect().OpenCommand(file)
 	if cmd == nil {
 		return nil, &Error{CodeFailed, "this system has no way to open a file without a terminal"}

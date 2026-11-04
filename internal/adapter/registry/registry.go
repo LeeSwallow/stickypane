@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
 )
 
@@ -27,6 +28,34 @@ import (
 // whatever other processes do; the cap keeps a line to one modest write.
 // (PIPE_BUF is about pipes, not files, and is not what holds here.)
 const maxLine = 4096
+
+// Where the records are kept, inside the home folder: a run file is
+// run/<pid>.json, a day of events events/<date>.jsonl.
+const (
+	// HomeVar names the home folder in place of ~/.stickypane.
+	HomeVar  = "STICKYPANE_HOME"
+	homeName = ".stickypane"
+	runDir   = "run"
+	runExt   = ".json"
+	eventDir = "events"
+	eventExt = ".jsonl"
+)
+
+// The types of an Event.
+const (
+	ProjectInit  = "project.init"
+	ProjectTouch = "project.touch"
+	SessionStart = "session.start"
+	SessionEnd   = "session.end"
+)
+
+// The kinds of a long-lived process, in a Run and a session.start.
+const (
+	KindTUI    = "tui"
+	KindBridge = "bridge"
+	KindMCP    = "mcp"
+	KindWatch  = "watch"
+)
 
 // Event is one line of events/<date>.jsonl, the date a when.Date. Empty
 // fields are left out. At is a when.Moment. Type is project.init,
@@ -70,14 +99,14 @@ func Default() Writer {
 // ~/.stickypane. It is named so as not to be taken for a board, which
 // would be what ~/.sticky is. It is empty when no home can be found.
 func Home() string {
-	if h := os.Getenv("STICKYPANE_HOME"); h != "" {
+	if h := os.Getenv(HomeVar); h != "" {
 		return h
 	}
 	h, err := os.UserHomeDir()
 	if err != nil || h == "" {
 		return ""
 	}
-	return filepath.Join(h, ".stickypane")
+	return filepath.Join(h, homeName)
 }
 
 // Enabled says whether records are kept: only when the home folder
@@ -118,12 +147,12 @@ func (w Writer) Append(e Event) {
 	if err != nil || len(b)+1 > maxLine {
 		return
 	}
-	dir := filepath.Join(w.Home, "events")
-	if os.MkdirAll(dir, 0o755) != nil {
+	dir := filepath.Join(w.Home, eventDir)
+	if os.MkdirAll(dir, atomicfile.DirMode) != nil {
 		return
 	}
-	f, err := os.OpenFile(filepath.Join(dir, now.Format(when.Date)+".jsonl"),
-		os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+	f, err := os.OpenFile(filepath.Join(dir, now.Format(when.Date)+eventExt),
+		os.O_WRONLY|os.O_APPEND|os.O_CREATE, atomicfile.FileMode)
 	if err != nil {
 		return
 	}

@@ -24,7 +24,7 @@ var exitLine = regexp.MustCompile(`^\[exit (-?\d+) · (.+)\]$`)
 
 // scriptExts are the files that are scripts, whose log of the same name is
 // shown in their pane instead of as a note of its own.
-var scriptExts = []string{".sh", ".ps1", ".http", ".rest"}
+var scriptExts = append([]string{".sh", ".ps1"}, httpfile.Exts()...)
 
 // withLog is the widget of a script that has a log: the script, with its
 // Run button, and under it a panel with the log of its last run. Keys and

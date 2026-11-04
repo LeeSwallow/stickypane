@@ -222,7 +222,7 @@ func mcpCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer live("mcp")()
+	defer live(registry.KindMCP)()
 	server := &mcp.Server{API: a, Guide: initcmd.GuideText(), Version: fullVersion()}
 	server.Open = func(write bool) (*api.API, error) { return open(e, write) }
 	return server.Serve(e.ctx, e.stdin, e.stdout)
@@ -239,7 +239,7 @@ func bridgeCmd(e env, args []string) error {
 		return err
 	}
 	prune()
-	defer live("bridge")()
+	defer live(registry.KindBridge)()
 	bridge.Version = fullVersion()
 	return bridge.Serve(e.ctx, a, kinds.Default(note.Plain), e.stdin, e.stdout)
 }

@@ -122,7 +122,7 @@ func fileName(name string) (string, error) {
 		return "", ErrBadName
 	}
 	if filepath.Ext(name) == "" {
-		name += ".md"
+		name += store.MarkdownExt
 	}
 	if !store.IsNote(name) {
 		return "", ErrBadName
@@ -214,7 +214,7 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 					d = d.Set(key, v)
 				}
 			}
-		} else if isMarkdown(file) {
+		} else if store.IsMarkdown(file) {
 			d = created(d, a.now())
 		}
 		return a.tend(file, before, d).Bytes(), nil
@@ -222,7 +222,7 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return file, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, nil
 }
 
@@ -263,19 +263,16 @@ func (a *API) Create(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if isMarkdown(file) {
+	if store.IsMarkdown(file) {
 		d = created(d, a.now())
 	}
 	d = a.tend(file, doc.Document{}, d)
 	if err := a.st.WriteNew(file, d.Bytes()); err != nil {
 		return file, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, nil
 }
-
-// isMarkdown reports whether a note may carry front matter.
-func isMarkdown(file string) bool { return strings.EqualFold(filepath.Ext(file), ".md") }
 
 // created says in a new note when stickypane made it.
 func created(d doc.Document, now time.Time) doc.Document {
