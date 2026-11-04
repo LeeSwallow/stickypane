@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/LeeSwallow/stickypane"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
 // The board plugin's marketplace, as `plugin marketplace add` takes it,
@@ -183,12 +184,12 @@ func ParseCodexMCP(toml string) (MCPServer, bool) {
 
 // RunSetup runs the steps in order, saying each one, and stops at the first
 // that fails. run runs a step (RunCommand) and check runs a step's Unless
-// without showing it (QuietCommand).
-func RunSetup(steps []Step, run, check func(cmd []string) error, out io.Writer) error {
+// without showing it (QuietCommand). It speaks tr's language.
+func RunSetup(steps []Step, run, check func(cmd []string) error, out io.Writer, tr i18n.Strings) error {
 	for _, s := range steps {
 		line := strings.Join(s.Cmd, " ")
 		if len(s.Unless) > 0 && check(s.Unless) == nil {
-			fmt.Fprintf(out, "  %s  (already done)\n", line)
+			fmt.Fprintf(out, "  %s  %s\n", line, tr.Say("setup.alreadyDone", nil))
 			continue
 		}
 		fmt.Fprintf(out, "  %s\n", line)

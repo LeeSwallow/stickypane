@@ -4,14 +4,28 @@ The board speaks English and Korean. Adding a language is one JSON file.
 
 ## What is translated, and what is not
 
+The rule: **what a person reads is translated; what a program, an agent or a
+log reads is not.**
+
 - Translated: everything the screen says to the user — key hints, messages
   on the bottom line, dialog titles, the help screen, the empty-note hints
-  inside widgets. These live in `internal/core/i18n/`.
-- Not translated: key names (`tab`, `ctrl+f`), file formats, command names,
-  the agent guide (`plugin/guide.md` and `plugin/rules/`) and the plugin
-  skills. The agent's reader is a model; every agent instruction file we looked at in
-  other projects is English, and the guide tells the agent to answer the
-  user in the user's language.
+  inside widgets — and what the person's commands print: `setup` (its
+  status, plan, questions and refusals), `init`, `config`, `theme`,
+  `language`, `keys` and its warnings, `env`, `help`, a usage error, the
+  refusal of a setting. These live in `internal/core/i18n/`.
+- Not translated: logs (`log.Printf`, files under `~/.stickypane`),
+  machine output (`--json`, the bridge protocol, MCP tool results), the
+  lines of the commands agents run on notes (`write`, `todo`, `card`,
+  `show`, `kinds`, `watch` …) and the agent guide (`plugin/guide.md`,
+  `plugin/rules/`, the skills): their reader is a model, and English
+  is what models read best; the guide tells the agent to answer in the
+  user's language. Nor identifiers: key names (`tab`, `ctrl+f`), action
+  names, setting keys and values, command names, flags, file names.
+- An error keeps its English for logs and for what wraps it, and is shown
+  translated: an error that is one of the sentences is an `i18n.Message`
+  (or has a `Say` method, as `prefs.Refused` does), and the edge that
+  shows it calls `i18n.Speak(err, tr)`. The details inside it that come
+  from the system or from a note command stay as they are.
 - The README has translations next to it (`README.ko.md`), each saying
   which commit it was translated at. English is canonical.
 
@@ -43,7 +57,11 @@ English. Messages use `{{.Name}}` placeholders, so a language can order
 the parts as it likes. `actions` says what each of the board's keys does,
 by the action's name (`note-archive`) or a line of the help (`help.size`);
 the English, and the list of names, is the table in
-`internal/surface/app/keymap.go`.
+`internal/surface/app/keymap.go`. `says` is what the person's commands print,
+keyed like `setup.carries`; the English is in `internal/core/i18n/says.go`,
+and a translation must have every key with the same placeholders
+(`go test ./internal/core/i18n/` checks). A print in those commands names a
+key, never an English sentence (`go test ./cmd/stickypane/` checks).
 
 The language comes from `sticky.json` (`stickypane config language ko`) or, with
 `auto`, from `STICKYPANE_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`.
@@ -51,7 +69,8 @@ The language comes from `sticky.json` (`stickypane config language ko`) or, with
 ## Adding a language
 
 1. Copy `translations/ko.json` to `translations/<code>.json` and translate
-   the values. Delete any you do not want to translate.
+   the values. Delete any you do not want to translate, except under
+   `says`: those are all translated.
 2. Keep help lines under 40 cells (`go test ./internal/core/i18n/` checks).
 3. `go test ./...`. A field name that does not exist is an error, so a
    typo cannot hide.

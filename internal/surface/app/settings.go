@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/theme"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
@@ -72,7 +73,7 @@ func (m *Model) changePref(step int) {
 	p := prefs.Panel()[m.settingsAt]
 	next := p.Next(prefs.Get(m.store.Settings(), p.Key), step)
 	if err := m.calls().ChangeSettings(api.Setting{Key: p.Key, Value: next}); err != nil {
-		m.status = err.Error()
+		m.status = i18n.Speak(err, m.tr)
 		return
 	}
 	m.reload()

@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/LeeSwallow/stickypane"
 	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
@@ -189,32 +191,34 @@ func Run(root string, opts Options, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	// What init says is in the board's language, as its welcome note is.
+	tr := i18n.Pick(Language(dir, opts.Language), env.Detect().Locale)
 	if made {
-		fmt.Fprintf(out, "Made %s/ with a welcome note.\n", filepath.Base(dir))
+		fmt.Fprintln(out, tr.Say("init.made", map[string]any{"Dir": filepath.Base(dir)}))
 	} else {
-		fmt.Fprintf(out, "%s/ already exists.\n", filepath.Base(dir))
+		fmt.Fprintln(out, tr.Say("init.exists", map[string]any{"Dir": filepath.Base(dir)}))
 	}
 	if !opts.NoAgentDocs {
 		var r report
 		if err := teach(root, opts, &r); err != nil {
 			return err
 		}
-		if line := r.String(); line != "" {
+		if line := r.Say(tr); line != "" {
 			fmt.Fprintln(out, line)
 		}
 	}
-	fmt.Fprintln(out, NextStep())
+	fmt.Fprintln(out, NextStep(tr))
 	return nil
 }
 
 // NextStep is the one thing to do once the board is there: open it.
 // Inside tmux, Zellij, WezTerm or Windows Terminal it is that tool's
 // split command.
-func NextStep() string {
+func NextStep(tr i18n.Strings) string {
 	if split := env.Detect().Pane.Split("stickypane"); split != "" {
-		return "Next: `" + split + "` opens the board next to your agent."
+		return tr.Say("init.nextSplit", map[string]any{"Split": split})
 	}
-	return "Next: run `stickypane` in a pane next to your agent."
+	return tr.Say("init.next", nil)
 }
 
 // report collects what teach did, to say it in one line.
@@ -223,31 +227,30 @@ type report struct {
 	plugin                  bool
 }
 
-func (r report) String() string {
+// Say is what teach did, in one line in tr's language.
+func (r report) Say(tr i18n.Strings) string {
 	var parts []string
 	if len(r.added) > 0 {
-		parts = append(parts, "added the agent guide to "+and(r.added))
+		parts = append(parts, tr.Say("init.added", map[string]any{"Files": tr.List(r.added, false)}))
 	}
 	if len(r.current) > 0 {
-		parts = append(parts, "the agent guide in "+and(r.current)+" is up to date")
+		parts = append(parts, tr.Say("init.current", map[string]any{"Files": tr.List(r.current, false)}))
 	}
 	if len(r.removed) > 0 {
-		parts = append(parts, "took the agent guide out of "+and(r.removed)+": the board plugin teaches it")
+		parts = append(parts, tr.Say("init.removed", map[string]any{"Files": tr.List(r.removed, false)}))
 	} else if r.plugin {
-		parts = append(parts, "the board plugin teaches your agent")
+		parts = append(parts, tr.Say("init.plugin", nil))
 	}
 	if len(parts) == 0 {
 		return ""
 	}
-	line := strings.Join(parts, "; ") + "."
-	return strings.ToUpper(line[:1]) + line[1:]
-}
-
-func and(names []string) string {
-	if len(names) == 1 {
-		return names[0]
+	line := parts[0]
+	for _, p := range parts[1:] {
+		line = tr.Say("init.join", map[string]any{"Before": line, "After": p})
 	}
-	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+	line = tr.Say("init.end", map[string]any{"Line": line})
+	first, size := utf8.DecodeRuneInString(line)
+	return string(unicode.ToUpper(first)) + line[size:]
 }
 
 // teach puts the guide where the project's agents read it, as Run says.
@@ -396,12 +399,12 @@ var ErrNoBoardHere = errors.New("will not make a board here")
 func RefuseBoard(dir string) error {
 	d := realDir(dir)
 	if d == string(filepath.Separator) {
-		return fmt.Errorf("%w: %s is the root folder; run stickypane init in a project", ErrNoBoardHere, dir)
+		return &i18n.Message{Key: "init.rootFolder", Values: map[string]any{"Dir": dir}, Cause: ErrNoBoardHere}
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		h := realDir(home)
 		if d == h || runtime.GOOS == "darwin" && strings.EqualFold(d, h) {
-			return fmt.Errorf("%w: %s is the home folder, and every project below it would find the board; run stickypane init in a project", ErrNoBoardHere, dir)
+			return &i18n.Message{Key: "init.homeFolder", Values: map[string]any{"Dir": dir}, Cause: ErrNoBoardHere}
 		}
 	}
 	return nil

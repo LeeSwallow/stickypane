@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -39,13 +40,14 @@ func keysCmd(e env, args []string) error {
 // whether keys.json changed it. What of the file was not used goes to
 // standard error.
 func listKeys(e env, path, shown string, asJSON bool) error {
+	tr := helpStrings()
 	want, err := keyfile.Read(path)
 	if err != nil {
-		fmt.Fprintf(e.stderr, "%s: %v; the keys are as they come\n", shown, err)
+		fmt.Fprintln(e.stderr, tr.Say("keys.unreadable", map[string]any{"File": shown, "Err": err}))
 	}
-	bindings, problems := app.Bindings(helpStrings(), want)
+	bindings, problems := app.Bindings(tr, want)
 	for _, p := range problems {
-		fmt.Fprintf(e.stderr, "%s: %s; it keeps the keys it comes with\n", shown, p)
+		fmt.Fprintln(e.stderr, tr.Say("keys.problem", map[string]any{"File": shown, "Action": p.Action, "Why": p.Say(tr)}))
 	}
 	if asJSON {
 		return printJSON(e.stdout, bindings)
@@ -74,7 +76,7 @@ func listKeys(e env, path, shown string, asJSON bool) error {
 func setKeys(e env, path, shown, name string, keys []string) error {
 	want, err := keyfile.Read(path)
 	if err != nil {
-		return fmt.Errorf("%s: %v; stickypane keys reset starts it again", shown, err)
+		return i18n.Err("keys.setUnreadable", map[string]any{"File": shown, "Err": err})
 	}
 	tr := helpStrings()
 	normal, err := app.NormalKeys(keys)
@@ -105,13 +107,13 @@ func resetKeys(e env, path, shown string, names []string) error {
 		if err := keyfile.Remove(path); err != nil {
 			return err
 		}
-		_, err := fmt.Fprintf(e.stdout, "%s removed; the keys are as they come\n", shown)
+		_, err := fmt.Fprintln(e.stdout, helpStrings().Say("keys.removed", map[string]any{"File": shown}))
 		return err
 	}
 	name := names[0]
 	want, err := keyfile.Read(path)
 	if err != nil {
-		return fmt.Errorf("%s: %v; stickypane keys reset removes it", shown, err)
+		return i18n.Err("keys.resetUnreadable", map[string]any{"File": shown, "Err": err})
 	}
 	bindings, _ := app.Bindings(helpStrings(), nil)
 	if _, ok := want[name]; ok {
@@ -137,7 +139,7 @@ func printKeysOf(e env, bindings []app.Binding, name string) error {
 			return err
 		}
 	}
-	return fmt.Errorf("there is no action %q; stickypane keys lists them", name)
+	return i18n.Err("keys.noAction", map[string]any{"Action": strconv.Quote(name)})
 }
 
 // shownKeys is keys as the board shows them, side by side: the sequence

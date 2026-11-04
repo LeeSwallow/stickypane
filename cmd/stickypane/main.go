@@ -188,7 +188,7 @@ func runEnv(e env, args []string) int {
 			return exitCode(c.run(e, args[1:]), stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
-			return exitCode(usageError{msg: "unknown command " + args[0]}, stderr)
+			return exitCode(usageSay("", "error.unknownCommand", map[string]any{"Name": args[0]}), stderr)
 		}
 	}
 	start := "."
