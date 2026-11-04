@@ -7,6 +7,7 @@
   // 200%. A note never placed starts where the grid would draw it, and that
   // place is kept. Every change is handed to onplace; the shell keeps it in
   // overlay.json, never in the board's files.
+  import './tokens.css'
   import { tr } from '../i18n'
   import type { Place } from '../services/canvas'
   import { extent, firstPlaces, moved, raise, resized, restack, samePlace, zoomed, type Edge } from './free'
@@ -216,7 +217,7 @@
     position: absolute;
     top: calc(-1 * var(--space-2));
     left: 50%;
-    z-index: 2;
+    z-index: var(--z-tape);
     width: 56px;
     height: var(--space-4);
     transform: translateX(-50%) rotate(-2deg);
@@ -238,20 +239,20 @@
   .handle.e {
     top: 0;
     bottom: var(--space-4);
-    right: -6px;
-    width: 12px;
+    right: calc(var(--edge-hit) / -2);
+    width: var(--edge-hit);
     cursor: ew-resize;
   }
   .handle.s {
     left: 0;
     right: var(--space-4);
-    bottom: -6px;
-    height: 12px;
+    bottom: calc(var(--edge-hit) / -2);
+    height: var(--edge-hit);
     cursor: ns-resize;
   }
   .handle.se {
-    right: -6px;
-    bottom: -6px;
+    right: calc(var(--edge-hit) / -2);
+    bottom: calc(var(--edge-hit) / -2);
     width: 22px;
     height: 22px;
     cursor: nwse-resize;
@@ -264,16 +265,16 @@
     opacity: 0;
   }
   .handle.e::after {
-    left: 5px;
-    top: calc(50% - 12px);
-    width: 2px;
-    height: 24px;
+    left: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    top: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-line);
+    height: var(--edge-mark);
   }
   .handle.s::after {
-    top: 5px;
-    left: calc(50% - 12px);
-    width: 24px;
-    height: 2px;
+    top: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    left: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-mark);
+    height: var(--edge-line);
   }
   .handle.se::after {
     right: 6px;

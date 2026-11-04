@@ -7,4 +7,10 @@
 :root {
   --row: 22px; /* one terminal row: layout.ts ROW_PX */
   --narrow: 720px; /* one grid column below this: layout.ts NARROW */
+  /* a note's edge that sizes it (NoteFrame on the grid, Canvas on the
+     canvas): the strip a pointer finds, centred on the border drawn
+     (#66), and the short mark on it */
+  --edge-hit: 12px;
+  --edge-mark: 24px;
+  --edge-line: 2px;
 }

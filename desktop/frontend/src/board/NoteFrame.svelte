@@ -9,6 +9,7 @@
   // works zoomed, on a canvas or alone. free: the canvas or a torn-off
   // note's window sizes it, so it fills its box and has no edges or width
   // steps of the grid's.
+  import './tokens.css'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
@@ -340,8 +341,8 @@
     z-index: 1;
     left: 0;
     right: 0;
-    bottom: -6px;
-    height: 12px;
+    bottom: calc(var(--edge-hit) / -2);
+    height: var(--edge-hit);
     cursor: ns-resize;
     touch-action: none;
   }
@@ -349,27 +350,27 @@
     left: auto;
     top: 0;
     bottom: 0;
-    right: -6px;
-    width: 12px;
+    right: calc(var(--edge-hit) / -2);
+    width: var(--edge-hit);
     height: auto;
     cursor: ew-resize;
   }
   .edge::after {
     content: '';
     position: absolute;
-    left: calc(50% - 12px);
-    top: 5px;
-    width: 24px;
-    height: 2px;
+    left: calc(50% - var(--edge-mark) / 2);
+    top: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    width: var(--edge-mark);
+    height: var(--edge-line);
     border-radius: 1px;
     background: var(--ink-3);
     opacity: 0;
   }
   .edge.side::after {
-    left: 5px;
-    top: calc(50% - 12px);
-    width: 2px;
-    height: 24px;
+    left: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    top: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-line);
+    height: var(--edge-mark);
   }
   .frame:hover > .edge::after {
     opacity: 0.6;

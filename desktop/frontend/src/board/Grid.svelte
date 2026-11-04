@@ -125,7 +125,7 @@
     position: absolute;
     top: calc(-1 * var(--space-2));
     left: 50%;
-    z-index: 2;
+    z-index: var(--z-tape);
     width: 48px;
     height: var(--space-3);
     transform: translateX(-50%) rotate(-2deg);

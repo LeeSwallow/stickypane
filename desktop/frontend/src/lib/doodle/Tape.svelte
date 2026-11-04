@@ -17,7 +17,7 @@
     margin-left: -31px;
     background: var(--tape);
     transform: rotate(-3deg);
-    z-index: 2;
+    z-index: var(--z-tape);
     border-left: 1px dashed rgba(255, 255, 255, 0.12);
     border-right: 1px dashed rgba(255, 255, 255, 0.12);
   }
