@@ -240,8 +240,8 @@ flowchart LR
     index -.-> window
 ```
 
-앱은 보드 목록을 `~/.stickypane`에서 읽습니다. 그 폴더가 있으면 stickypane 세션이
-저마다 어느 보드에 있는지 거기에 적어 둡니다([자주 묻는 질문](#자주-묻는-질문) 참고).
+앱은 보드 목록을 `~/.stickypane`에서 읽습니다. 앱이 그 폴더를 마련해 두면 stickypane
+세션이 저마다 어느 보드에 있는지 거기에 적어 둡니다([자주 묻는 질문](#자주-묻는-질문) 참고).
 
 ### 계층
 
@@ -411,10 +411,10 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 **macOS에서 내려받은 프로그램이 열리지 않습니다.**
 `xattr -d com.apple.quarantine stickypane`을 실행하거나 Homebrew로 설치하세요.
 
-**어딘가로 무언가를 보내나요?** 보내지 않습니다. `~/.stickypane` 폴더가 있으면
-(데스크톱 앱이 만듭니다) stickypane은 앱이 보드 목록을 보여 줄 수 있게 어느 보드가
-쓰이는지 적고, 오래된 기록은 스스로 지웁니다. stickypane은 노트 내용을 적지 않고,
-그 폴더를 만들지도 않습니다([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
+**어딘가로 무언가를 보내나요?** 보내지 않습니다. 데스크톱 앱이
+`~/.stickypane/overlay.json`을 써 두었으면 stickypane은 앱이 보드 목록을 보여 줄 수
+있게 어느 보드가 쓰이는지 적고, 오래된 기록은 스스로 지웁니다. stickypane은 노트
+내용을 적지 않고, 그 폴더도 그 파일도 만들지 않습니다([자세히](docs/ko/configuration.md#이-컴퓨터에-남는-기록)).
 
 **마크다운 칸반과 무엇이 다른가요?**
 [kanban-md](https://github.com/antopolskiy/kanban-md)와

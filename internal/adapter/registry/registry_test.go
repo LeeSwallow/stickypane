@@ -32,6 +32,56 @@ func lines(t *testing.T, path string) []string {
 
 func today() string { return time.Now().Format(when.Date) }
 
+// appHome makes a home as the app leaves it: a folder with AppFile in it.
+func appHome(t *testing.T) string {
+	t.Helper()
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, AppFile), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return home
+}
+
+// A home folder without the app's file is someone else's (a terminal
+// user's keys.json, say): nothing is recorded in it.
+func TestNothingIsWrittenWithoutTheAppsFile(t *testing.T) {
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, "keys.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(home, "events"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("STICKYPANE_HOME", home)
+	if Enabled() {
+		t.Fatal("Enabled is true without the app's file")
+	}
+	Append(Event{Type: "project.init", Project: "/p"})
+	Live("/p", "tui")()
+	Touch("/p", "card")
+	ents, err := os.ReadDir(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range ents {
+		names = append(names, e.Name())
+	}
+	if strings.Join(names, " ") != "events keys.json" {
+		t.Fatalf("home = %v, want only what was there", names)
+	}
+	if ents, _ := os.ReadDir(filepath.Join(home, "events")); len(ents) != 0 {
+		t.Fatalf("events written: %v", ents)
+	}
+}
+
+func TestEnabledWithTheAppsFile(t *testing.T) {
+	t.Setenv("STICKYPANE_HOME", appHome(t))
+	if !Enabled() {
+		t.Fatal("Enabled is false with the app's file")
+	}
+}
+
 func TestNothingIsWrittenWithoutTheHomeFolder(t *testing.T) {
 	home := filepath.Join(t.TempDir(), "absent")
 	t.Setenv("STICKYPANE_HOME", home)
@@ -47,7 +97,7 @@ func TestNothingIsWrittenWithoutTheHomeFolder(t *testing.T) {
 }
 
 func TestAppendWritesADatedLine(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	t.Setenv("STICKYPANE_HOME", home)
 	Append(Event{Type: "project.init", Project: "/p"})
 	got := lines(t, filepath.Join(home, "events", today()+".jsonl"))
@@ -70,7 +120,7 @@ func TestAppendWritesADatedLine(t *testing.T) {
 }
 
 func TestAppendDropsALineOverThePipeBuffer(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	t.Setenv("STICKYPANE_HOME", home)
 	Append(Event{Type: "project.touch", Project: strings.Repeat("x", 5000)})
 	if _, err := os.Stat(filepath.Join(home, "events", today()+".jsonl")); err == nil {
@@ -93,7 +143,7 @@ func TestHelperAppend(t *testing.T) {
 }
 
 func TestAppendFromManyProcessesKeepsWholeLines(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	var cmds []*exec.Cmd
 	for i := 0; i < 20; i++ {
 		c := exec.Command(os.Args[0], "-test.run=^TestHelperAppend$")
@@ -124,7 +174,7 @@ func TestAppendIgnoresAnUnwritableHome(t *testing.T) {
 	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
 		t.Skip("permissions are not enforced here")
 	}
-	home := t.TempDir()
+	home := appHome(t)
 	if err := os.Chmod(home, 0o500); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +186,7 @@ func TestAppendIgnoresAnUnwritableHome(t *testing.T) {
 }
 
 func TestLiveCreatesAndRemovesTheRunFile(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	t.Setenv("STICKYPANE_HOME", home)
 	end := Live("/p", "tui")
 	file := filepath.Join(home, "run", fmt.Sprintf("%d.json", os.Getpid()))
@@ -162,7 +212,7 @@ func TestLiveCreatesAndRemovesTheRunFile(t *testing.T) {
 }
 
 func TestTouchIsThrottled(t *testing.T) {
-	home := t.TempDir()
+	home := appHome(t)
 	t.Setenv("STICKYPANE_HOME", home)
 	log := filepath.Join(home, "events", today()+".jsonl")
 	Touch("/p", "card")

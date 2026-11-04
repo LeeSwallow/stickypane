@@ -6,6 +6,13 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Changed
+
+- Records in `~/.stickypane` are on where the desktop app's `overlay.json`
+  is, not wherever the folder is: a folder made for something else, such as
+  a terminal user's settings, records nothing. The app writes the file on
+  its first start.
+
 ### Fixed
 
 - A note torn off into its own window starts right under its frame's top

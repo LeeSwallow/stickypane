@@ -11,10 +11,14 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 )
 
-// appHome makes the folder the app would make and points the registry at it.
+// appHome makes the home the app would make, its folder and its settings
+// file, and points the registry at it.
 func appHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, registry.AppFile), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	t.Setenv("STICKYPANE_HOME", home)
 	return home
 }

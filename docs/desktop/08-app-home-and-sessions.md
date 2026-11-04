@@ -106,7 +106,7 @@ flowchart LR
 
 [설계자 판단] 이름은 `~/.sticky`가 아니라 **`~/.stickypane/`**이다. `store.Find`는 현재 폴더에서 위로 올라가며 처음 만나는 `.sticky`를 board로 쓰므로, `~/.sticky`가 있으면 홈 아래에서 `.sticky`가 없는 모든 프로젝트가 레지스트리를 board로 열고 자동 `init`도 멈춘다.
 
-[설계자 판단] 기록은 **`~/.stickypane/`이 있을 때만** 남긴다. 폴더는 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람의 홈에는 아무것도 생기지 않는다. 기록을 쓰고 지우는 것은 본체뿐이다(`registry.Prune`, board를 열 때). 앱은 읽기만 한다(#32, #24).
+[설계자 판단] 기록은 **`~/.stickypane/overlay.json`이 있을 때만** 남긴다. 폴더와 그 파일은 앱이 첫 실행에 만든다(`STICKYPANE_HOME`을 직접 정해도 된다). 터미널만 쓰는 사람은 다른 일(키 설정 등)로 폴더를 두어도 아무것도 기록되지 않는다. 기록을 쓰고 지우는 것은 본체뿐이다(`registry.Prune`, board를 열 때). 앱은 읽기만 한다(#32, #24).
 
 ```text
 ~/.stickypane/                       (STICKYPANE_HOME으로 바꿀 수 있다)
@@ -136,7 +136,7 @@ flowchart LR
   idx --> db[("stickypane.db")]
 ```
 
-- **본체**는 SQLite를 모른다. `~/.stickypane/`이 있으면, 프로젝트에서 무엇인가 할 때(`init`, TUI 시작·종료, `bridge`, `mcp`, `watch`, 노트를 바꾸는 명령) 그날의 `events/*.jsonl`에 한 줄을 덧붙이고, 오래 사는 프로세스는 `run/<pid>.json`을 만든다. 실패해도 명령은 실패하지 않는다(best-effort).
+- **본체**는 SQLite를 모른다. `~/.stickypane/overlay.json`이 있으면, 프로젝트에서 무엇인가 할 때(`init`, TUI 시작·종료, `bridge`, `mcp`, `watch`, 노트를 바꾸는 명령) 그날의 `events/*.jsonl`에 한 줄을 덧붙이고, 오래 사는 프로세스는 `run/<pid>.json`을 만든다. 실패해도 명령은 실패하지 않는다(best-effort).
 - **앱**이 SQLite 색인을 소유한다. 시작할 때와 홈을 열 때 새 줄만 읽어 반영한다. `events/`·`run/`의 파일은 지우지 않는다. 기록 형식은 본체의 골든 파일(`internal/adapter/registry/testdata/home`)이 고정하고, 앱의 테스트도 같은 파일을 읽는다.
 
 이렇게 나누는 이유:

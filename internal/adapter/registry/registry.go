@@ -3,9 +3,10 @@
 // events/ and one file per long-lived process to run/, inside the folder
 // ~/.stickypane (or $STICKYPANE_HOME).
 //
-// The folder is made by the app, never here: where it does not exist, a
-// person who only uses the terminal gets nothing in their home, and every
-// function of this package does nothing. Writing is best-effort too: a
+// Records are kept only where the desktop app has written its settings
+// file, AppFile, in that folder; neither is made here. A person who only
+// uses the terminal gets nothing recorded, even with the folder there for
+// something else, and every writer of this package does nothing. Writing is best-effort too: a
 // command must not fail because a record could not be kept, so no writer
 // returns an error.
 //
@@ -39,6 +40,10 @@ const (
 	runExt   = ".json"
 	eventDir = "events"
 	eventExt = ".jsonl"
+	// AppFile is the desktop app's settings file in the home folder
+	// (desktop/internal/shell.StateFile, in the app's own module). The app
+	// writes it on start; that it is there is what turns records on.
+	AppFile = "overlay.json"
 )
 
 // The types of an Event.
@@ -109,9 +114,18 @@ func Home() string {
 	return filepath.Join(h, homeName)
 }
 
-// Enabled says whether records are kept: only when the home folder
-// already exists, because the app makes it.
-func Enabled() bool { return exists(Home()) }
+// Enabled says whether records are kept: only when the app's AppFile is
+// in the home folder, because the app writes it.
+func Enabled() bool { return enabled(Home()) }
+
+// enabled says whether records are kept in home: AppFile is there.
+func enabled(home string) bool {
+	if home == "" {
+		return false
+	}
+	fi, err := os.Stat(filepath.Join(home, AppFile))
+	return err == nil && fi.Mode().IsRegular()
+}
 
 func exists(home string) bool {
 	if home == "" {
@@ -135,7 +149,7 @@ func Append(e Event) { Default().Append(e) }
 // version and, if empty, the time. A line longer than maxLine is dropped
 // rather than written in pieces another process could cut into.
 func (w Writer) Append(e Event) {
-	if !exists(w.Home) {
+	if !enabled(w.Home) {
 		return
 	}
 	now := w.now()

@@ -136,10 +136,12 @@ shown for that run, so what your agent just wrote is in front of you at once.
 
 ## What stickypane records on this machine
 
-Only if the folder `~/.stickypane` (or `$STICKYPANE_HOME`) already exists.
-stickypane never makes it: the desktop app does, so a person who only uses
-the terminal gets nothing in their home. Where it exists, stickypane writes
-two things there, to let the desktop app list your boards:
+Only if the desktop app's settings file `overlay.json` is in `~/.stickypane`
+(or `$STICKYPANE_HOME`). stickypane never makes the folder or the file: the
+app writes the file on its first start, so a person who only uses the
+terminal gets nothing recorded, even with the folder there for something
+else. Where the file is, stickypane writes two things beside it, to let the
+desktop app list your boards:
 
 - `events/YYYY-MM-DD.jsonl`, one JSON line per event, `{v: 1, at, type, …}`:
   the time, the type (`session.start`, `session.end`, `project.init`,
