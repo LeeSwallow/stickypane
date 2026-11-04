@@ -81,6 +81,12 @@
   const fraction = (f: string) => (f === '1' || !isFraction(f) ? $tr('ui.size.full') : f)
   const words = (f: string) => (f === '1' || !isFraction(f) ? $tr('ui.size.whole') : $tr('ui.size.share', { size: f }))
 
+  // a torn-off note's head has no title to give a row to: its controls
+  // float over the note's top corner, shown on a hover or the focus, and
+  // the shape starts right under the frame's border. A book's pager stays
+  // in sight, so a book keeps its row.
+  const floating = $derived(!titled && !(book && book.total > 1))
+
   const renamable = $derived(editable && !!onrename)
   let editing = $state(false)
   let draft = $state('')
@@ -97,7 +103,7 @@
   }
 </script>
 
-<div class="wrap">
+<div class="wrap" class:floating class:open={menuOpen} data-head={floating ? 'float' : 'row'}>
   <header class="head">
     {#if titled}{@render lead?.()}{/if}
     {#if editing}
@@ -219,6 +225,28 @@
   .wrap {
     container-type: inline-size;
     min-width: 0;
+  }
+  /* over the top corner, taking no row; the window's hover shows it */
+  .wrap.floating {
+    container-type: normal;
+    position: absolute;
+    z-index: 1;
+    top: calc(var(--space-1) * -1);
+    right: calc(var(--space-2) * -1);
+    max-width: 100%;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-md);
+    background: var(--paper);
+    opacity: 0;
+    transition: opacity var(--t-short) var(--ease);
+  }
+  .wrap.floating .tools {
+    opacity: 1;
+  }
+  :global(:hover) > .wrap.floating,
+  .wrap.floating:focus-within,
+  .wrap.floating.open {
+    opacity: 1;
   }
   .head {
     display: flex;

@@ -6,6 +6,13 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Fixed
+
+- A note torn off into its own window starts right under its frame's top
+  border: its head's controls float over the corner on a hover instead of
+  keeping an empty row (a checklist showed ~80px of nothing above its
+  progress bar), and the window's first height follows.
+
 ## [0.2.1] - 2026-11-04
 
 ### Added
