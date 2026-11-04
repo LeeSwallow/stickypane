@@ -5,6 +5,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
+
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
 )
@@ -30,7 +33,7 @@ func configCmd(e env, args []string) error {
 	set := a.Settings()
 	switch len(words) {
 	case 0:
-		return listSettings(e.stdout, func(key string) string { return prefs.Get(set, key) })
+		return listSettings(e.stdout, helpStrings(), func(key string) string { return prefs.Get(set, key) })
 	case 1:
 		if prefs.Lookup(words[0]).Key == "" {
 			_, err := prefs.Normal(words[0], "")
@@ -48,9 +51,11 @@ func configCmd(e env, args []string) error {
 
 // listSettings prints every setting with its value, whether that is the
 // default, and what it changes: the panel's first, then the rest under
-// "more:", in one set of columns.
-func listSettings(w io.Writer, get func(key string) string) error {
-	keyW, valW := 0, 0
+// "more:", in one set of columns. Keys and values are as they are typed;
+// the rest is in tr's language.
+func listSettings(w io.Writer, tr i18n.Strings, get func(key string) string) error {
+	def := tr.Say("config.default", nil)
+	keyW, valW, markW := 0, 0, ansi.StringWidth(def)
 	for _, p := range prefs.All {
 		keyW, valW = max(keyW, len(p.Key)), max(valW, len(get(p.Key)))
 	}
@@ -62,10 +67,11 @@ func listSettings(w io.Writer, get func(key string) string) error {
 		}
 		v, mark := get(p.Key), ""
 		if v == p.Default {
-			mark = "(default)"
+			mark = def
 		}
-		fmt.Fprintf(b, "%-*s  %-*s  %-9s  %s\n", keyW, p.Key, valW, v, mark, p.Help)
+		mark += strings.Repeat(" ", markW-ansi.StringWidth(mark))
+		fmt.Fprintf(b, "%-*s  %-*s  %s  %s\n", keyW, p.Key, valW, v, mark, tr.L(p.Help))
 	}
-	_, err := io.WriteString(w, first.String()+"\nmore:\n"+more.String())
+	_, err := io.WriteString(w, first.String()+"\n"+tr.Say("config.more", nil)+"\n"+more.String())
 	return err
 }

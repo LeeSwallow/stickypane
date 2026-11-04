@@ -64,14 +64,14 @@ func showInApp(dir string, stderr io.Writer) (terminal bool) {
 	switch {
 	case err == nil:
 		if view == store.ViewOverlay {
-			fmt.Fprintf(stderr, "stickypane: opened %s in the stickypane app\n", filepath.Dir(dir))
+			fmt.Fprintln(stderr, "stickypane:", helpStrings().Say("app.opened", map[string]any{"Dir": filepath.Dir(dir)}))
 			return false
 		}
 		return true
 	case errors.Is(err, errNoApp) && view == store.ViewOverlay:
-		fmt.Fprintf(stderr, "stickypane: this board shows in the desktop app, which is not installed (get it from %s); showing it here\n", appGet)
+		fmt.Fprintln(stderr, "stickypane:", helpStrings().Say("app.missing", map[string]any{"URL": appGet}))
 	case !errors.Is(err, errNoApp):
-		fmt.Fprintf(stderr, "stickypane: could not open the stickypane app: %v\n", err)
+		fmt.Fprintln(stderr, "stickypane:", helpStrings().Say("app.cannotOpen", map[string]any{"Err": err}))
 	}
 	return true
 }

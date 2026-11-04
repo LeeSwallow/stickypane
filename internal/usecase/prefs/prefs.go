@@ -5,7 +5,6 @@
 package prefs
 
 import (
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -183,18 +182,21 @@ type Refused struct {
 	Values     []string // what the setting takes
 }
 
-func (r *Refused) Error() string {
-	switch r.Key {
-	case "theme":
-		return fmt.Sprintf("there is no theme %q", r.Value)
-	case "language":
-		return fmt.Sprintf("there is no translation for %q: use %s", r.Value, strings.Join(r.Values, ", "))
-	case "style":
-		return fmt.Sprintf("style %q is not doodle or neat", r.Value)
-	case "view":
-		return fmt.Sprintf("view %q is not terminal, overlay or both", r.Value)
+// Error is the sentence in English, as logs and the bridge say it.
+func (r *Refused) Error() string { return r.Say(i18n.Strings{}) }
+
+// Say is the sentence in tr's language: the terminal's front ends show it.
+func (r *Refused) Say(tr i18n.Strings) string {
+	key := map[string]string{
+		"theme":    "setting.noTheme",
+		"language": "setting.noLanguage",
+		"style":    "setting.badStyle",
+		"view":     "setting.badView",
+	}[r.Key]
+	if key == "" {
+		key = "setting.refused"
 	}
-	return fmt.Sprintf("%s is one of %s, not %q", r.Key, strings.Join(r.Values, ", "), r.Value)
+	return tr.Say(key, map[string]any{"Key": r.Key, "Value": strconv.Quote(r.Value), "Values": strings.Join(r.Values, ", ")})
 }
 
 // Normal is the value a setting keeps for what was asked: a theme by its
@@ -209,7 +211,7 @@ func Normal(key, value string) (string, error) {
 		for i, q := range All {
 			keys[i] = q.Key
 		}
-		return "", fmt.Errorf("there is no setting %q; there are %s", key, strings.Join(keys, ", "))
+		return "", i18n.Err("setting.unknown", map[string]any{"Name": strconv.Quote(key), "Settings": strings.Join(keys, ", ")})
 	}
 	vals := p.Values()
 	switch v := strings.TrimSpace(value); {

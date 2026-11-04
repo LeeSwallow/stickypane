@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 )
 
 // The exit codes. They are part of the command line's contract: scripts and
@@ -18,20 +20,30 @@ const (
 	exitInterrupted = 130 // the user pressed Ctrl-C, as shells count it
 )
 
-const noBoard = "No .sticky folder here or above. Run `stickypane init` in your project to make one."
-
 // errNoBoard is returned when there is no notes folder to work on.
-var errNoBoard = errors.New(noBoard)
+var errNoBoard = i18n.Err("error.noBoard", nil)
 
 // usageError says the arguments make no sense. cmd names the command whose
-// usage is printed after msg; an empty cmd prints the whole usage.
-type usageError struct{ cmd, msg string }
+// usage is printed after msg; an empty cmd prints the whole usage. said,
+// when there is one, is msg as the person reads it, in their language.
+type usageError struct {
+	cmd, msg string
+	said     *i18n.Message
+}
 
 func (e usageError) Error() string { return e.msg }
 
-// usagef is a usage error for cmd.
+// usagef is a usage error for cmd, in English: the note commands', which
+// agents read.
 func usagef(cmd, format string, a ...any) error {
 	return usageError{cmd: cmd, msg: fmt.Sprintf(format, a...)}
+}
+
+// usageSay is a usage error for cmd that a person reads: the sentence
+// under key, said in their language.
+func usageSay(cmd, key string, values map[string]any) error {
+	m := i18n.Err(key, values)
+	return usageError{cmd: cmd, msg: m.Error(), said: m}
 }
 
 // timeoutError says wait gave up.
@@ -45,17 +57,24 @@ func (e timeoutError) Error() string { return e.msg }
 func exitCode(err error, stderr io.Writer) int {
 	var usage usageError
 	var timeout timeoutError
-	switch {
-	case err == nil:
+	if err == nil {
 		return exitOK
+	}
+	lang := helpLanguage()
+	tr, _ := i18n.Load(lang)
+	switch {
 	case errors.As(err, &usage):
-		if usage.msg != "" {
-			fmt.Fprintln(stderr, "stickypane:", usage.msg)
+		msg := usage.msg
+		if usage.said != nil {
+			msg = usage.said.Say(tr)
 		}
-		fmt.Fprint(stderr, usageOf(usage.cmd))
+		if msg != "" {
+			fmt.Fprintln(stderr, "stickypane:", msg)
+		}
+		fmt.Fprint(stderr, usageIn(lang, tr, usage.cmd))
 		return exitUsage
 	case errors.Is(err, errNoBoard):
-		fmt.Fprintln(stderr, noBoard)
+		fmt.Fprintln(stderr, errNoBoard.Say(tr))
 		return exitFailed
 	case errors.As(err, &timeout):
 		fmt.Fprintln(stderr, "stickypane:", timeout.msg)
@@ -63,8 +82,22 @@ func exitCode(err error, stderr io.Writer) int {
 	case errors.Is(err, context.Canceled):
 		return exitInterrupted
 	}
-	fmt.Fprintln(stderr, "stickypane:", err)
+	fmt.Fprintln(stderr, "stickypane:", i18n.Speak(err, tr))
 	return exitFailed
+}
+
+// usageIn is what a usage error prints after its message: in English the
+// lines of the usage text about cmd (usageOf); in another language, the
+// command's usage line and where its help is, or the overview.
+func usageIn(lang string, tr i18n.Strings, cmd string) string {
+	if lang == "en" {
+		return usageOf(cmd)
+	}
+	c, ok := lookup(cmd)
+	if !ok {
+		return overview(tr)
+	}
+	return tr.T("label.usage", "Usage") + ":\n  " + c.help.syntax + "\n" + tr.Say("usage.more", map[string]any{"Cmd": c.names[0]}) + "\n"
 }
 
 // usageOf returns the lines of the usage text about one command: the line
