@@ -18,7 +18,7 @@ import (
 // carries the same guide init installs, and the hook script runs.
 
 func TestPluginManifestsParse(t *testing.T) {
-	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json", "plugin/hooks/claude-hooks.json", "plugin/hooks/codex-hooks.json"} {
+	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json", "plugin/hooks/claude-hooks.json", "plugin/hooks/codex-hooks.json", "mods/claude/.claude-plugin/plugin.json", "mods/claude/hooks/hooks.json"} {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
 		if err != nil {
 			t.Fatal(err)
@@ -73,7 +73,7 @@ func TestPluginManifestsNameTheRelease(t *testing.T) {
 		}
 		return out
 	}
-	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json"} {
+	for _, f := range []string{".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json", "plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json", "mods/claude/.claude-plugin/plugin.json"} {
 		got := versions(f)
 		if len(got) == 0 {
 			t.Errorf("%s names no version", f)
@@ -268,7 +268,8 @@ func TestTheLayersPointAtEachOther(t *testing.T) {
 // `plugin marketplace add LeeSwallow/stickypane` keeps working, and point
 // at plugin/, where the plugin is whole: its manifests, the files they name
 // and the scripts its hooks and commands run. scripts/ at the root is for
-// developing stickypane only.
+// developing stickypane only. The Claude Code marketplace also lists
+// board-mod, the optional Claude Code mod in mods/claude/.
 func TestTheMarketplacesPointAtThePluginFolder(t *testing.T) {
 	read := func(f string, v any) {
 		b, err := os.ReadFile(filepath.Join(repoRoot, f))
@@ -284,8 +285,9 @@ func TestTheMarketplacesPointAtThePluginFolder(t *testing.T) {
 		Plugins []struct{ Name, Source string }
 	}
 	read(".claude-plugin/marketplace.json", &claude)
-	if claude.Name != "stickypane" || len(claude.Plugins) != 1 || claude.Plugins[0].Name != "board" || claude.Plugins[0].Source != "./plugin" {
-		t.Errorf("the Claude Code marketplace should be stickypane with board at ./plugin: %+v", claude)
+	if claude.Name != "stickypane" || len(claude.Plugins) != 2 || claude.Plugins[0].Name != "board" || claude.Plugins[0].Source != "./plugin" ||
+		claude.Plugins[1].Name != "board-mod" || claude.Plugins[1].Source != "./mods/claude" {
+		t.Errorf("the Claude Code marketplace should be stickypane with board at ./plugin and board-mod at ./mods/claude: %+v", claude)
 	}
 	type source struct{ Source, Path string }
 	var codex struct {
@@ -305,6 +307,11 @@ func TestTheMarketplacesPointAtThePluginFolder(t *testing.T) {
 	read("plugin/.codex-plugin/plugin.json", &codexPlugin)
 	if claudePlugin.Name != "board" || codexPlugin.Name != "board" {
 		t.Errorf("both plugins are board: %q, %q", claudePlugin.Name, codexPlugin.Name)
+	}
+	var mod struct{ Name string }
+	read("mods/claude/.claude-plugin/plugin.json", &mod)
+	if mod.Name != "board-mod" {
+		t.Errorf("mods/claude is board-mod: %q", mod.Name)
 	}
 	for _, p := range []string{claudePlugin.Hooks, codexPlugin.Skills, codexPlugin.Hooks} {
 		if _, err := os.Stat(filepath.Join(pluginRoot, p)); err != nil {
