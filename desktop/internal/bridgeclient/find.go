@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// EnvBin names a stickypane for Find to try after the app's own and
+// before the PATH.
+const EnvBin = "STICKYPANE_BIN"
+
 // ErrTooOld: stickypane was found, but no copy of it has the bridge.
 var ErrTooOld = errors.New("bridge: stickypane too old")
 
@@ -100,8 +104,8 @@ func bundledPath(goos, exe string) string {
 // A STICKYPANE_BIN that names no program is an error (ErrNotFound); copies
 // that are all too old are a *TooOldError (ErrTooOld) naming them.
 func Find() (string, error) {
-	if p := os.Getenv("STICKYPANE_BIN"); p != "" && !isExecutable(p) {
-		return "", fmt.Errorf("%w: STICKYPANE_BIN=%s", ErrNotFound, p)
+	if p := os.Getenv(EnvBin); p != "" && !isExecutable(p) {
+		return "", fmt.Errorf("%w: %s=%s", ErrNotFound, EnvBin, p)
 	}
 	paths := candidates()
 	if len(paths) == 0 {
@@ -144,7 +148,7 @@ func candidates() []string {
 	if p, ok := BundledCLI(); ok {
 		add(p)
 	}
-	add(os.Getenv("STICKYPANE_BIN"))
+	add(os.Getenv(EnvBin))
 	for _, d := range filepath.SplitList(os.Getenv("PATH")) {
 		if d != "" {
 			add(filepath.Join(d, name))

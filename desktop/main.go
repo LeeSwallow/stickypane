@@ -11,7 +11,6 @@ import (
 	"embed"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/shell"
@@ -22,6 +21,10 @@ import (
 // appVersion is the app's version: build/config.yml's info.version
 // (version_test.go keeps them the same).
 const appVersion = "0.2.1"
+
+// focusSettle is how long a board that lost the focus waits to see where
+// it went before it hides (shell.Config.FocusSettle).
+const focusSettle = 150 * time.Millisecond
 
 // The frontend build output is embedded into the binary.
 //
@@ -63,7 +66,7 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: instanceID(os.Getenv("STICKYPANE_APP_INSTANCE")),
+			UniqueID: instanceID(os.Getenv(envInstance)),
 			OnSecondInstanceLaunch: func(d application.SecondInstanceData) {
 				<-ready
 				s.Launch(d.Args, d.WorkingDir)
@@ -84,7 +87,7 @@ func main() {
 	s, err = shell.New(shell.Config{
 		Home:        shell.DefaultHome(),
 		Platform:    platform,
-		FocusSettle: 150 * time.Millisecond,
+		FocusSettle: focusSettle,
 		AppVersion:  appVersion,
 		Autostart:   shell.WailsAutostart(app),
 	})
@@ -99,10 +102,7 @@ func main() {
 		s.Start()
 		s.Launch(os.Args, "")
 		debugTear(s)
-		// STICKYPANE_APP_OPEN=settings[:section] opens the settings window
-		// at launch, for the last board opened: a way to look at it
-		// without pressing anything (docs/desktop/06).
-		s.OpenAtLaunch(os.Getenv("STICKYPANE_APP_OPEN"))
+		s.OpenAtLaunch(os.Getenv(envOpen))
 	})
 	// Clicking the Dock icon, or opening the app again, with every window
 	// hidden brings back the board used last, or the home when none is open.
@@ -113,40 +113,4 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// instanceID is the single instance's name. STICKYPANE_APP_INSTANCE=<name>
-// gives a copy run for a check its own (with its own STICKYPANE_HOME), so
-// that it does not hand its launch to an app already running.
-func instanceID(name string) string {
-	const id = "io.github.leeswallow.stickypane"
-	if name == "" {
-		return id
-	}
-	return id + "." + name
-}
-
-// debugTear is a debug hook, for checking tear-off in the built app
-// without a mouse: STICKYPANE_APP_TEAR=<note> with --project=<path> tears
-// that note off the project's board a moment after launch, through the
-// same Shell.TearOff a click on the tear-off button calls, and logs what
-// came of it. Notes joined by commas go through Shell.TearOffAll, as ⋯ →
-// 이 탭 노트 모두 떼어내기 does. Unset, it does nothing.
-func debugTear(s *shell.Shell) {
-	note := os.Getenv("STICKYPANE_APP_TEAR")
-	project := shell.ProjectArg(os.Args)
-	if note == "" || project == "" {
-		return
-	}
-	go func() {
-		time.Sleep(3 * time.Second)
-		id := s.OpenProject(project)
-		if strings.Contains(note, ",") {
-			ids, err := s.TearOffAll(id, strings.Split(note, ","))
-			log.Printf("STICKYPANE_APP_TEAR %q: windows %v, err %v", note, ids, err)
-			return
-		}
-		tid, err := s.TearOff(id, note)
-		log.Printf("STICKYPANE_APP_TEAR %q: window %d, err %v", note, tid, err)
-	}()
 }

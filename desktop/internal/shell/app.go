@@ -146,14 +146,14 @@ type Shell struct {
 
 // DefaultHome is $STICKYPANE_HOME, else ~/.stickypane.
 func DefaultHome() string {
-	if h := os.Getenv("STICKYPANE_HOME"); h != "" {
+	if h := os.Getenv(EnvHome); h != "" {
 		return h
 	}
 	h, err := os.UserHomeDir()
 	if err != nil || h == "" {
-		return ".stickypane"
+		return homeDirName
 	}
-	return filepath.Join(h, ".stickypane")
+	return filepath.Join(h, homeDirName)
 }
 
 // New reads the state and returns the shell; Start registers the hotkey

@@ -41,7 +41,7 @@ func (s *Shell) ssh() remote.SSH {
 			s.sshCfg = *s.cfg.SSH
 			return
 		}
-		s.sshCfg = remote.SSH{Bin: os.Getenv("STICKYPANE_SSH"), ControlPath: controlPath(s.cfg.Home)}
+		s.sshCfg = remote.SSH{Bin: os.Getenv(EnvSSH), ControlPath: controlPath(s.cfg.Home)}
 	})
 	return s.sshCfg
 }
