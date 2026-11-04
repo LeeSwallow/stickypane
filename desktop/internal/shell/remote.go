@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/desktop/internal/bridgeclient"
+	"github.com/LeeSwallow/stickypane/desktop/internal/canvas"
 	"github.com/LeeSwallow/stickypane/desktop/internal/remote"
 	"github.com/LeeSwallow/stickypane/desktop/internal/sshconfig"
 )
@@ -268,27 +270,24 @@ func (s *Shell) rekey(from, to string) {
 		}
 		return remote.Key(to, d), true
 	}
-	for k, v := range s.state.Windows {
-		if nk, ok := move(k); ok {
-			delete(s.state.Windows, k)
-			s.state.Windows[nk] = v
-		}
-	}
-	for k, v := range s.state.Projects {
-		if nk, ok := move(k); ok {
-			delete(s.state.Projects, k)
-			s.state.Projects[nk] = v
-		}
-	}
-	for k, v := range s.state.Boards {
-		if nk, ok := move(k); ok {
-			delete(s.state.Boards, k)
-			s.state.Boards[nk] = v
-		}
-	}
+	rekeyMap(s.state.Windows, move)
+	rekeyMap(s.state.Projects, move)
+	rekeyMap(s.state.Boards, move)
 	if nk, ok := move(s.state.Last); ok {
 		s.state.Last = nk
 	}
+}
+
+// rekeyMap moves each entry of m whose key move gives a new one to it.
+func rekeyMap[V any](m map[string]V, move func(string) (string, bool)) {
+	moved := map[string]V{}
+	for k, v := range m {
+		if nk, ok := move(k); ok {
+			delete(m, k)
+			moved[nk] = v
+		}
+	}
+	maps.Copy(m, moved)
 }
 
 // forget drops what this computer keeps of a remote board, or of every
@@ -298,21 +297,9 @@ func (s *Shell) forget(name, dir string) {
 		n, d, ok := remote.ParseKey(key)
 		return ok && n == name && (dir == "" || d == remote.CleanPath(dir))
 	}
-	for k := range s.state.Windows {
-		if gone(k) {
-			delete(s.state.Windows, k)
-		}
-	}
-	for k := range s.state.Projects {
-		if gone(k) {
-			delete(s.state.Projects, k)
-		}
-	}
-	for k := range s.state.Boards {
-		if gone(k) {
-			delete(s.state.Boards, k)
-		}
-	}
+	maps.DeleteFunc(s.state.Windows, func(k string, _ WindowState) bool { return gone(k) })
+	maps.DeleteFunc(s.state.Projects, func(k string, _ canvas.Project) bool { return gone(k) })
+	maps.DeleteFunc(s.state.Boards, func(k string, _ BoardPeek) bool { return gone(k) })
 	if gone(s.state.Last) {
 		s.state.Last = ""
 	}
