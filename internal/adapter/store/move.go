@@ -29,7 +29,7 @@ func (s *Store) put(name, dst string) (to string, err error) {
 }
 
 func (s *Store) putLocked(name, dst string) (string, error) {
-	src := s.onDisk(name)
+	src := s.Path(name)
 	if _, err := os.Lstat(src); err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 		if i > 1 {
 			target = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		full := s.onDisk(target)
+		full := s.Path(target)
 		if _, err := os.Lstat(full); err == nil {
 			continue
 		} else if !errors.Is(err, fs.ErrNotExist) {
@@ -60,7 +60,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 // tidy removes the folder a note was in when the folder is now empty.
 func (s *Store) tidy(name string) {
 	if dir := path.Dir(name); dir != "." && dir != "/" {
-		_ = os.Remove(s.onDisk(dir)) // fails, rightly, unless empty
+		_ = os.Remove(s.Path(dir)) // fails, rightly, unless empty
 	}
 }
 
@@ -93,7 +93,7 @@ func (s *Store) Trashed(name string) (string, bool) {
 	ext := path.Ext(name)
 	stem := path.Base(strings.TrimSuffix(name, ext))
 	dir := path.Dir(TrashDir + "/" + name)
-	entries, err := os.ReadDir(s.onDisk(dir))
+	entries, err := os.ReadDir(s.Path(dir))
 	if err != nil {
 		return "", false
 	}
@@ -123,8 +123,8 @@ func (s *Store) Move(name, to string) error {
 }
 
 func (s *Store) move(name, to string) error {
-	src := s.onDisk(name)
-	dst := s.onDisk(to)
+	src := s.Path(name)
+	dst := s.Path(to)
 	if _, err := os.Lstat(src); err != nil {
 		return err
 	}
@@ -171,5 +171,5 @@ func (s *Store) moveArranged(name, to string) error {
 
 // Delete removes a note for good.
 func (s *Store) Delete(name string) error {
-	return os.Remove(s.onDisk(name))
+	return os.Remove(s.Path(name))
 }

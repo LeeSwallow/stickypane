@@ -289,7 +289,7 @@ func (s *Store) setView(name string, change func(*View)) error {
 		change(&v)
 		views[inside] = v
 		for n, v := range views {
-			if _, err := os.Lstat(s.onDisk(path.Join(tab, n))); v.empty() || errors.Is(err, fs.ErrNotExist) {
+			if _, err := os.Lstat(s.Path(path.Join(tab, n))); v.empty() || errors.Is(err, fs.ErrNotExist) {
 				delete(views, n)
 			}
 		}

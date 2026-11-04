@@ -346,12 +346,12 @@ func (a *API) existing(name, file string) string {
 	if filepath.Ext(strings.TrimSpace(name)) != "" {
 		return file
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err == nil {
+	if a.st.Exists(file) {
 		return file
 	}
 	stem := strings.TrimSuffix(file, ".md")
 	for _, ext := range otherExts {
-		if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(stem+ext))); err == nil {
+		if a.st.Exists(stem + ext) {
 			return stem + ext
 		}
 	}
@@ -371,7 +371,7 @@ func (a *API) isBook(name string) bool {
 	if !bookName(name) {
 		return false
 	}
-	fi, err := os.Stat(filepath.Join(a.st.Dir, filepath.FromSlash(name)))
+	fi, err := os.Stat(a.st.Path(name))
 	return err == nil && fi.IsDir()
 }
 
@@ -634,7 +634,7 @@ func (a *API) Show(target string) (Shown, error) {
 	if err != nil {
 		return Shown{}, err
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
+	if !a.st.Exists(file) {
 		return Shown{}, noNote(file)
 	}
 	open := true
@@ -653,11 +653,7 @@ func (a *API) Show(target string) (Shown, error) {
 // hasNote reports whether name is a note on the board.
 func (a *API) hasNote(name string) bool {
 	file, _, err := a.target(name)
-	if err != nil {
-		return false
-	}
-	_, err = os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file)))
-	return err == nil
+	return err == nil && a.st.Exists(file)
 }
 
 // Hide folds a note away.
@@ -666,7 +662,7 @@ func (a *API) Hide(name string) (Shown, error) {
 	if err != nil {
 		return Shown{}, err
 	}
-	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
+	if !a.st.Exists(file) {
 		return Shown{}, noNote(file)
 	}
 	open := false
