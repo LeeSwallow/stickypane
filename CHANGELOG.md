@@ -6,16 +6,13 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-04
+
 ### Added
 
 - `board-mod`, an optional Claude Code mod (experimental, #5): `/stickypane`
   shows the board in a pane inside Claude Code, and what the user changes
   on the board is a toast and the status line.
-
-## [0.2.1] - 2026-11-02
-
-### Added
-
 - The desktop app is on the release: a DMG for Apple silicon Macs and a
   Linux tar.gz, built by the release workflow on the same tag (#10).
 - Remote hosts in the app (#76). Settings → 원격 호스트 keeps a list of
