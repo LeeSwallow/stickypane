@@ -86,8 +86,15 @@ type Strings struct {
 	Sending             string `json:"sending"`
 	WatchUnavailable    string `json:"watchUnavailable"`
 
-	// The help screen, one key per line, under 40 cells wide.
+	// The help screen after the board's own keys, which the screen lists
+	// from its table of actions: one key per line, under 40 cells wide.
 	Help string `json:"help"`
+
+	// Actions holds what each of the board's keys does, keyed by the
+	// action's name ("note-archive") or a line of the help ("help.size").
+	// The English text lives in the screen's table of actions; a name
+	// missing here keeps it (see Action).
+	Actions map[string]string `json:"actions"`
 
 	// CLI holds the command line's help, keyed like "card.what". The
 	// English text lives next to each command in cmd/stickypane; a key
@@ -150,42 +157,7 @@ func English() Strings {
 		Sending:             "Sending {{.Name}}…",
 		WatchUnavailable:    "File watching is unavailable. Press r to refresh.",
 
-		Help: `Notes
-  tab              next note
-  shift+tab        previous note
-  enter            open, then zoom
-  z                zoom
-  o                open or close
-  + -              wider, narrower
-  shift+up down    taller, shorter
-  shift+pgup pgdn  five lines at a time
-  0                content height
-  H L  { }        move earlier, later
-  K J              move a row up, down
-  , .              turn a folder's pages
-  m                move to a folder
-  N                jot a note
-  a                add by shape
-  e                edit here (like vi)
-  E                edit in $EDITOR
-  p                pin
-  c                change color
-  R                rename
-  x                move to archive
-  D                delete (to .trash)
-  u                undo x or D
-  r                reload
-  T                next theme
-  i /              index of every note
-  S                settings
-  j k g G          scroll in the note
-  pgdn pgup        a page down, up
-  [ ]              previous, next screen
-  1-9 ( )          switch tab
-  ?                this help
-  q                quit
-
-Zoomed note
+		Help: `Zoomed note
   esc              back
   j k g G          scroll
 
@@ -345,6 +317,15 @@ func (s Strings) L(phrase string) string {
 // english when the language has none.
 func (s Strings) T(key, english string) string {
 	if t, ok := s.CLI[key]; ok && t != "" {
+		return t
+	}
+	return english
+}
+
+// Action returns what the action or help line under name does in this
+// language, or english when the language has none.
+func (s Strings) Action(name, english string) string {
+	if t, ok := s.Actions[name]; ok && t != "" {
 		return t
 	}
 	return english

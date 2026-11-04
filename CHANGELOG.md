@@ -6,6 +6,12 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Changed
+
+- The board's help lists its keys from one table of named actions, so it
+  names every key that works: `f` (linked notes), `n` beside `N`, `<` `>`
+  beside `,` `.`. The keys themselves are unchanged.
+
 ### Fixed
 
 - A note torn off into its own window starts right under its frame's top

@@ -55,9 +55,6 @@ var (
 	bodies = map[mode]func(*Model, int) []string{}
 	// footers draw the bottom line.
 	footers = map[mode]func(*Model) string{}
-	// boardKeys are the keys of the main screen. A focused open note takes
-	// the keys its kind lists first; these get the rest.
-	boardKeys = map[string]func(*Model) tea.Cmd{}
 )
 
 // Message returns a message of the screen's language by its field name,
@@ -116,6 +113,7 @@ type Model struct {
 	now   func() time.Time
 	env   widget.Env   // what every widget is parsed with: the clock, words and styles
 	tr    i18n.Strings // what the screen says, in the language in use
+	keys  *keymap      // keymap.go: the board's keys, by action
 
 	editor  string // settings.go: the editor the settings chose for E; "auto" leaves it to the environment
 	columns int    // settings.go: the columns the board has; 0 for as many as the sizes fit
@@ -249,7 +247,7 @@ type reloadMsg struct {
 // folder cannot be watched; the screen then refreshes on "r" and after
 // edits. th holds the theme in use; the Markdown renderer shares it.
 func New(st *store.Store, reg widget.Registry, watch <-chan struct{}, th *theme.Holder) *Model {
-	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, theme: th, dark: true, editor: "auto"}
+	m := &Model{store: st, reg: reg, watch: watch, now: time.Now, theme: th, dark: true, editor: "auto", keys: defaultKeys}
 	m.peek, m.anchors = map[string]bool{}, map[string]anchor{}
 	m.offsets, m.reveal = map[string]int{}, revealNote
 	m.tabFocus = map[string]string{}

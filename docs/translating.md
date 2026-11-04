@@ -23,7 +23,10 @@ field names; fields it leaves out keep their English text, so a partial
 translation is fine. `labels` maps short phrases (key-hint labels, widget
 hints, `%d cards`) to their translation; phrases not in the map stay
 English. Messages use `{{.Name}}` placeholders, so a language can order
-the parts as it likes.
+the parts as it likes. `actions` says what each of the board's keys does,
+by the action's name (`note-archive`) or a line of the help (`help.size`);
+the English, and the list of names, is the table in
+`internal/surface/app/keymap.go`.
 
 The language comes from `sticky.json` (`stickypane language ko`) or, with
 `auto`, from `STICKYPANE_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`.

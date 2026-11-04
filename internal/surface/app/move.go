@@ -28,55 +28,56 @@ func init() {
 	footers[modeMove] = func(m *Model) string {
 		return m.hints(m.width, "j k", "choose", "enter", "move", "esc", "cancel")
 	}
+}
 
-	boardKeys["u"] = func(m *Model) tea.Cmd {
-		u := m.undo
-		if u == nil {
-			m.status = m.tr.NothingToUndo
-			return nil
-		}
-		m.undo = nil
-		if _, err := m.calls().Return(u.moved); err != nil {
-			m.status = say(m.tr.CannotRestore, map[string]any{"Name": u.label, "Where": u.moved.To, "Err": err.Error()})
-			return nil
-		}
-		m.reload()
-		m.focusFile(u.moved.From)
-		m.status = say(m.tr.Restored, map[string]any{"Name": u.label})
+// undoMove brings back what the last archive or delete moved away.
+func undoMove(m *Model) tea.Cmd {
+	u := m.undo
+	if u == nil {
+		m.status = m.tr.NothingToUndo
 		return nil
 	}
-
-	// m moves the file that is shown: into a folder, where it becomes a
-	// page of that book, or out of its folder to the top level.
-	boardKeys["m"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if !m.editable(it) {
-			return nil
-		}
-		file := it.file().Name
-		here := path.Dir(file)
-		m.moveTargets = nil
-		if here != "." {
-			m.moveTargets = append(m.moveTargets, "") // the top level: the root tab
-		}
-		// The other tabs, then the books of this tab.
-		for _, t := range m.tabList {
-			if t.Name != "" && t.Name != here && t.Name != m.tabName {
-				m.moveTargets = append(m.moveTargets, t.Name)
-			}
-		}
-		if m.tabName != "" && here != m.tabName {
-			m.moveTargets = append(m.moveTargets, m.tabName)
-		}
-		for _, other := range m.items {
-			if len(other.pages) > 0 && other.note.Name != here {
-				m.moveTargets = append(m.moveTargets, other.note.Name)
-			}
-		}
-		m.moveTargets = append(m.moveTargets, newFolder)
-		m.moveFile, m.moveIdx = file, 0
-		m.back, m.mode = m.mode, modeMove
+	m.undo = nil
+	if _, err := m.calls().Return(u.moved); err != nil {
+		m.status = say(m.tr.CannotRestore, map[string]any{"Name": u.label, "Where": u.moved.To, "Err": err.Error()})
 		return nil
-	})
+	}
+	m.reload()
+	m.focusFile(u.moved.From)
+	m.status = say(m.tr.Restored, map[string]any{"Name": u.label})
+	return nil
+}
+
+// chooseFolder moves the file that is shown: into a folder, where it
+// becomes a page of that book, or out of its folder to the top level.
+func chooseFolder(m *Model, it item) tea.Cmd {
+	if !m.editable(it) {
+		return nil
+	}
+	file := it.file().Name
+	here := path.Dir(file)
+	m.moveTargets = nil
+	if here != "." {
+		m.moveTargets = append(m.moveTargets, "") // the top level: the root tab
+	}
+	// The other tabs, then the books of this tab.
+	for _, t := range m.tabList {
+		if t.Name != "" && t.Name != here && t.Name != m.tabName {
+			m.moveTargets = append(m.moveTargets, t.Name)
+		}
+	}
+	if m.tabName != "" && here != m.tabName {
+		m.moveTargets = append(m.moveTargets, m.tabName)
+	}
+	for _, other := range m.items {
+		if len(other.pages) > 0 && other.note.Name != here {
+			m.moveTargets = append(m.moveTargets, other.note.Name)
+		}
+	}
+	m.moveTargets = append(m.moveTargets, newFolder)
+	m.moveFile, m.moveIdx = file, 0
+	m.back, m.mode = m.mode, modeMove
+	return nil
 }
 
 func moveUpdate(m *Model, msg tea.Msg) tea.Cmd {

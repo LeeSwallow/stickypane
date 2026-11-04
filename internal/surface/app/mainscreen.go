@@ -9,7 +9,6 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
-	"github.com/LeeSwallow/stickypane/internal/core/theme"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 )
 
@@ -17,59 +16,45 @@ func init() {
 	handlers[modeBoard] = mainUpdate
 	bodies[modeBoard] = mainBody
 	footers[modeBoard] = mainFooter
+}
 
-	boardKeys["tab"] = func(m *Model) tea.Cmd { m.stepFocus(1); return nil }
-	boardKeys["shift+tab"] = func(m *Model) tea.Cmd { m.stepFocus(-1); return nil }
-	boardKeys["r"] = func(m *Model) tea.Cmd { m.reload(); return nil }
-	boardKeys["q"] = func(*Model) tea.Cmd { return tea.Quit }
-	boardKeys["T"] = func(m *Model) tea.Cmd { m.chooseTheme(theme.Next(m.theme.Get().Name)); return nil }
-	boardKeys["]"] = func(m *Model) tea.Cmd { m.flip(1); return nil }
-	boardKeys["["] = func(m *Model) tea.Cmd { m.flip(-1); return nil }
-
-	// Tabs: a digit jumps to that tab, ( and ) go to the one before or after.
-	for i := 1; i <= 9; i++ {
-		n := i
-		boardKeys[strconv.Itoa(n)] = func(m *Model) tea.Cmd { m.switchTab(n - 1); return nil }
+// openOrZoom goes one step deeper: it opens a closed note and zooms an
+// open one.
+func openOrZoom(m *Model, it item) tea.Cmd {
+	if m.isOpen(it) {
+		m.zoom(it)
+	} else {
+		m.setOpen(it, true)
 	}
-	boardKeys[")"] = func(m *Model) tea.Cmd { m.switchTab(m.tab + 1); return nil }
-	boardKeys["("] = func(m *Model) tea.Cmd { m.switchTab(m.tab - 1); return nil }
+	return nil
+}
 
-	// . and , turn the pages of a book; > and < are the same keys shifted.
-	turn := func(delta int) func(*Model) tea.Cmd {
-		return func(m *Model) tea.Cmd {
-			name := m.focus
-			if m.zoomed() {
-				name = m.zoomName
-			}
-			if i := m.index(name); i >= 0 {
-				m.turn(i, delta)
-			}
-			return nil
-		}
+// zoomIn zooms an open note. It is the way in for a note that uses enter
+// itself.
+func zoomIn(m *Model, it item) tea.Cmd {
+	if m.isOpen(it) {
+		m.zoom(it)
 	}
-	boardKeys["."], boardKeys[">"] = turn(1), turn(1)
-	boardKeys[","], boardKeys["<"] = turn(-1), turn(-1)
+	return nil
+}
 
-	// enter goes one step deeper: it opens a closed note and zooms an open one.
-	boardKeys["enter"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if m.isOpen(it) {
-			m.zoom(it)
-		} else {
-			m.setOpen(it, true)
+func toggleOpen(m *Model, it item) tea.Cmd {
+	m.setOpen(it, !m.isOpen(it))
+	return nil
+}
+
+// turnPage turns the pages of a book, the focused one or the zoomed one.
+func turnPage(delta int) func(*Model) tea.Cmd {
+	return func(m *Model) tea.Cmd {
+		name := m.focus
+		if m.zoomed() {
+			name = m.zoomName
+		}
+		if i := m.index(name); i >= 0 {
+			m.turn(i, delta)
 		}
 		return nil
-	})
-	// z zooms too. It is the way in for a note that uses enter itself.
-	boardKeys["z"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if m.isOpen(it) {
-			m.zoom(it)
-		}
-		return nil
-	})
-	boardKeys["o"] = onFocused(func(m *Model, it item) tea.Cmd {
-		m.setOpen(it, !m.isOpen(it))
-		return nil
-	})
+	}
 }
 
 // mainUpdate routes a key. A focused open note gets the keys its kind
@@ -85,8 +70,8 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 		m.toWidget(i, key)
 		return nil
 	}
-	if f, ok := boardKeys[key]; ok {
-		return f(m)
+	if a, ok := m.keys.lookup(key); ok {
+		return a.run(m)
 	}
 	// Scroll keys nobody claimed move the focused note inside its pane.
 	if p, ok := m.paneOf(m.focus); ok {
@@ -111,20 +96,37 @@ func mainBody(m *Model, h int) []string {
 // own keys first when it is open, then the screen's. The way to the full
 // key list is always there, however narrow the pane.
 func mainFooter(m *Model) string {
+	k := m.keys
+	jotAddQuit := joinHints(k.hint("jot", "jot"), k.hint("add", "add"), k.hint("quit", "quit"))
 	i := m.index(m.focus)
 	switch {
 	case i < 0:
-		return m.hintsThen(m.width, "?", "help", "N", "jot", "a", "add", "q", "quit")
+		return m.withHelp("help", jotAddQuit...)
 	case !m.isOpen(m.items[i]):
-		return m.hintsThen(m.width, "?", "help", "tab", "next", "enter", "open", "N", "jot", "a", "add", "q", "quit")
+		return m.withHelp("help", joinHints(k.hint("next", "focus-next"), k.hint("open", "note-open"), jotAddQuit)...)
 	case len(m.items[i].kind.Hint) > 0:
-		zoom := "enter"
-		if m.items[i].kind.Handles("enter") {
-			zoom = "z"
+		// A note that uses enter itself is zoomed with z.
+		zoom := k.hint("zoom", "note-open")
+		if len(zoom) == 0 || m.items[i].kind.Handles(zoom[0]) {
+			zoom = k.hint("zoom", "note-zoom")
 		}
-		return m.hintsThen(m.width, "?", "help", append(append(append([]string(nil), m.items[i].kind.Hint...), zoom, "zoom"), m.moving("o", "close", "tab", "next")...)...)
+		own := append(append([]string(nil), m.items[i].kind.Hint...), zoom...)
+		return m.withHelp("help", append(own, m.moving(joinHints(k.hint("close", "note-toggle"), k.hint("next", "focus-next"))...)...)...)
 	}
-	return m.hintsThen(m.width, "?", "help", append([]string{"tab", "next", "enter", "zoom"}, m.moving("j k", "scroll", "o", "close", "+ -", "size", "H J K L", "move", "m", "to folder", "D", "delete", "N", "jot")...)...)
+	return m.withHelp("help", joinHints(k.hint("next", "focus-next"), k.hint("zoom", "note-open"),
+		m.moving(joinHints([]string{"j k", "scroll"}, k.hint("close", "note-toggle"), k.hint("size", "note-wider", "note-narrower"),
+			k.hint("move", "note-move-earlier", "note-move-down", "note-move-up", "note-move-later"),
+			k.hint("to folder", "note-to-folder"), k.hint("delete", "note-delete"), k.hint("jot", "jot"))...))...)
+}
+
+// withHelp draws pairs on the bottom line and ends with the key to the
+// help under label, which a narrow pane never drops.
+func (m *Model) withHelp(label string, pairs ...string) string {
+	key := m.keys.key("help")
+	if key == "" {
+		return m.hints(m.width, pairs...)
+	}
+	return m.hintsThen(m.width, key, label, pairs...)
 }
 
 // titleBar is one line of tabs, like the tab strips of yazi and zellij:
@@ -313,10 +315,10 @@ func onFocused(f func(*Model, item) tea.Cmd) func(*Model) tea.Cmd {
 // one screen.
 func (m *Model) moving(pairs ...string) []string {
 	if m.screens > 1 {
-		pairs = append([]string{"[ ]", "screen"}, pairs...)
+		pairs = append(m.keys.hint("screen", "screen-prev", "screen-next"), pairs...)
 	}
 	if i := m.index(m.focus); i >= 0 && len(m.items[i].pages) > 1 {
-		pairs = append([]string{", .", "page"}, pairs...)
+		pairs = append(m.keys.hint("page", "page-prev", "page-next"), pairs...)
 	}
 	return pairs
 }

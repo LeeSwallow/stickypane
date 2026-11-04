@@ -139,7 +139,7 @@ func TestHelpOpensScrollsAndCloses(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
 	m.Update(tea.WindowSizeMsg{Width: 40, Height: 12})
-	for _, line := range strings.Split(m.tr.Help, "\n") {
+	for _, line := range append(m.keys.helpLines(m.tr), strings.Split(m.tr.Help, "\n")...) {
 		if w := widget.Width(line); w > 40 {
 			t.Errorf("help line %q is %d cells wide, want at most 40", line, w)
 		}

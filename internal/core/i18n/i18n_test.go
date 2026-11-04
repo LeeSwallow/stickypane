@@ -44,20 +44,11 @@ func TestEveryTranslationLoadsOverEnglish(t *testing.T) {
 	}
 }
 
-func TestHelpNamesTheResizeKeys(t *testing.T) {
+func TestHelpKeepsEveryLineInEveryLanguage(t *testing.T) {
 	for _, code := range Languages() {
 		s, err := Load(code)
 		if err != nil {
 			t.Fatal(err)
-		}
-		for _, k := range []string{"+ -", "shift+up down", "shift+pgup pgdn", "0"} {
-			listed := false
-			for _, line := range strings.Split(s.Help, "\n") {
-				listed = listed || strings.HasPrefix(strings.TrimSpace(line), k+"  ")
-			}
-			if !listed {
-				t.Errorf("%s: the help should list %q", code, k)
-			}
 		}
 		if !strings.Contains(s.Help, "\n  ") || strings.Count(s.Help, "\n") < strings.Count(English().Help, "\n") {
 			t.Errorf("%s: the help should have every line the English one has", code)
@@ -70,6 +61,24 @@ func TestHelpNamesTheResizeKeys(t *testing.T) {
 	}
 }
 
+// The words for the board's own keys are the screen's (its table of
+// actions holds the English); a language lays its own over them by name.
+func TestActionFallsBackToEnglish(t *testing.T) {
+	ko, err := Load("ko")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ko.Action("quit", "quit"); got == "quit" {
+		t.Errorf("Korean should translate the action quit, got %q", got)
+	}
+	if got := ko.Action("no-such-action", "english"); got != "english" {
+		t.Errorf("a name without a translation keeps its English: %q", got)
+	}
+	if got := English().Action("quit", "quit"); got != "quit" {
+		t.Errorf("English is the table's own words: %q", got)
+	}
+}
+
 func TestKoreanTranslatesWhatTheUserSees(t *testing.T) {
 	ko, err := Load("ko")
 	if err != nil {
@@ -78,7 +87,7 @@ func TestKoreanTranslatesWhatTheUserSees(t *testing.T) {
 	if ko.NothingOpen == English().NothingOpen || ko.L("next") == "next" || ko.L("%d cards") == "%d cards" {
 		t.Errorf("Korean should translate the screen: %q, %q, %q", ko.NothingOpen, ko.L("next"), ko.L("%d cards"))
 	}
-	if !strings.Contains(ko.Help, "tab") || !strings.Contains(ko.Help, "shift+tab") {
+	if !strings.Contains(ko.Help, "esc") || !strings.Contains(ko.Help, "ctrl+f") {
 		t.Error("key names are never translated")
 	}
 	if got := Fill(ko.ConfirmDelete, map[string]any{"Name": "plan"}); !strings.Contains(got, "plan") || strings.Contains(got, "{{") {
