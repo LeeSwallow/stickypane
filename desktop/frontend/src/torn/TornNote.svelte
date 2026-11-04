@@ -19,11 +19,8 @@
   import { agentColor, applyTheme, noteTitleColor } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
-  import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
-  import Dialog from '../lib/ui/Dialog.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
-  import Input from '../lib/ui/Input.svelte'
   import IconButton from '../lib/ui/IconButton.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import { NOTICE_MS } from '../lib/ui/toast'
@@ -34,6 +31,7 @@
   import { act, arrange } from '../board/actions'
   import { boardContext, noteHex, type BoardCtx } from '../board/context'
   import { allNotes, findNote, resolveLink, type Board } from '../board/model'
+  import MoveDialog from '../board/MoveDialog.svelte'
   import NoteFrame from '../board/NoteFrame.svelte'
   import * as manage from '../board/manage'
   import { connect } from '../board/session'
@@ -59,7 +57,6 @@
   // a question before a delete, a run or a send; the note being moved
   let asking = $state<manage.Asking | null>(null)
   let moving = $state(false)
-  let moveTo = $state('')
   let mode = $state<Mode>('system')
   // the app's language: what a board with none of its own speaks
   let appLanguage = $state('')
@@ -155,9 +152,9 @@
     if (a) await manage.answer(deps, a)
   }
 
-  async function moveNote() {
+  async function moveNote(to: string) {
     moving = false
-    if (note && moveTo.trim()) await manage.move(deps, note, moveTo)
+    if (note && to.trim()) await manage.move(deps, note, to)
   }
 
   async function putBack() {
@@ -208,7 +205,6 @@
       if (what === 'archive') void manage.archive(deps, n)
       else if (what === 'move') {
         moving = true
-        moveTo = ''
       } else asking = { what, note: n, request }
     },
   }
@@ -296,23 +292,7 @@
     <Confirm open title={question.title} message={question.body} confirmLabel={question.yes} danger onconfirm={answer} oncancel={() => (asking = null)} />
   {/if}
   {#if moving && note}
-    {@const targets = manage.moveTargets(board?.tabs ?? [], note.tab)}
-    <Dialog open title={t('note.moveTitle', { title: note.title })} width={320} onclose={() => (moving = false)}>
-      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
-        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
-        {#if targets.length}
-          <div class="targets">
-            {#each targets as to (to)}
-              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
-            {/each}
-          </div>
-        {/if}
-      </form>
-      {#snippet actions()}
-        <Button variant="ghost" onclick={() => (moving = false)}>{$tr('ui.cancel')}</Button>
-        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
-      {/snippet}
-    </Dialog>
+    <MoveDialog {note} tabs={board?.tabs ?? []} width={320} onmove={moveNote} onclose={() => (moving = false)} />
   {/if}
 </div>
 
@@ -384,16 +364,6 @@
     display: grid;
     place-items: center;
     flex: 1;
-  }
-  .move {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .targets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .toasts {
     position: absolute;

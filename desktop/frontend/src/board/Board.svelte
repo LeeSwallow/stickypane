@@ -31,8 +31,6 @@
   import CreateDialog from '../create/CreateDialog.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
-  import Dialog from '../lib/ui/Dialog.svelte'
-  import Input from '../lib/ui/Input.svelte'
   import * as manage from './manage'
   import type { Manage, ManageDeps } from './manage'
   import { act, arrange } from './actions'
@@ -52,6 +50,7 @@
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
   import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
+  import MoveDialog from './MoveDialog.svelte'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
   import { boardPalette, modeOf, paletteFor } from './theme'
@@ -256,7 +255,6 @@
   // a question before a delete, a run or a send; the note being moved
   let asking = $state<manage.Asking | null>(null)
   let moving = $state<Note | null>(null)
-  let moveTo = $state('')
   // the last note deleted here: u and ⌘Z bring it back
   let lastTrashed: Note | null = null
 
@@ -273,7 +271,6 @@
     if (what === 'archive') void manage.archive(deps, note)
     else if (what === 'move') {
       moving = note
-      moveTo = ''
     } else asking = { what, note, request }
   }
 
@@ -284,10 +281,10 @@
     if ((await manage.answer(deps, a)) && a.what === 'trash') lastTrashed = a.note
   }
 
-  async function moveNote() {
+  async function moveNote(to: string) {
     const n = moving
     moving = null
-    if (n && moveTo.trim()) await manage.move(deps, n, moveTo)
+    if (n && to.trim()) await manage.move(deps, n, to)
   }
 
   const question = $derived(asking ? manage.question(asking, board?.title ?? '') : null)
@@ -803,23 +800,7 @@
     />
   {/if}
   {#if moving}
-    {@const targets = manage.moveTargets(board?.tabs ?? [], moving.tab)}
-    <Dialog open title={t('note.moveTitle', { title: moving.title })} width={420} onclose={() => (moving = null)}>
-      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
-        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
-        {#if targets.length}
-          <div class="targets">
-            {#each targets as to (to)}
-              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
-            {/each}
-          </div>
-        {/if}
-      </form>
-      {#snippet actions()}
-        <Button variant="ghost" onclick={() => (moving = null)}>{$tr('ui.cancel')}</Button>
-        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
-      {/snippet}
-    </Dialog>
+    <MoveDialog note={moving} tabs={board?.tabs ?? []} width={420} onmove={moveNote} onclose={() => (moving = null)} />
   {/if}
   {#if board}
     <CreateDialog
@@ -897,16 +878,6 @@
     display: grid;
     place-items: center;
     flex: 1;
-  }
-  .move {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .targets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .toasts {
     position: absolute;
