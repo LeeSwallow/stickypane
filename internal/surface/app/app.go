@@ -115,6 +115,7 @@ type Model struct {
 	env   widget.Env   // what every widget is parsed with: the clock, words and styles
 	tr    i18n.Strings // what the screen says, in the language in use
 	keys  *keymap      // keymap.go: the board's keys, by action
+	seq   keySeq       // keyseq.go: the count and keys pressed so far
 
 	editor  string // settings.go: the editor the settings chose for E; "auto" leaves it to the environment
 	columns int    // settings.go: the columns the board has; 0 for as many as the sizes fit
@@ -335,6 +336,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status, m.mark = "", mark{}
 		cmd = m.dispatch(msg)
+	case keyWaitMsg:
+		cmd = m.keyWaited(msg)
 	case scriptDoneMsg:
 		m.finished(msg)
 	case sentMsg:

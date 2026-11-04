@@ -270,6 +270,14 @@ the help and the bottom line name the keys from it, so they cannot drift.
 A shape's own keys stay with the shape (`Kind.Keys`, `Kind.Hint`) and are
 handled first when its note is focused.
 
+A key may be a sequence (`"g g"`). `newKeymap` puts every key in a prefix
+tree, one for the board and one for the zoom actions, and `keyseq.go`
+walks it a key at a time, with the count typed before it. Keys that are
+whole and start a longer one wait `keyWait` for a `keyWaitMsg`; the
+message carries a generation, so a key pressed since makes it stale.
+`hangul.go` maps the Korean 2-set jamo to the Latin key before matching;
+only the board and the zoomed note read keys through it.
+
 ## The command line
 
 `cmd/stickypane` follows the shape of Go's own `cmd/go`, with the standard

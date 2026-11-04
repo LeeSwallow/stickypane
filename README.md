@@ -411,7 +411,8 @@ Nothing has to be set. `S` on the board changes the first three;
 
 The board's keys are yours too: `stickypane keys` lists them, and
 `stickypane keys set note-archive X` makes `X` archive, in
-`~/.stickypane/keys.json`.
+`~/.stickypane/keys.json`. A key may be a sequence (`"d x"`), and a count
+repeats one: `3J`.
 
 [docs/configuration.md](docs/configuration.md) has the themes, the keys,
 `sticky.json`, and what stickypane records on this machine.

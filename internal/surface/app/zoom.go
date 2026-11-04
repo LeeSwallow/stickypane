@@ -40,30 +40,25 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 		m.mode = modeBoard
 		return nil
 	}
-	switch key := k.String(); {
-	case key == "esc" || key == "q":
+	// The board's keys that work on a zoomed note come before the note's
+	// own; esc drops keys waiting for more before it goes back.
+	key := latinKey(k.String())
+	if !m.seq.pending() && (key == "esc" || key == "q") {
 		m.mode = modeBoard
 		m.reveal = revealCursor
-	case m.zoomKey(key):
-		a, _ := m.keys.lookup(key)
-		return a.run(m)
-	case m.items[i].kind.Handles(key):
+		return nil
+	}
+	if used, cmd := m.feedKey(key); used {
+		return cmd
+	}
+	if m.items[i].kind.Handles(key) {
 		m.toWidget(i, key)
-	default:
+	} else if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
 		// Keys the note does not use scroll freely, so every line of a
 		// zoomed note can be reached even when it has a cursor.
-		if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
-			m.zoomScroll = offset
-		}
+		m.zoomScroll = offset
 	}
 	return nil
-}
-
-// zoomKey reports whether key runs one of the board's actions that work on
-// a zoomed note too: edit, help, the theme and the pages of a book.
-func (m *Model) zoomKey(key string) bool {
-	a, ok := m.keys.lookup(key)
-	return ok && a.zoom
 }
 
 // zoomRows is how many lines of the note fit inside the zoomed frame.

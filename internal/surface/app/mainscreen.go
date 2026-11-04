@@ -59,19 +59,23 @@ func turnPage(delta int) func(*Model) tea.Cmd {
 
 // mainUpdate routes a key. A focused open note gets the keys its kind
 // lists; the screen gets the rest; and scroll keys nobody claimed scroll
-// the focused note inside its pane.
+// the focused note inside its pane. While a sequence waits for its next
+// key ("g" of "g g"), that key goes to it first; a count alone does not
+// take a key from the note, and is dropped when the note takes it. A key
+// typed with the Korean layout on is read as the Latin key it is on.
 func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	k, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return nil
 	}
-	key := k.String()
-	if i := m.index(m.focus); i >= 0 && m.isOpen(m.items[i]) && m.items[i].kind.Handles(key) {
+	key := latinKey(k.String())
+	if i := m.index(m.focus); len(m.seq.keys) == 0 && i >= 0 && m.isOpen(m.items[i]) && m.items[i].kind.Handles(key) {
+		m.seq.reset()
 		m.toWidget(i, key)
 		return nil
 	}
-	if a, ok := m.keys.lookup(key); ok {
-		return a.run(m)
+	if used, cmd := m.feedKey(key); used {
+		return cmd
 	}
 	// Scroll keys nobody claimed move the focused note inside its pane.
 	if p, ok := m.paneOf(m.focus); ok {

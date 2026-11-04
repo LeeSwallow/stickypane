@@ -18,6 +18,8 @@ func TestNormalKey(t *testing.T) {
 		"enter": "enter", "Enter": "enter", "pgdn": "pgdown", "escape": "esc", "f5": "f5",
 		"ctrl+x": "ctrl+x", "alt+ctrl+x": "ctrl+alt+x", "Shift+Tab": "shift+tab",
 		"shift+x": "X", "ctrl+X": "ctrl+shift+x", "ctrl++": "ctrl++", " u ": "u",
+		"g g": "g g", " g   g ": "g g", "d shift+x": "d X", "ctrl+w J": "ctrl+w J", "esc x": "esc x", "0": "0",
+		"ㅓ": "j", "ㅃ": "Q", "ctrl+ㅓ": "ctrl+j", "ㅎ ㅎ": "g g",
 	} {
 		if got, err := NormalKey(in); err != nil || got != want {
 			t.Errorf("NormalKey(%q) = %q, %v; want %q", in, got, err, want)
@@ -25,7 +27,9 @@ func TestNormalKey(t *testing.T) {
 	}
 	for in, why := range map[string]string{
 		"":            "empty",
-		"g g":         "sequence",
+		"1 g":         "starts with a digit",
+		"g esc":       "after esc",
+		"g foo":       "not a key",
 		"foo":         "not a key",
 		"cmd+x":       "not a modifier",
 		"ctrl+c":      "always quits",
@@ -78,7 +82,7 @@ func TestWhatAKeyFileGetsWrongKeepsTheDefaults(t *testing.T) {
 	t.Parallel()
 	want := map[string][]string{
 		"no-such-thing": {"Q"},
-		"note-pin":      {"g g"},
+		"note-pin":      {"0 p"},
 		"note-color":    {"u"}, // undo's
 		"note-rename":   {"W"},
 	}
@@ -87,7 +91,7 @@ func TestWhatAKeyFileGetsWrongKeepsTheDefaults(t *testing.T) {
 	for _, p := range problems {
 		got = append(got, p.String())
 	}
-	for _, w := range []string{"no-such-thing: there is no such action", `note-pin: "g g" is a sequence`, "note-color: u is undo's key too"} {
+	for _, w := range []string{"no-such-thing: there is no such action", `note-pin: "0 p" starts with a digit`, "note-color: u is undo's key too"} {
 		if !slices.ContainsFunc(got, func(s string) bool { return strings.HasPrefix(s, w) }) {
 			t.Errorf("no problem %q in %q", w, got)
 		}
@@ -144,7 +148,7 @@ func TestTheBoardUsesTheKeyFile(t *testing.T) {
 func TestTheBoardSaysWhatItLeftOut(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": "one\n"})
-	said := m.UseKeys("~/.stickypane/keys.json", map[string][]string{"nope": {"Q"}, "note-pin": {"g g"}, "note-color": {"C"}}, nil)
+	said := m.UseKeys("~/.stickypane/keys.json", map[string][]string{"nope": {"Q"}, "note-pin": {"2 p"}, "note-color": {"C"}}, nil)
 	if said != "~/.stickypane/keys.json: nope, note-pin kept the keys they come with. stickypane keys says why." {
 		t.Errorf("said %q", said)
 	}

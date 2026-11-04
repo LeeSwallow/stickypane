@@ -97,7 +97,8 @@ func TestKeysSetAndReset(t *testing.T) {
 	}{
 		{[]string{"note-pin", "u"}, "u is undo's key too"},
 		{[]string{"nope", "Q"}, "there is no such action"},
-		{[]string{"note-pin", "g g"}, "is a sequence"},
+		{[]string{"note-pin", "1 g"}, "starts with a digit"},
+		{[]string{"note-pin", "g esc"}, "goes on after esc"},
 		{[]string{"note-pin", "ctrl+c"}, "always quits"},
 	} {
 		code, _, errOut := exec(t, append([]string{"keys", "set"}, c.args...)...)
@@ -125,6 +126,22 @@ func TestKeysSetAndReset(t *testing.T) {
 	}
 	if code, _, _ := exec(t, "keys", "frob"); code != exitUsage {
 		t.Error("keys frob is a usage error")
+	}
+}
+
+// A key with spaces is a sequence: keys.json keeps it with its spaces,
+// and keys shows it as the board does, side by side.
+func TestKeysSetASequence(t *testing.T) {
+	home := keysHome(t)
+	if code, out, errOut := exec(t, "keys", "set", "note-archive", "d x", "ㅌ"); code != 0 || out != "note-archive: dx x\n" {
+		t.Fatalf("code = %d, out = %q, stderr = %q", code, out, errOut)
+	}
+	b, err := os.ReadFile(filepath.Join(home, "keys.json"))
+	if err != nil || !strings.Contains(string(b), `"d x"`) {
+		t.Errorf("keys.json: %s %v", b, err)
+	}
+	if _, out, _ := exec(t, "keys"); !regexp.MustCompile(`(?m)^note-archive +dx x +\(keys.json\)`).MatchString(out) {
+		t.Errorf("keys:\n%s", out)
 	}
 }
 

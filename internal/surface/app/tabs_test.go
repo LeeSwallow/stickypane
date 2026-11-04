@@ -31,6 +31,7 @@ func TestFoldersAreTabsAndOneIsActive(t *testing.T) {
 		t.Fatalf("the root tab is active first: its notes show, the other tab's do not:\n%s", s)
 	}
 	press(m, "2")
+	wait(m) // a digit alone is a tab's key once no more comes
 	s = screen(m)
 	if strings.Contains(s, "the plan") || !strings.Contains(s, "compiled") || !strings.Contains(s, "page one") {
 		t.Fatalf("2 switches to the second tab, whose files are notes and whose folder is a book:\n%s", s)
@@ -52,11 +53,13 @@ func TestTheActiveTabIsRememberedAndFollowsStickyJSON(t *testing.T) {
 	t.Parallel()
 	m, dir := twoTabs(t)
 	press(m, "2")
+	wait(m)
 	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"tab": "deploy"`) {
 		t.Fatalf("the active tab goes to the root sticky.json:\n%s", got)
 	}
 	// An agent's `stickypane show deploy/notes` writes the tab; the board follows.
 	press(m, "1")
+	wait(m)
 	writeView(t, dir, `{"notes":{"plan.md":{"open":true}},"tab":"deploy"}`)
 	m.Update(changedMsg{})
 	if s := screen(m); !strings.Contains(s, "compiled") {
@@ -67,7 +70,9 @@ func TestTheActiveTabIsRememberedAndFollowsStickyJSON(t *testing.T) {
 func TestEachTabKeepsItsOwnFocusAndArrangement(t *testing.T) {
 	t.Parallel()
 	m, dir := twoTabs(t)
-	press(m, "2", "tab", "o") // close the second note of tab 2
+	press(m, "2")
+	wait(m)
+	press(m, "tab", "o") // close the second note of tab 2
 	if m.focus != "deploy/docs" && m.focus != "deploy/notes.md" {
 		t.Fatalf("focus = %q", m.focus)
 	}
@@ -76,10 +81,12 @@ func TestEachTabKeepsItsOwnFocusAndArrangement(t *testing.T) {
 		t.Errorf("the tab's arrangement is written to the tab's own file:\n%s", got)
 	}
 	press(m, "1")
+	wait(m)
 	if m.focus != "plan.md" {
 		t.Errorf("each tab has its own focus, got %q", m.focus)
 	}
 	press(m, "2")
+	wait(m)
 	if m.focus != closed {
 		t.Errorf("coming back finds the focus where it was, got %q", m.focus)
 	}

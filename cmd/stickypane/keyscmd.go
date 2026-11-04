@@ -53,7 +53,7 @@ func listKeys(e env, path, shown string, asJSON bool) error {
 	marked := slices.ContainsFunc(bindings, func(b app.Binding) bool { return b.Changed })
 	w := tabwriter.NewWriter(e.stdout, 0, 0, 2, ' ', 0)
 	for _, b := range bindings {
-		fmt.Fprintf(w, "%s\t%s\t", b.Name, strings.Join(b.Keys, " "))
+		fmt.Fprintf(w, "%s\t%s\t", b.Name, shownKeys(b.Keys))
 		if marked {
 			mark := ""
 			if b.Changed {
@@ -130,9 +130,19 @@ func resetKeys(e env, path, shown string, names []string) error {
 func printKeysOf(e env, bindings []app.Binding, name string) error {
 	for _, b := range bindings {
 		if b.Name == name {
-			_, err := fmt.Fprintf(e.stdout, "%s: %s\n", name, strings.Join(b.Keys, " "))
+			_, err := fmt.Fprintf(e.stdout, "%s: %s\n", name, shownKeys(b.Keys))
 			return err
 		}
 	}
 	return fmt.Errorf("there is no action %q; stickypane keys lists them", name)
+}
+
+// shownKeys is keys as the board shows them, side by side: the sequence
+// "g g" is gg.
+func shownKeys(keys []string) string {
+	out := make([]string, len(keys))
+	for i, k := range keys {
+		out[i] = app.ShowKey(k)
+	}
+	return strings.Join(out, " ")
 }

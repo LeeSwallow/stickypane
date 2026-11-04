@@ -56,6 +56,9 @@ func (m *Model) footer() string {
 	if m.status != "" && !asking {
 		return m.env.Styles.Warn.Render(m.status)
 	}
+	if p := m.pendingFooter(); p != "" {
+		return p
+	}
 	if f, ok := footers[m.mode]; ok {
 		return f(m)
 	}
