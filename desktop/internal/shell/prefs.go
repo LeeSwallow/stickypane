@@ -36,7 +36,7 @@ func (s *Shell) SetPrefs(p Prefs) error {
 	s.mu.Unlock()
 	if change {
 		if err := s.SetHotkey(p.Hotkey); err != nil {
-			s.save()
+			s.keep("SetPrefs")
 			return err
 		}
 		return nil

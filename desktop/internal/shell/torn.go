@@ -178,7 +178,7 @@ func (s *Shell) TearOff(window uint, note string) (uint, error) {
 	n := len(p.torn) - 1
 	s.mu.Unlock()
 	id := s.openTorn(tw, f, cascade(s.cfg.Platform.WorkArea(), n))
-	s.save()
+	s.keep("TearOff")
 	s.emitLayout(p)
 	return id, nil
 }
@@ -397,7 +397,7 @@ func (s *Shell) tornClosing(tw *tornWin) {
 		s.edit(tw.p, func(c canvas.Project) canvas.Project { return c.PutBack(tw.note) })
 	}
 	s.mu.Unlock()
-	s.save()
+	s.keep("tornClosing")
 	if !keep {
 		s.emitLayout(tw.p)
 	}
@@ -552,7 +552,7 @@ func (s *Shell) keepNotes(p *project, result any) {
 	for _, w := range wins {
 		w.Close()
 	}
-	s.save()
+	s.keep("keepNotes")
 	if len(gone) > 0 {
 		s.emitLayout(p)
 	}
@@ -581,7 +581,7 @@ func (s *Shell) Renamed(window uint, from, to string) {
 		}
 	}
 	s.mu.Unlock()
-	s.save()
+	s.keep("Renamed")
 	s.emitLayout(p)
 	if tid != 0 {
 		s.cfg.Platform.Emit(StatusEvent(tid), s.Status(tid))

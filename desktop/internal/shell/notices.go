@@ -58,7 +58,7 @@ func (s *Shell) trayHint(closing Window) {
 		}
 	}
 	s.mu.Unlock()
-	s.save()
+	s.keep("trayHint")
 	s.notice(Notice{Code: NoticeStayInTray})
 	for _, w := range wins { // asked outside the lock
 		if w != closing && w.Visible() {

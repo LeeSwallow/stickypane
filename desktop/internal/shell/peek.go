@@ -112,7 +112,7 @@ func (s *Shell) peek(path string, result any) {
 	}
 	s.state.Boards[path] = pk
 	s.mu.Unlock()
-	s.save()
+	s.keep("peek")
 }
 
 // Peeks are what each board looked like when this computer last opened

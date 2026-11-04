@@ -299,7 +299,9 @@ func (s *Shell) retitle(path string, result any) {
 	ix := s.ix
 	s.mu.Unlock()
 	if ix != nil {
-		ix.Retitle(path, b.Title)
+		if err := ix.Retitle(path, b.Title); err != nil {
+			s.cfg.Logf("retitle %s: %v", path, err) // the next load tries again
+		}
 	}
 }
 
@@ -436,6 +438,6 @@ func (s *Shell) closing(p *project) {
 	}
 	s.closeTorn(p)
 	s.detachSettings(p)
-	s.save()
+	s.keep("closing")
 	s.trayHint(p.win)
 }

@@ -29,7 +29,9 @@ func (s *Shell) openIndex() {
 		if s.stopped {
 			s.mu.Unlock()
 			if ix != nil {
-				ix.Close()
+				if err := ix.Close(); err != nil {
+					s.cfg.Logf("close the index opened after quitting: %v", err)
+				}
 			}
 			return
 		}

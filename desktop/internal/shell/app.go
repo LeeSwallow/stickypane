@@ -25,6 +25,7 @@ package shell
 
 import (
 	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -89,6 +90,9 @@ type Config struct {
 	SSHAliases func() []string
 	// Now is the clock the home list is made by; nil is the machine's.
 	Now func() time.Time
+	// Logf writes what the shell can tell no one else (a save no caller
+	// waits for that failed); nil is the app's log.
+	Logf func(format string, args ...any)
 }
 
 // Installer is the install use cases: *installsvc.Service.
@@ -195,6 +199,9 @@ func New(cfg Config) (*Shell, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
+	if cfg.Logf == nil {
+		cfg.Logf = func(format string, args ...any) { log.Printf("shell: "+format, args...) }
+	}
 	if cfg.OpenIndex == nil {
 		cfg.OpenIndex = func(home string) (Index, error) {
 			ix, err := index.Open(home)
@@ -259,6 +266,15 @@ func (s *Shell) save() error {
 	return st.Save(s.statePath)
 }
 
+// keep saves the state where no caller waits to hear how it went: a window
+// that closed, a note that moved. A failure is logged with where it
+// happened; the next save writes the whole state again.
+func (s *Shell) keep(where string) {
+	if err := s.save(); err != nil {
+		s.cfg.Logf("%s: %v", where, err)
+	}
+}
+
 // Shutdown closes every bridge and the index and saves the state. It is
 // safe to call more than once.
 func (s *Shell) Shutdown() {
@@ -311,10 +327,12 @@ func (s *Shell) Shutdown() {
 		c()
 	}
 	for _, b := range boards {
-		b.Close()
+		b.Close() // a bridge's Close ends it whatever it says
 	}
 	if ix != nil {
-		ix.Close()
+		if err := ix.Close(); err != nil {
+			s.cfg.Logf("close the index: %v", err)
+		}
 	}
-	s.save()
+	s.keep("Shutdown")
 }
