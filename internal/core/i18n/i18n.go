@@ -48,7 +48,11 @@ type Strings struct {
 	NothingOpen     string `json:"nothingOpen"`
 	NothingOpenHint string `json:"nothingOpenHint"`
 
-	// Messages on the bottom line.
+	// Messages on the bottom line. Besides its own placeholders, a message
+	// may name the key of any of the board's actions, by the action's name
+	// in CamelCase: {{.Undo}} is the first key of undo, {{.ThemeNext}} of
+	// theme-next. It is "" when the user unbound the action, so a sentence
+	// that names a key says it {{with .Undo}}inside a with{{end}}.
 	ThemeChosen         string `json:"themeChosen"`
 	ThemeNotSaved       string `json:"themeNotSaved"`
 	LanguageChosen      string `json:"languageChosen"`
@@ -85,6 +89,8 @@ type Strings struct {
 	ConfirmSend         string `json:"confirmSend"`
 	Sending             string `json:"sending"`
 	WatchUnavailable    string `json:"watchUnavailable"`
+	KeysUnreadable      string `json:"keysUnreadable"`
+	KeysIgnored         string `json:"keysIgnored"`
 
 	// The help screen after the board's own keys, which the screen lists
 	// from its table of actions: one key per line, under 40 cells wide.
@@ -117,10 +123,10 @@ func English() Strings {
 		Jot: "Jot", Folder: "Folder", TopLevel: "(top level)", NewFolder: "New folder…",
 		MoveTo: "Move {{.Name}} to",
 
-		NoNotes: "No notes yet.", NoNotesHint: "Press N to jot one down,\nor ask your agent to stick a note here.",
-		NothingOpen: "Nothing is open.", NothingOpenHint: "Pick a note with tab and press enter.",
+		NoNotes: "No notes yet.", NoNotesHint: "{{with .Jot}}Press {{.}} to jot one down,\nor ask{{else}}Ask{{end}} your agent to stick a note here.",
+		NothingOpen: "Nothing is open.", NothingOpenHint: "{{if and .FocusNext .NoteOpen}}Pick a note with {{.FocusNext}} and press {{.NoteOpen}}.{{else}}Pick a note and open it.{{end}}",
 
-		ThemeChosen:         "Theme: {{.Name}}. T tries the next one.",
+		ThemeChosen:         "Theme: {{.Name}}.{{with .ThemeNext}} {{.}} tries the next one.{{end}}",
 		ThemeNotSaved:       "The theme was not saved: {{.Err}}",
 		LanguageChosen:      "Language: {{.Name}}.",
 		ArrangementNotSaved: "The arrangement was not saved: {{.Err}}",
@@ -140,10 +146,10 @@ func English() Strings {
 		CannotChange:        "This note cannot be changed from here: {{.Err}}",
 		OnlyMarkdownTitle:   "Only a Markdown note has a title.",
 		CannotArchive:       "Cannot archive the note: {{.Err}}",
-		Archived:            "Moved {{.Name}} to archive/. u brings it back.",
+		Archived:            "Moved {{.Name}} to archive/.{{with .Undo}} {{.}} brings it back.{{end}}",
 		ConfirmDelete:       "Delete {{.Name}}? (y/n)",
 		CannotDelete:        "Cannot delete the note: {{.Err}}",
-		Deleted:             "Deleted {{.Name}}. u brings it back.",
+		Deleted:             "Deleted {{.Name}}.{{with .Undo}} {{.}} brings it back.{{end}}",
 		NothingToUndo:       "Nothing to undo.",
 		CannotRestore:       "Cannot bring {{.Name}} back: it is still in {{.Where}} ({{.Err}})",
 		Restored:            "Restored {{.Name}}.",
@@ -155,7 +161,9 @@ func English() Strings {
 		RunEnded:            "{{.Name}} ended: exit {{.Code}} after {{.Took}}. Its output is in {{.Log}}.",
 		ConfirmSend:         "Send {{.Request}}?{{if .Hooks}} It runs {{.Hooks}}.{{end}} (y/n)",
 		Sending:             "Sending {{.Name}}…",
-		WatchUnavailable:    "File watching is unavailable. Press r to refresh.",
+		WatchUnavailable:    "File watching is unavailable.{{with .Reload}} Press {{.}} to refresh.{{end}}",
+		KeysUnreadable:      "{{.File}} could not be read, so the keys are as they come. stickypane keys says why.",
+		KeysIgnored:         "{{.File}}: {{.Names}} kept the keys they come with. stickypane keys says why.",
 
 		Help: `Zoomed note
   esc              back

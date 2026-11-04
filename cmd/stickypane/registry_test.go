@@ -186,7 +186,7 @@ func TestCommandsSucceedWhenTheHomeIsReadOnly(t *testing.T) {
 func TestEveryCommandIsSortedIntoChanges(t *testing.T) {
 	reads := map[string]bool{
 		"init": true, "setup": true, "theme": true, "language": true,
-		"config": true, "kinds": true, "env": true, "guide": true,
+		"config": true, "keys": true, "kinds": true, "env": true, "guide": true,
 		"version": true, "help": true, "list": true, "index": true,
 		"cat": true, "answers": true, "wait": true, "api": true,
 		"watch": true, "mcp": true, "bridge": true,

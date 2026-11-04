@@ -7,6 +7,7 @@ it is. This page is for when you want to change something. Back to the
 - [Settings](#settings)
 - [Themes](#themes)
 - [Languages](#languages)
+- [Keys](#keys)
 - [sticky.json: how the board is arranged](#stickyjson-how-the-board-is-arranged)
 - [What stickypane records on this machine](#what-stickypane-records-on-this-machine)
 
@@ -71,6 +72,55 @@ it is unreadable on a light background.
 The screen speaks English and Korean: `stickypane language ko`, or leave it
 on `auto` and set `LANG`. Key names and the agent guide stay English.
 [translating.md](translating.md) says how to add a language.
+
+## Keys
+
+Every key of the terminal board belongs to a named action, and the names
+stay when the keys change. `stickypane keys` lists them: the action, its
+keys, what it does in the board's language, and `(keys.json)` beside the
+ones you changed (`--json` for scripts).
+
+```sh
+stickypane keys                          # every action and its keys
+stickypane keys set note-archive X       # X archives, x no longer does
+stickypane keys set jot N ctrl+n         # several keys; the first is the one hints show
+stickypane keys set theme-next           # no keys: the action has none
+stickypane keys reset note-archive       # back to x
+stickypane keys reset                    # every key as it comes
+```
+
+The changes live in `keys.json` in `~/.stickypane` (or
+`$STICKYPANE_HOME`), one entry for each action changed. The file is yours
+to edit as well:
+
+```json
+{
+  "jot": ["N", "ctrl+n"],
+  "note-archive": ["X"],
+  "theme-next": []
+}
+```
+
+- An action not in the file keeps its keys; `[]` leaves it without one.
+- A key is one key for now: a character (`x`, `X`, `?`), a named key
+  (`enter`, `tab`, `space`, `esc`, `up`, `pgdown`, `f5`...), or either after
+  modifiers (`ctrl+x`, `alt+enter`, `shift+tab`). `shift+x` is written `X`.
+  `ctrl+c` always quits and cannot be given away.
+- A key belongs to one action. To swap two keys, change both actions in
+  the file, or set the one losing the key first.
+- What the board cannot use (an unknown action, a key it cannot read, a
+  key two actions want, or a file that is not JSON) keeps the keys it
+  comes with; the board opens anyway and says on its bottom line which
+  entries it left out. `stickypane keys` says why.
+- The help (`?`), the bottom line and the messages that name a key
+  (`u brings it back`) follow the file.
+- An open note's own keys come first: an open kanban takes `h` `j` `k` `l`
+  and `H` `J` `K` `L`, a checklist `space` and `n`, before the board's
+  actions see them. A board key you give an action that a focused shape
+  also uses works everywhere else.
+- Having `~/.stickypane/keys.json` turns no records on;
+  [What stickypane records](#what-stickypane-records-on-this-machine)
+  depends on the desktop app's own files there.
 
 ## sticky.json: how the board is arranged
 

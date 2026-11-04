@@ -81,6 +81,14 @@ func init() {
 			examples: []string{"stickypane config", "stickypane config language", "stickypane config theme nord"},
 			related:  []string{"theme", "language"},
 		}},
+		{[]string{"keys"}, keysCmd, helpText{
+			group: "settings", brief: "list the board's keys or change them",
+			what:     "Lists every action of the terminal board: its name, its keys and what it does, marking those keys.json changed. set gives an action other keys (none at all unbinds it); reset takes one change back, or all. keys.json is in ~/.stickypane (or $STICKYPANE_HOME), and having it records nothing. A key is one key for now: x, X, ctrl+x, shift+tab, f5.",
+			syntax:   "stickypane keys [set <action> <key>... | reset [action]] [--json]",
+			args:     "--json  print the keys as JSON",
+			examples: []string{"stickypane keys", "stickypane keys set note-archive X", "stickypane keys reset note-archive", "stickypane keys reset"},
+			related:  []string{"config", "theme"},
+		}},
 		{[]string{"kinds"}, kindsCmd, helpText{
 			group: "start", brief: "list the shapes a note can take",
 			what:     "Lists the shapes a note can take, or shows one in full: the command that makes it, a file to copy and how it behaves. Needs no board.",

@@ -58,11 +58,12 @@ var (
 )
 
 // Message returns a message of the screen's language by its field name,
-// for callers outside the package. An unknown name gives "".
+// with the keys it names, for callers outside the package. An unknown name
+// gives "".
 func (m *Model) Message(field string) string {
 	v := reflect.ValueOf(m.tr).FieldByName(field)
 	if v.IsValid() && v.Kind() == reflect.String {
-		return v.String()
+		return m.keyed(v.String(), nil)
 	}
 	return ""
 }
@@ -281,7 +282,7 @@ func (m *Model) chooseTheme(name string) {
 	}
 	m.useTheme(theme.Pick(name, m.dark))
 	m.reload()
-	m.status = say(m.tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
+	m.status = m.keyed(m.tr.ThemeChosen, map[string]any{"Name": m.theme.Get().Name})
 }
 
 // SetStatus shows a message on the bottom line until the next key.

@@ -22,6 +22,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/keyfile"
 	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/kinds"
@@ -72,6 +73,10 @@ Usage:
                          one, or change one: theme, language, time, editor,
                          stale, columns. Each has a default; S on the board
                          shows them
+  stickypane keys [set <action> <key>... | reset [action]] [--json]
+                         list the board's keys: each action, its keys, what it
+                         does; set changes an action's keys in keys.json in
+                         ~/.stickypane, reset takes the change back
   stickypane theme [name]  list the themes, or choose one ("auto" follows the
                          terminal's background)
   stickypane language [code]  list the languages of the screen, or choose one
@@ -253,11 +258,17 @@ func board(ctx context.Context, dir, status string) error {
 
 	th := theme.NewHolder(theme.Pick(st.Theme(), true))
 	m := app.New(st, kinds.Default(kinds.Markdown(th)), watch, th)
+	path := keyfile.Path()
+	want, keysErr := keyfile.Read(path)
+	keysSaid := m.UseKeys(keyfile.Shown(path), want, keysErr)
 	if status != "" {
 		m.SetStatus(status)
 	}
 	if watchErr != nil {
 		m.SetStatus(m.Message("WatchUnavailable"))
+	}
+	if keysSaid != "" {
+		m.SetStatus(keysSaid)
 	}
 	_, err := tea.NewProgram(m, tea.WithContext(ctx)).Run()
 	if errors.Is(err, tea.ErrProgramKilled) && ctx.Err() != nil {

@@ -13,6 +13,47 @@
 않습니다. `view`(`terminal` `overlay` `both`)와 `style`(`doodle` `neat`)은 만들고
 있는 데스크톱 앱용이며 터미널은 무시합니다.
 
+## 키
+
+터미널 보드의 키는 저마다 이름 있는 동작에 묶여 있고, 키를 바꿔도 이름은 그대로입니다.
+`stickypane keys`가 동작마다 이름, 키, 하는 일(보드의 언어로)을 보여 주고, 바꾼 것 옆에는
+`(keys.json)`을 붙입니다. 스크립트에는 `--json`.
+
+```sh
+stickypane keys                          # 동작과 키 전부
+stickypane keys set note-archive X       # X로 보관, x는 더 이상 보관하지 않음
+stickypane keys set jot N ctrl+n         # 키 여러 개; 힌트에는 첫 키가 나옴
+stickypane keys set theme-next           # 키 없이: 그 동작은 키가 없음
+stickypane keys reset note-archive       # 다시 x로
+stickypane keys reset                    # 모든 키를 처음대로
+```
+
+바꾼 키는 `~/.stickypane`(또는 `$STICKYPANE_HOME`)의 `keys.json`에 동작마다 한 줄로
+남습니다. 직접 고쳐도 됩니다.
+
+```json
+{
+  "jot": ["N", "ctrl+n"],
+  "note-archive": ["X"],
+  "theme-next": []
+}
+```
+
+- 파일에 없는 동작은 키가 그대로이고, `[]`은 키를 없앱니다.
+- 키는 지금은 한 번에 하나입니다: 글자(`x`, `X`, `?`), 이름 있는 키(`enter`, `tab`,
+  `space`, `esc`, `up`, `pgdown`, `f5`…), 또는 그 앞에 수식키(`ctrl+x`, `alt+enter`,
+  `shift+tab`). `shift+x`는 `X`로 씁니다. `ctrl+c`는 언제나 종료라 다른 동작에 줄 수 없습니다.
+- 한 키는 한 동작에만 묶입니다. 두 키를 맞바꾸려면 파일에서 두 동작을 함께 고치거나,
+  키를 내줄 쪽을 먼저 바꾸세요.
+- 보드가 쓸 수 없는 것(없는 동작, 읽을 수 없는 키, 두 동작이 원하는 키, JSON이 아닌 파일)은
+  처음 키를 그대로 씁니다. 보드는 그래도 열리고, 무엇을 빼고 썼는지 아래 줄에 한 줄로
+  알립니다. 이유는 `stickypane keys`가 알려 줍니다.
+- 도움말(`?`), 아래 줄, 키를 말하는 메시지(`u 키로 되돌립니다`)도 파일을 따릅니다.
+- 열린 노트의 키가 먼저입니다. 열린 칸반은 `h` `j` `k` `l`과 `H` `J` `K` `L`을, 체크리스트는
+  `space`와 `n`을 보드의 동작보다 먼저 받습니다. 그런 키를 동작에 주면 그 노트에 포커스가
+  있을 때만 빼고 동작합니다.
+- `~/.stickypane/keys.json`이 있다고 기록이 남지는 않습니다.
+
 ## 이 컴퓨터에 남는 기록
 
 `~/.stickypane`(또는 `$STICKYPANE_HOME`) 폴더가 **이미 있을 때만** 씁니다. 폴더는

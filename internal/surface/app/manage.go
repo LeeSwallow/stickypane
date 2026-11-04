@@ -73,7 +73,7 @@ func archive(m *Model, it item) tea.Cmd {
 		m.status = say(m.tr.CannotArchive, map[string]any{"Err": err.Error()})
 	} else {
 		m.undo = &undo{moved: moved, label: nameOf(file)}
-		m.status = say(m.tr.Archived, map[string]any{"Name": nameOf(file)})
+		m.status = m.keyed(m.tr.Archived, map[string]any{"Name": nameOf(file)})
 	}
 	m.reload()
 	return nil
@@ -87,7 +87,7 @@ func remove(m *Model, it item) tea.Cmd {
 			m.status = say(m.tr.CannotDelete, map[string]any{"Err": err.Error()})
 		} else {
 			m.undo = &undo{moved: moved, label: nameOf(file)}
-			m.status = say(m.tr.Deleted, map[string]any{"Name": nameOf(file)})
+			m.status = m.keyed(m.tr.Deleted, map[string]any{"Name": nameOf(file)})
 		}
 		m.reload()
 	})
