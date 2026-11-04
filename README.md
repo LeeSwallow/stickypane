@@ -371,8 +371,6 @@ Arrange
   archive   move a note out of sight into archive/
 
 Settings
-  theme     list the themes or choose one
-  language  list the screen's languages or choose one
   config    list, read or change a setting
 
 Agents
@@ -398,17 +396,17 @@ index, moving notes and `stickypane watch`.
 
 ## Configuration
 
-Nothing has to be set. `S` on the board opens the settings, and
-`stickypane config` does the same from the command line.
+Nothing has to be set. `S` on the board changes the first three;
+`stickypane config` changes all six (`stickypane config theme nord`).
 
 | Setting | Default | Changes |
 | --- | --- | --- |
 | `theme` | `auto` | the colors; 10 themes, including Catppuccin, Tokyo Night, Gruvbox, Nord and Dracula |
 | `language` | `auto` | the board's language: English or Korean |
+| `columns` | `3` | how many notes sit in a row: `1` to `4` |
 | `time` | `auto` | how days and times are written |
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
-| `columns` | `3` | how many notes sit in a row: `1` to `4` |
 
 [docs/configuration.md](docs/configuration.md) has the themes,
 `sticky.json`, and what stickypane records on this machine.

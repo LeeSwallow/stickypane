@@ -1,7 +1,11 @@
 # 설정
 
-설정할 것은 없습니다. 모든 설정에 기본값이 있고, 보드에서 `S`를 누르거나
-`stickypane config`로 바꿉니다. 테마 목록과 `sticky.json`의 키는 영문
+설정할 것은 없습니다. 모든 설정에 기본값이 있습니다. 보드의 `S`로는 테마·언어·칸 수를
+바꾸고, 시간 형식(`time`)·에디터(`editor`)·카드 멈춤 기준(`stale`)은
+`stickypane config`로만 바꿉니다(`stickypane config stale 1h`).
+`stickypane theme`과 `stickypane language`는 `stickypane config theme`,
+`stickypane config language`의 줄임이고, 값 없이 쓰면 목록을 보여 줍니다.
+테마 목록과 `sticky.json`의 키는 영문
 [configuration.md](../configuration.md)에 있습니다.
 [README로 돌아가기](../../README.ko.md)
 

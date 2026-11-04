@@ -15,6 +15,12 @@ on GitHub are built from pull request labels.
 - The board's help lists its keys from one table of named actions, so it
   names every key that works: `f` (linked notes), `n` beside `N`, `<` `>`
   beside `,` `.`. The keys themselves are unchanged.
+- Fewer settings in sight. `S` shows theme, language and columns; time
+  format, editor and card staleness keep their defaults and are set with
+  `stickypane config`, which lists them under `more:`.
+- `stickypane theme` and `stickypane language` are short for
+  `stickypane config theme` and `config language`. They still work, and
+  `help` lists `config` alone.
 
 ### Fixed
 
