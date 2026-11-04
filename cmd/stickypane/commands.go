@@ -71,7 +71,7 @@ func init() {
 		}},
 		{[]string{"keys"}, keysCmd, helpText{
 			group: "settings", brief: "list the board's keys or change them",
-			what:     "Lists every action of the terminal board: its name, its keys and what it does, marking those keys.json changed. set gives an action other keys (none at all unbinds it); reset takes one change back, or all. keys.json is in ~/.stickypane (or $STICKYPANE_HOME), and having it records nothing. A key is one key for now: x, X, ctrl+x, shift+tab, f5.",
+			what:     "Lists every action of the terminal board: its name, its keys and what it does, marking those keys.json changed. set gives an action other keys (none at all unbinds it); reset takes one change back, or all. keys.json is in ~/.stickypane (or $STICKYPANE_HOME), and having it records nothing. A key is written x, X, ctrl+x, shift+tab or f5; keys pressed one after another are written with spaces between: g g.",
 			syntax:   "stickypane keys [set <action> <key>... | reset [action]] [--json]",
 			args:     "--json  print the keys as JSON",
 			examples: []string{"stickypane keys", "stickypane keys set note-archive X", "stickypane keys reset note-archive", "stickypane keys reset"},
