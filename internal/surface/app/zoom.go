@@ -16,7 +16,7 @@ func init() {
 		if i := m.index(m.zoomName); i >= 0 {
 			pairs = append(pairs, m.items[i].kind.Hint...)
 		}
-		return m.withHelp("keys", joinHints(pairs, []string{"g G", "top, end"}, m.keys.hint("scroll", "scroll-half-down", "scroll-half-up"), m.keys.hint("edit", "note-edit"))...)
+		return m.withHelp("keys", joinHints(pairs, []string{"g G", "top, end"}, m.keys.hint("scroll", "scroll-half-down", "scroll-half-up"), m.keys.hint("edit", "note-edit"), m.keys.hint("command", "command-line"))...)
 	}
 }
 
