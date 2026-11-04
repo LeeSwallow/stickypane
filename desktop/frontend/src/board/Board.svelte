@@ -49,7 +49,7 @@
   import { frameOf, keyAction } from './keys'
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
   import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
-  import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
+  import { allNotes, findNote, locate as locateIn, resolveLink, type Board, type Note, type Tab } from './model'
   import MoveDialog from './MoveDialog.svelte'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
@@ -296,16 +296,7 @@
   // --- what notes ask of the window ---------------------------------------
 
   /** where a note is: its tab, and its book when it is a page */
-  function locate(name: string): { tab: string; book: Note | null; page: number } | null {
-    if (!board) return null
-    for (const t of board.tabs)
-      for (const n of t.notes) {
-        if (n.name === name) return { tab: t.name, book: null, page: 0 }
-        const i = (n.pages ?? []).findIndex((p) => p.name === name)
-        if (i >= 0) return { tab: t.name, book: n, page: i }
-      }
-    return null
-  }
+  const locate = (name: string) => (board ? locateIn(board.tabs, name) : null)
 
   const ctx: BoardCtx = {
     find: (link) => (board ? findNote(board.tabs, resolveLink(link, files)) : null),
@@ -599,28 +590,24 @@
     await api.status().then((s) => (status = s), fail('pin'))
   }
 
+  /** takePrefs draws with the app's settings: read at the start, and heard when they change. */
+  function takePrefs(p: Awaited<ReturnType<ProjectApi["prefs"]>>) {
+    mode = modeOf(p.mode)
+    hotkey = p.hotkey ?? ''
+    appLanguage = p.language ?? ''
+    motion.setting = p.motion ?? ''
+  }
+
   onMount(() => {
     if (startCreate) creating = true
     const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d)), watchReducedMotion(), () => stage.stop()]
-    api
-      .prefs()
-      .then((p) => {
-        mode = modeOf(p.mode)
-        hotkey = p.hotkey ?? ''
-        appLanguage = p.language ?? ''
-        motion.setting = p.motion ?? ''
-      })
-      .catch(logged('board.prefs'))
+    api.prefs().then(takePrefs, logged('board.prefs'))
     refresh()
     // the app's settings, changed in the settings window (or any window)
     offs.push(
       bus.on(prefsEvent, (e) => {
         const p = e.data as AppPrefs | undefined
-        if (!p) return
-        mode = modeOf(p.mode)
-        hotkey = p.hotkey ?? ''
-        appLanguage = p.language ?? ''
-        motion.setting = p.motion ?? ''
+        if (p) takePrefs(p)
       }),
     )
     // the bridge's events, from as soon as the window id is known, even
