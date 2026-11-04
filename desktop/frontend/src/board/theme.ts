@@ -5,10 +5,21 @@
 // in (or from a bridge without it), the chosen theme's colours stay.
 
 import { resolveThemeName, type Mode } from '../lib/theme/mode'
-import type { Palette } from '../lib/theme/palette'
+import { normalizePalette, type Palette } from '../lib/theme/palette'
+import { logged } from '../services/errors'
 
 /** modeOf reads overlay.json's mode: "" (or anything else) is the system's. */
 export const modeOf = (m: string | undefined): Mode => (m === 'dark' || m === 'light' ? m : 'system')
+
+/** boardPalette is the palette the bridge sent with a board, or null before a board or when the app cannot draw it (logged). */
+export function boardPalette(board: { palette: unknown } | null): Palette | null {
+  if (!board) return null
+  try {
+    return normalizePalette(board.palette)
+  } catch (e) {
+    return logged('board.palette', null)(e)
+  }
+}
 
 /** paletteFor is the palette to draw with for the bridge's, the chosen theme, the mode and themes.list. */
 export function paletteFor(bridge: Palette, theme: string, mode: Mode, systemDark: boolean, themes: Palette[]): Palette {

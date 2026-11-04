@@ -41,6 +41,13 @@ export const INTRO = {
   end: 900,
 } as const
 
+/**
+ * INTRO_WAIT is how long a window waits, in ms, before it plays: for the
+ * app's motion setting (the intro does not wait long for it), and for its
+ * notes to be drawn when a window called back wriggles them.
+ */
+export const INTRO_WAIT = { prefs: 300, notes: 1500 } as const
+
 export interface Timed {
   keyframes: Keyframe[]
   timing: KeyframeAnimationOptions

@@ -3,6 +3,7 @@
 import { derived, get, writable } from 'svelte/store'
 import en from './en.json'
 import ko from './ko.json'
+import { logged } from '../services/errors'
 
 export type Lang = 'ko' | 'en'
 export type Choice = 'auto' | 'ko' | 'en'
@@ -97,7 +98,7 @@ export async function chooseLanguage(choice: Choice, host: LanguageHost): Promis
       setLanguage(host.app)
       return
     }
-    const got = await host.settingsGet().catch(() => null)
+    const got = await host.settingsGet().catch(logged('language.get', null))
     const r = got?.language?.resolved
     setLanguage(r === 'ko' || r === 'en' ? r : choice === 'auto' ? resolveAuto() : choice)
     return
@@ -122,6 +123,9 @@ export function dayLabel(date: string, today: Date, lang: Lang): string {
     .format(day)
     .replace(/^(\d+)월\s*(\d+)일$/, '$1월 $2일')
 }
+
+/** MINUTE_MS is relativeTime's smallest step: a window that says elapsed times reads the clock this often. */
+export const MINUTE_MS = 60_000
 
 /** relativeTime says how long before now d was: "2분 전" / "2m ago". */
 export function relativeTime(d: Date, now: Date, lang: Lang): string {

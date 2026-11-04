@@ -16,7 +16,7 @@
   import { columnsFor, place, type Placement } from './layout'
   import type { Note } from './model'
   import NoteFrame from './NoteFrame.svelte'
-  import { capture, MOVED } from './pointer'
+  import { follow, MOVED } from './pointer'
 
   let {
     notes,
@@ -57,32 +57,24 @@
     const t = e.target as HTMLElement
     if (!t.closest('[data-grip]') && !(t.closest('.head') && !t.closest('button, input, select, a, .title, [role="menu"]'))) return
     e.preventDefault()
-    capture(e)
     const x0 = e.clientX
     const y0 = e.clientY
     const start = notes.map((n) => n.name)
-    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
-    const move = mine((m) => {
-      if (!dragging && Math.hypot(m.clientX - x0, m.clientY - y0) < MOVED) return
-      dragging = name
-      const to = dropAt(slots(), name, m.clientX, m.clientY)
-      if (to) preview = moveTo(preview ?? start, name, to.target, to.after)
-    })
-    const end = (keep: boolean) =>
-      mine(() => {
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', done)
-        window.removeEventListener('pointercancel', cancel)
+    follow(
+      e,
+      (m) => {
+        if (!dragging && Math.hypot(m.clientX - x0, m.clientY - y0) < MOVED) return
+        dragging = name
+        const to = dropAt(slots(), name, m.clientX, m.clientY)
+        if (to) preview = moveTo(preview ?? start, name, to.target, to.after)
+      },
+      (keep) => {
         const order = preview
         preview = null
         dragging = null
         if (keep && order && order.some((n, i) => n !== start[i])) onorder?.(order)
-      })
-    const done = end(true)
-    const cancel = end(false)
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', done)
-    window.addEventListener('pointercancel', cancel)
+      },
+    )
   }
 </script>
 
@@ -125,7 +117,7 @@
     position: absolute;
     top: calc(-1 * var(--space-2));
     left: 50%;
-    z-index: 2;
+    z-index: var(--z-tape);
     width: 48px;
     height: var(--space-3);
     transform: translateX(-50%) rotate(-2deg);

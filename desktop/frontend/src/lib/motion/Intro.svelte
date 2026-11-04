@@ -10,8 +10,9 @@
   import { STICKYPANE_LIGHT } from '../theme/fallback'
   import { levelOf } from './keyframes'
   import { motion, watchReducedMotion } from './level.svelte'
-  import { dayOf, fadeIn, fly, INTRO, introMode, sheet, type IntroMode } from './intro'
+  import { dayOf, fadeIn, fly, INTRO, INTRO_WAIT, introMode, sheet, type IntroMode } from './intro'
   import { frames, lastDay, Reel, remember, shown, storage } from './stage'
+  import { logged } from '../../services/errors'
 
   let {
     prefs,
@@ -67,7 +68,7 @@
     if (m === 'fade') {
       reel.run(app, fadeIn())
     } else if (m === 'short') {
-      reel.wriggle(await frames(document, 1500), 0, neat)
+      reel.wriggle(await frames(document, INTRO_WAIT.notes), 0, neat)
     } else {
       await tick()
       sheets.forEach((s, i) => reel.run(s, sheet(i, neat)))
@@ -96,8 +97,8 @@
       if (play) return void start(play).finally(() => (first = false))
       // the setting, if the app answers quickly; the intro does not wait long for it
       const setting = await Promise.race([
-        prefs?.().then((p) => p?.motion ?? '').catch(() => '') ?? Promise.resolve(''),
-        new Promise<string>((r) => setTimeout(() => r(''), 300)),
+        prefs?.().then((p) => p?.motion ?? '').catch(logged('intro.prefs', '')) ?? Promise.resolve(''),
+        new Promise<string>((r) => setTimeout(() => r(''), INTRO_WAIT.prefs)),
       ])
       if (setting) motion.setting = setting
       const today = dayOf(new Date())

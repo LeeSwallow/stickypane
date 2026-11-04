@@ -7,6 +7,7 @@
   // 200%. A note never placed starts where the grid would draw it, and that
   // place is kept. Every change is handed to onplace; the shell keeps it in
   // overlay.json, never in the board's files.
+  import './tokens.css'
   import { tr } from '../i18n'
   import type { Place } from '../services/canvas'
   import { extent, firstPlaces, moved, raise, resized, restack, samePlace, zoomed, type Edge } from './free'
@@ -14,7 +15,7 @@
   import { CARD_PX } from './layout'
   import type { Note } from './model'
   import NoteFrame from './NoteFrame.svelte'
-  import { capture } from './pointer'
+  import { follow as followPointer } from './pointer'
 
   let {
     notes,
@@ -89,31 +90,21 @@
     if (!start || e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    // the window's events, not the handle's: the webview may refuse the
-    // capture, and the pointer leaves the handle as it moves (#66)
-    capture(e)
     const x0 = e.clientX
     const y0 = e.clientY
     const up = raise(all, name)
     const z = (up ?? start).z
     drag = { name, at: { ...start, z } }
-    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
-    const move = mine((m) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } }))
-    const end = (keep: boolean) =>
-      mine(() => {
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', done)
-        window.removeEventListener('pointercancel', cancel)
+    followPointer(
+      e,
+      (m) => (drag = { name, at: { ...next(start, m.clientX - x0, m.clientY - y0, m.altKey ? !snap : snap), z } }),
+      (keep) => {
         const at = drag?.at
         drag = null
         if (keep && at && !samePlace(at, start)) onplace({ [name]: at })
         else if (up) onplace({ [name]: up })
-      })
-    const done = end(true)
-    const cancel = end(false)
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', done)
-    window.addEventListener('pointercancel', cancel)
+      },
+    )
   }
 
   const startMove = (e: PointerEvent, name: string) => follow(e, name, (s, dx, dy, on) => moved(s, dx, dy, scale, on))
@@ -216,7 +207,7 @@
     position: absolute;
     top: calc(-1 * var(--space-2));
     left: 50%;
-    z-index: 2;
+    z-index: var(--z-tape);
     width: 56px;
     height: var(--space-4);
     transform: translateX(-50%) rotate(-2deg);
@@ -238,20 +229,20 @@
   .handle.e {
     top: 0;
     bottom: var(--space-4);
-    right: -6px;
-    width: 12px;
+    right: calc(var(--edge-hit) / -2);
+    width: var(--edge-hit);
     cursor: ew-resize;
   }
   .handle.s {
     left: 0;
     right: var(--space-4);
-    bottom: -6px;
-    height: 12px;
+    bottom: calc(var(--edge-hit) / -2);
+    height: var(--edge-hit);
     cursor: ns-resize;
   }
   .handle.se {
-    right: -6px;
-    bottom: -6px;
+    right: calc(var(--edge-hit) / -2);
+    bottom: calc(var(--edge-hit) / -2);
     width: 22px;
     height: 22px;
     cursor: nwse-resize;
@@ -264,16 +255,16 @@
     opacity: 0;
   }
   .handle.e::after {
-    left: 5px;
-    top: calc(50% - 12px);
-    width: 2px;
-    height: 24px;
+    left: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    top: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-line);
+    height: var(--edge-mark);
   }
   .handle.s::after {
-    top: 5px;
-    left: calc(50% - 12px);
-    width: 24px;
-    height: 2px;
+    top: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    left: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-mark);
+    height: var(--edge-line);
   }
   .handle.se::after {
     right: 6px;

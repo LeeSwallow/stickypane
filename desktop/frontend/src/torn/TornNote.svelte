@@ -10,32 +10,32 @@
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
   import { onMount, setContext, tick as drawn } from 'svelte'
-  import { boardLanguage, setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, MINUTE_MS, setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { fitsOf, noteOf } from '../lib/shell'
   import { setHeight } from '../services/window'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
-  import { normalizePalette, type Palette } from '../lib/theme/palette'
+  import type { Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme, noteTitleColor } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
-  import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
-  import Dialog from '../lib/ui/Dialog.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
-  import Input from '../lib/ui/Input.svelte'
   import IconButton from '../lib/ui/IconButton.svelte'
   import Toast from '../lib/ui/Toast.svelte'
+  import { NOTICE_MS } from '../lib/ui/toast'
   import { events, type Bus, type Status } from '../services/board'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
+  import { fold } from '../lib/fold'
   import { projectService, type ProjectApi } from '../services/project'
   import { act, arrange } from '../board/actions'
   import { boardContext, noteHex, type BoardCtx } from '../board/context'
   import { allNotes, findNote, resolveLink, type Board } from '../board/model'
+  import MoveDialog from '../board/MoveDialog.svelte'
   import NoteFrame from '../board/NoteFrame.svelte'
   import * as manage from '../board/manage'
   import { connect } from '../board/session'
-  import { modeOf, paletteFor } from '../board/theme'
+  import { boardPalette, modeOf, paletteFor } from '../board/theme'
 
   // bus: the shell's events (a test passes its own)
   let {
@@ -48,13 +48,15 @@
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
+  // what failed last, said in the toast at the bottom; fail(where) is the
+  // catch that says it (and keeps it in the log)
   let failed = $state('')
+  const fail = (where: string) => (e: unknown) => (failed = report('torn.' + where, e))
   // a short word at the bottom (run, sent, archived, deleted with 되돌리기)
   let notice = $state<manage.Said | null>(null)
   // a question before a delete, a run or a send; the note being moved
   let asking = $state<manage.Asking | null>(null)
   let moving = $state(false)
-  let moveTo = $state('')
   let mode = $state<Mode>('system')
   // the app's language: what a board with none of its own speaks
   let appLanguage = $state('')
@@ -84,7 +86,7 @@
       const pad = parseFloat(getComputedStyle(body).paddingBottom) || 0
       const want = window.innerHeight - body.clientHeight + natural + pad
       const most = Math.round((screen.availHeight || 900) * 0.8)
-      void resize(Math.min(Math.max(want, 160), most)).catch(() => {})
+      void resize(Math.min(Math.max(want, 160), most)).catch(logged('torn.fit'))
     })
   })
 
@@ -93,23 +95,15 @@
   const note = $derived(board ? findNote(board.tabs, name) : null)
   const files = $derived(board ? allNotes(board.tabs).map((n) => n.name) : [])
 
-  const bridgePalette = $derived.by((): Palette | null => {
-    try {
-      return board ? normalizePalette(board.palette) : null
-    } catch {
-      return null
-    }
-  })
+  const bridgePalette = $derived(boardPalette(board))
   // every theme, from the bridge's themes.list: the other half of a pair
   let themes = $state<Palette[]>([])
   let themesAsked = false
   $effect(() => {
     if (status?.state !== 'ready' || themesAsked) return
     themesAsked = true
-    api.themes().then(
-      (t) => (themes = t),
-      () => {},
-    )
+    // an older bridge: the chosen theme's colours stay
+    api.themes().then((t) => (themes = t), logged('torn.themes'))
   })
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
   $effect(() => {
@@ -127,30 +121,16 @@
     document.title = note?.title || name
   })
 
-  let loading: Promise<void> | null = null
-  let again = false
-
   /** refresh reads the status and the board again; calls during one are folded into one more. */
-  function refresh(): Promise<void> {
-    if (loading) {
-      again = true
-      return loading
+  const refresh = fold(async () => {
+    try {
+      status = await api.status()
+      if (status.state === 'ready') board = await api.load()
+      failed = ''
+    } catch (e) {
+      failed = report('torn.refresh', e)
     }
-    loading = (async () => {
-      do {
-        again = false
-        try {
-          status = await api.status()
-          if (status.state === 'ready') board = await api.load()
-          failed = ''
-        } catch (e) {
-          failed = errorText(e)
-        }
-      } while (again)
-      loading = null
-    })()
-    return loading
-  }
+  })
 
   const update = (patch: (b: Board) => Board) => {
     if (board) board = patch(board)
@@ -172,19 +152,19 @@
     if (a) await manage.answer(deps, a)
   }
 
-  async function moveNote() {
+  async function moveNote(to: string) {
     moving = false
-    if (note && moveTo.trim()) await manage.move(deps, note, moveTo)
+    if (note && to.trim()) await manage.move(deps, note, to)
   }
 
   async function putBack() {
-    await api.putBack().catch((e) => (failed = errorText(e)))
+    await api.putBack().catch(fail('putBack'))
   }
 
   async function pin() {
     if (!status) return
-    await api.pin(!status.pinned).catch((e) => (failed = errorText(e)))
-    status = await api.status()
+    await api.pin(!status.pinned).catch(fail('pin'))
+    await api.status().then((s) => (status = s), fail('pin'))
   }
 
   const ctx: BoardCtx = {
@@ -192,14 +172,14 @@
     // a link opens the note it names torn off too, beside this one
     navigate(link) {
       const n = resolveLink(link, files)
-      if (n) api.tearOff(n).catch((e) => (failed = errorText(e)))
+      if (n) api.tearOff(n).catch(fail('navigate'))
     },
     act: (n, a) => act(api, n, a, (error) => (failed = t('note.actFailed', { title: n.title, error })), refresh, update),
     async arrange(n, patch) {
       try {
         await arrange(api, n, patch, update)
       } catch (e) {
-        failed = errorText(e)
+        failed = report('torn.arrange', e)
         await refresh()
       }
     },
@@ -218,14 +198,13 @@
     now: () => now,
     // a board on another computer has no editor here
     get edit() {
-      return status?.remote ? undefined : (n: string) => void api.open(n).catch((e) => (failed = errorText(e)))
+      return status?.remote ? undefined : (n: string) => void api.open(n).catch(fail('edit'))
     },
     putBack: () => void putBack(),
     manage(n, what, request) {
       if (what === 'archive') void manage.archive(deps, n)
       else if (what === 'move') {
         moving = true
-        moveTo = ''
       } else asking = { what, note: n, request }
     },
   }
@@ -252,12 +231,12 @@
         motion.setting = p.motion ?? ''
         appLanguage = p.language ?? ''
       })
-      .catch(() => {})
+      .catch(logged('torn.prefs'))
     refresh()
     offs.push(
       connect({ status: () => api.status(), bus, onChanged: (data) => void stage.changed(data), onRestarted: () => refresh(), onStatus: () => refresh() }),
     )
-    const tick = setInterval(() => (now = new Date()), 60_000)
+    const tick = setInterval(() => (now = new Date()), MINUTE_MS)
     offs.push(() => clearInterval(tick))
     return () => offs.forEach((off) => off())
   })
@@ -305,7 +284,7 @@
   {:else if notice}
     <div class="toasts">
       {#key notice}
-        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+        <Toast message={notice.message} action={notice.action} timeout={NOTICE_MS} onclose={() => (notice = null)} />
       {/key}
     </div>
   {/if}
@@ -313,23 +292,7 @@
     <Confirm open title={question.title} message={question.body} confirmLabel={question.yes} danger onconfirm={answer} oncancel={() => (asking = null)} />
   {/if}
   {#if moving && note}
-    {@const targets = manage.moveTargets(board?.tabs ?? [], note.tab)}
-    <Dialog open title={t('note.moveTitle', { title: note.title })} width={320} onclose={() => (moving = false)}>
-      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
-        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
-        {#if targets.length}
-          <div class="targets">
-            {#each targets as to (to)}
-              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
-            {/each}
-          </div>
-        {/if}
-      </form>
-      {#snippet actions()}
-        <Button variant="ghost" onclick={() => (moving = false)}>{$tr('ui.cancel')}</Button>
-        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
-      {/snippet}
-    </Dialog>
+    <MoveDialog {note} tabs={board?.tabs ?? []} width={320} onmove={moveNote} onclose={() => (moving = false)} />
   {/if}
 </div>
 
@@ -401,16 +364,6 @@
     display: grid;
     place-items: center;
     flex: 1;
-  }
-  .move {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .targets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .toasts {
     position: absolute;

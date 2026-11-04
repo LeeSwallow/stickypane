@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { THEMES } from '../../demo/themes'
-import { agentColor, cardColors, contrast, deriveTokens, mix, noteColors, seedOf } from './tokens'
+import { agentColor, cardColors, contrast, deriveTokens, fnv1a, folderColor, mix, noteIndexOf, noteColors, seedOf } from './tokens'
 import { resolveDark, resolveThemeName } from './mode'
 import { normalizePalette } from './palette'
 
@@ -107,6 +107,13 @@ test('--card-ink carries the darkened ink and Sheet text uses it', () => {
   for (let i = 0; i < 6; i++) expect(cardColors(p, i, false).ink).toBe(t['--card-ink'])
 })
 
+test('fnv1a is FNV-1a 32 of the UTF-8 bytes, as Go hash/fnv', () => {
+  // the published test vectors
+  expect(fnv1a('')).toBe(0x811c9dc5)
+  expect(fnv1a('a')).toBe(0xe40c292c)
+  expect(fnv1a('foobar')).toBe(0xbf9cf968)
+})
+
 test('seedOf is stable and positive', () => {
   expect(seedOf('abc')).toBe(seedOf('abc'))
   expect(seedOf('abc')).not.toBe(seedOf('abd'))
@@ -131,4 +138,13 @@ describe('contrast is at least 4.5:1 for every theme x mode x card colour', () =
       })
     }
   }
+})
+
+test('a board on the home takes its own colour by its folder, else the app\'s', () => {
+  const own = ['#000001', '#000002', '#000003', '#000004', '#000005', '#000006']
+  const app = ['#a00000', '#b00000']
+  const i = noteIndexOf('/Users/me/proj')
+  expect(folderColor('/Users/me/proj', own, app)).toBe(own[i])
+  expect(folderColor('/Users/me/proj', own.slice(0, 3), app)).toBe(app[i % 2])
+  expect(folderColor('/Users/me/proj', null, [])).toBe('currentColor')
 })

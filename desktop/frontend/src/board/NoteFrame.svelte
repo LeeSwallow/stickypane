@@ -9,6 +9,7 @@
   // works zoomed, on a canvas or alone. free: the canvas or a torn-off
   // note's window sizes it, so it fills its box and has no edges or width
   // steps of the grid's.
+  import './tokens.css'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
@@ -23,7 +24,7 @@
   import { columnSteps } from '../lib/sizes'
   import type { Note } from './model'
   import { manageItems, type Manage } from './manage'
-  import { capture, MOVED } from './pointer'
+  import { follow, MOVED } from './pointer'
 
   let {
     note,
@@ -102,34 +103,22 @@
 
   /**
    * drag follows a pointer on an edge until it is let go (save) or taken
-   * away (cancel). It listens on the window, not the edge: a webview may
-   * refuse or drop the pointer capture (#66), and the pointer leaves the
-   * thin edge as soon as it moves.
+   * away (cancel: the system took the pointer, keep what it had).
    */
   function drag(e: PointerEvent, move: (m: PointerEvent) => void, done: (save: boolean) => void) {
     if (e.button !== 0) return
     e.preventDefault()
     e.stopPropagation()
-    capture(e)
-    const mine = (f: (m: PointerEvent) => void) => (m: PointerEvent) => m.pointerId === e.pointerId && f(m)
     // a press that does not move (a click, half a double-click) saves nothing
     let went = false
-    const moved = mine((m) => {
-      went ||= Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) >= MOVED
-      if (went) move(m)
-    })
-    const end = (save: boolean) =>
-      mine(() => {
-        window.removeEventListener('pointermove', moved)
-        window.removeEventListener('pointerup', up)
-        window.removeEventListener('pointercancel', cancel)
-        done(save && went)
-      })
-    const up = end(true)
-    const cancel = end(false) // the system took the pointer: keep what it had
-    window.addEventListener('pointermove', moved)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', cancel)
+    follow(
+      e,
+      (m) => {
+        went ||= Math.hypot(m.clientX - e.clientX, m.clientY - e.clientY) >= MOVED
+        if (went) move(m)
+      },
+      (save) => done(save && went),
+    )
   }
 
   function startHeight(e: PointerEvent) {
@@ -340,8 +329,8 @@
     z-index: 1;
     left: 0;
     right: 0;
-    bottom: -6px;
-    height: 12px;
+    bottom: calc(var(--edge-hit) / -2);
+    height: var(--edge-hit);
     cursor: ns-resize;
     touch-action: none;
   }
@@ -349,27 +338,27 @@
     left: auto;
     top: 0;
     bottom: 0;
-    right: -6px;
-    width: 12px;
+    right: calc(var(--edge-hit) / -2);
+    width: var(--edge-hit);
     height: auto;
     cursor: ew-resize;
   }
   .edge::after {
     content: '';
     position: absolute;
-    left: calc(50% - 12px);
-    top: 5px;
-    width: 24px;
-    height: 2px;
+    left: calc(50% - var(--edge-mark) / 2);
+    top: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    width: var(--edge-mark);
+    height: var(--edge-line);
     border-radius: 1px;
     background: var(--ink-3);
     opacity: 0;
   }
   .edge.side::after {
-    left: 5px;
-    top: calc(50% - 12px);
-    width: 2px;
-    height: 24px;
+    left: calc((var(--edge-hit) - var(--edge-line)) / 2);
+    top: calc(50% - var(--edge-mark) / 2);
+    width: var(--edge-line);
+    height: var(--edge-mark);
   }
   .frame:hover > .edge::after {
     opacity: 0.6;

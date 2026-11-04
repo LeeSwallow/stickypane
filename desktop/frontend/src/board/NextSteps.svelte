@@ -2,6 +2,7 @@
   // An empty tab says what to do next (03 §3.6): make a note, ask an agent
   // (a sentence to paste), or open the same board in a terminal (the line
   // to type). Three taped notes, upright, since they hold controls.
+  import { logged } from '../services/errors'
   import { tr } from '../i18n'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
@@ -31,7 +32,8 @@
     try {
       await copy(text)
       copied = what
-    } catch {
+    } catch (e) {
+      logged('nextSteps.copy')(e)
       copied = ''
     }
   }

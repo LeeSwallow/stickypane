@@ -1,6 +1,7 @@
 <script lang="ts">
   // The install line (stickypane not found) or the update line (every copy
   // found is too old), with a copy button.
+  import { logged } from '../services/errors'
   import { tr } from '../i18n'
   import Button from '../lib/ui/Button.svelte'
 
@@ -12,7 +13,8 @@
     try {
       await copy(command)
       copied = true
-    } catch {
+    } catch (e) {
+      logged('install.copy')(e)
       copied = false
     }
   }

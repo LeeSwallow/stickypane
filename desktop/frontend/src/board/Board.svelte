@@ -8,12 +8,12 @@
   import './tokens.css'
   import { onMount, setContext, tick } from 'svelte'
   import { get } from 'svelte/store'
-  import { boardLanguage, language, resolveAuto, setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, language, MINUTE_MS, resolveAuto, setLanguage, t, tr } from '../i18n'
   import { fallbackPalette } from '../lib/theme/fallback'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
-  import { normalizePalette, type Palette } from '../lib/theme/palette'
+  import type { Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
@@ -27,11 +27,10 @@
   import NextSteps from './NextSteps.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
+  import { NOTICE_MS } from '../lib/ui/toast'
   import CreateDialog from '../create/CreateDialog.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
-  import Dialog from '../lib/ui/Dialog.svelte'
-  import Input from '../lib/ui/Input.svelte'
   import * as manage from './manage'
   import type { Manage, ManageDeps } from './manage'
   import { act, arrange } from './actions'
@@ -44,14 +43,17 @@
   import { glance, stalledCount } from './glance'
   import Grid from './Grid.svelte'
   import { connect } from './session'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
+  import { baseName } from '../lib/path'
+  import { fold } from '../lib/fold'
   import { frameOf, keyAction } from './keys'
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
   import { beside, columnsOf, fitColumns, placeColumns, stepColumns, swap } from './columns'
-  import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
+  import { allNotes, findNote, locate as locateIn, resolveLink, type Board, type Note, type Tab } from './model'
+  import MoveDialog from './MoveDialog.svelte'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
-  import { modeOf, paletteFor } from './theme'
+  import { boardPalette, modeOf, paletteFor } from './theme'
   import TitleBar from './TitleBar.svelte'
   import {
     canGoBack, flip, followTab, goBack, goToPage, initView, isChanged, navigate, pageOf, seeAll, selectTab, zoomIn,
@@ -83,13 +85,16 @@
   let mode = $state<Mode>('system')
   let systemDark = $state(false)
   let hotkey = $state('')
+  // what failed last, said in the toast at the bottom; fail(where) is the
+  // catch that says it (and keeps it in the log)
   let failed = $state('')
+  const fail = (where: string) => (e: unknown) => (failed = report('board.' + where, e))
   // the note a focused frame holds: what ⋯ "편집기로 열기" opens when none is zoomed
   let focused = $state<string | null>(null)
   // "+ 생성": the dialog, open from the title bar or with a
   let creating = $state(false)
   // ⌘, and ⋯ → 설정…: the settings window, for this board (03 §3.12)
-  const configure = () => void api.openSettings('board').catch((e: unknown) => (failed = errorText(e)))
+  const configure = () => void api.openSettings('board').catch(fail('configure'))
   // ⋯ → 배치 초기화 on the grid asks first: it is the board's sticky.json
   let resetting = $state(false)
   // where notes sit on this computer: canvas or grid, places, torn-off notes
@@ -105,23 +110,15 @@
   const chrome = chromeOf(location.search)
   const win = windowActions('project')
 
-  const bridgePalette = $derived.by((): Palette | null => {
-    try {
-      return board ? normalizePalette(board.palette) : null
-    } catch {
-      return null
-    }
-  })
+  const bridgePalette = $derived(boardPalette(board))
   // every theme, from the bridge's themes.list once it is up: the other half of a pair
   let themes = $state<Palette[]>([])
   let themesAsked = false
   $effect(() => {
     if (status?.state !== 'ready' || themesAsked) return
     themesAsked = true
-    api.themes().then(
-      (t) => (themes = t),
-      () => {}, // an older bridge: the chosen theme's colours stay
-    )
+    // an older bridge: the chosen theme's colours stay
+    api.themes().then((t) => (themes = t), logged('board.themes'))
   })
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
 
@@ -174,61 +171,47 @@
 
   // --- loading -----------------------------------------------------------
 
-  let loading: Promise<void> | null = null
-  let again = false
-
   /** refresh reads the status and the board again; calls during one are folded into one more. */
-  function refresh(): Promise<void> {
-    if (loading) {
-      again = true
-      return loading
+  const refresh = fold(async () => {
+    try {
+      status = await api.status()
+      if (!stopLayout && status.window) stopLayout = api.onLayout(status.window, (l) => (layout = l))
+      if (status.state !== 'ready') return
+      const b = await api.load()
+      const before = board?.settings.tab ?? null
+      board = b
+      view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
+      seen = seeAll(seen, allNotes(b.tabs))
+      if (!layoutRead) await readLayout()
+      failed = ''
+    } catch (e) {
+      failed = report('board.refresh', e)
     }
-    loading = (async () => {
-      do {
-        again = false
-        try {
-          status = await api.status()
-          if (!stopLayout && status.window) stopLayout = api.onLayout(status.window, (l) => (layout = l))
-          if (status.state !== 'ready') continue
-          const b = await api.load()
-          const before = board?.settings.tab ?? null
-          board = b
-          view = before === null ? (startZoom ? zoomIn(initView(b.settings.tab), startZoom) : initView(b.settings.tab)) : followTab(view, before, b.settings.tab)
-          seen = seeAll(seen, allNotes(b.tabs))
-          if (!layoutRead) await readLayout()
-          failed = ''
-        } catch (e) {
-          failed = String(e)
-        }
-      } while (again)
-      loading = null
-    })()
-    return loading
-  }
+  })
 
   /** readLayout asks the shell where the notes sit; without an answer the canvas starts empty. */
   async function readLayout() {
     try {
       layout = await api.layout()
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.readLayout', e)
     }
     layoutRead = true
   }
 
   function setMode(m: LayoutMode) {
     layout = { ...layout, mode: m }
-    api.setMode(m).catch((e) => (failed = errorText(e)))
+    api.setMode(m).catch(fail('setMode'))
   }
 
   function setSnap(on: boolean) {
     layout = { ...layout, snap: on }
-    api.setSnap(on).catch((e) => (failed = errorText(e)))
+    api.setSnap(on).catch(fail('setSnap'))
   }
 
   function place(places: Record<string, Place>) {
     layout = { ...layout, places: { ...layout.places, ...places } }
-    api.place(places).catch((e) => (failed = errorText(e)))
+    api.place(places).catch(fail('place'))
   }
 
   async function tear(name: string) {
@@ -237,7 +220,7 @@
     try {
       await api.tearOff(name)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.tear', e)
     }
     await readLayout()
   }
@@ -246,7 +229,7 @@
     try {
       await api.putBack(name)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.putBack', e)
     }
     await readLayout()
   }
@@ -255,7 +238,7 @@
 
   /** created opens the new note, shows its tab and puts the focus on it. */
   async function created(name: string) {
-    await api.arrange({ note: name, open: true }).catch((e) => (failed = errorText(e)))
+    await api.arrange({ note: name, open: true }).catch(fail('created'))
     await refresh()
     const at = locate(name)
     if (at) view = selectTab(view, at.tab)
@@ -272,7 +255,6 @@
   // a question before a delete, a run or a send; the note being moved
   let asking = $state<manage.Asking | null>(null)
   let moving = $state<Note | null>(null)
-  let moveTo = $state('')
   // the last note deleted here: u and ⌘Z bring it back
   let lastTrashed: Note | null = null
 
@@ -289,7 +271,6 @@
     if (what === 'archive') void manage.archive(deps, note)
     else if (what === 'move') {
       moving = note
-      moveTo = ''
     } else asking = { what, note, request }
   }
 
@@ -300,10 +281,10 @@
     if ((await manage.answer(deps, a)) && a.what === 'trash') lastTrashed = a.note
   }
 
-  async function moveNote() {
+  async function moveNote(to: string) {
     const n = moving
     moving = null
-    if (n && moveTo.trim()) await manage.move(deps, n, moveTo)
+    if (n && to.trim()) await manage.move(deps, n, to)
   }
 
   const question = $derived(asking ? manage.question(asking, board?.title ?? '') : null)
@@ -315,16 +296,7 @@
   // --- what notes ask of the window ---------------------------------------
 
   /** where a note is: its tab, and its book when it is a page */
-  function locate(name: string): { tab: string; book: Note | null; page: number } | null {
-    if (!board) return null
-    for (const t of board.tabs)
-      for (const n of t.notes) {
-        if (n.name === name) return { tab: t.name, book: null, page: 0 }
-        const i = (n.pages ?? []).findIndex((p) => p.name === name)
-        if (i >= 0) return { tab: t.name, book: n, page: i }
-      }
-    return null
-  }
+  const locate = (name: string) => (board ? locateIn(board.tabs, name) : null)
 
   const ctx: BoardCtx = {
     find: (link) => (board ? findNote(board.tabs, resolveLink(link, files)) : null),
@@ -345,7 +317,7 @@
         // read the board again (it undoes the guess), then tell why: a
         // read that succeeds clears the toast, so the reason comes after (#66)
         await refresh()
-        failed = errorText(e)
+        failed = report('board.arrange', e)
       }
     },
     zoom: (name) => (view = zoomIn(view, name)),
@@ -366,7 +338,7 @@
     now: () => now,
     // a board on another computer has no editor here (the shell refuses it too)
     get edit() {
-      return status?.remote ? undefined : (name: string) => void api.open(name).catch((err) => (failed = String(err)))
+      return status?.remote ? undefined : (name: string) => void api.open(name).catch(fail('edit'))
     },
     manage: manageNote,
     tear: (name) => void tear(name),
@@ -384,7 +356,7 @@
       await api.tearOffAll(names)
       notice = { message: t('board.tornAll', { n: names.length }), action: { label: t('home.undo'), run: () => void putBackAll(names) } }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.tearOff', e)
     }
     await readLayout()
   }
@@ -393,7 +365,7 @@
     try {
       await api.putBackAll(names)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.putBackAll', e)
     }
     await readLayout()
   }
@@ -428,7 +400,7 @@
       layout = { ...layout, places: {} }
       notice = { message: t('board.resetCanvas'), action: { label: t('home.undo'), run: () => place(before) } }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.resetLayout', e)
     }
   }
 
@@ -446,11 +418,11 @@
         message: t('board.resetDone'),
         action: {
           label: t('home.undo'),
-          run: () => void Promise.all(before.map((b) => api.arrange(b))).then(refresh, (e) => (failed = errorText(e))),
+          run: () => void Promise.all(before.map((b) => api.arrange(b))).then(refresh, fail('resetSizes.undo')),
         },
       }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.resetSizes', e)
       await refresh()
     }
   }
@@ -493,7 +465,7 @@
       ...b,
       tabs: b.tabs.map((x) => (x.name === tabName ? { ...x, notes: order.map((o) => x.notes.find((n) => n.name === o)!) } : x)),
     }))
-    api.order(tabName, order).catch((err) => (failed = String(err))).finally(refresh)
+    api.order(tabName, order).catch(fail('order')).finally(refresh)
     if (moved) requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(moved)}"]`)?.focus())
   }
 
@@ -614,32 +586,28 @@
 
   async function pin() {
     if (!status) return
-    await api.pin(!status.pinned).catch((err) => (failed = String(err)))
-    status = await api.status()
+    await api.pin(!status.pinned).catch(fail('pin'))
+    await api.status().then((s) => (status = s), fail('pin'))
+  }
+
+  /** takePrefs draws with the app's settings: read at the start, and heard when they change. */
+  function takePrefs(p: Awaited<ReturnType<ProjectApi["prefs"]>>) {
+    mode = modeOf(p.mode)
+    hotkey = p.hotkey ?? ''
+    appLanguage = p.language ?? ''
+    motion.setting = p.motion ?? ''
   }
 
   onMount(() => {
     if (startCreate) creating = true
     const offs: (() => void)[] = [watchSystemDark((d) => (systemDark = d)), watchReducedMotion(), () => stage.stop()]
-    api
-      .prefs()
-      .then((p) => {
-        mode = modeOf(p.mode)
-        hotkey = p.hotkey ?? ''
-        appLanguage = p.language ?? ''
-        motion.setting = p.motion ?? ''
-      })
-      .catch(() => {})
+    api.prefs().then(takePrefs, logged('board.prefs'))
     refresh()
     // the app's settings, changed in the settings window (or any window)
     offs.push(
       bus.on(prefsEvent, (e) => {
         const p = e.data as AppPrefs | undefined
-        if (!p) return
-        mode = modeOf(p.mode)
-        hotkey = p.hotkey ?? ''
-        appLanguage = p.language ?? ''
-        motion.setting = p.motion ?? ''
+        if (p) takePrefs(p)
       }),
     )
     // the bridge's events, from as soon as the window id is known, even
@@ -654,7 +622,7 @@
       }),
     )
     // elapsed times are words ("4m ago"): a new minute rewrites them
-    const tick = setInterval(() => (now = new Date()), 60_000)
+    const tick = setInterval(() => (now = new Date()), MINUTE_MS)
     offs.push(() => clearInterval(tick))
     offs.push(() => stopLayout?.())
     return () => offs.forEach((off) => off())
@@ -686,7 +654,7 @@
       // the welcome note in the language the window draws in (08 §8.2)
       await api.makeBoard(get(language))
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.makeBoard', e)
     } finally {
       making = false
     }
@@ -697,7 +665,7 @@
 
 <div class="window" bind:clientWidth={width}>
   <TitleBar
-    title={board?.title || (status?.path ?? '').split('/').filter(Boolean).pop() || ''}
+    title={board?.title || baseName(status?.path ?? '')}
     path={status?.path ?? ''}
     {hotkey}
     {chrome}
@@ -792,7 +760,7 @@
   {:else if notice}
     <div class="toasts">
       {#key notice}
-        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+        <Toast message={notice.message} action={notice.action} timeout={NOTICE_MS} onclose={() => (notice = null)} />
       {/key}
     </div>
   {/if}
@@ -819,23 +787,7 @@
     />
   {/if}
   {#if moving}
-    {@const targets = manage.moveTargets(board?.tabs ?? [], moving.tab)}
-    <Dialog open title={t('note.moveTitle', { title: moving.title })} width={420} onclose={() => (moving = null)}>
-      <form class="move" onsubmit={(e) => (e.preventDefault(), moveNote())}>
-        <Input label={$tr('note.moveTo')} hint={$tr('note.moveHint')} bind:value={moveTo} data-autofocus />
-        {#if targets.length}
-          <div class="targets">
-            {#each targets as to (to)}
-              <Button size="sm" variant="secondary" icon="tab" onclick={() => (moveTo = to)}>{to === '.' ? $tr('note.moveTop') : to}</Button>
-            {/each}
-          </div>
-        {/if}
-      </form>
-      {#snippet actions()}
-        <Button variant="ghost" onclick={() => (moving = null)}>{$tr('ui.cancel')}</Button>
-        <Button variant="primary" disabled={!moveTo.trim()} onclick={moveNote}>{$tr('note.move').replace(/…$/, '')}</Button>
-      {/snippet}
-    </Dialog>
+    <MoveDialog note={moving} tabs={board?.tabs ?? []} width={420} onmove={moveNote} onclose={() => (moving = null)} />
   {/if}
   {#if board}
     <CreateDialog
@@ -913,16 +865,6 @@
     display: grid;
     place-items: center;
     flex: 1;
-  }
-  .move {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .targets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .toasts {
     position: absolute;

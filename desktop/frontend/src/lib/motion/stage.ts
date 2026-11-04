@@ -75,7 +75,8 @@ export class Reel {
   }
   /** done resolves when every animation has ended (or was skipped). */
   done(): Promise<void> {
-    return Promise.all(this.all.map((a) => a.finished.catch(() => undefined))).then(() => undefined)
+    // an animation cancelled (a reel stopped) is finished too
+    return Promise.allSettled(this.all.map((a) => a.finished)).then(() => undefined)
   }
   /** skip ends them all at their end state. */
   skip() {

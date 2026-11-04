@@ -13,7 +13,8 @@
   import Confirm from '../lib/ui/Confirm.svelte'
   import CrayonIcon from '../lib/ui/icons/CrayonIcon.svelte'
   import Input from '../lib/ui/Input.svelte'
-  import { errorText } from '../services/errors'
+  import { report } from '../services/errors'
+  import { shortPath } from '../lib/path'
   import type { Host, HostCheck, HostsApi, SshAlias } from '../services/hosts'
 
   let { api }: { api: HostsApi } = $props()
@@ -30,17 +31,15 @@
   let reading = $state(false)
 
   const neat = $derived(look.style === 'neat')
-  // a long folder keeps its end, where its name is; the whole is its tooltip
-  const short = (p: string) => {
-    const parts = p.split('/')
-    return p.length > 48 && parts.length > 3 ? '…/' + parts.slice(-2).join('/') : p
-  }
+  // a long folder keeps its end, where its name is (wider here than on a
+  // home card); the whole is its tooltip
+  const short = (p: string) => shortPath(p, 48)
 
   async function load() {
     try {
       hosts = (await api.hosts()) ?? []
     } catch (e) {
-      failed = errorText(e)
+      failed = report('hosts.load', e)
     } finally {
       loaded = true
     }
@@ -52,7 +51,7 @@
     try {
       await f()
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
+      failed = report('hosts.run', e, (error) => $tr('settings.failed', { error }))
     }
     await load()
   }
@@ -63,7 +62,7 @@
     try {
       c = await api.checkHost(name)
     } catch (e) {
-      c = { ok: false, bridge: false, error: errorText(e) }
+      c = { ok: false, bridge: false, error: report('hosts.check', e) }
     }
     checks = { ...checks, [name]: c }
   }
@@ -84,7 +83,7 @@
       await api.saveHost(h, old)
       form = { ...form, open: false }
     } catch (err) {
-      failed = $tr('settings.failed', { error: errorText(err) })
+      failed = report('hosts.save', err, (error) => $tr('settings.failed', { error }))
     }
     await load()
   }
@@ -102,7 +101,7 @@
     try {
       aliases = (await api.aliases()) ?? []
     } catch (e) {
-      failed = errorText(e)
+      failed = report('hosts.readAliases', e)
       aliases = []
     } finally {
       reading = false

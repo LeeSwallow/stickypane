@@ -32,7 +32,7 @@
   import { motion } from '../lib/motion/level.svelte'
   import { STICKYPANE_DARK, STICKYPANE_LIGHT, fallbackPalette } from '../lib/theme/fallback'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
-  import { normalizePalette, type Palette } from '../lib/theme/palette'
+  import type { Palette } from '../lib/theme/palette'
   import { applyTheme } from '../lib/theme/tokens'
   import Badge from '../lib/ui/Badge.svelte'
   import Button from '../lib/ui/Button.svelte'
@@ -43,10 +43,11 @@
   import TitleBar from '../lib/ui/TitleBar.svelte'
   import Toggle from '../lib/ui/Toggle.svelte'
   import type { Board } from '../board/model'
-  import { modeOf, paletteFor } from '../board/theme'
+  import { boardPalette, modeOf, paletteFor } from '../board/theme'
   import type { Status } from '../services/board'
   import type { LayoutMode, Layout } from '../services/canvas'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
+  import { nextIndex } from '../lib/ui/keys'
   import type { SetupApi } from '../services/install'
   import {
     SECTIONS, setAppPref,
@@ -97,13 +98,7 @@
 
   // the window draws as its board does (its theme for the screen's light
   // or dark, its style), and speaks the app's language
-  const bridgePalette = $derived.by((): Palette | null => {
-    try {
-      return board ? normalizePalette(board.palette) : null
-    } catch {
-      return null
-    }
-  })
+  const bridgePalette = $derived(boardPalette(board))
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : fallbackPalette(dark))
   $effect(() => {
     applyTheme(palette, palette.dark)
@@ -122,10 +117,10 @@
       }
       board = await side.load()
       layoutMode = (await side.layout()).mode
-      if (!themes.length) themes = await side.themes().catch(() => [])
+      if (!themes.length) themes = await side.themes().catch(logged('settings.themes', []))
     } catch (e) {
       board = null
-      failed = errorText(e)
+      failed = report('settings.readBoard', e)
     } finally {
       loaded = true
     }
@@ -146,9 +141,9 @@
     app.prefs().then((p) => {
       prefs = p
       motion.setting = p.motion ?? ''
-    }, () => {})
-    app.autostart().then((a) => (autostart = a), () => (autostart = null))
-    app.about().then((a) => (about = a), () => {})
+    }, logged('settings.prefs'))
+    app.autostart().then((a) => (autostart = a), (e) => (autostart = logged('settings.autostart', null)(e)))
+    app.about().then((a) => (about = a), logged('settings.about'))
     void readBoard()
     return () => offs.forEach((off) => off())
   })
@@ -167,7 +162,7 @@
       await side.setSettings(p)
       board = await side.load()
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
+      failed = report('settings.setBoard', e, (error) => $tr('settings.failed', { error }))
       void readBoard()
     }
   }
@@ -177,7 +172,7 @@
     try {
       await side.setMode(m)
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
+      failed = report('settings.setLayout', e, (error) => $tr('settings.failed', { error }))
     }
   }
 
@@ -192,7 +187,7 @@
     try {
       prefs = await setAppPref(prefApi, patch)
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
+      failed = report('settings.setPref', e, (error) => $tr('settings.failed', { error }))
     }
   }
 
@@ -200,8 +195,8 @@
     try {
       autostart = await app.setAutostart(on)
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
-      autostart = await app.autostart().catch(() => autostart)
+      failed = report('settings.setLogin', e, (error) => $tr('settings.failed', { error }))
+      autostart = await app.autostart().catch(logged('settings.autostart', autostart))
     }
   }
 
@@ -218,11 +213,10 @@
   let nav: HTMLElement | undefined = $state()
 
   function navKey(e: KeyboardEvent) {
-    const i = SECTIONS.indexOf(section)
-    const j = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: SECTIONS.length - 1 }[e.key]
-    if (j === undefined) return
+    const j = nextIndex(e.key, SECTIONS.indexOf(section), SECTIONS.length, 'vertical')
+    if (j === null) return
     e.preventDefault()
-    section = SECTIONS[(j + SECTIONS.length) % SECTIONS.length]
+    section = SECTIONS[j]
     nav?.querySelectorAll<HTMLElement>('[role="tab"]')[SECTIONS.indexOf(section)]?.focus()
   }
 

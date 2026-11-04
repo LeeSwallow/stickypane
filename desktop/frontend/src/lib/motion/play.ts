@@ -9,6 +9,16 @@
 import { movement, pen, slide, type Delta, type Look, type Movement } from './keyframes'
 import type { Plan, Step, Target } from './plan'
 
+/**
+ * BEAT is when, in ms after a step starts, what follows it plays: each
+ * part pushed after the one before it, the pen of a tick and of a nudge
+ * (and how long it draws), and the glow a carried part lands with.
+ */
+const BEAT = { push: 40, tickPen: 120, tickDraw: 240, nudgePen: 80, nudgeDraw: 440, carryGlow: 560 } as const
+
+/** ABOVE is the z-index a carried or dropped part takes over its neighbours while it moves. */
+const ABOVE = '5'
+
 /** Where every part was, and copies of the parts about to go. */
 export interface Snapshot {
   rects: Map<string, DOMRect>
@@ -206,19 +216,19 @@ export class Player {
       if (held(el)) return
       if (s.effect === 'glow') return this.glow(el, s.delay, o)
       const d = key ? deltaOf(before.rects.get(key), el) : null
-      const a = this.run(el, movement(s.effect, o.look, d), s.delay + (s.effect === 'push' ? i * 40 : 0))
+      const a = this.run(el, movement(s.effect, o.look, d), s.delay + (s.effect === 'push' ? i * BEAT.push : 0))
       // a carried or dropped part passes over its neighbours
       if (a && (s.effect === 'carry' || s.effect === 'drop')) this.above(el, a)
-      if (s.effect === 'tick') this.pens(el, o.look, s.delay + 120, 240)
-      if (s.effect === 'nudge') this.pens(el, o.look, s.delay + 80, 440)
-      if (s.effect === 'carry') this.glow(el, s.delay + 560, o, s.who ? o.colorOf?.(s.who) : undefined)
+      if (s.effect === 'tick') this.pens(el, o.look, s.delay + BEAT.tickPen, BEAT.tickDraw)
+      if (s.effect === 'nudge') this.pens(el, o.look, s.delay + BEAT.nudgePen, BEAT.nudgeDraw)
+      if (s.effect === 'carry') this.glow(el, s.delay + BEAT.carryGlow, o, s.who ? o.colorOf?.(s.who) : undefined)
     })
   }
 
   /** above keeps el over the parts around it while a moves it. */
   private above(el: HTMLElement, a: Animation) {
     const was = el.style.zIndex
-    el.style.zIndex = '5'
+    el.style.zIndex = ABOVE
     if (getComputedStyle(el).position === 'static') el.style.position = 'relative'
     const back = () => (el.style.zIndex = was)
     a.addEventListener('finish', back)

@@ -138,6 +138,24 @@ export function findNote(tabs: Tab[], name: string): Note | null {
  * do it, so the window redraws at once; the bridge's board.changed then
  * brings the truth. The board given is not changed.
  */
+/** A Place is where a note is on a board: its tab, and its book and page when it is a page of one. */
+export interface Place {
+  tab: string
+  book: Note | null
+  page: number
+}
+
+/** locate is where the note named is among the tabs, or null when it is in none. */
+export function locate(tabs: Tab[], name: string): Place | null {
+  for (const t of tabs)
+    for (const n of t.notes) {
+      if (n.name === name) return { tab: t.name, book: null, page: 0 }
+      const i = (n.pages ?? []).findIndex((p) => p.name === name)
+      if (i >= 0) return { tab: t.name, book: n, page: i }
+    }
+  return null
+}
+
 export function withArrange(b: Board, name: string, p: ArrangePatch): Board {
   const apply = (n: Note): Note => {
     if (n.name !== name) return n.pages ? { ...n, pages: n.pages.map((pg) => (pg.name === name ? { ...pg, ...titleOf(p) } : pg)) } : n

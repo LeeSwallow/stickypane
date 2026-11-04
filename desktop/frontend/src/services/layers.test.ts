@@ -25,6 +25,23 @@ describe('layers', () => {
   })
 })
 
+describe('no failure is swallowed', () => {
+  // a catch that drops what it caught: the failure is told (report) or
+  // kept in the log (logged), never thrown away (services/errors.ts)
+  const dropped = [/\.catch\(\(\)\s*=>/, /,\s*\(\)\s*=>\s*\{\s*\}\s*,?\s*\)/, /catch\s*(\(\w*\))?\s*\{\s*\}/]
+  it('no .catch(() => …), () => {} or catch {} in the app', () => {
+    // demo/probe.ts is a page's script, as text, that tries what it must not
+    const out = all.filter((f) => f.path !== 'demo/probe.ts' && dropped.some((r) => r.test(f.text))).map((f) => f.path)
+    expect(out).toEqual([])
+  })
+  it('the check would catch one', () => {
+    expect(dropped[0].test('api.prefs().catch(() => {})')).toBe(true)
+    expect(dropped[1].test('api.themes().then((t) => (themes = t), () => {})')).toBe(true)
+    expect(dropped[2].test('try { go() } catch {}')).toBe(true)
+    expect(dropped.some((r) => r.test("api.prefs().catch(logged('home.prefs'))"))).toBe(false)
+  })
+})
+
 describe('no note text is written here', () => {
   // A front matter fence, or a "type:"/"kind:" line put together in a
   // string: what a note body made in TypeScript would look like.

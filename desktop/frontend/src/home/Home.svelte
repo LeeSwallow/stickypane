@@ -13,6 +13,8 @@
   import { fallbackPalette } from '../lib/theme/fallback'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
   import { applyTheme } from '../lib/theme/tokens'
+  import { homeOf } from '../lib/path'
+  import { logged, report } from '../services/errors'
   import Button from '../lib/ui/Button.svelte'
   import { chromeOf } from '../lib/ui/chrome'
   import { windowActions } from '../services/window'
@@ -124,11 +126,11 @@
     at = now()
     try {
       groups = await api.sessions()
-      peeks = (await api.peeks().catch(() => null)) ?? {}
-      hosts = (await api.hosts().catch(() => null)) ?? []
+      peeks = (await api.peeks().catch(logged('home.peeks', null))) ?? {}
+      hosts = (await api.hosts().catch(logged('home.hosts', null))) ?? []
       failure = ''
     } catch (e) {
-      failure = String((e as Error)?.message ?? e)
+      failure = report('home.sessions', e)
     }
   }
 
@@ -136,9 +138,9 @@
     try {
       const dir = await api.ensure()
       // the person's home, for ~ in the cards' folders
-      if (dir.endsWith('/.stickypane')) homeDir = dir.slice(0, -'/.stickypane'.length)
+      homeDir = homeOf(dir)
     } catch (e) {
-      failure = String((e as Error)?.message ?? e)
+      failure = report('home.ensure', e)
     }
     await Promise.all([
       loadSessions(),
@@ -148,7 +150,7 @@
   }
 
   function warn(code: string, e: unknown) {
-    local = [...local.filter((n) => n.code !== code), { code, detail: String((e as Error)?.message ?? e) }]
+    local = [...local.filter((n) => n.code !== code), { code, detail: report('home.' + code, e) }]
     hidden = hidden.filter((c) => c !== code) // a new failure is shown even if the last was put away
   }
 
@@ -228,10 +230,7 @@
     const refresh = () => void loadSessions()
     window.addEventListener('focus', refresh)
     // The language and mode are read before the first paint of the list; the list does not wait for them.
-    void api.prefs().then(
-      (p) => (prefs = p),
-      () => {},
-    )
+    void api.prefs().then((p) => (prefs = p), logged('home.prefs'))
     void load()
     return () => {
       stopDark()

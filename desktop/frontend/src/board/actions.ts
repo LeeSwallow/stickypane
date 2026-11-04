@@ -3,7 +3,7 @@
 
 import { withArrange, type ArrangePatch, type Board, type Note } from './model'
 import type { BoardApi } from '../services/board'
-import { errorText } from '../services/errors'
+import { report } from '../services/errors'
 import { predict, withData } from './interact'
 
 export type { BoardApi, Status } from '../services/board'
@@ -49,7 +49,7 @@ export async function act(
   try {
     await api.act(note.name, note.version, a)
   } catch (e) {
-    why = errorText(e)
+    why = report('note.act', e)
   }
   // read again first, then say what failed: the read clears the window's
   // last failure, and would take this one with it

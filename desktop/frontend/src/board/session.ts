@@ -21,13 +21,16 @@ export interface Session {
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
+/** RETRY is how long the window waits to ask for its id again, in ms: first, doubled each time, at most. */
+export const RETRY = { first: 250, most: 5000 } as const
+
 /** connect subscribes the window to its events; the function it returns undoes it. */
 export function connect(s: Session): () => void {
   const sleep = s.sleep ?? wait
   let closed = false
   const offs: (() => void)[] = []
   ;(async () => {
-    for (let delay = 250; !closed; delay = Math.min(delay * 2, 5000)) {
+    for (let delay: number = RETRY.first;!closed; delay = Math.min(delay * 2, RETRY.most)) {
       let id: number
       try {
         id = (await s.status()).window

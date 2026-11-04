@@ -6,7 +6,8 @@
   import { tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
-  import { noteIndexOf } from '../lib/theme/tokens'
+  import { folderColor } from '../lib/theme/tokens'
+  import { baseName, shortPath } from '../lib/path'
   import Badge from '../lib/ui/Badge.svelte'
   import type { Peek } from '../services/home'
   import { columnsFor, spans } from './grid'
@@ -27,17 +28,7 @@
   const shown = $derived(boards.filter((b) => words.every((w) => `${b.host} ${b.path}`.toLowerCase().includes(w))))
   const notes = $derived(look.palette?.notes ?? [])
   const key = (b: { host: string; path: string }) => `ssh://${b.host}${b.path}`
-  const nameOf = (p: string) => p.split('/').filter(Boolean).pop() || p
-  // a long folder keeps its end, where its name is (as SessionRow does)
-  const short = (p: string) => {
-    const parts = p.split('/')
-    return p.length > 34 && parts.length > 3 ? '…/' + parts.slice(-2).join('/') : p
-  }
-  const colorOf = (b: { host: string; path: string }) => {
-    const own = peeks[key(b)]?.colors
-    const i = noteIndexOf(key(b))
-    return own?.length === 6 ? own[i % 6] : (notes[i % Math.max(notes.length, 1)] ?? 'currentColor')
-  }
+  const colorOf = (b: { host: string; path: string }) => folderColor(key(b), peeks[key(b)]?.colors, notes)
   let width = $state(900)
   const cols = $derived(columnsFor(width))
 </script>
@@ -49,17 +40,17 @@
       {#each shown as b, i (key(b))}
         {@const peek = peeks[key(b)]}
         <div class="cell" style:grid-column="span {spans(shown.length, cols)[i]}">
-          <button type="button" class="card" aria-label={$tr('sessions.open', { name: `${nameOf(b.path)} · ${b.host}` })} onclick={() => open(b.host, b.path)}>
+          <button type="button" class="card" aria-label={$tr('sessions.open', { name: `${baseName(b.path)} · ${b.host}` })} onclick={() => open(b.host, b.path)}>
             <NoteFrame color={colorOf(b)} id={key(b)} lean>
               <span class="inner">
                 <span class="top">
-                  <span class="title" class:neat={look.style === 'neat'}>{nameOf(b.path)}</span>
+                  <span class="title" class:neat={look.style === 'neat'}>{baseName(b.path)}</span>
                 </span>
                 <span class="facts">
                   <Badge tone="accent">{b.host}</Badge>
                   {#if peek}<span>{$tr('home.notes', { n: peek.notes })}</span>{/if}
                 </span>
-                <span class="path" title="{b.host}:{b.path}">{short(b.path)}</span>
+                <span class="path" title="{b.host}:{b.path}">{shortPath(b.path)}</span>
               </span>
             </NoteFrame>
           </button>

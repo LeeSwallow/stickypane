@@ -7,10 +7,28 @@ export type Fraction = (typeof FRACTIONS)[number]
 
 export const isFraction = (s: string): s is Fraction => (FRACTIONS as readonly string[]).includes(s)
 
+/** ratioOf is a fraction's numerator and denominator: 2/3 is [2, 3], 1 is [1, 1]. */
+export function ratioOf(f: Fraction): [number, number] {
+  if (!f.includes('/')) return [1, 1]
+  const [n, d] = f.split('/').map(Number)
+  return [n, d]
+}
+
+// the old names a note's size is still read by: page is 1, half is 1/2,
+// and card is the narrowest fraction a card fits in (board/layout.ts)
+const ALIASES: Record<string, Fraction | 'card'> = { page: '1', half: '1/2', card: 'card' }
+
+/** normalSize is a size as the board writes it (a fraction, or card), or null when it is not one. */
+export function normalSize(s: string): Fraction | 'card' | null {
+  const k = s.trim().toLowerCase()
+  if (k in ALIASES) return ALIASES[k]
+  return isFraction(k) ? k : null
+}
+
 /** shareOf is a fraction as a number (1/3 is 0.333…); anything else is the whole width. */
 export function shareOf(f: string): number {
   if (!isFraction(f)) return 1
-  const [n, d] = f.includes('/') ? f.split('/').map(Number) : [1, 1]
+  const [n, d] = ratioOf(f)
   return n / d
 }
 
@@ -31,10 +49,9 @@ export const MAX_COLUMNS = 4
 /** columnSpan is how many of n columns a size takes: round(fraction × n), half up, between 1 and n; a card or anything else is one. */
 export function columnSpan(size: string, n: number): number {
   if (n <= 1) return 1
-  const s = size.trim().toLowerCase()
-  const f: string = s === 'half' ? '1/2' : s === 'page' ? '1' : s
-  if (!isFraction(f)) return 1
-  const [num, den] = f.includes('/') ? f.split('/').map(Number) : [1, 1]
+  const f = normalSize(size)
+  if (!f || f === 'card') return 1
+  const [num, den] = ratioOf(f)
   return Math.max(1, Math.min(n, Math.floor((2 * num * n + den) / (2 * den))))
 }
 

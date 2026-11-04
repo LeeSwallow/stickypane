@@ -13,6 +13,7 @@ import remarkMath from 'remark-math'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
+import { logged } from '../services/errors'
 import type { Palette } from '../lib/theme/palette'
 import type { Style } from '../lib/doodle/rough'
 
@@ -177,8 +178,9 @@ async function highlight(source: string, lang: string): Promise<ElementContent |
       defaultColor: false,
     })
     return (root.children.find((c) => c.type === 'element') as ElementContent | undefined) ?? null
-  } catch {
-    return null
+  } catch (e) {
+    // the block stays plain code
+    return logged('markdown.highlight', null)(e)
   }
 }
 
@@ -228,7 +230,12 @@ export function mermaidRenderer(p: Palette, style: Style, load: () => Promise<{ 
       const { svg } = await mermaid.render(`sp-diagram-${++diagrams}`, source)
       return svg
     })
-    turn = run.catch(() => {})
+    // the next drawing waits for this one, failed or not; the failure is
+    // the caller's (run), drawn in the note
+    turn = run.then(
+      () => undefined,
+      () => undefined,
+    )
     return run
   }
 }
@@ -244,7 +251,7 @@ export async function highlightCode(source: string, lang: string): Promise<strin
     const id = await loadLanguage(h, lang.toLowerCase())
     if (!id) return null
     return h.codeToHtml(source.replace(/\n$/, ''), { lang: id, themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false })
-  } catch {
-    return null
+  } catch (e) {
+    return logged('code.highlight', null)(e)
   }
 }
