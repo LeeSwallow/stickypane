@@ -399,7 +399,8 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 보드의 키도 바꿀 수 있습니다. `stickypane keys`가 키를 보여 주고,
 `stickypane keys set note-archive X`를 하면 `X`로 보관합니다.
 바꾼 키는 `~/.stickypane/keys.json`에 남습니다. 연속 키(`"d x"`)도 되고,
-숫자를 앞에 붙이면 그만큼 되풀이합니다: `3J`.
+숫자를 앞에 붙이면 그만큼 되풀이합니다: `3J`. `:`는 vim 명령줄입니다:
+`:col 2`, `:set theme nord`, `:e plan`, `:q`.
 
 키 설정, `sticky.json`, 이 컴퓨터에 남는 기록은 [docs/ko/configuration.md](docs/ko/configuration.md)에,
 테마 목록은 영문 [docs/configuration.md](docs/configuration.md)에 있습니다.

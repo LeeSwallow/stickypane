@@ -21,6 +21,10 @@ on GitHub are built from pull request labels.
   600 ms wait.
 - The Korean 2-set layout works on the board: `ㅓ` is `j`, `ㅌ` is `x`.
   Prompts and the editor still type the jamo.
+- A vim command line. `:` opens it: `:q`, `:set theme nord`, `:col 2`,
+  `:e plan` zooms a note by name, `:new idea`, `:tab 2`, `:3` goes to the
+  third note, `:help set`. Commands shorten to any unique start; `tab`
+  completes, `↑` `↓` recall.
 
 ### Changed
 

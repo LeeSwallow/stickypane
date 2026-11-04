@@ -76,19 +76,23 @@ func (m *Model) indexShown() []api.Entry {
 	}
 	var out []api.Entry
 	for _, e := range m.indexAll {
-		hay := strings.ToLower(e.Title + " " + e.Name + " " + e.Gist + " " + e.TabTitle + " " + e.Kind)
-		match := true
-		for _, w := range words {
-			if !strings.Contains(hay, w) {
-				match = false
-				break
-			}
-		}
-		if match {
+		if matches(e, words) {
 			out = append(out, e)
 		}
 	}
 	return out
+}
+
+// matches reports whether every word is in the note's title, file name,
+// gist, tab or shape, as the index filters.
+func matches(e api.Entry, words []string) bool {
+	hay := strings.ToLower(e.Title + " " + e.Name + " " + e.Gist + " " + e.TabTitle + " " + e.Kind)
+	for _, w := range words {
+		if !strings.Contains(hay, w) {
+			return false
+		}
+	}
+	return true
 }
 
 func indexUpdate(m *Model, msg tea.Msg) tea.Cmd {

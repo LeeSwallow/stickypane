@@ -134,6 +134,7 @@ const englishBoardHelp = `Notes
   [ ]              previous, next screen
   1-9 gt gT        switch tab
   ?                this help
+  :                command line
   q                quit`
 
 func TestTheHelpListsTheBoardKeys(t *testing.T) {

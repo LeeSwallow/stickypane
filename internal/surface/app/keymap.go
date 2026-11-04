@@ -113,6 +113,7 @@ func actions() []action {
 		action{name: "tab-prev", repeat: true, keys: []string{"g T"}, english: "previous tab", run: func(m *Model) tea.Cmd { m.switchTab(m.tab - 1); return nil }},
 		// Also reachable from a zoomed note, which it returns to.
 		action{name: "help", keys: []string{"?"}, english: "this help", zoom: true, run: openHelp},
+		action{name: "command-line", keys: []string{":"}, english: "command line", zoom: true, run: openCommandLine},
 		action{name: "quit", keys: []string{"q"}, english: "quit", run: func(*Model) tea.Cmd { return tea.Quit }},
 	)
 }
@@ -168,6 +169,7 @@ var boardHelp = []helpLine{
 	{actions: []string{"screen-prev", "screen-next"}, text: "help.screens", english: "previous, next screen"},
 	{actions: []string{"tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7", "tab-8", "tab-9", "tab-next", "tab-prev"}, text: "help.tabs", english: "switch tab"},
 	{actions: []string{"help"}},
+	{actions: []string{"command-line"}},
 	{actions: []string{"quit"}},
 }
 

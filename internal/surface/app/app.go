@@ -34,6 +34,7 @@ const (
 	modeHelp                 // the key reference
 	modeEdit                 // edit.go: a note in the built-in editor
 	modeMove                 // move.go: choosing where to move a note
+	modeCommand              // cmdline.go: a command typed after :
 )
 
 // reveal says what the next layout should scroll into view.
@@ -141,6 +142,7 @@ type Model struct {
 	confirmState
 	moveState
 	panelState
+	cmdState
 }
 
 // notes is what the screen knows of the notes folder.
@@ -425,7 +427,7 @@ func (m *Model) zoomed() bool {
 	switch m.mode {
 	case modeZoom:
 		return true
-	case modeInput, modeConfirm, modeHelp:
+	case modeInput, modeConfirm, modeHelp, modeCommand:
 		return m.back == modeZoom
 	}
 	return false

@@ -78,6 +78,32 @@ These are the keys as they come. Each board key belongs to a named action
 they have now; [configuration.md](configuration.md#keys) says how to
 change them.
 
+### The command line
+
+`:` opens vim's command line on the bottom line: type a command, `enter`
+runs it, `esc` drops it. `↑` `↓` bring back what you ran this session, and
+`tab` completes a command's name, a setting, a theme or a note. A command
+may be shortened to any start no other shares: `:col 3`, `:th nord`.
+
+| Command | |
+| --- | --- |
+| `:q` | quit (`:q!` and `:wq` too) |
+| `:w` | nothing to write: the board saves as you go |
+| `:set [setting [value]]` | list the settings, show one, or change one (`:set stale=1h`) |
+| `:theme` / `:col` / `:lang [value]` | show or change that setting |
+| `:e <note>` | zoom a note by its name or title, in any tab; alone, the index |
+| `:new [shape] [title]` | add a note: `:new idea`, `:new checklist Release`; alone, the shapes |
+| `:jot [text]` | jot a note |
+| `:tab <n\|name>` | go to a tab |
+| `:archive` / `:delete` / `:undo` | `x`, `dd`, `u` by name (`:restore` is `:undo`) |
+| `:3` | focus the third note of the tab |
+| `:keys` / `:help [command]` | the keys; what a command does |
+
+A command does what its key or the settings panel does, and writes
+through the same code. `:` is the `command-line` action, so
+`stickypane keys set command-line ";"` moves it. On the line a jamo is
+typed as a jamo.
+
 ### How the screen is shared
 
 The board is three columns wide unless the `columns` setting says

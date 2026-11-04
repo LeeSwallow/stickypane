@@ -42,6 +42,7 @@ func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
 // then the rest; section names stand out and the keys line up. On a screen with room it sits in a centered dialog.
 func helpBody(m *Model, h int) []string {
 	lines := append(m.keys.helpLines(m.tr), "")
+	lines = append(append(lines, m.commandHelp()...), "")
 	lines = append(lines, strings.Split(m.tr.Help, "\n")...)
 	for i, l := range lines {
 		if l != "" && !strings.HasPrefix(l, " ") {
