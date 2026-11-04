@@ -75,9 +75,5 @@ func (s *Service) runKeys(ctx context.Context, cli, lang string, args []string) 
 		return "", fmt.Errorf("%w: %s", ErrUnsafeDir, dir)
 	}
 	defer s.cfg.Files.RemoveAll(dir)
-	c := ports.Cmd{Dir: dir, Name: cli, Args: args}
-	if lang != "" {
-		c.Env = []string{"STICKYPANE_LANG=" + lang}
-	}
-	return s.cfg.Runner.Run(ctx, c)
+	return s.cfg.Runner.Run(ctx, withLang(ports.Cmd{Dir: dir, Name: cli, Args: args}, lang))
 }

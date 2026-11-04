@@ -265,7 +265,7 @@ func TestNoBundledCopyNoInstall(t *testing.T) {
 func TestSetupAgentRunsTheBundledSetupForOneAgent(t *testing.T) {
 	g := newRig("/opt/homebrew/bin:/usr/bin")
 	g.r.out = "stickypane setup runs:\n  claude mcp add --scope user stickypane -- " + bundled + " mcp\n"
-	res, err := g.s.SetupAgent(ctx, "/work/p", model.AgentRequest{Agent: "claude", Part: "mcp", Scope: "user"}, true)
+	res, err := g.s.SetupAgent(ctx, "/work/p", "", model.AgentRequest{Agent: "claude", Part: "mcp", Scope: "user"}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,17 +292,17 @@ func TestSetupAgentRunsTheBundledSetupForOneAgent(t *testing.T) {
 func TestSetupAgentAtAProjectsScopeRunsInIt(t *testing.T) {
 	g := newRig("/usr/bin")
 	r := model.AgentRequest{Agent: "claude", Part: "plugin", Scope: "local", Undo: true}
-	if _, err := g.s.SetupAgent(ctx, "/work/p", r, false); err != nil {
+	if _, err := g.s.SetupAgent(ctx, "/work/p", "", r, false); err != nil {
 		t.Fatal(err)
 	}
 	if c := g.r.ran[0]; c.Dir != "/work/p" || strings.Join(c.Args, " ") != "setup --agents claude --scope local --undo --yes" {
 		t.Errorf("ran %+v", c)
 	}
-	if _, err := g.s.SetupAgent(ctx, "", r, true); !errors.Is(err, ErrNoProject) {
+	if _, err := g.s.SetupAgent(ctx, "", "", r, true); !errors.Is(err, ErrNoProject) {
 		t.Errorf("no project: %v", err)
 	}
 	for _, bad := range []model.AgentRequest{{Agent: "codex", Part: "plugin", Scope: "project"}, {Part: "plugin", Scope: "user"}, {Agent: "claude", Scope: "user"}} {
-		if _, err := g.s.SetupAgent(ctx, "/work/p", bad, true); err == nil {
+		if _, err := g.s.SetupAgent(ctx, "/work/p", "", bad, true); err == nil {
 			t.Errorf("%+v ran", bad)
 		}
 	}
@@ -320,12 +320,12 @@ func TestTheAppNeverSetsUpEveryAgentAtOnce(t *testing.T) {
 		for _, part := range []string{"plugin", "mcp"} {
 			for _, undo := range []bool{false, true} {
 				for _, dry := range []bool{false, true} {
-					g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: a, Part: part, Scope: "user", Undo: undo}, dry)
+					g.s.SetupAgent(ctx, "", "", model.AgentRequest{Agent: a, Part: part, Scope: "user", Undo: undo}, dry)
 				}
 			}
 		}
 	}
-	g.s.Agents(ctx, "")
+	g.s.Agents(ctx, "", "")
 	for _, c := range g.r.ran {
 		args := strings.Join(c.Args, " ")
 		if args == strings.Join(model.StatusArgs, " ") {
@@ -343,7 +343,7 @@ func TestTheAppNeverSetsUpEveryAgentAtOnce(t *testing.T) {
 func TestSetupAgentRegistersTheLinkedCommandWhenThereIsOne(t *testing.T) {
 	g := newRig(home + "/.local/bin")
 	g.f.links[userLnk] = bundled
-	if _, err := g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}, false); err != nil {
+	if _, err := g.s.SetupAgent(ctx, "", "", model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}, false); err != nil {
 		t.Fatal(err)
 	}
 	if got := strings.Join(g.r.ran[0].Args, " "); got != "setup --agents codex --scope user --mcp --plugin=false --command "+userLnk+" --yes" {
@@ -355,10 +355,10 @@ func TestSetupAgentRefusesAFolderThatIsHome(t *testing.T) {
 	g := newRig("/usr/bin")
 	g.f.temps = nil
 	g.s.cfg.Files = homeTemp{g.f}
-	if _, err := g.s.SetupAgent(ctx, "", model.AgentRequest{Agent: "claude", Part: "plugin", Scope: "user"}, true); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
+	if _, err := g.s.SetupAgent(ctx, "", "", model.AgentRequest{Agent: "claude", Part: "plugin", Scope: "user"}, true); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
 		t.Errorf("%v %v", err, g.r.ran)
 	}
-	if _, err := g.s.Agents(ctx, home); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
+	if _, err := g.s.Agents(ctx, home, ""); !errors.Is(err, ErrUnsafeDir) || len(g.r.ran) != 0 {
 		t.Errorf("status in the home folder: %v", err)
 	}
 }
@@ -368,7 +368,7 @@ func TestSetupAgentRefusesAFolderThatIsHome(t *testing.T) {
 func TestAgentsReadsSetupStatus(t *testing.T) {
 	g := newRig("/usr/bin")
 	g.r.out = "warning from an agent\n" + `{"plugin":"0.2.1","agents":[{"agent":"claude","found":true,"state":"broken","scopes":["user","project","local"],"plugin":{"user":{"version":"0.2.1","state":"broken","error":"cache-miss"}},"mcp":{"project":{"command":"/x/stickypane"}},"marketplace":{"source":"directory","where":"/gone","gone":true}}]}`
-	st, err := g.s.Agents(ctx, "/work/p")
+	st, err := g.s.Agents(ctx, "/work/p", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestAgentsReadsSetupStatus(t *testing.T) {
 	}
 	g.r.out = "stickypane: flag provided but not defined: -status"
 	g.r.err = errors.New("exit status 2")
-	if _, err := g.s.Agents(ctx, ""); err == nil || !strings.Contains(err.Error(), "not defined") {
+	if _, err := g.s.Agents(ctx, "", ""); err == nil || !strings.Contains(err.Error(), "not defined") {
 		t.Errorf("an older stickypane: %v", err)
 	}
 }
@@ -452,3 +452,24 @@ func TestTheLoginPathIsReadOnceAndFallsBackToTheApps(t *testing.T) {
 type silent struct{}
 
 func (silent) Run(context.Context, ports.Cmd) (string, error) { return "", errors.New("no shell") }
+
+// What setup says to the person is in the window's language: every run
+// whose words a window shows gets STICKYPANE_LANG.
+func TestAgentRunsSpeakTheWindowsLanguage(t *testing.T) {
+	g := newRig("/usr/bin")
+	g.r.out = `{"agents":[]}`
+	if _, err := g.s.Agents(ctx, "", "ko"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.s.SetupAgent(ctx, "", "ko", model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.s.SetupAgent(ctx, "", "", model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}, true); err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []string{"STICKYPANE_LANG=ko", "STICKYPANE_LANG=ko", ""} {
+		if got := strings.Join(g.r.ran[i].Env, " "); got != want {
+			t.Errorf("run %d (%v): env %q, want %q", i, g.r.ran[i].Args, got, want)
+		}
+	}
+}

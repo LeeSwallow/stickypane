@@ -25,7 +25,8 @@
   import Toast from '../lib/ui/Toast.svelte'
   import { NOTICE_MS } from '../lib/ui/toast'
   import { events, type Bus, type Status } from '../services/board'
-  import { logged, report } from '../services/errors'
+  import { logged } from '../services/errors'
+  import { said } from '../i18n/said'
   import { fold } from '../lib/fold'
   import { projectService, type ProjectApi } from '../services/project'
   import { act, arrange } from '../board/actions'
@@ -51,7 +52,7 @@
   // what failed last, said in the toast at the bottom; fail(where) is the
   // catch that says it (and keeps it in the log)
   let failed = $state('')
-  const fail = (where: string) => (e: unknown) => (failed = report('torn.' + where, e))
+  const fail = (where: string) => (e: unknown) => (failed = said('torn.' + where, e))
   // a short word at the bottom (run, sent, archived, deleted with 되돌리기)
   let notice = $state<manage.Said | null>(null)
   // a question before a delete, a run or a send; the note being moved
@@ -128,7 +129,7 @@
       if (status.state === 'ready') board = await api.load()
       failed = ''
     } catch (e) {
-      failed = report('torn.refresh', e)
+      failed = said('torn.refresh', e)
     }
   })
 
@@ -179,7 +180,7 @@
       try {
         await arrange(api, n, patch, update)
       } catch (e) {
-        failed = report('torn.arrange', e)
+        failed = said('torn.arrange', e)
         await refresh()
       }
     },

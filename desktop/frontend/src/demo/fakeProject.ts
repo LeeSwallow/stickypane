@@ -4,7 +4,8 @@
 // note.create refuses a few values the way the bridge does, so the create
 // form's errors can be seen. The calls that arrange notes are kept in
 // window.__demoCalls, and &fail=arrange,place makes those refuse, for the
-// e2e checks (desktop/scripts/e2e-resize.mjs).
+// e2e checks (desktop/scripts/e2e-resize.mjs); &failcode=no_board gives
+// the refusal the code the shell gives an error it knows.
 import type { Board } from '../board/model'
 import type { BoardApi } from '../services/board'
 import { layoutOf, type Layout } from '../services/canvas'
@@ -16,12 +17,14 @@ import { THEMES } from './themes'
 
 // The layout is kept in memory: a note torn off here shows on the shelf;
 // note is the note a torn-off window's status names.
-const failing = new Set((new URLSearchParams(globalThis.location?.search ?? '').get('fail') ?? '').split(','))
+const asked = new URLSearchParams(globalThis.location?.search ?? '')
+const failing = new Set((asked.get('fail') ?? '').split(','))
+const failCode = asked.get('failcode')
 const calls: { method: string; params: unknown }[] = []
 ;(globalThis as { __demoCalls?: typeof calls }).__demoCalls = calls
 async function kept(method: string, params: unknown): Promise<void> {
   calls.push({ method, params })
-  if (failing.has(method)) throw new Error(`${method} refused (demo)`)
+  if (failing.has(method)) throw Object.assign(new Error(`${method} refused (demo)`), failCode ? { cause: { code: failCode } } : {})
 }
 
 export function fakeProject(board: Board, mode: string, lang: string, start: Partial<Layout> = {}, note = ''): ProjectApi {
@@ -35,7 +38,7 @@ export function fakeProject(board: Board, mode: string, lang: string, start: Par
     arrange: (p) => kept('arrange', p),
     order: (tab, names) => kept('order', { tab, names }),
     open: async () => {},
-    pin: async () => {},
+    pin: (on) => kept('pin', on),
     makeBoard: async () => {},
     openSettings: async (section = 'board') => {
       const q = new URLSearchParams(location.search)

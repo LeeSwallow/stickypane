@@ -121,7 +121,7 @@ describe('home', () => {
       { peeks: vi.fn(async () => ({ '/home/min/stickypane': { notes: 6, stalled: 1, agents: ['claude'], colors: ['#1', '#2', '#3', '#4', '#5', '#6'] } })) },
     )
     mount(api)
-    expect(await screen.findByText('· 노트 6')).toBeTruthy()
+    expect(await screen.findByText('· 노트 6장')).toBeTruthy()
     expect(screen.getByText('멈춤 1')).toBeTruthy()
     expect(screen.getByText('@claude')).toBeTruthy()
     // a board never opened here says so

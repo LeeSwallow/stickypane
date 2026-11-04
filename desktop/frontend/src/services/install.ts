@@ -7,6 +7,8 @@
 
 import { Call } from '@wailsio/runtime'
 import { project, setup } from '../lib/shell'
+import { get } from 'svelte/store'
+import { language } from '../i18n'
 
 export type Target = 'user' | 'system'
 
@@ -121,9 +123,10 @@ export const setupService: SetupApi = {
   command: () => call('Command'),
   install: (target, replace) => call('InstallCommand', target, replace),
   uninstall: () => call('UninstallCommand'),
-  agents: () => call('Agents'),
-  agentPlan: (r) => call('AgentPlan', r),
-  agentRun: (r) => call('AgentRun', r),
+  // what stickypane says comes in the window's language
+  agents: () => call('Agents', get(language)),
+  agentPlan: (r) => call('AgentPlan', r, get(language)),
+  agentRun: (r) => call('AgentRun', r, get(language)),
   initHere: () => Call.ByName(project('InitHere')) as Promise<RunResult>,
 }
 

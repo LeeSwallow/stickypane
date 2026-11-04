@@ -18,6 +18,8 @@ const trayRecent = 5
 type Tray struct {
 	Active int
 	Recent []TrayItem
+	// Lang is the language of the menu's own words (Shell.Lang).
+	Lang string
 }
 
 // TrayItem is one recent project.
@@ -50,12 +52,16 @@ func trayOf(g index.Groups) Tray {
 	return t
 }
 
-// trayWords are the tray menu's two words, in the home window's language.
+// trayWords are the tray menu's two words, in the app's language.
 func trayWords(lang string) (home, quit string) {
-	if lang == "ko" {
-		return "홈 열기", "stickypane 종료"
-	}
-	return "Open Home", "Quit stickypane"
+	return words(lang, "Open Home", "홈 열기"), words(lang, "Quit stickypane", "stickypane 종료")
+}
+
+// setTray shows the home list in the tray, in the app's language.
+func (s *Shell) setTray(g index.Groups) {
+	t := trayOf(g)
+	t.Lang = s.Lang()
+	s.cfg.Platform.SetTray(t)
 }
 
 // wailsTray is the tray of a Wails app.
@@ -94,7 +100,7 @@ func (p *Wails) StartTray(s *Shell, icons TrayIcons) {
 	}
 	t.SetTooltip("stickypane")
 	p.tray = &wailsTray{tray: t, shell: s}
-	p.tray.set(Tray{})
+	p.tray.set(Tray{Lang: s.Lang()})
 }
 
 func (p *Wails) SetTray(t Tray) {
@@ -112,7 +118,7 @@ func (w *wailsTray) set(t Tray) {
 	}
 	w.last = &t
 	s := w.shell
-	home, quit := trayWords(s.Prefs().Language)
+	home, quit := trayWords(t.Lang)
 	m := application.NewMenu()
 	for _, it := range t.Recent {
 		path := it.Path
@@ -132,7 +138,7 @@ func (w *wailsTray) set(t Tray) {
 }
 
 func sameTray(a, b Tray) bool {
-	if a.Active != b.Active || len(a.Recent) != len(b.Recent) {
+	if a.Active != b.Active || a.Lang != b.Lang || len(a.Recent) != len(b.Recent) {
 		return false
 	}
 	for i := range a.Recent {

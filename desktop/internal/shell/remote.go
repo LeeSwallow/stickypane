@@ -233,7 +233,7 @@ func (s *Shell) SaveHost(h Host, old string) error {
 	if old != "" && old != h.Name {
 		if len(s.openOf(old)) > 0 {
 			s.mu.Unlock()
-			return &hostOpenError{old}
+			return hostOpen(old)
 		}
 		s.rekey(old, h.Name)
 	}

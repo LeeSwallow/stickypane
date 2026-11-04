@@ -6,7 +6,6 @@
 package remote
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -33,10 +32,25 @@ type Host struct {
 
 var nameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
+// Invalid is what is wrong with a host: Code names it for the window,
+// which says it in its own language; Value is what was given. Error is
+// the English, for the log.
+type Invalid struct {
+	Code  string
+	Value string
+	said  string
+}
+
+func (e *Invalid) Error() string { return e.said }
+
+func invalid(code, value, format string, args ...any) error {
+	return &Invalid{Code: code, Value: value, said: fmt.Sprintf(format, args...)}
+}
+
 // ValidName says why a host's name cannot be used, or nil.
 func ValidName(name string) error {
 	if !nameRE.MatchString(name) {
-		return fmt.Errorf("host name %q: use letters, digits, '.', '_' or '-'", name)
+		return invalid("host_name", name, "host name %q: use letters, digits, '.', '_' or '-'", name)
 	}
 	return nil
 }
@@ -50,14 +64,14 @@ func (h Host) Check() error {
 	t := h.Target
 	switch {
 	case t == "":
-		return errors.New("no ssh target")
+		return invalid("no_target", t, "no ssh target")
 	case strings.HasPrefix(t, "-"):
-		return fmt.Errorf("ssh target %q starts with '-'", t)
+		return invalid("target_dash", t, "ssh target %q starts with '-'", t)
 	case strings.ContainsAny(t, " \t\r\n'\"\\;&|`$"):
-		return fmt.Errorf("ssh target %q: one word, an alias or user@host", t)
+		return invalid("target_word", t, "ssh target %q: one word, an alias or user@host", t)
 	}
 	if strings.ContainsAny(h.Command, "\r\n") {
-		return errors.New("the command is one line")
+		return invalid("command_line", h.Command, "the command is one line")
 	}
 	for _, b := range h.Boards {
 		if err := ValidPath(b); err != nil {
@@ -71,9 +85,9 @@ func (h Host) Check() error {
 func ValidPath(p string) error {
 	switch {
 	case !strings.HasPrefix(p, "/"):
-		return fmt.Errorf("board folder %q: an absolute path on the host, from /", p)
+		return invalid("folder_absolute", p, "board folder %q: an absolute path on the host, from /", p)
 	case strings.ContainsAny(p, "\x00\r\n"):
-		return fmt.Errorf("board folder %q is one line", p)
+		return invalid("folder_line", p, "board folder %q is one line", p)
 	}
 	return nil
 }

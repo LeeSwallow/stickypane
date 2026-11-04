@@ -58,6 +58,9 @@ func main() {
 			application.NewService(setup),
 			application.NewService(layout),
 		},
+		// An error the shell knows reaches the window as a code, which the
+		// window says in its own language.
+		MarshalError: shell.MarshalError,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -79,9 +82,6 @@ func main() {
 		},
 	})
 
-	// The menu bar: the app menu's Quit (Cmd+Q) ends the app, not a window.
-	app.Menu.Set(shell.AppMenu())
-
 	platform := shell.NewWails(app)
 	var err error
 	s, err = shell.New(shell.Config{
@@ -95,6 +95,9 @@ func main() {
 		log.Fatal(err)
 	}
 	home.S, board.S, setup.S, layout.S = s, s, s, s
+	// The menu bar, in the app's language: the app menu's Quit (Cmd+Q)
+	// ends the app, not a window.
+	platform.StartLanguage(s.Lang())
 	platform.StartTray(s, shell.TrayIcons{Template: trayTemplate, Colour: trayColour})
 	close(ready)
 

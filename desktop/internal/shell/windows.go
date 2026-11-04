@@ -3,6 +3,7 @@ package shell
 import (
 	"net/url"
 	"runtime"
+	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -59,13 +60,20 @@ func ChromeFor(goos string) string {
 }
 
 // WithChrome adds chrome=<c> to a window's page URL.
-func WithChrome(page, chrome string) string {
+func WithChrome(page, chrome string) string { return withQuery(page, "chrome", chrome) }
+
+// WithSystemLanguage adds syslang=<lang> to a window's page URL: what
+// "auto" comes to here (SystemLanguage), so that a window set to auto
+// speaks what the tray, the menu bar and the board's bridge speak.
+func WithSystemLanguage(page, lang string) string { return withQuery(page, "syslang", lang) }
+
+func withQuery(page, key, value string) string {
 	u, err := url.Parse(page)
 	if err != nil {
 		return page
 	}
 	q := u.Query()
-	q.Set("chrome", chrome)
+	q.Set(key, value)
 	u.RawQuery = q.Encode()
 	return u.String()
 }
@@ -74,13 +82,61 @@ func WithChrome(page, chrome string) string {
 // "Quit" with Cmd+Q; Edit makes copy and paste work in text fields.
 var AppMenuRoles = []application.Role{application.AppMenu, application.EditMenu, application.WindowMenu}
 
-// AppMenu is the menu bar of the app.
-func AppMenu() *application.Menu {
+// AppMenu is the menu bar of the app, in lang ("ko" or "en").
+func AppMenu(lang string) *application.Menu {
 	m := application.NewMenu()
 	for _, r := range AppMenuRoles {
 		m.AddRole(r)
 	}
+	if lang == "ko" {
+		relabel(m, menuKo)
+	}
 	return m
+}
+
+// relabel gives every item of m, and of its submenus, the label to has
+// for its English one.
+func relabel(m *application.Menu, to map[string]string) {
+	for i := 0; ; i++ {
+		it := m.ItemAt(i)
+		if it == nil {
+			return
+		}
+		if l, ok := to[it.Label()]; ok {
+			it.SetLabel(l)
+		}
+		if sub := it.GetSubmenu(); sub != nil {
+			relabel(sub, to)
+		}
+	}
+}
+
+// menuKo is the menu bar in Korean, in macOS's own words: Wails writes
+// its role items in English.
+var menuKo = map[string]string{
+	"About stickypane":      "stickypane에 관하여",
+	"Services":              "서비스",
+	"Hide stickypane":       "stickypane 가리기",
+	"Hide Others":           "기타 가리기",
+	"Show All":              "모두 보기",
+	"Quit stickypane":       "stickypane 종료",
+	"Edit":                  "편집",
+	"Undo":                  "실행 취소",
+	"Redo":                  "실행 복귀",
+	"Cut":                   "오려두기",
+	"Copy":                  "복사하기",
+	"Paste":                 "붙여넣기",
+	"Paste and Match Style": "붙여넣기 및 스타일 일치",
+	"Delete":                "삭제",
+	"Select All":            "전체 선택",
+	"Speech":                "말하기",
+	"Start Speaking":        "말하기 시작",
+	"Stop Speaking":         "말하기 멈추기",
+	"Window":                "윈도우",
+	"Minimize":              "최소화",
+	"Zoom":                  "확대/축소",
+	"Bring All to Front":    "모두 앞으로 가져오기",
+	"Close":                 "닫기",
 }
 
 // Rect is a window's place and size, in the screen's points.
@@ -137,6 +193,9 @@ type Platform interface {
 	UnregisterHotkey(accel string)
 	Emit(name string, data any)
 	SetTray(t Tray)
+	// SetLanguage says the app's own words — the menu bar, the folder
+	// picker — in lang ("ko" or "en").
+	SetLanguage(lang string)
 	PickFolder() (string, error)
 	Quit()
 }
@@ -145,6 +204,9 @@ type Platform interface {
 type Wails struct {
 	App  *application.App
 	tray *wailsTray
+
+	mu   sync.Mutex
+	lang string
 }
 
 // NewWails puts app behind Platform. The tray is made by StartTray once
@@ -152,6 +214,7 @@ type Wails struct {
 func NewWails(app *application.App) *Wails { return &Wails{App: app} }
 
 func (p *Wails) NewWindow(o WindowOptions) Window {
+	o.URL = WithSystemLanguage(o.URL, SystemLanguage())
 	w := p.App.Window.NewWithOptions(webviewOptions(o, runtime.GOOS))
 	ww := &wailsWindow{w: w}
 	if o.Kind == KindHome {
@@ -225,12 +288,44 @@ func (p *Wails) UnregisterHotkey(accel string) { p.App.GlobalShortcut.Unregister
 
 func (p *Wails) Emit(name string, data any) { p.App.Event.Emit(name, data) }
 
+func (p *Wails) SetLanguage(lang string) {
+	p.mu.Lock()
+	same := p.lang == lang
+	p.lang = lang
+	p.mu.Unlock()
+	if same {
+		return
+	}
+	// the menu bar is the main thread's; this may be called from any other
+	application.InvokeAsync(func() { p.App.Menu.Set(AppMenu(lang)) })
+}
+
+// StartLanguage sets the menu bar in lang before the app runs.
+func (p *Wails) StartLanguage(lang string) {
+	p.mu.Lock()
+	p.lang = lang
+	p.mu.Unlock()
+	p.App.Menu.Set(AppMenu(lang))
+}
+
 func (p *Wails) PickFolder() (string, error) {
+	p.mu.Lock()
+	lang := p.lang
+	p.mu.Unlock()
+	message, button := pickWords(lang)
 	return p.App.Dialog.OpenFile().
 		CanChooseDirectories(true).
 		CanChooseFiles(false).
 		CanCreateDirectories(true).
+		SetMessage(message).
+		SetButtonText(button).
 		PromptForSingleSelection()
+}
+
+// pickWords are the folder picker's message and button, in lang.
+func pickWords(lang string) (message, button string) {
+	return words(lang, "Pick the project folder for the board", "보드를 둘 프로젝트 폴더를 골라 주세요"),
+		words(lang, "Choose", "선택")
 }
 
 func (p *Wails) Quit() { p.App.Quit() }

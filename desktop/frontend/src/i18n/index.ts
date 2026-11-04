@@ -3,7 +3,7 @@
 import { derived, get, writable } from 'svelte/store'
 import en from './en.json'
 import ko from './ko.json'
-import { logged } from '../services/errors'
+import { logged, setErrorWords } from '../services/errors'
 
 export type Lang = 'ko' | 'en'
 export type Choice = 'auto' | 'ko' | 'en'
@@ -26,11 +26,24 @@ export function setLanguage(code: Lang): void {
   if (typeof document !== 'undefined') document.documentElement.lang = lang
 }
 
-/** translate looks key up in lang, then in English, then is the key. */
+/**
+ * translate looks key up in lang, then in English, then is the key. A
+ * count {n} picks the plural form a language has for it: key.one, and so
+ * on (Intl.PluralRules), where the catalog has one — "1 card", "2 cards";
+ * Korean has one form for every count (카드 1장, 카드 2장).
+ */
 export function translate(cats: Catalogs, lang: Lang, key: string, values?: Values): string {
-  const s = cats[lang][key] ?? cats.en[key] ?? key
+  const n = values?.n
+  const form = typeof n === 'number' ? `${key}.${plural(lang).select(n)}` : undefined
+  const s = (form && cats[lang][form]) || cats[lang][key] || (form && cats.en[form]) || cats.en[key] || key
   return values ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m)) : s
 }
+
+const plurals: Partial<Record<Lang, Intl.PluralRules>> = {}
+const plural = (lang: Lang) => (plurals[lang] ??= new Intl.PluralRules(localeOf(lang)))
+
+/** PLURAL_FORMS are the endings a plural form of a key may have (Intl.PluralRules' categories). */
+export const PLURAL_FORMS = ['zero', 'one', 'two', 'few', 'many'] as const
 
 /** t is the text for key in the current language. */
 export function t(key: string, values?: Values): string {
@@ -42,10 +55,19 @@ export const tr = derived(langStore, (lang) => (key: string, values?: Values) =>
   translate(catalogs, lang, key, values),
 )
 
-/** resolveAuto is the language "auto" comes to for a system locale. */
+/**
+ * resolveAuto is the language "auto" comes to for a system locale: by
+ * default the one the shell read as the terminal reads it (?syslang=, the
+ * tray's and the bridge's too), else the browser's.
+ */
 export function resolveAuto(systemLanguage?: string): Lang {
-  const l = systemLanguage ?? (typeof navigator !== 'undefined' ? navigator.language : 'en')
+  const l = systemLanguage ?? shellLanguage() ?? (typeof navigator !== 'undefined' ? navigator.language : 'en')
   return l.toLowerCase().startsWith('ko') ? 'ko' : 'en'
+}
+
+function shellLanguage(): string | undefined {
+  if (typeof location === 'undefined') return undefined
+  return new URLSearchParams(location.search).get('syslang') || undefined
 }
 
 /** The bridge's settings.language. */
@@ -107,7 +129,9 @@ export async function chooseLanguage(choice: Choice, host: LanguageHost): Promis
   setLanguage(choice === 'auto' ? resolveAuto(host.systemLanguage) : choice)
 }
 
-const localeOf = (lang: Lang) => (lang === 'ko' ? 'ko-KR' : 'en-US')
+function localeOf(lang: Lang): string {
+  return lang === 'ko' ? 'ko-KR' : 'en-US'
+}
 
 const ymd = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
@@ -146,3 +170,10 @@ export function relativeTime(d: Date, now: Date, lang: Lang): string {
   }
   return new Intl.RelativeTimeFormat('ko-KR', { numeric: 'always', style: 'long' }).format(-n, pick[0])
 }
+
+// an error the shell knows is said in the window's language (error.<code>)
+setErrorWords((w) => {
+  const key = 'error.' + w.code
+  const s = translate(catalogs, get(langStore), key, w.values)
+  return s === key ? null : s
+})

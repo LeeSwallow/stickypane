@@ -29,6 +29,23 @@ log reads is not.**
 - The README has translations next to it (`README.ko.md`), each saying
   which commit it was translated at. English is canonical.
 
+## The app
+
+The desktop app follows the same line, for everything a person sees in
+it: labels, hints, buttons, toasts, dialogs, empty states, tooltips and
+`aria-label`s (a screen reader reads them), the tray and the menu bar,
+the folder picker, a window's title, and an error shown to a person.
+Logs, identifiers, file paths, command lines shown as code and the notes
+themselves stay as they are. The words are in
+`desktop/frontend/src/i18n/{en,ko}.json`; a count is `{n}`, and English
+gives its singular as `key.one`. An error the Go shell knows goes to the
+window as a code and is said from `error.<code>`; any other comes after
+what could not be done (`failed.*`), in its own words. What the app shows
+from `stickypane` runs with `STICKYPANE_LANG` set to the window's
+language. The few words of Go's own (tray, menu bar, picker) are in
+`desktop/internal/shell`. `src/i18n/words.test.ts` fails on a literal
+word in a component.
+
 ## How it works
 
 `internal/core/i18n/i18n.go` holds `Strings`, with English in `English()`. A
