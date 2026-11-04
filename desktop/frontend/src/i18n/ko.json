@@ -224,7 +224,7 @@
   "settings.hotkey.saved": "저장했어요. 눌러 보세요.",
   "settings.hotkey.failed": "이 단축키는 쓸 수 없어요: {error}",
   "cli.none": "이 빌드에는 stickypane이 들어 있지 않아 설치할 게 없어요.",
-  "cli.notLinked": "어느 터미널에서든 stickypane을 쓸 수 있어요. 암호는 묻지 않아요.",
+  "cli.notLinked": "~/.local/bin에 링크를 만들어요. 암호는 필요 없어요.",
   "cli.install": "터미널 명령 설치",
   "cli.installSystem": "/usr/local/bin에 설치 (암호 필요)",
   "cli.uninstall": "터미널 명령 제거",

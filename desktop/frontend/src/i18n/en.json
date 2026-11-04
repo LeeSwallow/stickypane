@@ -224,7 +224,7 @@
   "settings.hotkey.saved": "Saved. Try it.",
   "settings.hotkey.failed": "That hotkey is not free: {error}",
   "cli.none": "This build carries no stickypane of its own, so there is nothing to install.",
-  "cli.notLinked": "Lets you type stickypane in any terminal. No password needed.",
+  "cli.notLinked": "Makes a link in ~/.local/bin. No password needed.",
   "cli.install": "Install the terminal command",
   "cli.installSystem": "Into /usr/local/bin instead (asks for your password)",
   "cli.uninstall": "Remove the terminal command",
