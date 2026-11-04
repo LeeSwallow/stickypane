@@ -268,7 +268,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 		return Keyed{}, errors.New("nothing to set: give key=value pairs")
 	}
 	if _, err := a.st.Read(file); err != nil && !book {
-		return Keyed{}, fmt.Errorf("there is no note %s", file)
+		return Keyed{}, noNote(file)
 	}
 	var op setKeys
 	var views []func(*store.View)
@@ -400,7 +400,7 @@ func (a *API) Remove(name string) (Moved, error) {
 	}
 	to, err := a.st.Trash(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Moved{}, fmt.Errorf("there is no note %s", file)
+		return Moved{}, noNote(file)
 	} else if err != nil {
 		return Moved{}, err
 	}
@@ -452,7 +452,7 @@ func (a *API) Archive(name string) (Moved, error) {
 	}
 	to, err := a.st.Archive(file)
 	if errors.Is(err, fs.ErrNotExist) {
-		return Moved{}, fmt.Errorf("there is no note %s", file)
+		return Moved{}, noNote(file)
 	} else if err != nil {
 		return Moved{}, err
 	}
@@ -478,6 +478,9 @@ type missing string
 
 func (m missing) Error() string        { return string(m) }
 func (m missing) Is(target error) bool { return target == fs.ErrNotExist }
+
+// noNote says that there is no note file on the board.
+func noNote(file string) error { return missing("there is no note " + file) }
 
 // move does what Move says and returns the names it moved from and to.
 func (a *API) move(name, to string) (from, dest string, err error) {
@@ -523,7 +526,7 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 		move = a.st.Move
 	}
 	if err := move(file, dest); errors.Is(err, fs.ErrNotExist) {
-		return "", "", fmt.Errorf("there is no note %s", file)
+		return "", "", noNote(file)
 	} else if err != nil {
 		return "", "", err
 	}
@@ -632,7 +635,7 @@ func (a *API) Show(target string) (Shown, error) {
 		return Shown{}, err
 	}
 	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return Shown{}, fmt.Errorf("there is no note %s", file)
+		return Shown{}, noNote(file)
 	}
 	open := true
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
@@ -664,7 +667,7 @@ func (a *API) Hide(name string) (Shown, error) {
 		return Shown{}, err
 	}
 	if _, err := os.Lstat(filepath.Join(a.st.Dir, filepath.FromSlash(file))); err != nil {
-		return Shown{}, fmt.Errorf("there is no note %s", file)
+		return Shown{}, noNote(file)
 	}
 	open := false
 	if err := a.st.SetView(file, func(v *store.View) { v.Open = &open }); err != nil {
