@@ -47,6 +47,7 @@
   import type { Status } from '../services/board'
   import type { LayoutMode, Layout } from '../services/canvas'
   import { logged, report } from '../services/errors'
+  import { nextIndex } from '../lib/ui/keys'
   import type { SetupApi } from '../services/install'
   import {
     SECTIONS, setAppPref,
@@ -212,11 +213,10 @@
   let nav: HTMLElement | undefined = $state()
 
   function navKey(e: KeyboardEvent) {
-    const i = SECTIONS.indexOf(section)
-    const j = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: SECTIONS.length - 1 }[e.key]
-    if (j === undefined) return
+    const j = nextIndex(e.key, SECTIONS.indexOf(section), SECTIONS.length, 'vertical')
+    if (j === null) return
     e.preventDefault()
-    section = SECTIONS[(j + SECTIONS.length) % SECTIONS.length]
+    section = SECTIONS[j]
     nav?.querySelectorAll<HTMLElement>('[role="tab"]')[SECTIONS.indexOf(section)]?.focus()
   }
 
