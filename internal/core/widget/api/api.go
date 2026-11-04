@@ -21,8 +21,8 @@ import (
 // ".rest" file.
 var Kind = widget.Kind{
 	Name:    "api",
-	Exts:    []string{".http", ".rest"},
-	New:     ".http",
+	Exts:    syntax.Exts(),
+	New:     syntax.Exts()[0],
 	Label:   "API requests (exp)",
 	Icon:    "⇄",
 	Hint:    []string{"j k", "request", "enter", "send", "e", "environment"},

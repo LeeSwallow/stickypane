@@ -19,7 +19,7 @@ import (
 func (a *API) HTTP(ctx context.Context, name, request, env string, all bool) (out string, failed int, err error) {
 	name = strings.TrimSpace(name)
 	if filepath.Ext(name) == "" {
-		for _, ext := range []string{".http", ".rest"} {
+		for _, ext := range httpfile.Exts() {
 			if _, err := os.Stat(a.st.Path(name + ext)); err == nil {
 				name += ext
 				break

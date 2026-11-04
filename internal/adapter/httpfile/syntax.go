@@ -23,5 +23,8 @@ type (
 	File      = syntax.File
 )
 
+// Exts are the extensions of a .http file; a new one takes the first.
+func Exts() []string { return syntax.Exts() }
+
 // Parse reads a .http file.
 func Parse(text string) File { return syntax.Parse(text) }

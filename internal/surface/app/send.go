@@ -13,7 +13,7 @@ import (
 
 // httpExts are the files whose Run sends a request instead of running a
 // script.
-var httpExts = []string{".http", ".rest"}
+var httpExts = httpfile.Exts()
 
 // sentMsg arrives when a request of a .http file has been sent.
 type sentMsg struct {
