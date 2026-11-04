@@ -15,9 +15,10 @@
 
 ## 이 컴퓨터에 남는 기록
 
-`~/.stickypane`(또는 `$STICKYPANE_HOME`) 폴더가 **이미 있을 때만** 씁니다. 폴더는
-stickypane이 만들지 않고 데스크톱 앱이 만들므로, 터미널만 쓰면 홈에 아무것도
-생기지 않습니다. 있으면 보드 목록을 보여 주려고 두 가지를 적습니다.
+`~/.stickypane`(또는 `$STICKYPANE_HOME`)에 데스크톱 앱의 설정 파일 `overlay.json`이
+**있을 때만** 씁니다. 폴더도 파일도 stickypane이 만들지 않고, 파일은 앱이 처음 켜질 때
+씁니다. 그래서 터미널만 쓰면 다른 일로 폴더가 있어도 아무것도 기록되지 않습니다.
+파일이 있으면 보드 목록을 보여 주려고 두 가지를 적습니다.
 
 - `events/YYYY-MM-DD.jsonl`: 한 줄에 사건 하나, `{v: 1, at, type, …}`. 시각, 종류(`session.start`,
   `session.end`, `project.init`, `project.touch`), 프로젝트 경로, 세션이면 프로세스

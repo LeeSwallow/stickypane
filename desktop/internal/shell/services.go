@@ -14,7 +14,8 @@ import (
 // HomeService is what the home window calls (bound to the frontend).
 type HomeService struct{ S *Shell }
 
-// Ensure makes ~/.stickypane (or $STICKYPANE_HOME) and returns its path.
+// Ensure makes ~/.stickypane (or $STICKYPANE_HOME) and its overlay.json,
+// and returns its path.
 func (h *HomeService) Ensure() (string, error) { return h.S.Ensure() }
 
 // Sessions is the home list.

@@ -798,6 +798,38 @@ func TestEnsureHonoursStickypaneHome(t *testing.T) {
 	if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
 		t.Errorf("home not made: %v", err)
 	}
+	if b, err := os.ReadFile(filepath.Join(dir, StateFile)); err != nil || string(b) != emptyState {
+		t.Errorf("state file = %q, %v; want %q", b, err, emptyState)
+	}
+}
+
+// A first launch writes the state file, which turns stickypane's records
+// on; one already there, read or not, is never replaced.
+func TestStartMakesTheStateFileAndKeepsOneThere(t *testing.T) {
+	r := newRig(t)
+	r.s.Start()
+	path := filepath.Join(r.home, StateFile)
+	if b, err := os.ReadFile(path); err != nil || string(b) != emptyState {
+		t.Fatalf("state file = %q, %v; want %q", b, err, emptyState)
+	}
+	st, err := LoadState(path)
+	if err != nil || st.Hotkey != DefaultHotkey {
+		t.Fatalf("the made file reads as %+v, %v", st, err)
+	}
+	for _, body := range []string{`{"hotkey":"Ctrl+K","pinNew":true}`, "not json"} {
+		r := newRig(t)
+		path := filepath.Join(r.home, StateFile)
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		r.s.Start()
+		if _, err := r.s.Ensure(); err != nil {
+			t.Fatal(err)
+		}
+		if b, _ := os.ReadFile(path); string(b) != body {
+			t.Errorf("state file %q became %q", body, b)
+		}
+	}
 }
 
 func TestMotionIsKeptAndOnlyItsWords(t *testing.T) {

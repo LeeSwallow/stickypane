@@ -8,6 +8,10 @@ on GitHub are built from pull request labels.
 
 ### Changed
 
+- Records in `~/.stickypane` are on where the desktop app's `overlay.json`
+  is, not wherever the folder is: a folder made for something else, such as
+  a terminal user's settings, records nothing. The app writes the file on
+  its first start.
 - The board's help lists its keys from one table of named actions, so it
   names every key that works: `f` (linked notes), `n` beside `N`, `<` `>`
   beside `,` `.`. The keys themselves are unchanged.

@@ -253,7 +253,7 @@ flowchart LR
 ```
 
 To list your boards, the app reads `~/.stickypane`, where each stickypane
-session notes which board it is on, if that folder exists (see the [FAQ](#faq)).
+session notes which board it is on, once the app has set that folder up (see the [FAQ](#faq)).
 
 ### Layers
 
@@ -428,10 +428,10 @@ config.
 **macOS will not open the downloaded program.** Run
 `xattr -d com.apple.quarantine stickypane`, or install with Homebrew.
 
-**Does it send anything anywhere?** No. If `~/.stickypane` exists (the
-desktop app makes it), stickypane notes there which boards are used, so
-the app can list them, and clears out old entries itself. It never writes
-note text there, and it never makes the folder
+**Does it send anything anywhere?** No. If the desktop app has written its
+`~/.stickypane/overlay.json`, stickypane notes there which boards are used,
+so the app can list them, and clears out old entries itself. It never writes
+note text there, and it never makes the folder or that file
 ([details](docs/configuration.md#what-stickypane-records-on-this-machine)).
 
 **How is it different from a Markdown kanban?**

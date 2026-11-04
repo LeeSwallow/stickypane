@@ -29,7 +29,7 @@ func Touch(project, cmd string) { Default().Touch(project, cmd) }
 // process that dies leaves its file behind, which Prune removes once the
 // process is no longer alive.
 func (w Writer) Live(project, kind string) (end func()) {
-	if !exists(w.Home) {
+	if !enabled(w.Home) {
 		return func() {}
 	}
 	file := filepath.Join(w.Home, runDir, strconv.Itoa(w.PID)+runExt)
@@ -58,7 +58,7 @@ func (w Writer) Live(project, kind string) (end func()) {
 // the modification time of run/touch-<hash of project and command>, which
 // is shared by every process and set from w's clock.
 func (w Writer) Touch(project, cmd string) {
-	if !exists(w.Home) {
+	if !enabled(w.Home) {
 		return
 	}
 	now := w.now()

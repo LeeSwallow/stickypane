@@ -27,10 +27,11 @@ var alive = processAlive
 // of a process that is no longer alive, events/<date>.jsonl of a day more
 // than 90 days before now, and touch markers not touched for a day. Files
 // it does not recognise are left alone. stickypane is the only program
-// that deletes these files. A home that does not exist is not an error;
-// the first other error is returned, after trying every file.
+// that deletes these files. A home where records are not kept (no AppFile)
+// is left alone and is not an error; the first other error is returned,
+// after trying every file.
 func Prune(home string, now time.Time) error {
-	if !exists(home) {
+	if !enabled(home) {
 		return nil
 	}
 	var first error
