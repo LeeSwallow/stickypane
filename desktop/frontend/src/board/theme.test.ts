@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { THEMES } from '../demo/themes'
-import { modeOf, paletteFor } from './theme'
+import { boardPalette, modeOf, paletteFor } from './theme'
 
 const by = (n: string) => THEMES.find((t) => t.name === n)!
 
@@ -27,4 +27,10 @@ test('the overlay mode "" is the system', () => {
   expect(modeOf('dark')).toBe('dark')
   expect(modeOf('light')).toBe('light')
   expect(modeOf('weird')).toBe('system')
+})
+
+test('the board\'s palette is read once; one the app cannot draw is none', () => {
+  expect(boardPalette(null)).toBeNull()
+  expect(boardPalette({ palette: by('nord') })?.name).toBe('nord')
+  expect(boardPalette({ palette: { name: 'broken' } })).toBeNull()
 })

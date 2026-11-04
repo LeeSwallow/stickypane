@@ -10,7 +10,7 @@
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
   import Toggle from '../lib/ui/Toggle.svelte'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
   import {
     checkAgents, linked,
     type AgentsState, type CommandState, type InstallAnswer, type RunResult, type SetupApi, type Target,
@@ -30,7 +30,8 @@
     try {
       await copy(text)
       copied = true
-    } catch {
+    } catch (e) {
+      logged('terminal.copy')(e)
       copied = false
     }
   }
@@ -56,11 +57,11 @@
     agents = null
     setup.command().then(
       (s) => (cmd = s),
-      (e) => (cliError = $tr('cli.failed', { error: errorText(e) })),
+      (e) => (cliError = report('terminal.command', e, (error) => $tr('cli.failed', { error }))),
     )
     checkAgents(setup).then(
       (a) => (agents = a),
-      () => (agents = 'todo'),
+      (e) => (agents = logged('terminal.agents', 'todo' as const)(e)),
     )
   })
 
@@ -84,7 +85,7 @@
     try {
       took(await setup.install(target, replace), target)
     } catch (e) {
-      cliError = $tr('cli.failed', { error: errorText(e) })
+      cliError = report('terminal.install', e, (error) => $tr('cli.failed', { error }))
     } finally {
       busy = ''
     }
@@ -96,7 +97,7 @@
     try {
       took(await setup.uninstall(), 'user')
     } catch (e) {
-      cliError = $tr('cli.failed', { error: errorText(e) })
+      cliError = report('terminal.uninstall', e, (error) => $tr('cli.failed', { error }))
     } finally {
       busy = ''
     }
@@ -109,7 +110,7 @@
     try {
       plan = await setup.connectPlan(mcp)
     } catch (e) {
-      agentsError = $tr('agents.failed', { error: errorText(e) })
+      agentsError = report('terminal.showPlan', e, (error) => $tr('agents.failed', { error }))
     } finally {
       busy = ''
     }
@@ -123,7 +124,7 @@
       plan = null
       agents = 'connected'
     } catch (e) {
-      agentsError = $tr('agents.failed', { error: errorText(e) })
+      agentsError = report('terminal.connect', e, (error) => $tr('agents.failed', { error }))
     } finally {
       busy = ''
     }
@@ -135,7 +136,7 @@
     try {
       inited = await setup.initHere()
     } catch (e) {
-      initError = $tr('agents.failed', { error: errorText(e) })
+      initError = report('terminal.initHere', e, (error) => $tr('agents.failed', { error }))
     } finally {
       busy = ''
     }

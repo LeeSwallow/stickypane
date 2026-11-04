@@ -2,6 +2,7 @@
 // runtime is reached from services only (RA13).
 import { home, project, type WindowKind } from '../lib/shell'
 import type { WindowActions } from '../lib/ui/chrome'
+import { logged } from './errors'
 
 const runtime = () => import('@wailsio/runtime')
 
@@ -13,9 +14,9 @@ const runtime = () => import('@wailsio/runtime')
 export function windowActions(kind: WindowKind): WindowActions {
   const svc = kind === 'home' ? home : project
   return {
-    close: () => void runtime().then((r) => r.Window.Close()),
-    minimise: () => void runtime().then((r) => r.Window.Minimise()),
-    quit: () => void runtime().then((r) => r.Call.ByName(svc('Quit'))),
+    close: () => void runtime().then((r) => r.Window.Close()).catch(logged('window.close')),
+    minimise: () => void runtime().then((r) => r.Window.Minimise()).catch(logged('window.minimise')),
+    quit: () => void runtime().then((r) => r.Call.ByName(svc('Quit'))).catch(logged('window.quit')),
   }
 }
 

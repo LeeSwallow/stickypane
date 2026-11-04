@@ -13,7 +13,7 @@
   import Confirm from '../lib/ui/Confirm.svelte'
   import CrayonIcon from '../lib/ui/icons/CrayonIcon.svelte'
   import Input from '../lib/ui/Input.svelte'
-  import { errorText } from '../services/errors'
+  import { report } from '../services/errors'
   import { shortPath } from '../lib/path'
   import type { Host, HostCheck, HostsApi, SshAlias } from '../services/hosts'
 
@@ -39,7 +39,7 @@
     try {
       hosts = (await api.hosts()) ?? []
     } catch (e) {
-      failed = errorText(e)
+      failed = report('hosts.load', e)
     } finally {
       loaded = true
     }
@@ -51,7 +51,7 @@
     try {
       await f()
     } catch (e) {
-      failed = $tr('settings.failed', { error: errorText(e) })
+      failed = report('hosts.run', e, (error) => $tr('settings.failed', { error }))
     }
     await load()
   }
@@ -62,7 +62,7 @@
     try {
       c = await api.checkHost(name)
     } catch (e) {
-      c = { ok: false, bridge: false, error: errorText(e) }
+      c = { ok: false, bridge: false, error: report('hosts.check', e) }
     }
     checks = { ...checks, [name]: c }
   }
@@ -83,7 +83,7 @@
       await api.saveHost(h, old)
       form = { ...form, open: false }
     } catch (err) {
-      failed = $tr('settings.failed', { error: errorText(err) })
+      failed = report('hosts.save', err, (error) => $tr('settings.failed', { error }))
     }
     await load()
   }
@@ -101,7 +101,7 @@
     try {
       aliases = (await api.aliases()) ?? []
     } catch (e) {
-      failed = errorText(e)
+      failed = report('hosts.readAliases', e)
       aliases = []
     } finally {
       reading = false

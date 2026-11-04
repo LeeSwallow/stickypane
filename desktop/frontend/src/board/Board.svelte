@@ -13,7 +13,7 @@
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
   import { resolveDark, watchSystemDark, type Mode } from '../lib/theme/mode'
-  import { normalizePalette, type Palette } from '../lib/theme/palette'
+  import type { Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
@@ -44,7 +44,7 @@
   import { glance, stalledCount } from './glance'
   import Grid from './Grid.svelte'
   import { connect } from './session'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
   import { baseName } from '../lib/path'
   import { frameOf, keyAction } from './keys'
   import { columnsFor, place as gridPlace, shift, stepSize } from './layout'
@@ -52,7 +52,7 @@
   import { allNotes, findNote, resolveLink, type Board, type Note, type Tab } from './model'
   import NoteFrame from './NoteFrame.svelte'
   import Tabs from './Tabs.svelte'
-  import { modeOf, paletteFor } from './theme'
+  import { boardPalette, modeOf, paletteFor } from './theme'
   import TitleBar from './TitleBar.svelte'
   import {
     canGoBack, flip, followTab, goBack, goToPage, initView, isChanged, navigate, pageOf, seeAll, selectTab, zoomIn,
@@ -84,13 +84,16 @@
   let mode = $state<Mode>('system')
   let systemDark = $state(false)
   let hotkey = $state('')
+  // what failed last, said in the toast at the bottom; fail(where) is the
+  // catch that says it (and keeps it in the log)
   let failed = $state('')
+  const fail = (where: string) => (e: unknown) => (failed = report('board.' + where, e))
   // the note a focused frame holds: what ⋯ "편집기로 열기" opens when none is zoomed
   let focused = $state<string | null>(null)
   // "+ 생성": the dialog, open from the title bar or with a
   let creating = $state(false)
   // ⌘, and ⋯ → 설정…: the settings window, for this board (03 §3.12)
-  const configure = () => void api.openSettings('board').catch((e: unknown) => (failed = errorText(e)))
+  const configure = () => void api.openSettings('board').catch(fail('configure'))
   // ⋯ → 배치 초기화 on the grid asks first: it is the board's sticky.json
   let resetting = $state(false)
   // where notes sit on this computer: canvas or grid, places, torn-off notes
@@ -106,23 +109,15 @@
   const chrome = chromeOf(location.search)
   const win = windowActions('project')
 
-  const bridgePalette = $derived.by((): Palette | null => {
-    try {
-      return board ? normalizePalette(board.palette) : null
-    } catch {
-      return null
-    }
-  })
+  const bridgePalette = $derived(boardPalette(board))
   // every theme, from the bridge's themes.list once it is up: the other half of a pair
   let themes = $state<Palette[]>([])
   let themesAsked = false
   $effect(() => {
     if (status?.state !== 'ready' || themesAsked) return
     themesAsked = true
-    api.themes().then(
-      (t) => (themes = t),
-      () => {}, // an older bridge: the chosen theme's colours stay
-    )
+    // an older bridge: the chosen theme's colours stay
+    api.themes().then((t) => (themes = t), logged('board.themes'))
   })
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
 
@@ -199,7 +194,7 @@
           if (!layoutRead) await readLayout()
           failed = ''
         } catch (e) {
-          failed = String(e)
+          failed = report('board.refresh', e)
         }
       } while (again)
       loading = null
@@ -212,24 +207,24 @@
     try {
       layout = await api.layout()
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.readLayout', e)
     }
     layoutRead = true
   }
 
   function setMode(m: LayoutMode) {
     layout = { ...layout, mode: m }
-    api.setMode(m).catch((e) => (failed = errorText(e)))
+    api.setMode(m).catch(fail('setMode'))
   }
 
   function setSnap(on: boolean) {
     layout = { ...layout, snap: on }
-    api.setSnap(on).catch((e) => (failed = errorText(e)))
+    api.setSnap(on).catch(fail('setSnap'))
   }
 
   function place(places: Record<string, Place>) {
     layout = { ...layout, places: { ...layout.places, ...places } }
-    api.place(places).catch((e) => (failed = errorText(e)))
+    api.place(places).catch(fail('place'))
   }
 
   async function tear(name: string) {
@@ -238,7 +233,7 @@
     try {
       await api.tearOff(name)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.tear', e)
     }
     await readLayout()
   }
@@ -247,7 +242,7 @@
     try {
       await api.putBack(name)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.putBack', e)
     }
     await readLayout()
   }
@@ -256,7 +251,7 @@
 
   /** created opens the new note, shows its tab and puts the focus on it. */
   async function created(name: string) {
-    await api.arrange({ note: name, open: true }).catch((e) => (failed = errorText(e)))
+    await api.arrange({ note: name, open: true }).catch(fail('created'))
     await refresh()
     const at = locate(name)
     if (at) view = selectTab(view, at.tab)
@@ -346,7 +341,7 @@
         // read the board again (it undoes the guess), then tell why: a
         // read that succeeds clears the toast, so the reason comes after (#66)
         await refresh()
-        failed = errorText(e)
+        failed = report('board.arrange', e)
       }
     },
     zoom: (name) => (view = zoomIn(view, name)),
@@ -367,7 +362,7 @@
     now: () => now,
     // a board on another computer has no editor here (the shell refuses it too)
     get edit() {
-      return status?.remote ? undefined : (name: string) => void api.open(name).catch((err) => (failed = String(err)))
+      return status?.remote ? undefined : (name: string) => void api.open(name).catch(fail('edit'))
     },
     manage: manageNote,
     tear: (name) => void tear(name),
@@ -385,7 +380,7 @@
       await api.tearOffAll(names)
       notice = { message: t('board.tornAll', { n: names.length }), action: { label: t('home.undo'), run: () => void putBackAll(names) } }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.tearOff', e)
     }
     await readLayout()
   }
@@ -394,7 +389,7 @@
     try {
       await api.putBackAll(names)
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.putBackAll', e)
     }
     await readLayout()
   }
@@ -429,7 +424,7 @@
       layout = { ...layout, places: {} }
       notice = { message: t('board.resetCanvas'), action: { label: t('home.undo'), run: () => place(before) } }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.resetLayout', e)
     }
   }
 
@@ -447,11 +442,11 @@
         message: t('board.resetDone'),
         action: {
           label: t('home.undo'),
-          run: () => void Promise.all(before.map((b) => api.arrange(b))).then(refresh, (e) => (failed = errorText(e))),
+          run: () => void Promise.all(before.map((b) => api.arrange(b))).then(refresh, fail('resetSizes.undo')),
         },
       }
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.resetSizes', e)
       await refresh()
     }
   }
@@ -494,7 +489,7 @@
       ...b,
       tabs: b.tabs.map((x) => (x.name === tabName ? { ...x, notes: order.map((o) => x.notes.find((n) => n.name === o)!) } : x)),
     }))
-    api.order(tabName, order).catch((err) => (failed = String(err))).finally(refresh)
+    api.order(tabName, order).catch(fail('order')).finally(refresh)
     if (moved) requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-frame="${CSS.escape(moved)}"]`)?.focus())
   }
 
@@ -615,8 +610,8 @@
 
   async function pin() {
     if (!status) return
-    await api.pin(!status.pinned).catch((err) => (failed = String(err)))
-    status = await api.status()
+    await api.pin(!status.pinned).catch(fail('pin'))
+    await api.status().then((s) => (status = s), fail('pin'))
   }
 
   onMount(() => {
@@ -630,7 +625,7 @@
         appLanguage = p.language ?? ''
         motion.setting = p.motion ?? ''
       })
-      .catch(() => {})
+      .catch(logged('board.prefs'))
     refresh()
     // the app's settings, changed in the settings window (or any window)
     offs.push(
@@ -687,7 +682,7 @@
       // the welcome note in the language the window draws in (08 §8.2)
       await api.makeBoard(get(language))
     } catch (e) {
-      failed = errorText(e)
+      failed = report('board.makeBoard', e)
     } finally {
       making = false
     }

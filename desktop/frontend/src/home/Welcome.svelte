@@ -10,6 +10,7 @@
   import { look } from '../lib/doodle/look.svelte'
   import Badge from '../lib/ui/Badge.svelte'
   import Button from '../lib/ui/Button.svelte'
+  import { logged } from '../services/errors'
   import { checkAgents, linked, type AgentsState, type SetupApi } from '../services/install'
   import Install from './Install.svelte'
 
@@ -40,19 +41,19 @@
   function readCli() {
     setup.command().then(
       (s) => (cli = !s.bundled ? 'none' : linked(s) ? 'ok' : 'todo'),
-      () => (cli = 'todo'),
+      (e) => (cli = logged('welcome.cli', 'todo' as const)(e)),
     )
   }
 
   onMount(() => {
     checkAgents(setup).then(
       (a) => (agents = a),
-      () => (agents = 'todo'),
+      (e) => (agents = logged('welcome.agents', 'todo' as const)(e)),
     )
     readCli()
     // back from the settings window, the checks are read again
     const again = () => {
-      checkAgents(setup).then((a) => (agents = a), () => {})
+      checkAgents(setup).then((a) => (agents = a), logged('welcome.agents'))
       readCli()
     }
     window.addEventListener('focus', again)
@@ -65,7 +66,9 @@
       const a = await setup.install('user', false)
       if (a.occupied) openSettings('cli')
       cli = linked(a.state) ? 'ok' : 'todo'
-    } catch {
+    } catch (e) {
+      // the settings say why, and how to do it by hand
+      logged('welcome.install')(e)
       openSettings('cli')
     } finally {
       installing = false

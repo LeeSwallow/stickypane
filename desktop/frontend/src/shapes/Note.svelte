@@ -7,6 +7,7 @@
   import { htmlFor, splitEmbeds, type Note as NoteT, type NoteData, type Segment } from '../board/model'
   import { tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
+  import { logged } from '../services/errors'
   import { mermaidRenderer, render } from './markdown'
   import Shape from './Shape.svelte'
 
@@ -27,7 +28,8 @@
     let live = true
     Promise.all(segs.map((s) => ('md' in s ? render(s.md, { mermaid }) : Promise.resolve(''))))
       .then((out) => live && (rendered = { segs, html: out }))
-      .catch(() => {})
+      // the last drawing stays
+      .catch(logged('note.render'))
     return () => (live = false)
   })
 

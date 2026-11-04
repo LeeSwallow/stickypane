@@ -11,7 +11,7 @@
   import Dialog from '../lib/ui/Dialog.svelte'
   import Input from '../lib/ui/Input.svelte'
   import SegmentedControl from '../lib/ui/SegmentedControl.svelte'
-  import { errorText } from '../services/errors'
+  import { report } from '../services/errors'
   import { fieldOf, initialValues, reason, toOptions, type CreateApi, type FormValues, type Shape as ShapeT } from '../services/create'
   import type { Note } from '../board/model'
   import Shape from '../shapes/Shape.svelte'
@@ -68,7 +68,7 @@
         // the title is the first thing to write, once there is a form
         tick().then(() => formEl?.querySelector<HTMLInputElement>('.form input')?.focus())
       },
-      (e) => (loadError = errorText(e)),
+      (e) => (loadError = report('create.kinds', e)),
     )
   })
 
@@ -90,7 +90,7 @@
       open = false
       oncreated(r.note)
     } catch (e) {
-      const msg = errorText(e)
+      const msg = report('create.create', e)
       const f = fieldOf(msg, shape)
       if (f) errors = { [f]: reason(msg) }
       else failed = msg

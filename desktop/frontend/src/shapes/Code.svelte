@@ -2,6 +2,7 @@
   // Source as a code block, coloured by Shiki when its language is known
   // (the same colours as a note's code blocks), plain until then. A
   // script and a request show what will run or be sent with it.
+  import { logged } from '../services/errors'
   import { highlightCode } from './markdown'
 
   let { source, lang, label }: { source: string; lang: string; label?: string } = $props()
@@ -12,7 +13,8 @@
     let live = true
     highlightCode(src, lang)
       .then((h) => live && h && (html = { for: src, html: h }))
-      .catch(() => {})
+      // the code stays plain
+      .catch(logged('code.highlight'))
     return () => (live = false)
   })
 </script>

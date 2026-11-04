@@ -15,7 +15,7 @@
   import { fitsOf, noteOf } from '../lib/shell'
   import { setHeight } from '../services/window'
   import { watchSystemDark, type Mode } from '../lib/theme/mode'
-  import { normalizePalette, type Palette } from '../lib/theme/palette'
+  import type { Palette } from '../lib/theme/palette'
   import { agentColor, applyTheme, noteTitleColor } from '../lib/theme/tokens'
   import { director } from '../lib/motion/director'
   import { level, motion, watchReducedMotion } from '../lib/motion/level.svelte'
@@ -27,7 +27,7 @@
   import IconButton from '../lib/ui/IconButton.svelte'
   import Toast from '../lib/ui/Toast.svelte'
   import { events, type Bus, type Status } from '../services/board'
-  import { errorText } from '../services/errors'
+  import { logged, report } from '../services/errors'
   import { projectService, type ProjectApi } from '../services/project'
   import { act, arrange } from '../board/actions'
   import { boardContext, noteHex, type BoardCtx } from '../board/context'
@@ -35,7 +35,7 @@
   import NoteFrame from '../board/NoteFrame.svelte'
   import * as manage from '../board/manage'
   import { connect } from '../board/session'
-  import { modeOf, paletteFor } from '../board/theme'
+  import { boardPalette, modeOf, paletteFor } from '../board/theme'
 
   // bus: the shell's events (a test passes its own)
   let {
@@ -48,7 +48,10 @@
 
   let status = $state<Status | null>(null)
   let board = $state<Board | null>(null)
+  // what failed last, said in the toast at the bottom; fail(where) is the
+  // catch that says it (and keeps it in the log)
   let failed = $state('')
+  const fail = (where: string) => (e: unknown) => (failed = report('torn.' + where, e))
   // a short word at the bottom (run, sent, archived, deleted with 되돌리기)
   let notice = $state<manage.Said | null>(null)
   // a question before a delete, a run or a send; the note being moved
@@ -84,7 +87,7 @@
       const pad = parseFloat(getComputedStyle(body).paddingBottom) || 0
       const want = window.innerHeight - body.clientHeight + natural + pad
       const most = Math.round((screen.availHeight || 900) * 0.8)
-      void resize(Math.min(Math.max(want, 160), most)).catch(() => {})
+      void resize(Math.min(Math.max(want, 160), most)).catch(logged('torn.fit'))
     })
   })
 
@@ -93,23 +96,15 @@
   const note = $derived(board ? findNote(board.tabs, name) : null)
   const files = $derived(board ? allNotes(board.tabs).map((n) => n.name) : [])
 
-  const bridgePalette = $derived.by((): Palette | null => {
-    try {
-      return board ? normalizePalette(board.palette) : null
-    } catch {
-      return null
-    }
-  })
+  const bridgePalette = $derived(boardPalette(board))
   // every theme, from the bridge's themes.list: the other half of a pair
   let themes = $state<Palette[]>([])
   let themesAsked = false
   $effect(() => {
     if (status?.state !== 'ready' || themesAsked) return
     themesAsked = true
-    api.themes().then(
-      (t) => (themes = t),
-      () => {},
-    )
+    // an older bridge: the chosen theme's colours stay
+    api.themes().then((t) => (themes = t), logged('torn.themes'))
   })
   const palette = $derived(bridgePalette && board ? paletteFor(bridgePalette, board.settings.theme, mode, systemDark, themes) : null)
   $effect(() => {
@@ -144,7 +139,7 @@
           if (status.state === 'ready') board = await api.load()
           failed = ''
         } catch (e) {
-          failed = errorText(e)
+          failed = report('torn.refresh', e)
         }
       } while (again)
       loading = null
@@ -178,13 +173,13 @@
   }
 
   async function putBack() {
-    await api.putBack().catch((e) => (failed = errorText(e)))
+    await api.putBack().catch(fail('putBack'))
   }
 
   async function pin() {
     if (!status) return
-    await api.pin(!status.pinned).catch((e) => (failed = errorText(e)))
-    status = await api.status()
+    await api.pin(!status.pinned).catch(fail('pin'))
+    await api.status().then((s) => (status = s), fail('pin'))
   }
 
   const ctx: BoardCtx = {
@@ -192,14 +187,14 @@
     // a link opens the note it names torn off too, beside this one
     navigate(link) {
       const n = resolveLink(link, files)
-      if (n) api.tearOff(n).catch((e) => (failed = errorText(e)))
+      if (n) api.tearOff(n).catch(fail('navigate'))
     },
     act: (n, a) => act(api, n, a, (error) => (failed = t('note.actFailed', { title: n.title, error })), refresh, update),
     async arrange(n, patch) {
       try {
         await arrange(api, n, patch, update)
       } catch (e) {
-        failed = errorText(e)
+        failed = report('torn.arrange', e)
         await refresh()
       }
     },
@@ -218,7 +213,7 @@
     now: () => now,
     // a board on another computer has no editor here
     get edit() {
-      return status?.remote ? undefined : (n: string) => void api.open(n).catch((e) => (failed = errorText(e)))
+      return status?.remote ? undefined : (n: string) => void api.open(n).catch(fail('edit'))
     },
     putBack: () => void putBack(),
     manage(n, what, request) {
@@ -252,7 +247,7 @@
         motion.setting = p.motion ?? ''
         appLanguage = p.language ?? ''
       })
-      .catch(() => {})
+      .catch(logged('torn.prefs'))
     refresh()
     offs.push(
       connect({ status: () => api.status(), bus, onChanged: (data) => void stage.changed(data), onRestarted: () => refresh(), onStatus: () => refresh() }),

@@ -5,7 +5,7 @@
 // The confirmations are the window's (Board.svelte); these run after them.
 
 import { t } from '../i18n'
-import { errorText } from '../services/errors'
+import { report } from '../services/errors'
 import type { NotesApi } from '../services/notes'
 import type { Note } from './model'
 
@@ -40,7 +40,7 @@ async function attempt(d: ManageDeps, title: string, f: () => Promise<Said | nul
     if (s) d.say(s)
     return true
   } catch (e) {
-    d.fail(t('note.failed', { title, error: errorText(e) }))
+    d.fail(report('note.manage', e, (error) => t('note.failed', { title, error })))
     return false
   } finally {
     await d.refresh()

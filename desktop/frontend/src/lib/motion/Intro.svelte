@@ -12,6 +12,7 @@
   import { motion, watchReducedMotion } from './level.svelte'
   import { dayOf, fadeIn, fly, INTRO, introMode, sheet, type IntroMode } from './intro'
   import { frames, lastDay, Reel, remember, shown, storage } from './stage'
+  import { logged } from '../../services/errors'
 
   let {
     prefs,
@@ -96,7 +97,7 @@
       if (play) return void start(play).finally(() => (first = false))
       // the setting, if the app answers quickly; the intro does not wait long for it
       const setting = await Promise.race([
-        prefs?.().then((p) => p?.motion ?? '').catch(() => '') ?? Promise.resolve(''),
+        prefs?.().then((p) => p?.motion ?? '').catch(logged('intro.prefs', '')) ?? Promise.resolve(''),
         new Promise<string>((r) => setTimeout(() => r(''), 300)),
       ])
       if (setting) motion.setting = setting

@@ -3,6 +3,7 @@
 import { derived, get, writable } from 'svelte/store'
 import en from './en.json'
 import ko from './ko.json'
+import { logged } from '../services/errors'
 
 export type Lang = 'ko' | 'en'
 export type Choice = 'auto' | 'ko' | 'en'
@@ -97,7 +98,7 @@ export async function chooseLanguage(choice: Choice, host: LanguageHost): Promis
       setLanguage(host.app)
       return
     }
-    const got = await host.settingsGet().catch(() => null)
+    const got = await host.settingsGet().catch(logged('language.get', null))
     const r = got?.language?.resolved
     setLanguage(r === 'ko' || r === 'en' ? r : choice === 'auto' ? resolveAuto() : choice)
     return

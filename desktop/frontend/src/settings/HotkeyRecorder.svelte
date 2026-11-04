@@ -4,6 +4,7 @@
   // modifier, one macOS keeps, one another app holds — and said in place;
   // a hotkey that passes is saved at once.
   import { tr } from '../i18n'
+  import { report } from '../services/errors'
   import type { HotkeyCheck } from '../services/settings'
   import { glyphs, modsOf, record } from './keys'
 
@@ -69,7 +70,7 @@
       message = $tr('settings.hotkey.set', { key: glyphs(c.accel).join('') })
     } catch (err) {
       bad = true
-      message = $tr('settings.hotkey.failed', { error: String((err as Error)?.message ?? err) })
+      message = report('settings.hotkey', err, (error) => $tr('settings.hotkey.failed', { error }))
     } finally {
       busy = ''
     }
