@@ -24,3 +24,67 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+  # The desktop app goes onto the same release (docs/desktop/09 §9.1): a DMG
+  # built on a Mac and a tar.gz on Linux, after goreleaser has made the
+  # release. The app's version (desktop/build/config.yml) must be the tag's.
+  app:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    env:
+      WAILS_VERSION: v3.0.0
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            go.sum
+            desktop/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/frontend/package-lock.json
+      - name: Version
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]][[:space:]]*version:[[:space:]]*"\([^"]*\)".*/\1/p' build/config.yml | head -n 1)
+          [ "v$VERSION" = "$TAG" ] || { echo "desktop/build/config.yml says $VERSION, the tag is $TAG"; exit 1; }
+          echo "VERSION=$VERSION" >>"$GITHUB_ENV"
+      - name: Linux webview libraries
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev pkg-config
+      - name: Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+      - run: npm ci
+        working-directory: desktop/frontend
+      # The license texts in the packages come from the module cache.
+      - run: go mod download
+      - run: go mod download
+        working-directory: .
+      - name: DMG
+        if: runner.os == 'macOS'
+        run: |
+          wails3 package
+          arch=$(uname -m | sed 's/x86_64/amd64/')
+          sh ../scripts/desktop-dmg.sh bin/stickypane-app.app "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
+          hdiutil verify "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
+      - name: Linux archive
+        if: runner.os == 'Linux'
+        run: |
+          wails3 build
+          sh ../scripts/desktop-linux.sh bin/stickypane-app "$VERSION" "$(go env GOARCH)" "$RUNNER_TEMP/dist"
+      - name: Upload to the release
+        run: gh release upload "$TAG" "$RUNNER_TEMP"/dist/* --clobber

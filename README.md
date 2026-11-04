@@ -140,11 +140,11 @@ Next: stickypane help, then stickypane help <command>.
 
 ![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/desktop/assets/app-board.png)
 
-**Not released yet.** The app is built and tested in this repository, in
-[`desktop/`](desktop/), for macOS and Linux. The DMG and the Linux archive
-come with its first release
-([#10](https://github.com/LeeSwallow/stickypane/issues/10)); until then
-there is nothing to download.
+For macOS (Apple silicon) and Linux, from v0.2.1 on: the DMG and the
+Linux archive are on the
+[releases page](https://github.com/LeeSwallow/stickypane/releases), and
+[docs/install.md](docs/install.md#the-desktop-app) says how to install
+them. The code is in [`desktop/`](desktop/).
 
 The same board in a window of its own. It draws every note in full,
 including tables, Mermaid, math and `.html` pages in a sandbox. A click
