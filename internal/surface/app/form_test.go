@@ -12,12 +12,12 @@ const formFile = "---\ntype: form\ntitle: Deploy\nopen: true\n---\n## Where?\n- 
 func TestAFormIsAnsweredOnTheMainScreen(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"f.md": formFile})
-	press(m, "j", "enter")
+	press(m, "down", "enter")
 	if got := readFile(t, dir, "f.md"); !strings.Contains(got, "- (x) production") || m.mode != modeBoard {
 		t.Fatalf("enter should choose the option, not zoom (mode %v):\n%s", m.mode, got)
 	}
 
-	press(m, "j", "enter")
+	press(m, "down", "enter")
 	if m.mode != modeInput || !strings.Contains(screen(m), "Note:") {
 		t.Fatalf("enter on a field should ask for its text:\n%s", screen(m))
 	}
@@ -27,7 +27,7 @@ func TestAFormIsAnsweredOnTheMainScreen(t *testing.T) {
 		t.Fatalf("the answer should be in the file:\n%s", got)
 	}
 
-	press(m, "j", "enter")
+	press(m, "down", "enter")
 	d := doc.Parse([]byte(readFile(t, dir, "f.md")))
 	if v, _ := d.Get("submitted"); v != "Go" {
 		t.Fatalf("enter on a button should submit:\n%s", d.Bytes())
@@ -41,7 +41,7 @@ func TestAFieldCanBeEditedAndCleared(t *testing.T) {
 	t.Parallel()
 	filled := strings.Replace(formFile, "> \n", "> after lunch\n", 1)
 	m, dir := newModel(t, map[string]string{"f.md": filled})
-	press(m, "j", "j", "enter")
+	press(m, "down", "down", "enter")
 	if s := screen(m); !strings.Contains(s, "Note: after lunch") {
 		t.Fatalf("the prompt should start with the field's text:\n%s", s)
 	}
@@ -107,7 +107,7 @@ func TestALongQuestionLeavesRoomToType(t *testing.T) {
 	t.Parallel()
 	long := strings.Replace(formFile, "## Note\n", strings.Repeat("a very long question ", 8)+"\n", 1)
 	m, _ := newModel(t, map[string]string{"f.md": long})
-	press(m, "j", "j", "enter")
+	press(m, "down", "down", "enter")
 	typeText(m, "typed")
 	lines := strings.Split(screen(m), "\n")
 	if last := lines[len(lines)-1]; !strings.Contains(last, "typed") {

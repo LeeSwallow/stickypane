@@ -78,7 +78,7 @@ func TestABrokenStickyJSONIsSaidAndNotOverwritten(t *testing.T) {
 	}
 }
 
-func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
+func TestHAndLMoveANoteAmongTheOthers(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n"), "c.md": opened("note c\n")})
 	order := func() string {
@@ -88,17 +88,17 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 		}
 		return strings.Join(names, " ")
 	}
-	press(m, "}")
+	press(m, "L")
 	if got := order(); got != "b.md a.md c.md" || m.focus != "a.md" {
-		t.Fatalf("} should move the focused note one place later: %s (focus %s)", got, m.focus)
+		t.Fatalf("L should move the focused note one place later: %s (focus %s)", got, m.focus)
 	}
-	press(m, "}", "}")
+	press(m, "L", "L")
 	if got := order(); got != "b.md c.md a.md" {
-		t.Errorf("} stops at the end: %s", got)
+		t.Errorf("L stops at the end: %s", got)
 	}
-	press(m, "{")
+	press(m, "H")
 	if got := order(); got != "b.md a.md c.md" {
-		t.Errorf("{ should move it back: %s", got)
+		t.Errorf("H should move it back: %s", got)
 	}
 	if got := readFile(t, dir, "sticky.json"); !strings.Contains(got, `"order"`) {
 		t.Errorf("the order is kept in sticky.json:\n%s", got)
@@ -110,7 +110,7 @@ func TestBracesMoveANoteAmongTheOthers(t *testing.T) {
 		t.Errorf("order with a new note: %s", got)
 	}
 	// A pinned note stays first and moves only among pinned notes.
-	press(m, "p", "{")
+	press(m, "p", "H")
 	if got := order(); got != "a.md b.md c.md 0-new.md" {
 		t.Errorf("a pinned note is first and does not trade places with an unpinned one: %s", got)
 	}
@@ -202,7 +202,7 @@ func TestTheScreenSpeaksTheChosenLanguage(t *testing.T) {
 	if !strings.Contains(s, "열린 노트가 없습니다") || !strings.Contains(s, "도움말") {
 		t.Errorf("the screen and the hints should be Korean:\n%s", s)
 	}
-	press(m, "o", "D")
+	press(m, "o", "d", "d")
 	if s := screen(m); !strings.Contains(s, "삭제할까요") {
 		t.Errorf("messages with names are filled in Korean:\n%s", s)
 	}

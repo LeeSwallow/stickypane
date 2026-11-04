@@ -10,8 +10,8 @@ answer and move cards; the agent reads what you did.
 
 - **In the app:** **+ New note** makes one, **×** folds a note away, and
   **Terminal and agents** in Settings (**⌘,**) connects Claude Code and Codex.
-- **In the terminal:** **tab** moves between notes, **enter** opens one and
-  zooms in, **N** jots a note, **a** adds another shape, **o** folds a note
-  away, **?** lists every key.
+- **In the terminal:** **h j k l** (or **tab**) move between notes,
+  **enter** opens one and zooms in, **N** jots a note, **a** adds another
+  shape, **o** folds a note away, **?** lists every key.
 
 Fold this note away when you are done with it.

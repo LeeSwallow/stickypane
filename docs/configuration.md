@@ -121,7 +121,7 @@ to edit as well:
   board waits 600 ms, then runs `g`. A key that only starts others waits
   as long as it takes.
 - Digits before a key are a count: `3J` moves a note three rows down.
-  Moving, resizing, focus, pages, screens and `(` `)` take one, up to 99;
+  Moving, resizing, focus, scrolling, pages, screens and `gt` `gT` take one, up to 99;
   other actions run once. A digit alone goes to its tab after the same
   wait, `0` alone is `0`'s action, and after a digit `0` is a digit
   (`10J`).
@@ -136,11 +136,19 @@ to edit as well:
   entries it left out. `stickypane keys` says why.
 - The help (`?`), the bottom line and the messages that name a key
   (`u brings it back`) follow the file.
-- An open note's own keys come first: an open kanban takes `h` `j` `k` `l`
-  and `H` `J` `K` `L`, a checklist `space` and `n`, before the board's
-  actions see them. A board key you give an action that a focused shape
-  also uses works everywhere else. A count does not take a key from the
-  shape (`3j` on a kanban is `j`); a sequence already waiting does.
+- On the board, the actions that move between notes and move them
+  (`focus-*`, `note-move-*`: `h` `j` `k` `l`, `gg` `G`, `H` `J` `K` `L`)
+  come before a focused note's own keys. The note gets its other keys
+  first: a kanban its arrows and `n`, a checklist `space` and `n`. Zoomed,
+  a note takes all of its keys before the board's. A board key you give
+  another action that a focused shape also uses works everywhere else. A
+  count does not take a key from the shape (`3↓` on a kanban is `↓`); a
+  sequence already waiting does.
+- To get an old key back, give it to its action:
+  `stickypane keys set note-delete D "d d"`,
+  `stickypane keys set tab-next ")" "g t"`. For `j` to scroll again, take
+  it from `focus-down` first (`stickypane keys set focus-down`), then
+  `stickypane keys set scroll-down j ctrl+e down`; the same for `k`.
 - Having `~/.stickypane/keys.json` turns no records on;
   [What stickypane records](#what-stickypane-records-on-this-machine)
   depends on the desktop app's own files there.
@@ -174,7 +182,7 @@ are only in the root file.
 | Key in `notes` | Values | Key on the board |
 | --- | --- | --- |
 | `open` | `true` shows the note, `false` folds it away | `o`, `enter` |
-| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1`, spanning that share of the columns, rounded. A note with a size keeps it; one without takes one column and shares what its row leaves | `+` `-`, drag the right edge |
+| `size` | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1`, spanning that share of the columns, rounded. A note with a size keeps it; one without takes one column and shares what its row leaves | `>` `<`, drag the right edge |
 | `rows` | the height in lines the note asks for; `-1` is as tall as its content, over what the note or its kind says | `shift+up` `shift+down`, `0`, drag the bottom edge |
 | `color` | `yellow` `pink` `blue` `green` `purple` `orange` | `c` |
 | `pin` | `true` keeps the note first | `p` |
@@ -182,7 +190,7 @@ are only in the root file.
 
 Next to `notes`, `theme` names the theme (`T` on the board), `language` the
 language of the screen (`stickypane config language ko`; `auto` follows `LANG`),
-`order` lists the notes you moved with `H` `J` `K` `L` or `{` `}` (the others follow by
+`order` lists the notes you moved with `H` `J` `K` `L` (the others follow by
 name), and `ignore` lists names or patterns the board should not show.
 `ignore` is the one part you write by hand.
 

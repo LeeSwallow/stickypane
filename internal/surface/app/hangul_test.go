@@ -35,7 +35,7 @@ func TestTheTwoSetLayout(t *testing.T) {
 func hangul(r rune) tea.KeyPressMsg { return tea.KeyPressMsg{Code: r, Text: string(r)} }
 
 // On the board a jamo is its Latin key: ㅌ archives as x does, ㅇㅇ is
-// d d, and ㅣ is l to a kanban.
+// d d, ㅎㅎ is g g, and ㅣ is l to a zoomed kanban.
 func TestTheBoardReadsTheKoreanLayout(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": opened("two\n"), "k.md": boardFile})
@@ -57,10 +57,17 @@ func TestTheBoardReadsTheKoreanLayout(t *testing.T) {
 	press(m, "esc")
 	m.setFocus("k.md")
 	drawn := func() string { s, _ := m.items[m.index("k.md")].w.Draw(60, true); return s }
+	m.Update(hangul('ㅎ'))
+	m.Update(hangul('ㅎ'))
+	if m.focus != m.items[0].note.Name {
+		t.Fatalf("ㅎㅎ goes to the first note like g g: %q", m.focus)
+	}
+	m.setFocus("k.md")
+	press(m, "z")
 	before := drawn()
 	m.Update(hangul('ㅣ'))
 	if drawn() == before {
-		t.Error("ㅣ moves the kanban's cursor like l")
+		t.Error("zoomed, ㅣ moves the kanban's cursor like l")
 	}
 }
 

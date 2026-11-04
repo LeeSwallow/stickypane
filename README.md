@@ -409,7 +409,10 @@ Nothing has to be set. `S` on the board changes the first three;
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
 
-The board's keys are yours too: `stickypane keys` lists them, and
+The board's keys are vim's: `h` `j` `k` `l` go to the note on that side,
+`gg` `G` to the first and last, `ctrl+d` `ctrl+u` scroll, `dd` deletes,
+`yy` copies a note's path, `gt` `gT` switch tabs, and `?` lists the rest.
+They are yours too: `stickypane keys` lists them, and
 `stickypane keys set note-archive X` makes `X` archive, in
 `~/.stickypane/keys.json`. A key may be a sequence (`"d x"`), and a count
 repeats one: `3J`.

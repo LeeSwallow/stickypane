@@ -88,7 +88,7 @@ func TestASequenceWaitsShowsAndIsCancelled(t *testing.T) {
 func TestAWholeKeyThatStartsAnotherRunsAfterTheWait(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"a.md": opened("one\n")})
-	m.keys = rebound(t, map[string][]string{"note-pin": {"g"}, "note-toggle": {"g g"}})
+	m.keys = rebound(t, map[string][]string{"note-pin": {"g"}, "note-toggle": {"g g"}, "focus-first": {}})
 	m.setFocus("a.md")
 	press(m, "g")
 	if m.pinned(m.items[0]) || !m.seq.pending() {
@@ -168,27 +168,27 @@ func TestADigitIsATabOnceTheWaitRunsOut(t *testing.T) {
 	if m.tab != 1 {
 		t.Fatalf("2 then nothing is tab 2: %d", m.tab)
 	}
-	press(m, "1", ")")
+	press(m, "1", "g", "t")
 	wait(m)
 	if m.tab != 1 {
-		t.Errorf("1) is ) once, not tab 1: %d", m.tab)
+		t.Errorf("1gt is gt once, not tab 1: %d", m.tab)
 	}
 }
 
 // A count does not take a key from the focused note: a kanban still
-// moves its card with j after a 3. A key of a sequence waiting does.
+// moves its cursor with ↓ after a 3. A key of a sequence waiting does.
 func TestASequenceWaitingComesBeforeTheNote(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"b.md": boardFile})
-	m.keys = rebound(t, map[string][]string{"note-pin": {"g j"}})
+	m.keys = rebound(t, map[string][]string{"note-pin": {"g n"}})
 	m.setFocus("b.md")
-	press(m, "3", "j")
+	press(m, "3", "down")
 	if m.seq.pending() {
-		t.Error("the note took j and the count went")
+		t.Error("the note took ↓ and the count went")
 	}
-	press(m, "g", "j")
-	if !m.pinned(m.items[0]) {
-		t.Error("g j pins, though the kanban uses j")
+	press(m, "g", "n")
+	if !m.pinned(m.items[0]) || m.mode != modeBoard {
+		t.Error("g n pins, though the kanban uses n")
 	}
 }
 
@@ -239,11 +239,11 @@ func TestASequenceIsShownSideBySide(t *testing.T) {
 // The same sequence twice is.
 func TestAKeyFileGivesSequences(t *testing.T) {
 	t.Parallel()
-	_, _, problems := bindKeys(map[string][]string{"note-pin": {"g"}, "note-toggle": {"g g"}, "note-color": {"g g c"}, "note-archive": {"x x"}})
+	_, _, problems := bindKeys(map[string][]string{"note-pin": {"g"}, "note-toggle": {"g g"}, "note-color": {"g g c"}, "note-archive": {"x x"}, "focus-first": {}})
 	if len(problems) > 0 {
 		t.Errorf("prefixes are no clash: %v", problems)
 	}
-	km, _, problems := bindKeys(map[string][]string{"note-pin": {"ㅎ ㅎ"}, "note-color": {"g g"}})
+	km, _, problems := bindKeys(map[string][]string{"note-pin": {"ㅎ ㅎ"}, "note-color": {"g g"}, "focus-first": {}})
 	if len(problems) != 1 || !strings.Contains(problems[0].Why, "g g is") || len(km.keysOf("note-pin")) != 1 {
 		t.Errorf("ㅎ ㅎ is g g, which only one action can have: %v", problems)
 	}

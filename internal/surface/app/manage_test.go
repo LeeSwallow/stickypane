@@ -78,7 +78,7 @@ func TestDeleteAsksFirst(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": "---\ntitle: Plan\n---\nx\n"})
 	path := filepath.Join(dir, "a.md")
-	press(m, "D")
+	press(m, "d", "d")
 	if s := screen(m); !strings.Contains(s, "Delete Plan? (y/n)") {
 		t.Fatalf("a confirmation should show:\n%s", s)
 	}
@@ -86,7 +86,7 @@ func TestDeleteAsksFirst(t *testing.T) {
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("answering n must keep the file: %v", err)
 	}
-	press(m, "D", "y")
+	press(m, "d", "d", "y")
 	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("answering y should delete the file, stat err = %v", err)
 	}
@@ -98,7 +98,7 @@ func TestDeleteAsksFirst(t *testing.T) {
 func TestKeysDoNothingOnAnEmptyScreen(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, nil)
-	press(m, "p", "c", "R", "x", "D", "e", "enter", "o", "+", "-", "tab", "j", "G")
+	press(m, "p", "c", "R", "x", "d", "d", "y", "y", "e", "enter", "o", ">", "<", "tab", "h", "j", "k", "l", "g", "g", "G", "ctrl+d", "g", "t")
 	if m.mode != modeBoard {
 		t.Errorf("mode = %v", m.mode)
 	}

@@ -15,7 +15,7 @@ func fileExists(dir, name string) bool {
 func TestDeleteGoesToTheTrashAndUBringsItBack(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("note a\n"), "b.md": opened("note b\n")})
-	press(m, "D", "y")
+	press(m, "d", "d", "y")
 	if fileExists(dir, "a.md") || readFile(t, dir, ".trash/a.md") != opened("note a\n") {
 		t.Fatalf("a deleted note is moved to the trash, not removed")
 	}
@@ -51,7 +51,7 @@ func TestArchiveCanBeUndone(t *testing.T) {
 func TestUndoDoesNotWriteOverANewNote(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("old\n")})
-	press(m, "D", "y")
+	press(m, "d", "d", "y")
 	writeFile(t, dir, "a.md", "written since\n")
 	press(m, "r", "u")
 	if got := readFile(t, dir, "a.md"); got != "written since\n" {

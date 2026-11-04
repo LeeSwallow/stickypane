@@ -23,6 +23,7 @@ type action struct {
 	text    string   // the name of its words in i18n.Strings.Actions, when not name
 	n       int
 	zoom    bool // it works on a zoomed note too
+	first   bool // on the board it comes before a focused note's own keys
 	repeat  bool // a count before its key runs it that many times: 3J
 	run     func(*Model) tea.Cmd
 }
@@ -41,31 +42,46 @@ func (a action) describe(tr i18n.Strings) string {
 }
 
 // actions is the board's keys: every action, with its default keys. A
-// focused open note takes the keys its kind lists first; these get the
-// rest.
+// focused open note takes the keys its kind lists first, except those of
+// the actions that come first on the board (h j k l, gg G, H J K L, which
+// move between notes and move them); these get the rest. A zoomed note
+// takes all of its keys.
 func actions() []action {
 	acts := []action{
+		// h j k l go to the note on that side, as the screen shows them.
+		{name: "focus-left", first: true, repeat: true, keys: []string{"h"}, english: "note to the left", run: func(m *Model) tea.Cmd { m.focusToward(-1, 0); return nil }},
+		{name: "focus-down", first: true, repeat: true, keys: []string{"j"}, english: "note below", run: func(m *Model) tea.Cmd { m.focusToward(0, 1); return nil }},
+		{name: "focus-up", first: true, repeat: true, keys: []string{"k"}, english: "note above", run: func(m *Model) tea.Cmd { m.focusToward(0, -1); return nil }},
+		{name: "focus-right", first: true, repeat: true, keys: []string{"l"}, english: "note to the right", run: func(m *Model) tea.Cmd { m.focusToward(1, 0); return nil }},
+		{name: "focus-first", first: true, keys: []string{"g g"}, english: "first note", run: func(m *Model) tea.Cmd { m.focusEnd(false); return nil }},
+		{name: "focus-last", first: true, keys: []string{"G"}, english: "last note", run: func(m *Model) tea.Cmd { m.focusEnd(true); return nil }},
 		{name: "focus-next", repeat: true, keys: []string{"tab"}, english: "next note", run: func(m *Model) tea.Cmd { m.stepFocus(1); return nil }},
 		{name: "focus-prev", repeat: true, keys: []string{"shift+tab"}, english: "previous note", run: func(m *Model) tea.Cmd { m.stepFocus(-1); return nil }},
 		{name: "note-open", keys: []string{"enter"}, english: "open, then zoom", run: onFocused(openOrZoom)},
 		{name: "note-zoom", keys: []string{"z"}, english: "zoom", run: onFocused(zoomIn)},
 		{name: "note-toggle", keys: []string{"o"}, english: "open or close", run: onFocused(toggleOpen)},
-		{name: "note-wider", repeat: true, keys: []string{"+", "="}, english: "wider", run: onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })},
-		{name: "note-narrower", repeat: true, keys: []string{"-"}, english: "narrower", run: onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })},
+		{name: "note-wider", repeat: true, keys: []string{">", "+"}, english: "wider", run: onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })},
+		{name: "note-narrower", repeat: true, keys: []string{"<", "-"}, english: "narrower", run: onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })},
 		{name: "note-taller", repeat: true, keys: []string{"shift+up"}, english: "a line taller", run: stretchBy(1)},
 		{name: "note-shorter", repeat: true, keys: []string{"shift+down"}, english: "a line shorter", run: stretchBy(-1)},
 		{name: "note-taller-5", repeat: true, keys: []string{"shift+pgup"}, english: "five lines taller", run: stretchBy(5)},
 		{name: "note-shorter-5", repeat: true, keys: []string{"shift+pgdown"}, english: "five lines shorter", run: stretchBy(-5)},
 		{name: "note-fit", keys: []string{"0"}, english: "content height", run: onFocused(func(m *Model, it item) tea.Cmd { m.setRows(it, 0); return nil })},
-		// A note whose shape takes H J K L (a kanban moves its cards with
-		// them) keeps them; { } still move it.
-		{name: "note-move-earlier", repeat: true, keys: []string{"H", "{"}, english: "move earlier", run: func(m *Model) tea.Cmd { m.move(-1); return nil }},
-		{name: "note-move-later", repeat: true, keys: []string{"L", "}"}, english: "move later", run: func(m *Model) tea.Cmd { m.move(1); return nil }},
-		{name: "note-move-up", repeat: true, keys: []string{"K"}, english: "move a row up", run: func(m *Model) tea.Cmd { m.moveRow(-1); return nil }},
-		{name: "note-move-down", repeat: true, keys: []string{"J"}, english: "move a row down", run: func(m *Model) tea.Cmd { m.moveRow(1); return nil }},
-		// < and > are , and . shifted.
-		{name: "page-prev", repeat: true, keys: []string{",", "<"}, english: "previous page", zoom: true, run: turnPage(-1)},
-		{name: "page-next", repeat: true, keys: []string{".", ">"}, english: "next page", zoom: true, run: turnPage(1)},
+		// A zoomed kanban moves its cards with H J K L; on the board they
+		// move the note.
+		{name: "note-move-earlier", first: true, repeat: true, keys: []string{"H"}, english: "move earlier", run: func(m *Model) tea.Cmd { m.move(-1); return nil }},
+		{name: "note-move-later", first: true, repeat: true, keys: []string{"L"}, english: "move later", run: func(m *Model) tea.Cmd { m.move(1); return nil }},
+		{name: "note-move-up", first: true, repeat: true, keys: []string{"K"}, english: "move a row up", run: func(m *Model) tea.Cmd { m.moveRow(-1); return nil }},
+		{name: "note-move-down", first: true, repeat: true, keys: []string{"J"}, english: "move a row down", run: func(m *Model) tea.Cmd { m.moveRow(1); return nil }},
+		// The lines of the focused note, or of the zoomed one.
+		{name: "scroll-down", repeat: true, keys: []string{"ctrl+e", "down"}, english: "a line down", zoom: true, run: scrollBy(func(int) int { return 1 })},
+		{name: "scroll-up", repeat: true, keys: []string{"ctrl+y", "up"}, english: "a line up", zoom: true, run: scrollBy(func(int) int { return -1 })},
+		{name: "scroll-half-down", repeat: true, keys: []string{"ctrl+d"}, english: "half a page down", zoom: true, run: scrollBy(func(rows int) int { return max(rows/2, 1) })},
+		{name: "scroll-half-up", repeat: true, keys: []string{"ctrl+u"}, english: "half a page up", zoom: true, run: scrollBy(func(rows int) int { return -max(rows/2, 1) })},
+		{name: "scroll-page-down", repeat: true, keys: []string{"pgdown"}, english: "a page down", zoom: true, run: scrollBy(func(rows int) int { return max(rows-1, 1) })},
+		{name: "scroll-page-up", repeat: true, keys: []string{"pgup"}, english: "a page up", zoom: true, run: scrollBy(func(rows int) int { return -max(rows-1, 1) })},
+		{name: "page-prev", repeat: true, keys: []string{","}, english: "previous page", zoom: true, run: turnPage(-1)},
+		{name: "page-next", repeat: true, keys: []string{"."}, english: "next page", zoom: true, run: turnPage(1)},
 		{name: "note-to-folder", keys: []string{"m"}, english: "move to a folder", run: onFocused(chooseFolder)},
 		// n jots too unless the focused open note uses n itself (a board
 		// adds a card, a checklist an item).
@@ -73,11 +89,12 @@ func actions() []action {
 		{name: "add", keys: []string{"a"}, english: "add by shape", run: openCatalog},
 		{name: "note-edit", keys: []string{"e"}, english: "edit here (like vi)", zoom: true, run: onFocused(editHere)},
 		{name: "note-editor", keys: []string{"E"}, english: "edit in $EDITOR", zoom: true, run: onFocused(editOutside)},
+		{name: "note-copy", keys: []string{"y y"}, english: "copy its path", zoom: true, run: onFocused(copyPath)},
 		{name: "note-pin", keys: []string{"p"}, english: "pin", run: onFocused(togglePin)},
 		{name: "note-color", keys: []string{"c"}, english: "change color", run: onFocused(nextColor)},
 		{name: "note-rename", keys: []string{"R"}, english: "rename", run: onFocused(rename)},
 		{name: "note-archive", keys: []string{"x"}, english: "move to archive", run: onFocused(archive)},
-		{name: "note-delete", keys: []string{"D"}, english: "delete (to .trash)", run: onFocused(remove)},
+		{name: "note-delete", keys: []string{"d d"}, english: "delete (to .trash)", run: onFocused(remove)},
 		{name: "undo", keys: []string{"u"}, english: "undo archive, delete", run: undoMove},
 		{name: "reload", keys: []string{"r"}, english: "reload", run: func(m *Model) tea.Cmd { m.reload(); return nil }},
 		{name: "theme-next", keys: []string{"T"}, english: "next theme", zoom: true, run: func(m *Model) tea.Cmd { m.chooseTheme(theme.Next(m.theme.Get().Name)); return nil }},
@@ -92,8 +109,8 @@ func actions() []action {
 			run: func(m *Model) tea.Cmd { m.switchTab(n - 1); return nil }})
 	}
 	return append(acts,
-		action{name: "tab-prev", repeat: true, keys: []string{"("}, english: "previous tab", run: func(m *Model) tea.Cmd { m.switchTab(m.tab - 1); return nil }},
-		action{name: "tab-next", repeat: true, keys: []string{")"}, english: "next tab", run: func(m *Model) tea.Cmd { m.switchTab(m.tab + 1); return nil }},
+		action{name: "tab-next", repeat: true, keys: []string{"g t"}, english: "next tab", run: func(m *Model) tea.Cmd { m.switchTab(m.tab + 1); return nil }},
+		action{name: "tab-prev", repeat: true, keys: []string{"g T"}, english: "previous tab", run: func(m *Model) tea.Cmd { m.switchTab(m.tab - 1); return nil }},
 		// Also reachable from a zoomed note, which it returns to.
 		action{name: "help", keys: []string{"?"}, english: "this help", zoom: true, run: openHelp},
 		action{name: "quit", keys: []string{"q"}, english: "quit", run: func(*Model) tea.Cmd { return tea.Quit }},
@@ -114,6 +131,8 @@ type helpLine struct {
 // boardHelp is the order of the help's first section. Every action is on
 // a line of it.
 var boardHelp = []helpLine{
+	{actions: []string{"focus-left", "focus-down", "focus-up", "focus-right"}, text: "help.focus", english: "the note on that side"},
+	{actions: []string{"focus-first", "focus-last"}, text: "help.ends", english: "first, last note"},
 	{actions: []string{"focus-next"}},
 	{actions: []string{"focus-prev"}},
 	{actions: []string{"note-open"}},
@@ -131,6 +150,7 @@ var boardHelp = []helpLine{
 	{actions: []string{"add"}},
 	{actions: []string{"note-edit"}},
 	{actions: []string{"note-editor"}},
+	{actions: []string{"note-copy"}},
 	{actions: []string{"note-pin"}},
 	{actions: []string{"note-color"}},
 	{actions: []string{"note-rename"}},
@@ -142,10 +162,11 @@ var boardHelp = []helpLine{
 	{actions: []string{"index"}},
 	{actions: []string{"links"}},
 	{actions: []string{"settings"}},
-	{keys: "j k g G", text: "help.scroll", english: "scroll in the note"},
-	{keys: "pgdn pgup", text: "help.paging", english: "a page down, up"},
+	{actions: []string{"scroll-down", "scroll-up"}, text: "help.scroll", english: "a line down, up"},
+	{actions: []string{"scroll-half-down", "scroll-half-up"}, text: "help.half", english: "half a page down, up"},
+	{actions: []string{"scroll-page-down", "scroll-page-up"}, text: "help.paging", english: "a page down, up"},
 	{actions: []string{"screen-prev", "screen-next"}, text: "help.screens", english: "previous, next screen"},
-	{actions: []string{"tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7", "tab-8", "tab-9", "tab-prev", "tab-next"}, text: "help.tabs", english: "switch tab"},
+	{actions: []string{"tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7", "tab-8", "tab-9", "tab-next", "tab-prev"}, text: "help.tabs", english: "switch tab"},
 	{actions: []string{"help"}},
 	{actions: []string{"quit"}},
 }
@@ -163,6 +184,7 @@ type keymap struct {
 	byName  map[string]int
 	board   *keyNode
 	zoom    *keyNode
+	first   map[string]bool // the first keys of the actions that come before a note's own on the board
 }
 
 // A keyNode is where the keys pressed so far lead: the action they run,
@@ -190,7 +212,7 @@ func (n *keyNode) add(keys []string, act int) {
 // begins a longer one ("g" and "g g") is not: the board waits a moment
 // after it for the rest.
 func newKeymap(acts []action) (*keymap, error) {
-	km := &keymap{actions: acts, byKey: map[string]int{}, byName: map[string]int{}, board: newNode(), zoom: newNode()}
+	km := &keymap{actions: acts, byKey: map[string]int{}, byName: map[string]int{}, board: newNode(), zoom: newNode(), first: map[string]bool{}}
 	for i, a := range acts {
 		if _, dup := km.byName[a.name]; dup || a.name == "" {
 			return nil, fmt.Errorf("action %q is named twice or not at all", a.name)
@@ -202,6 +224,9 @@ func newKeymap(acts []action) (*keymap, error) {
 			}
 			km.byKey[k] = i
 			km.board.add(strings.Fields(k), i)
+			if a.first {
+				km.first[strings.Fields(k)[0]] = true
+			}
 			if a.zoom {
 				km.zoom.add(strings.Fields(k), i)
 			}
@@ -266,18 +291,54 @@ func showKey(key string) string {
 }
 
 // hint is a pair for the bottom line: the first key of each action, side
-// by side, and label. It is nothing when none of them has a key.
+// by side as the help writes them ("ctrl+d u"), and label. It is nothing
+// when none of them has a key.
 func (km *keymap) hint(label string, names ...string) []string {
 	var keys []string
 	for _, n := range names {
-		if k := km.key(n); k != "" {
-			keys = append(keys, k)
+		if k := km.keysOf(n); len(k) > 0 {
+			keys = append(keys, k[0])
 		}
 	}
 	if len(keys) == 0 {
 		return nil
 	}
-	return []string{strings.Join(keys, " "), label}
+	return []string{shortKeys(keys), label}
+}
+
+// arrows are the keys that do on the board what h j k l do in a zoomed
+// note.
+var arrows = map[string]string{"h": "left", "j": "down", "k": "up", "l": "right"}
+
+// ownHints is a focused note's hints as they hold on the board: a key the
+// board takes first is not the note's there, so it is left out, or shown
+// as the arrow that does the same when the note takes it (a kanban's h l j
+// k are ← → ↓ ↑), or the board scrolls with it. A pair left with no key
+// is left out.
+func (km *keymap) ownHints(k widget.Kind) []string {
+	var out []string
+	for i := 0; i+1 < len(k.Hint); i += 2 {
+		var keys []string
+		for _, key := range strings.Fields(k.Hint[i]) {
+			if !km.first[key] {
+				keys = append(keys, key)
+				continue
+			}
+			if a, ok := arrows[key]; ok && (k.Handles(a) || hasKey(km, a)) {
+				keys = append(keys, arrowGlyphs[a])
+			}
+		}
+		if len(keys) > 0 {
+			out = append(out, strings.Join(keys, " "), k.Hint[i+1])
+		}
+	}
+	return out
+}
+
+// hasKey reports whether a key of its own runs an action on the board.
+func hasKey(km *keymap, key string) bool {
+	_, ok := km.byKey[key]
+	return ok
 }
 
 // joinHints joins pairs from hint, leaving out the empty ones.
@@ -342,9 +403,13 @@ func (km *keymap) helpKeys(names []string) string {
 	return strings.Join(parts, "  ")
 }
 
-// shortKeys writes keys as the help shows them: pgdown as pgdn, a
-// modifier once ("shift+up down"), and a run of three digits or more as a
-// range ("1-9").
+// arrowGlyphs are the arrow keys as the help and the bottom line draw
+// them.
+var arrowGlyphs = map[string]string{"up": "↑", "down": "↓", "left": "←", "right": "→"}
+
+// shortKeys writes keys as the help shows them: pgdown as pgdn, an arrow
+// key of its own as its arrow (down is ↓), a modifier once ("shift+up
+// down"), and a run of three digits or more as a range ("1-9").
 func shortKeys(keys []string) string {
 	out := make([]string, 0, len(keys))
 	prefix := ""
@@ -359,6 +424,10 @@ func shortKeys(keys []string) string {
 		if j := digitRun(keys[i:]); j >= 3 {
 			out = append(out, keys[i]+"-"+keys[i+j-1])
 			i += j - 1
+			continue
+		}
+		if g, ok := arrowGlyphs[keys[i]]; ok {
+			out = append(out, g)
 			continue
 		}
 		k := strings.ReplaceAll(keys[i], "pgdown", "pgdn")

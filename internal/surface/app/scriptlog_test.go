@@ -86,7 +86,7 @@ func TestARequestsNoteShowsTheResponseOfThePickedRequest(t *testing.T) {
 	if !strings.Contains(s, `"ok": true`) || !strings.Contains(s, "200 OK · 3ms · Health") || strings.Contains(s, "welcome") {
 		t.Errorf("the first request's response:\n%s", s)
 	}
-	press(m, "j")
+	press(m, "down")
 	s = screen(m)
 	if !strings.Contains(s, "welcome") || !strings.Contains(s, "101 Switching Protocols") || strings.Contains(s, `"ok": true`) {
 		t.Errorf("the second request's response:\n%s", s)

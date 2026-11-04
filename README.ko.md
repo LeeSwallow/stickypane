@@ -393,6 +393,9 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
 
+보드의 키는 vim 키입니다. `h` `j` `k` `l`은 그쪽 노트로, `gg` `G`는 첫 노트와 끝 노트로,
+`ctrl+d` `ctrl+u`는 스크롤, `dd`는 삭제, `yy`는 노트 경로 복사, `gt` `gT`는 탭 바꾸기,
+나머지는 `?`가 보여 줍니다.
 보드의 키도 바꿀 수 있습니다. `stickypane keys`가 키를 보여 주고,
 `stickypane keys set note-archive X`를 하면 `X`로 보관합니다.
 바꾼 키는 `~/.stickypane/keys.json`에 남습니다. 연속 키(`"d x"`)도 되고,

@@ -56,7 +56,7 @@ shown, never hidden.
 
 **Tabs.** Each folder of `.sticky/` is a tab, listed on the first line of
 the screen with its number; the files in the folder are its notes, and the
-root folder is the first tab, named after the project. `1`–`9`, `(` `)` or
+root folder is the first tab, named after the project. `1`–`9`, `gt` `gT` or
 a click switch tabs; the active tab is remembered. A tab's folder can hold
 its own `sticky.json` with a `title` and the layout of its notes, so one
 folder is one complete, shareable screen. `stickypane show deploy/run.sh`
