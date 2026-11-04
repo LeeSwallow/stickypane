@@ -6,6 +6,16 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Added
+
+- The board's keys are yours to change. `stickypane keys` lists every
+  action with its keys and words; `keys set note-archive X` makes `X`
+  archive, `keys reset` takes it back. The changes live in
+  `~/.stickypane/keys.json` (`[]` unbinds an action). What the board cannot
+  use keeps its keys, and the bottom line says which entries were left
+  out. The help, the bottom line and messages such as "u brings it back"
+  name the keys in effect.
+
 ### Changed
 
 - Records in `~/.stickypane` are on where the desktop app's `overlay.json`

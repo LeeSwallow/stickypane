@@ -372,6 +372,7 @@ Arrange
 
 Settings
   config    list, read or change a setting
+  keys      list the board's keys or change them
 
 Agents
   setup     install the board plugin for Claude Code and Codex
@@ -408,7 +409,11 @@ Nothing has to be set. `S` on the board changes the first three;
 | `editor` | `auto` | what `E` opens |
 | `stale` | `30m` | when a card that has not moved is flagged |
 
-[docs/configuration.md](docs/configuration.md) has the themes,
+The board's keys are yours too: `stickypane keys` lists them, and
+`stickypane keys set note-archive X` makes `X` archive, in
+`~/.stickypane/keys.json`.
+
+[docs/configuration.md](docs/configuration.md) has the themes, the keys,
 `sticky.json`, and what stickypane records on this machine.
 
 ## FAQ

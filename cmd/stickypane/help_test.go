@@ -251,6 +251,7 @@ func isShape(name string) bool {
 func TestEveryExampleParses(t *testing.T) {
 	english(t)
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("STICKYPANE_HOME", t.TempDir()) // keys set writes there
 	project(t)
 	english(t)
 	notRun := map[string]bool{"setup": true, "watch": true, "mcp": true, "bridge": true, "wait": true, "api": true}

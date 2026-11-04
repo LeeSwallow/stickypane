@@ -356,6 +356,7 @@ stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신
 
 설정
   config    설정을 보거나 읽거나 바꿉니다
+  keys      보드의 키를 보거나 바꿉니다
 
 에이전트
   setup     Claude Code와 Codex에 보드 플러그인을 설치합니다
@@ -392,7 +393,11 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 | `editor` | `auto` | `E`가 여는 편집기 |
 | `stale` | `30m` | 움직이지 않는 카드를 표시하는 시점 |
 
-`sticky.json`과 이 컴퓨터에 남는 기록은 [docs/ko/configuration.md](docs/ko/configuration.md)에,
+보드의 키도 바꿀 수 있습니다. `stickypane keys`가 키를 보여 주고,
+`stickypane keys set note-archive X`를 하면 `X`로 보관합니다.
+바꾼 키는 `~/.stickypane/keys.json`에 남습니다.
+
+키 설정, `sticky.json`, 이 컴퓨터에 남는 기록은 [docs/ko/configuration.md](docs/ko/configuration.md)에,
 테마 목록은 영문 [docs/configuration.md](docs/configuration.md)에 있습니다.
 
 ## 자주 묻는 질문

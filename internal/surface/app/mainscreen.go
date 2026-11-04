@@ -85,9 +85,9 @@ func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 func mainBody(m *Model, h int) []string {
 	switch {
 	case len(m.items) == 0:
-		return m.dialog("", append([]string{m.tr.NoNotes, ""}, strings.Split(m.tr.NoNotesHint, "\n")...), 46, m.width, h, m.accent())
+		return m.dialog("", append([]string{m.tr.NoNotes, ""}, strings.Split(m.keyed(m.tr.NoNotesHint, nil), "\n")...), 46, m.width, h, m.accent())
 	case len(m.canvas) == 0:
-		return m.dialog("", append([]string{m.tr.NothingOpen, ""}, strings.Split(m.tr.NothingOpenHint, "\n")...), 46, m.width, h, m.accent())
+		return m.dialog("", append([]string{m.tr.NothingOpen, ""}, strings.Split(m.keyed(m.tr.NothingOpenHint, nil), "\n")...), 46, m.width, h, m.accent())
 	}
 	return widget.Window(m.canvas, 0, h)
 }

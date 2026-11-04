@@ -52,6 +52,11 @@ own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
 a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
 `z` is the way to zoom into one.
 
+These are the keys as they come. Each board key belongs to a named action
+(`note-archive`, `jot`), and `stickypane keys` lists them with the keys
+they have now; [configuration.md](configuration.md#keys) says how to
+change them.
+
 ### How the screen is shared
 
 The board is three columns wide unless the `columns` setting says
