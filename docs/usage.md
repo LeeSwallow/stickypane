@@ -42,6 +42,7 @@ of a note, [shapes.md](shapes.md).
 | `[` / `]` | previous, next screen | `j` `k` | change control |
 | `1`–`9` / `(` `)` | switch tab | `enter` / `space` | choose, type, press |
 | `i` / `/` | the index | `S` | settings |
+| `f` | linked notes | | |
 
 The focused open note takes the keys in the right-hand column where it is;
 you do not have to zoom in first. On an open kanban `H` `J` `K` `L` move

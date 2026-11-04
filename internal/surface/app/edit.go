@@ -15,28 +15,28 @@ func init() {
 	handlers[modeEdit] = editUpdate
 	bodies[modeEdit] = editBody
 	footers[modeEdit] = editFooter
+}
 
-	// e edits the note's file here, the way vi would. It works on the
-	// focused note from the main screen and from a zoomed note.
-	boardKeys["e"] = onFocused(func(m *Model, it item) tea.Cmd {
-		if m.zoomed() {
-			if i := m.index(m.zoomName); i >= 0 {
-				it = m.items[i]
-			}
+// editHere edits the note's file here, the way vi would. It works on the
+// focused note from the main screen and from a zoomed note.
+func editHere(m *Model, it item) tea.Cmd {
+	if m.zoomed() {
+		if i := m.index(m.zoomName); i >= 0 {
+			it = m.items[i]
 		}
-		if !m.editable(it) {
-			return nil
-		}
-		name := it.file().Name
-		b, err := m.store.Read(name)
-		if err != nil {
-			m.status = say(m.tr.CannotReadNote, map[string]any{"Err": err.Error()})
-			return nil
-		}
-		m.edit, m.editName, m.editDisk = editor.New(string(b)), name, string(b)
-		m.editBack, m.mode = m.mode, modeEdit
+	}
+	if !m.editable(it) {
 		return nil
-	})
+	}
+	name := it.file().Name
+	b, err := m.store.Read(name)
+	if err != nil {
+		m.status = say(m.tr.CannotReadNote, map[string]any{"Err": err.Error()})
+		return nil
+	}
+	m.edit, m.editName, m.editDisk = editor.New(string(b)), name, string(b)
+	m.editBack, m.mode = m.mode, modeEdit
+	return nil
 }
 
 func editUpdate(m *Model, msg tea.Msg) tea.Cmd {

@@ -20,10 +20,6 @@ func init() {
 	footers[modeSettings] = func(m *Model) string {
 		return m.hints(m.width, "j k", m.tr.L("choose"), "h l", m.tr.L("change"), "esc", m.tr.L("close"))
 	}
-	boardKeys["S"] = func(m *Model) tea.Cmd {
-		m.back, m.mode = m.mode, modeSettings
-		return nil
-	}
 }
 
 // applyPrefs makes the screen follow the settings: called on every reload,
