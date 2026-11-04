@@ -7,10 +7,10 @@
 // still read: page is 1, half is 1/2, and card is the narrowest fraction a
 // card fits in. The grid has 12 columns, so every fraction is whole.
 
-import { FRACTIONS, isFraction, type Fraction } from '../lib/sizes'
+import { FRACTIONS, normalSize, ratioOf, type Fraction } from '../lib/sizes'
 import { SPACE } from '../lib/theme/scale'
 
-export { FRACTIONS, type Fraction }
+export { FRACTIONS, normalSize, type Fraction }
 
 /** GRID is the number of columns of a wide window. */
 export const GRID = 12
@@ -32,18 +32,9 @@ export const MIN_ROWS = 3
 
 export const columnsFor = (width: number): number => (width < NARROW ? 1 : GRID)
 
-const ALIASES: Record<string, Fraction | 'card'> = { page: '1', half: '1/2', card: 'card' }
-
-/** normalSize is a size as the board writes it (a fraction, or card), or null when it is not one. */
-export function normalSize(s: string): Fraction | 'card' | null {
-  const k = s.trim().toLowerCase()
-  if (k in ALIASES) return ALIASES[k]
-  return isFraction(k) ? k : null
-}
-
 /** share is a fraction of n, rounded down. */
 function share(f: Fraction, n: number): number {
-  const [num, den] = f.includes('/') ? f.split('/').map(Number) : [1, 1]
+  const [num, den] = ratioOf(f)
   return Math.floor((n * num) / den)
 }
 
