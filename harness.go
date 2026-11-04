@@ -7,6 +7,7 @@ package stickypane
 
 import (
 	"embed"
+	"encoding/json"
 	"io/fs"
 )
 
@@ -21,4 +22,20 @@ var Harness = func() fs.FS {
 		panic(err)
 	}
 	return sub
+}()
+
+//go:embed plugin/.claude-plugin/plugin.json
+var manifest []byte
+
+// PluginVersion is the version of the board plugin this program carries,
+// from its manifest: what stickypane setup installs, or updates an older
+// plugin to.
+var PluginVersion = func() string {
+	var m struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(manifest, &m); err != nil {
+		panic(err)
+	}
+	return m.Version
 }()

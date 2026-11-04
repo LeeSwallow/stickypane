@@ -14,7 +14,9 @@
 //   POST /init    stickypane init in the folder, then the bridge starts
 //   POST /rpc     {method, params} to the bridge; {result} or {error}
 //   GET  /events  the bridge's notifications, as server-sent events
-//   POST /plan    stickypane setup --scope user [--mcp] --dry-run: what connecting would run
+//   GET  /agents  stickypane setup --status --json, in the folder
+//   POST /plan    {agent, part, scope, undo}: stickypane setup --agents <one>
+//                 ... --dry-run, what that agent's setup would run
 //
 // Set HOME and STICKYPANE_HOME to temporary folders: init and the bridge
 // write there. Nothing else of the machine is touched; setup only ever
@@ -114,9 +116,16 @@ const server = createServer(async (req, res) => {
       const { method, params } = await body(req)
       return json(await call(method, params))
     }
+    case '/agents': {
+      const r = await run(['setup', '--status', '--json'])
+      const st = JSON.parse(r.output.slice(r.output.indexOf('{')))
+      return json({ ...st, project })
+    }
     case '/plan': {
-      const { mcp } = await body(req)
-      const args = ['setup', '--scope', 'user', ...(mcp ? ['--mcp', '--command', bin] : []), '--dry-run']
+      // one agent, one part: the app never sets up every agent at once
+      const { agent, part, scope, undo } = await body(req)
+      if (agent !== 'claude' && agent !== 'codex') return json({ command: '', output: 'one agent: claude or codex' })
+      const args = ['setup', '--agents', agent, '--scope', scope || 'user', ...(part === 'mcp' ? ['--mcp', '--plugin=false', '--command', bin] : []), ...(undo ? ['--undo'] : []), '--dry-run']
       return json({ command: 'stickypane ' + args.join(' '), ...(await run(args)) })
     }
     case '/events': {

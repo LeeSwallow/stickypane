@@ -186,24 +186,6 @@ func SafeWorkDir(dir, home string) bool {
 	return home == "" || d != filepath.Clean(home)
 }
 
-// SetupArgs are the arguments of the bundled stickypane's setup: for every
-// agent found, at the user's scope (setup runs in a folder of its own, no
-// project's), with the MCP server run by command when mcp is asked for.
-// dry asks for the plan only.
-func SetupArgs(dry, mcp bool, command string) []string {
-	args := []string{"setup", "--scope", "user"}
-	if mcp {
-		args = append(args, "--mcp")
-		if command != "" {
-			args = append(args, "--command", command)
-		}
-	}
-	if dry {
-		return append(args, "--dry-run")
-	}
-	return append(args, "--yes")
-}
-
 // Marker brackets the PATH a login shell prints, so that what its start
 // files print around it is left out.
 const Marker = "__stickypane_path__"
@@ -220,3 +202,92 @@ func ReadProbe(out string) (string, bool) {
 	v, _, ok := strings.Cut(rest, Marker)
 	return v, ok
 }
+
+// AgentsStatus is what `stickypane setup --status --json` says of the
+// agents (internal/usecase/initcmd.Status, in the stickypane module).
+type AgentsStatus struct {
+	Plugin string        `json:"plugin"` // the plugin version the app's stickypane carries
+	Agents []AgentStatus `json:"agents"`
+	// Project is the folder whose project and local scopes these are; ""
+	// when setup ran outside any project. Set by the app, not by setup.
+	Project string `json:"project"`
+}
+
+// AgentStatus is one agent: State is missing, off, ok, outdated or broken.
+// Plugin and MCP are keyed by scope (user, project, local); a scope where
+// nothing is installed is left out. Scopes are the scopes it has.
+type AgentStatus struct {
+	Agent       string                  `json:"agent"`
+	Found       bool                    `json:"found"`
+	Path        string                  `json:"path,omitempty"`
+	State       string                  `json:"state"`
+	Scopes      []string                `json:"scopes"`
+	Plugin      map[string]PluginStatus `json:"plugin"`
+	MCP         map[string]MCPStatus    `json:"mcp"`
+	Marketplace *Marketplace            `json:"marketplace,omitempty"`
+}
+
+// PluginStatus is the board plugin in one scope: ok, outdated or broken.
+type PluginStatus struct {
+	Version string `json:"version,omitempty"`
+	State   string `json:"state"`
+	Error   string `json:"error,omitempty"`
+}
+
+// MCPStatus is the stickypane MCP server in one scope.
+type MCPStatus struct {
+	Command string `json:"command"`
+}
+
+// Marketplace is the agent's stickypane marketplace; Gone, a folder that
+// is no longer there.
+type Marketplace struct {
+	Source string `json:"source"`
+	Where  string `json:"where"`
+	Gone   bool   `json:"gone,omitempty"`
+}
+
+// AgentRequest is one thing the settings do for one agent: connect,
+// update or remove its skills (Part "plugin"), or register or unregister
+// its MCP server (Part "mcp"), at a scope.
+type AgentRequest struct {
+	Agent string `json:"agent"` // claude or codex
+	Part  string `json:"part"`  // plugin or mcp
+	Scope string `json:"scope"` // user, project or local
+	Undo  bool   `json:"undo"`  // remove instead
+}
+
+// Valid says whether the request names a known agent, part and scope:
+// Codex has the user's scope only.
+func (r AgentRequest) Valid() bool {
+	okAgent := r.Agent == "claude" || r.Agent == "codex"
+	okPart := r.Part == "plugin" || r.Part == "mcp"
+	okScope := r.Scope == "user" || r.Agent == "claude" && r.InProject()
+	return okAgent && okPart && okScope
+}
+
+// InProject says whether the request acts on a project's scope.
+func (r AgentRequest) InProject() bool { return r.Scope == "project" || r.Scope == "local" }
+
+// AgentArgs are the arguments of the bundled stickypane's setup for one
+// request. An MCP server is registered with command, a full path, and the
+// plugin left alone. dry asks for the plan only.
+func AgentArgs(r AgentRequest, command string, dry bool) []string {
+	args := []string{"setup", "--agents", r.Agent, "--scope", r.Scope}
+	if r.Part == "mcp" {
+		args = append(args, "--mcp", "--plugin=false")
+		if command != "" {
+			args = append(args, "--command", command)
+		}
+	}
+	if r.Undo {
+		args = append(args, "--undo")
+	}
+	if dry {
+		return append(args, "--dry-run")
+	}
+	return append(args, "--yes")
+}
+
+// StatusArgs are the arguments of setup that say where the agents stand.
+var StatusArgs = []string{"setup", "--status", "--json"}

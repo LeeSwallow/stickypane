@@ -7,6 +7,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -308,28 +309,93 @@ type Result struct {
 	Output  string `json:"output"`
 }
 
-// Connect runs the stickypane setup for every agent found, at the user's
-// scope, in a new empty folder of its own (never the root or the home
-// folder: setup makes no board, but an older one did). dry only prints the
-// plan. With mcp the MCP server is registered with a full path.
-func (s *Service) Connect(ctx context.Context, dry, mcp bool) (Result, error) {
+// ErrNoProject: a project's scope was asked for where there is no project.
+var ErrNoProject = errors.New("the project and local scopes need a project")
+
+// workDir is where setup runs for the agents: project, a project's
+// folder, when given (the project's scopes are its); else a new empty
+// folder of its own, taken away by done. Never the root or the home
+// folder: setup makes no board, but an older one did.
+func (s *Service) workDir(project string) (dir string, done func(), err error) {
+	if project != "" {
+		if !s.safe(project) {
+			return "", nil, fmt.Errorf("%w: %s", ErrUnsafeDir, project)
+		}
+		return project, func() {}, nil
+	}
+	dir, err = s.cfg.Files.TempDir()
+	if err != nil {
+		return "", nil, err
+	}
+	if !s.safe(dir) { // checked before anything is run in it, or taken away
+		return "", nil, fmt.Errorf("%w: %s", ErrUnsafeDir, dir)
+	}
+	return dir, func() { s.cfg.Files.RemoveAll(dir) }, nil
+}
+
+// Agents asks the bundled stickypane where Claude Code and Codex stand
+// (setup --status --json): in project when given, so that its project
+// and local scopes are read too.
+func (s *Service) Agents(ctx context.Context, project string) (model.AgentsStatus, error) {
+	var st model.AgentsStatus
+	cli, err := s.cli()
+	if err != nil {
+		return st, err
+	}
+	dir, done, err := s.workDir(project)
+	if err != nil {
+		return st, err
+	}
+	defer done()
+	out, err := s.cfg.Runner.Run(ctx, ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: model.StatusArgs})
+	if err != nil {
+		return st, fmt.Errorf("stickypane setup --status: %w: %s", err, strings.TrimSpace(out))
+	}
+	// what the agents' commands said on the side comes before the JSON
+	if i := strings.Index(out, "{"); i > 0 {
+		out = out[i:]
+	}
+	if err := json.Unmarshal([]byte(out), &st); err != nil {
+		return st, fmt.Errorf("stickypane setup --status: %w (an older stickypane?)", err)
+	}
+	st.Project = project
+	return st, nil
+}
+
+// SetupAgent runs the bundled stickypane's setup for one agent and one
+// part, plugin or MCP server (model.AgentArgs); dry only prints the plan.
+// A project's scope runs in project, which must be given.
+func (s *Service) SetupAgent(ctx context.Context, project string, r model.AgentRequest, dry bool) (Result, error) {
+	if !r.Valid() {
+		return Result{}, fmt.Errorf("not a setup: %+v", r)
+	}
+	if !r.InProject() {
+		project = ""
+	} else if project == "" {
+		return Result{}, ErrNoProject
+	}
 	cli, err := s.cli()
 	if err != nil {
 		return Result{}, err
 	}
-	dir, err := s.cfg.Files.TempDir()
+	dir, done, err := s.workDir(project)
 	if err != nil {
 		return Result{}, err
 	}
-	if !s.safe(dir) { // checked before anything is run in it, or taken away
-		return Result{}, fmt.Errorf("%w: %s", ErrUnsafeDir, dir)
-	}
-	defer s.cfg.Files.RemoveAll(dir)
-	args := model.SetupArgs(dry, mcp, s.mcpCommand(cli))
+	defer done()
+	args := model.AgentArgs(r, s.mcpCommand(cli), dry)
 	res := Result{Command: model.Name + " " + strings.Join(args, " ")}
 	res.Output, err = s.cfg.Runner.Run(ctx, ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: args})
 	res.Output = strings.TrimSpace(res.Output)
-	return res, err
+	if err != nil {
+		return res, fmt.Errorf("%w: %s", err, lastLine(res.Output))
+	}
+	return res, nil
+}
+
+func lastLine(s string) string {
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	return lines[len(lines)-1]
 }
 
 // Init runs stickypane init in dir, a project's folder. lang is the app's

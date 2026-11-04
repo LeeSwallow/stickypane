@@ -2,6 +2,7 @@ package model
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -81,12 +82,51 @@ func TestSetupNeverRunsInTheRootOrHome(t *testing.T) {
 	}
 }
 
-func TestSetupArgs(t *testing.T) {
-	if got := SetupArgs(true, true, "/a/stickypane"); !reflect.DeepEqual(got, []string{"setup", "--scope", "user", "--mcp", "--command", "/a/stickypane", "--dry-run"}) {
-		t.Errorf("dry with mcp: %q", got)
+// The app sets up one agent at a time: every setup it runs names exactly
+// one agent, and the MCP server never comes with the plugin.
+func TestAgentArgs(t *testing.T) {
+	for _, c := range []struct {
+		r    AgentRequest
+		dry  bool
+		want string
+	}{
+		{AgentRequest{Agent: "claude", Part: "plugin", Scope: "user"}, true, "setup --agents claude --scope user --dry-run"},
+		{AgentRequest{Agent: "codex", Part: "plugin", Scope: "user", Undo: true}, false, "setup --agents codex --scope user --undo --yes"},
+		{AgentRequest{Agent: "claude", Part: "mcp", Scope: "project"}, false, "setup --agents claude --scope project --mcp --plugin=false --command /a/stickypane --yes"},
+		{AgentRequest{Agent: "codex", Part: "mcp", Scope: "user", Undo: true}, true, "setup --agents codex --scope user --mcp --plugin=false --command /a/stickypane --undo --dry-run"},
+	} {
+		got := AgentArgs(c.r, "/a/stickypane", c.dry)
+		if strings.Join(got, " ") != c.want {
+			t.Errorf("%+v: %q", c.r, got)
+		}
+		n := 0
+		for i, a := range got {
+			if a == "--agents" {
+				n++
+				if i+1 >= len(got) || (got[i+1] != "claude" && got[i+1] != "codex") {
+					t.Errorf("--agents names one agent: %q", got)
+				}
+			}
+		}
+		if n != 1 {
+			t.Errorf("one --agents, not %d: %q", n, got)
+		}
 	}
-	if got := SetupArgs(false, false, "/a/stickypane"); !reflect.DeepEqual(got, []string{"setup", "--scope", "user", "--yes"}) {
-		t.Errorf("run without mcp: %q", got)
+}
+
+func TestAgentRequestValid(t *testing.T) {
+	for r, want := range map[AgentRequest]bool{
+		{Agent: "claude", Part: "plugin", Scope: "local"}:      true,
+		{Agent: "codex", Part: "mcp", Scope: "user"}:           true,
+		{Agent: "codex", Part: "plugin", Scope: "project"}:     false, // Codex has the user's scope only
+		{Agent: "claude,codex", Part: "plugin", Scope: "user"}: false,
+		{Agent: "", Part: "plugin", Scope: "user"}:             false,
+		{Agent: "claude", Part: "both", Scope: "user"}:         false,
+		{Agent: "claude", Part: "mcp", Scope: ""}:              false,
+	} {
+		if r.Valid() != want {
+			t.Errorf("%+v: valid %v", r, !want)
+		}
 	}
 }
 

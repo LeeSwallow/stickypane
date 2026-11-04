@@ -65,10 +65,12 @@ Usage:
                          terminal|app|both and --style doodle|neat: how it shows;
                          --language code: the board's language and the welcome
                          note's
-  stickypane setup [--scope user|project|local] [--mcp] [--agents claude,codex]
-                         [--command PATH] [--undo] [--dry-run] [--yes]
-                         install the board plugin for Claude Code and Codex
-                         through their own commands; asks in a terminal
+  stickypane setup [--scope user|project|local] [--mcp] [--plugin=false]
+                         [--agents claude,codex] [--command PATH] [--undo]
+                         [--dry-run] [--yes] [--status [--json]]
+                         install or update the board plugin for Claude Code
+                         and Codex through their own commands; asks in a
+                         terminal. --status: where each agent stands
   stickypane config [key [value]]  list the settings with their values, print
                          one, or change one: theme, language, columns, then
                          time, editor, stale. Each has a default; S on the

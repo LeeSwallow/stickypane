@@ -61,13 +61,56 @@ export interface RunResult {
   output: string
 }
 
+export type Agent = 'claude' | 'codex'
+export type Scope = 'user' | 'project' | 'local'
+
+/** An agent's state: its command missing, the plugin off, ok, older than the app's, or failing to load. */
+export type AgentState = 'missing' | 'off' | 'ok' | 'outdated' | 'broken'
+
+/** The board plugin in one scope. */
+export interface PluginStatus {
+  version?: string
+  state: 'ok' | 'outdated' | 'broken'
+  error?: string
+}
+
+/** One agent, as `stickypane setup --status --json` says it; plugin and mcp by scope, absent where nothing is. */
+export interface AgentStatus {
+  agent: Agent
+  found: boolean
+  path?: string
+  state: AgentState
+  scopes: Scope[]
+  plugin: Partial<Record<Scope, PluginStatus>>
+  mcp: Partial<Record<Scope, { command: string }>>
+  marketplace?: { source: string; where: string; gone?: boolean } | null
+}
+
+export interface AgentsStatus {
+  /** the plugin version the app's stickypane carries */
+  plugin: string
+  agents: AgentStatus[]
+  /** the board folder whose project and local scopes these are; "" for none */
+  project: string
+}
+
+/** One thing for one agent: its skills (the plugin) or its MCP server, at a scope; undo removes. */
+export interface AgentRequest {
+  agent: Agent
+  part: 'plugin' | 'mcp'
+  scope: Scope
+  undo: boolean
+}
+
 export interface SetupApi {
   command(): Promise<CommandState>
   install(target: Target, replace: boolean): Promise<InstallAnswer>
   uninstall(): Promise<InstallAnswer>
-  /** what connecting would run: setup --dry-run */
-  connectPlan(mcp: boolean): Promise<RunResult>
-  connect(mcp: boolean): Promise<RunResult>
+  /** where each agent stands: setup --status */
+  agents(): Promise<AgentsStatus>
+  /** what one agent's setup would run: setup --agents <agent> … --dry-run */
+  agentPlan(r: AgentRequest): Promise<RunResult>
+  agentRun(r: AgentRequest): Promise<RunResult>
   /** stickypane init in this window's project, again: the agent guide */
   initHere(): Promise<RunResult>
 }
@@ -78,27 +121,29 @@ export const setupService: SetupApi = {
   command: () => call('Command'),
   install: (target, replace) => call('InstallCommand', target, replace),
   uninstall: () => call('UninstallCommand'),
-  connectPlan: (mcp) => call('ConnectPlan', mcp),
-  connect: (mcp) => call('Connect', mcp),
+  agents: () => call('Agents'),
+  agentPlan: (r) => call('AgentPlan', r),
+  agentRun: (r) => call('AgentRun', r),
   initHere: () => Call.ByName(project('InitHere')) as Promise<RunResult>,
 }
 
 /**
- * Where the agents stand, from what `stickypane setup --dry-run` printed:
- * connected (nothing to do), none (no Claude Code or Codex on the PATH),
- * or not yet (a plan to run).
+ * Where the agents stand, summed up for the home's checklist: connected
+ * (an agent found has the plugin), none (no Claude Code or Codex on the
+ * PATH), or not yet.
  */
 export type AgentsState = 'connected' | 'none' | 'todo'
 
-export function agentsState(plan: string): AgentsState {
-  if (/^Nothing to do/m.test(plan)) return 'connected'
-  if (/^No agent found/m.test(plan)) return 'none'
+export function agentsState(st: AgentsStatus): AgentsState {
+  const found = st.agents.filter((a) => a.found)
+  if (found.length === 0) return 'none'
+  if (found.some((a) => a.state === 'ok' || a.state === 'outdated')) return 'connected'
   return 'todo'
 }
 
-/** agents asks setup what it would do, and says where the agents stand. */
-export async function checkAgents(api: Pick<SetupApi, 'connectPlan'>, mcp = false): Promise<AgentsState> {
-  return agentsState((await api.connectPlan(mcp)).output)
+/** checkAgents asks setup --status where the agents stand. */
+export async function checkAgents(api: Pick<SetupApi, 'agents'>): Promise<AgentsState> {
+  return agentsState(await api.agents())
 }
 
 /** linked is the app's link that a terminal uses, if any. */
