@@ -10,7 +10,7 @@
   // leaves the board (archived, deleted, moved away).
   import '../board/tokens.css'
   import { onMount, setContext, tick as drawn } from 'svelte'
-  import { boardLanguage, setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, MINUTE_MS, setLanguage, t, tr } from '../i18n'
   import { look } from '../lib/doodle/look.svelte'
   import { fitsOf, noteOf } from '../lib/shell'
   import { setHeight } from '../services/window'
@@ -26,6 +26,7 @@
   import Input from '../lib/ui/Input.svelte'
   import IconButton from '../lib/ui/IconButton.svelte'
   import Toast from '../lib/ui/Toast.svelte'
+  import { NOTICE_MS } from '../lib/ui/toast'
   import { events, type Bus, type Status } from '../services/board'
   import { logged, report } from '../services/errors'
   import { fold } from '../lib/fold'
@@ -239,7 +240,7 @@
     offs.push(
       connect({ status: () => api.status(), bus, onChanged: (data) => void stage.changed(data), onRestarted: () => refresh(), onStatus: () => refresh() }),
     )
-    const tick = setInterval(() => (now = new Date()), 60_000)
+    const tick = setInterval(() => (now = new Date()), MINUTE_MS)
     offs.push(() => clearInterval(tick))
     return () => offs.forEach((off) => off())
   })
@@ -287,7 +288,7 @@
   {:else if notice}
     <div class="toasts">
       {#key notice}
-        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+        <Toast message={notice.message} action={notice.action} timeout={NOTICE_MS} onclose={() => (notice = null)} />
       {/key}
     </div>
   {/if}

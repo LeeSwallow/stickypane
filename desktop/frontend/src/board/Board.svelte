@@ -8,7 +8,7 @@
   import './tokens.css'
   import { onMount, setContext, tick } from 'svelte'
   import { get } from 'svelte/store'
-  import { boardLanguage, language, resolveAuto, setLanguage, t, tr } from '../i18n'
+  import { boardLanguage, language, MINUTE_MS, resolveAuto, setLanguage, t, tr } from '../i18n'
   import { fallbackPalette } from '../lib/theme/fallback'
   import { look } from '../lib/doodle/look.svelte'
   import Paper from '../lib/doodle/Paper.svelte'
@@ -27,6 +27,7 @@
   import NextSteps from './NextSteps.svelte'
   import EmptyState from '../lib/ui/EmptyState.svelte'
   import Toast from '../lib/ui/Toast.svelte'
+  import { NOTICE_MS } from '../lib/ui/toast'
   import CreateDialog from '../create/CreateDialog.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
@@ -637,7 +638,7 @@
       }),
     )
     // elapsed times are words ("4m ago"): a new minute rewrites them
-    const tick = setInterval(() => (now = new Date()), 60_000)
+    const tick = setInterval(() => (now = new Date()), MINUTE_MS)
     offs.push(() => clearInterval(tick))
     offs.push(() => stopLayout?.())
     return () => offs.forEach((off) => off())
@@ -775,7 +776,7 @@
   {:else if notice}
     <div class="toasts">
       {#key notice}
-        <Toast message={notice.message} action={notice.action} timeout={6000} onclose={() => (notice = null)} />
+        <Toast message={notice.message} action={notice.action} timeout={NOTICE_MS} onclose={() => (notice = null)} />
       {/key}
     </div>
   {/if}

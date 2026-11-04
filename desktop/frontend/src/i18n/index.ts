@@ -124,6 +124,9 @@ export function dayLabel(date: string, today: Date, lang: Lang): string {
     .replace(/^(\d+)월\s*(\d+)일$/, '$1월 $2일')
 }
 
+/** MINUTE_MS is relativeTime's smallest step: a window that says elapsed times reads the clock this often. */
+export const MINUTE_MS = 60_000
+
 /** relativeTime says how long before now d was: "2분 전" / "2m ago". */
 export function relativeTime(d: Date, now: Date, lang: Lang): string {
   const sec = Math.round((now.getTime() - d.getTime()) / 1000)
