@@ -99,7 +99,8 @@ type Installer interface {
 	Command(ctx context.Context) installsvc.CommandState
 	Install(ctx context.Context, t model.Target, replace bool) (installsvc.CommandState, error)
 	Uninstall(ctx context.Context) (installsvc.CommandState, error)
-	Connect(ctx context.Context, dry, mcp bool) (installsvc.Result, error)
+	Agents(ctx context.Context, project string) (model.AgentsStatus, error)
+	SetupAgent(ctx context.Context, project string, r model.AgentRequest, dry bool) (installsvc.Result, error)
 	Init(ctx context.Context, dir, lang string) (installsvc.Result, error)
 }
 

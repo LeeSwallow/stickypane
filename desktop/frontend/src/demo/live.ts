@@ -117,10 +117,11 @@ export function live(url: string) {
       command: async () => ({ ...state, version: (await info()).version }),
       install: async (target) => ({ state: link(target, 'apps') }),
       uninstall: async () => ({ state: link('user', 'none') }),
-      connectPlan: (mcp) => post('/plan', { mcp }),
-      connect: async (mcp) => {
-        const r = await post<{ command: string; output: string }>('/plan', { mcp })
-        return { command: r.command.replace('--dry-run', '--yes'), output: '(dev page: setup ran with --dry-run)\n' + r.output }
+      agents: async () => (await fetch(url + '/agents')).json(),
+      agentPlan: (r) => post('/plan', r),
+      agentRun: async (r) => {
+        const p = await post<{ command: string; output: string }>('/plan', r)
+        return { command: p.command.replace('--dry-run', '--yes'), output: '(dev page: setup ran with --dry-run)\n' + p.output }
       },
       initHere: async () => ({ command: 'stickypane init', output: '' }),
     }

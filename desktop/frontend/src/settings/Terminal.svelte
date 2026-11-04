@@ -2,19 +2,19 @@
   // 터미널과 에이전트 (09 §9.4, 03 §3.12): status rows, each with where it
   // stands now and one action. The terminal command is the app's own
   // stickypane linked onto the PATH, an older copy that comes first named
-  // with its fix. The agents are taught through the app's own stickypane
-  // setup — its plan shown before it runs. In a project window, init can
-  // follow.
+  // with its fix. Then Claude Code and Codex, each on its own (Agent),
+  // read from the app's stickypane setup --status. In a project window,
+  // init can follow a run.
   import { tr } from '../i18n'
   import Badge from '../lib/ui/Badge.svelte'
   import Button from '../lib/ui/Button.svelte'
   import Confirm from '../lib/ui/Confirm.svelte'
-  import Toggle from '../lib/ui/Toggle.svelte'
   import { logged, report } from '../services/errors'
   import {
-    checkAgents, linked,
-    type AgentsState, type CommandState, type InstallAnswer, type RunResult, type SetupApi, type Target,
+    linked,
+    type AgentsStatus, type CommandState, type InstallAnswer, type RunResult, type SetupApi, type Target,
   } from '../services/install'
+  import Agent from './Agent.svelte'
   import Row from './Row.svelte'
   import { copyText } from '../services/window'
 
@@ -42,27 +42,34 @@
   let cliNote = $state('')
   let occupied = $state<{ path: string; target: Target } | null>(null)
 
-  let mcp = $state(true)
-  let agents = $state<AgentsState | null>(null)
-  let plan = $state<RunResult | null>(null)
-  let ran = $state<RunResult | null>(null)
+  let agents = $state<AgentsStatus | null>(null)
   let agentsError = $state('')
+  let ranOnce = $state(false)
   let inited = $state<RunResult | null>(null)
   let initError = $state('')
+
+  function readAgents(r?: RunResult) {
+    if (r) ranOnce = true
+    setup.agents().then(
+      (a) => {
+        agents = a
+        agentsError = ''
+      },
+      (e) => (agentsError = report('terminal.agents', e, (error) => $tr('agents.failed', { error }))),
+    )
+  }
 
   $effect(() => {
     if (!open) return
     cliError = cliNote = agentsError = initError = ''
-    plan = ran = inited = null
+    inited = null
+    ranOnce = false
     agents = null
     setup.command().then(
       (s) => (cmd = s),
       (e) => (cliError = report('terminal.command', e, (error) => $tr('cli.failed', { error }))),
     )
-    checkAgents(setup).then(
-      (a) => (agents = a),
-      (e) => (agents = logged('terminal.agents', 'todo' as const)(e)),
-    )
+    readAgents()
   })
 
   const link = $derived(cmd ? linked(cmd) : undefined)
@@ -98,33 +105,6 @@
       took(await setup.uninstall(), 'user')
     } catch (e) {
       cliError = report('terminal.uninstall', e, (error) => $tr('cli.failed', { error }))
-    } finally {
-      busy = ''
-    }
-  }
-
-  async function showPlan() {
-    agentsError = ''
-    plan = ran = inited = null
-    busy = 'plan'
-    try {
-      plan = await setup.connectPlan(mcp)
-    } catch (e) {
-      agentsError = report('terminal.showPlan', e, (error) => $tr('agents.failed', { error }))
-    } finally {
-      busy = ''
-    }
-  }
-
-  async function connect() {
-    agentsError = ''
-    busy = 'connect'
-    try {
-      ran = await setup.connect(mcp)
-      plan = null
-      agents = 'connected'
-    } catch (e) {
-      agentsError = report('terminal.connect', e, (error) => $tr('agents.failed', { error }))
     } finally {
       busy = ''
     }
@@ -188,45 +168,25 @@
     {#if cliError}<p class="err" role="alert">{cliError}</p>{/if}
   </div>
 
-  <Row label={$tr('agents.row')} hint={$tr('agents.rowHint')}>
-    {#snippet status()}
-      <Badge tone={agents === 'connected' ? 'good' : agents === 'none' ? 'warn' : 'neutral'}>
-        {$tr(agents === null ? 'status.checking' : agents === 'connected' ? 'agents.connected' : agents === 'none' ? 'status.none' : 'agents.notConnected')}
-      </Badge>
-    {/snippet}
-    <Button size="sm" variant={agents === 'connected' ? 'ghost' : 'primary'} loading={busy === 'plan'} disabled={!!busy || !!plan} onclick={showPlan}>{$tr('settings.connectAgents')}</Button>
-  </Row>
-  <div class="more">
-    {#if agents === 'none'}<p class="line">{$tr('agents.none')}</p>{/if}
-    {#if plan}
-      <p class="hint">{$tr('agents.plan')}</p>
-      <pre class="out" aria-label={plan.command}>{plan.output}</pre>
+  <!-- each agent on its own: no action here sets up both at once -->
+  {#if agentsError}<p class="err" role="alert">{agentsError}</p>{/if}
+  {#if agents === null && !agentsError}<p class="hint">{$tr('status.checking')}</p>{/if}
+  {#each agents?.agents ?? [] as a (a.agent)}
+    <Agent {setup} agent={a} want={agents?.plugin ?? ''} project={agents?.project ?? ''} ondone={readAgents} />
+  {/each}
+  {#if project && ranOnce}
+    <div class="more">
+      <p class="line">{$tr('agents.initBody')}</p>
       <div class="buttons">
-        <Button size="sm" variant="ghost" disabled={!!busy} onclick={() => (plan = null)}>{$tr('ui.cancel')}</Button>
-        <Button size="sm" variant="primary" loading={busy === 'connect'} disabled={!!busy} onclick={connect}>{$tr('agents.run')}</Button>
+        <Button size="sm" variant="secondary" loading={busy === 'init'} disabled={!!busy || !!inited} onclick={initHere}>{$tr('agents.init')}</Button>
       </div>
-    {/if}
-    {#if ran}
-      <p class="hint" role="status">{$tr('agents.done')}</p>
-      <pre class="out" aria-label={ran.command}>{ran.output}</pre>
-      {#if project}
-        <p class="line">{$tr('agents.initBody')}</p>
-        <div class="buttons">
-          <Button size="sm" variant="secondary" loading={busy === 'init'} disabled={!!busy || !!inited} onclick={initHere}>{$tr('agents.init')}</Button>
-        </div>
-        {#if inited}
-          <p class="hint" role="status">{$tr('agents.initDone')}</p>
-          {#if inited.output}<pre class="out">{inited.output}</pre>{/if}
-        {/if}
-        {#if initError}<p class="err" role="alert">{initError}</p>{/if}
+      {#if inited}
+        <p class="hint" role="status">{$tr('agents.initDone')}</p>
+        {#if inited.output}<pre class="out">{inited.output}</pre>{/if}
       {/if}
-    {/if}
-    {#if agentsError}<p class="err" role="alert">{agentsError}</p>{/if}
-  </div>
-
-  <Row label={$tr('mcp.row')} hint={$tr('agents.mcpHint')}>
-    <Toggle label={$tr('agents.mcp')} bind:checked={mcp} disabled={!!busy} />
-  </Row>
+      {#if initError}<p class="err" role="alert">{initError}</p>{/if}
+    </div>
+  {/if}
 </div>
 
 <Confirm
