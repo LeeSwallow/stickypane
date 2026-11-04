@@ -14,6 +14,7 @@
   import CrayonIcon from '../lib/ui/icons/CrayonIcon.svelte'
   import Input from '../lib/ui/Input.svelte'
   import { report } from '../services/errors'
+  import { said } from '../i18n/said'
   import { shortPath } from '../lib/path'
   import type { Host, HostCheck, HostsApi, SshAlias } from '../services/hosts'
 
@@ -39,7 +40,7 @@
     try {
       hosts = (await api.hosts()) ?? []
     } catch (e) {
-      failed = report('hosts.load', e)
+      failed = said('hosts.load', e)
     } finally {
       loaded = true
     }
@@ -101,7 +102,7 @@
     try {
       aliases = (await api.aliases()) ?? []
     } catch (e) {
-      failed = report('hosts.readAliases', e)
+      failed = said('hosts.readAliases', e)
       aliases = []
     } finally {
       reading = false

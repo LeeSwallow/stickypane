@@ -335,8 +335,8 @@ func (s *Service) workDir(project string) (dir string, done func(), err error) {
 
 // Agents asks the bundled stickypane where Claude Code and Codex stand
 // (setup --status --json): in project when given, so that its project
-// and local scopes are read too.
-func (s *Service) Agents(ctx context.Context, project string) (model.AgentsStatus, error) {
+// and local scopes are read too. What it says is in lang (withLang).
+func (s *Service) Agents(ctx context.Context, project, lang string) (model.AgentsStatus, error) {
 	var st model.AgentsStatus
 	cli, err := s.cli()
 	if err != nil {
@@ -347,7 +347,7 @@ func (s *Service) Agents(ctx context.Context, project string) (model.AgentsStatu
 		return st, err
 	}
 	defer done()
-	out, err := s.cfg.Runner.Run(ctx, ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: model.StatusArgs})
+	out, err := s.cfg.Runner.Run(ctx, withLang(ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: model.StatusArgs}, lang))
 	if err != nil {
 		return st, fmt.Errorf("stickypane setup --status: %w: %s", err, strings.TrimSpace(out))
 	}
@@ -364,8 +364,9 @@ func (s *Service) Agents(ctx context.Context, project string) (model.AgentsStatu
 
 // SetupAgent runs the bundled stickypane's setup for one agent and one
 // part, plugin or MCP server (model.AgentArgs); dry only prints the plan.
-// A project's scope runs in project, which must be given.
-func (s *Service) SetupAgent(ctx context.Context, project string, r model.AgentRequest, dry bool) (Result, error) {
+// A project's scope runs in project, which must be given. What it
+// prints is in lang (withLang).
+func (s *Service) SetupAgent(ctx context.Context, project, lang string, r model.AgentRequest, dry bool) (Result, error) {
 	if !r.Valid() {
 		return Result{}, fmt.Errorf("not a setup: %+v", r)
 	}
@@ -385,12 +386,22 @@ func (s *Service) SetupAgent(ctx context.Context, project string, r model.AgentR
 	defer done()
 	args := model.AgentArgs(r, s.mcpCommand(cli), dry)
 	res := Result{Command: model.Name + " " + strings.Join(args, " ")}
-	res.Output, err = s.cfg.Runner.Run(ctx, ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: args})
+	res.Output, err = s.cfg.Runner.Run(ctx, withLang(ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: args}, lang))
 	res.Output = strings.TrimSpace(res.Output)
 	if err != nil {
 		return res, fmt.Errorf("%w: %s", err, lastLine(res.Output))
 	}
 	return res, nil
+}
+
+// withLang runs c with STICKYPANE_LANG=lang ("ko", "en"), so that what
+// stickypane says to the person is in the window's language when the
+// board's sticky.json names none; "" leaves the environment's.
+func withLang(c ports.Cmd, lang string) ports.Cmd {
+	if lang != "" {
+		c.Env = append(c.Env, "STICKYPANE_LANG="+lang)
+	}
+	return c
 }
 
 func lastLine(s string) string {
@@ -411,11 +422,7 @@ func (s *Service) Init(ctx context.Context, dir, lang string) (Result, error) {
 		return Result{}, err
 	}
 	res := Result{Command: model.Name + " init"}
-	c := ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: []string{"init"}}
-	if lang != "" {
-		c.Env = []string{"STICKYPANE_LANG=" + lang}
-	}
-	res.Output, err = s.cfg.Runner.Run(ctx, c)
+	res.Output, err = s.cfg.Runner.Run(ctx, withLang(ports.Cmd{Dir: dir, Path: s.runPath(ctx), Name: cli, Args: []string{"init"}}, lang))
 	res.Output = strings.TrimSpace(res.Output)
 	if err != nil {
 		return res, fmt.Errorf("stickypane init: %w: %s", err, res.Output)

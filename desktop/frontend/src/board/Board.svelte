@@ -43,7 +43,8 @@
   import { glance, stalledCount } from './glance'
   import Grid from './Grid.svelte'
   import { connect } from './session'
-  import { logged, report } from '../services/errors'
+  import { logged } from '../services/errors'
+  import { said } from '../i18n/said'
   import { baseName } from '../lib/path'
   import { fold } from '../lib/fold'
   import { frameOf, keyAction } from './keys'
@@ -88,7 +89,7 @@
   // what failed last, said in the toast at the bottom; fail(where) is the
   // catch that says it (and keeps it in the log)
   let failed = $state('')
-  const fail = (where: string) => (e: unknown) => (failed = report('board.' + where, e))
+  const fail = (where: string) => (e: unknown) => (failed = said('board.' + where, e))
   // the note a focused frame holds: what ⋯ "편집기로 열기" opens when none is zoomed
   let focused = $state<string | null>(null)
   // "+ 생성": the dialog, open from the title bar or with a
@@ -185,7 +186,7 @@
       if (!layoutRead) await readLayout()
       failed = ''
     } catch (e) {
-      failed = report('board.refresh', e)
+      failed = said('board.refresh', e)
     }
   })
 
@@ -194,7 +195,7 @@
     try {
       layout = await api.layout()
     } catch (e) {
-      failed = report('board.readLayout', e)
+      failed = said('board.readLayout', e)
     }
     layoutRead = true
   }
@@ -220,7 +221,7 @@
     try {
       await api.tearOff(name)
     } catch (e) {
-      failed = report('board.tear', e)
+      failed = said('board.tear', e)
     }
     await readLayout()
   }
@@ -229,7 +230,7 @@
     try {
       await api.putBack(name)
     } catch (e) {
-      failed = report('board.putBack', e)
+      failed = said('board.putBack', e)
     }
     await readLayout()
   }
@@ -317,7 +318,7 @@
         // read the board again (it undoes the guess), then tell why: a
         // read that succeeds clears the toast, so the reason comes after (#66)
         await refresh()
-        failed = report('board.arrange', e)
+        failed = said('board.arrange', e)
       }
     },
     zoom: (name) => (view = zoomIn(view, name)),
@@ -356,7 +357,7 @@
       await api.tearOffAll(names)
       notice = { message: t('board.tornAll', { n: names.length }), action: { label: t('home.undo'), run: () => void putBackAll(names) } }
     } catch (e) {
-      failed = report('board.tearOff', e)
+      failed = said('board.tearOff', e)
     }
     await readLayout()
   }
@@ -365,7 +366,7 @@
     try {
       await api.putBackAll(names)
     } catch (e) {
-      failed = report('board.putBackAll', e)
+      failed = said('board.putBackAll', e)
     }
     await readLayout()
   }
@@ -400,7 +401,7 @@
       layout = { ...layout, places: {} }
       notice = { message: t('board.resetCanvas'), action: { label: t('home.undo'), run: () => place(before) } }
     } catch (e) {
-      failed = report('board.resetLayout', e)
+      failed = said('board.resetLayout', e)
     }
   }
 
@@ -422,7 +423,7 @@
         },
       }
     } catch (e) {
-      failed = report('board.resetSizes', e)
+      failed = said('board.resetSizes', e)
       await refresh()
     }
   }
@@ -654,7 +655,7 @@
       // the welcome note in the language the window draws in (08 §8.2)
       await api.makeBoard(get(language))
     } catch (e) {
-      failed = report('board.makeBoard', e)
+      failed = said('board.makeBoard', e)
     } finally {
       making = false
     }

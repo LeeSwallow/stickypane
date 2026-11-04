@@ -93,7 +93,7 @@ func (s *Shell) Sessions() (index.Groups, error) {
 	}
 	g, err := s.sessions(ix)
 	if err == nil {
-		s.cfg.Platform.SetTray(trayOf(g))
+		s.setTray(g)
 	}
 	return g, err
 }
@@ -129,6 +129,6 @@ func (s *Shell) refreshTray() {
 		return
 	}
 	if g, err := s.sessions(ix); err == nil {
-		s.cfg.Platform.SetTray(trayOf(g))
+		s.setTray(g)
 	}
 }

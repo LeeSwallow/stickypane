@@ -55,7 +55,7 @@ describe('the home\'s 원격 group', () => {
     expect(within(group).getByText('/srv/api')).toBeTruthy()
     expect(within(group).getByText('web app')).toBeTruthy()
     // what it looked like when this computer last opened it
-    expect(within(group).getByText('노트 4')).toBeTruthy()
+    expect(within(group).getByText('노트 4장')).toBeTruthy()
     await fireEvent.click(cards[0])
     expect(api.openRemote).toHaveBeenCalledWith('dev', '/srv/api')
     expect(api.openProject).not.toHaveBeenCalled()

@@ -23,6 +23,7 @@ func (s *Shell) Prefs() Prefs {
 // window hears them (PrefsEvent).
 func (s *Shell) SetPrefs(p Prefs) error {
 	defer s.emitPrefs()
+	defer s.sayLanguage()
 	s.mu.Lock()
 	s.state.Language, s.state.Mode, s.state.PinNew = p.Language, p.Mode, p.PinNew
 	switch p.Motion {
@@ -46,3 +47,11 @@ func (s *Shell) SetPrefs(p Prefs) error {
 
 // emitPrefs tells every window the app's settings.
 func (s *Shell) emitPrefs() { s.cfg.Platform.Emit(PrefsEvent, s.Prefs()) }
+
+// sayLanguage puts the app's own words — the menu bar, the folder picker,
+// the tray — in its language, which a change of the settings may have
+// changed.
+func (s *Shell) sayLanguage() {
+	s.cfg.Platform.SetLanguage(s.Lang())
+	go s.refreshTray()
+}

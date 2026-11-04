@@ -78,6 +78,13 @@ on GitHub are built from pull request labels.
 
 ### Fixed
 
+- The app says everything in its language. The tray and the macOS menu
+  bar follow the app's language (with auto, the system's, read as the
+  terminal reads it), and change with it; so do the folder picker and the
+  settings window's title. A failure the app knows is said in Korean or
+  English, after what could not be done, and the agents' setup in
+  Settings → Terminal speaks the window's language. "1 cards" is "1 card",
+  and Korean counts notes in 장.
 - `codex plugin marketplace add LeeSwallow/stickypane` works again: Codex
   0.166 refused the marketplace's `authentication: "NONE"`.
 - A note torn off into its own window starts right under its frame's top

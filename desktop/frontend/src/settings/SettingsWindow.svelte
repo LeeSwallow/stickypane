@@ -47,6 +47,7 @@
   import type { Status } from '../services/board'
   import type { LayoutMode, Layout } from '../services/canvas'
   import { logged, report } from '../services/errors'
+  import { said } from '../i18n/said'
   import { nextIndex } from '../lib/ui/keys'
   import type { SetupApi } from '../services/install'
   import {
@@ -123,7 +124,7 @@
       if (!themes.length) themes = await side.themes().catch(logged('settings.themes', []))
     } catch (e) {
       board = null
-      failed = report('settings.readBoard', e)
+      failed = said('settings.readBoard', e)
     } finally {
       loaded = true
     }

@@ -87,6 +87,9 @@ type Config struct {
 	// SSHAliases lists the hosts of the person's ssh config; nil reads
 	// ~/.ssh/config.
 	SSHAliases func() []string
+	// SystemLanguage is what "auto" comes to for the app's own words;
+	// nil reads the environment and the system (SystemLanguage).
+	SystemLanguage func() string
 	// Now is the clock the home list is made by; nil is the machine's.
 	Now func() time.Time
 	// Logf writes what the shell can tell no one else (a save no caller
@@ -99,8 +102,8 @@ type Installer interface {
 	Command(ctx context.Context) installsvc.CommandState
 	Install(ctx context.Context, t model.Target, replace bool) (installsvc.CommandState, error)
 	Uninstall(ctx context.Context) (installsvc.CommandState, error)
-	Agents(ctx context.Context, project string) (model.AgentsStatus, error)
-	SetupAgent(ctx context.Context, project string, r model.AgentRequest, dry bool) (installsvc.Result, error)
+	Agents(ctx context.Context, project, lang string) (model.AgentsStatus, error)
+	SetupAgent(ctx context.Context, project, lang string, r model.AgentRequest, dry bool) (installsvc.Result, error)
 	Init(ctx context.Context, dir, lang string) (installsvc.Result, error)
 }
 

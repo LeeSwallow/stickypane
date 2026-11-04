@@ -36,10 +36,10 @@ func (f *fakeInstaller) Install(_ context.Context, t model.Target, _ bool) (inst
 func (f *fakeInstaller) Uninstall(context.Context) (installsvc.CommandState, error) {
 	return f.Command(nil), f.err
 }
-func (f *fakeInstaller) Agents(_ context.Context, project string) (model.AgentsStatus, error) {
+func (f *fakeInstaller) Agents(_ context.Context, project, _ string) (model.AgentsStatus, error) {
 	return model.AgentsStatus{Plugin: "0.2.1", Project: project}, f.err
 }
-func (f *fakeInstaller) SetupAgent(_ context.Context, project string, r model.AgentRequest, dry bool) (installsvc.Result, error) {
+func (f *fakeInstaller) SetupAgent(_ context.Context, project, _ string, r model.AgentRequest, dry bool) (installsvc.Result, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	what := "run"
@@ -143,10 +143,10 @@ func TestSetupServiceSaysOccupiedAndCancelled(t *testing.T) {
 	}
 	r.inst.err = nil
 	req := model.AgentRequest{Agent: "codex", Part: "mcp", Scope: "user"}
-	if p, err := x.AgentPlan(context.Background(), req); err != nil || p.Output != "plan" {
+	if p, err := x.AgentPlan(context.Background(), req, "ko"); err != nil || p.Output != "plan" {
 		t.Errorf("plan %+v %v", p, err)
 	}
-	if p, err := x.AgentRun(context.Background(), req); err != nil || p.Output != "run" {
+	if p, err := x.AgentRun(context.Background(), req, "ko"); err != nil || p.Output != "run" {
 		t.Errorf("run %+v %v", p, err)
 	}
 	if got := r.inst.connects; len(got) != 2 || got[0] != "plan codex mcp user " || got[1] != "run codex mcp user " {

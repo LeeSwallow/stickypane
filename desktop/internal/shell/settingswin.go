@@ -59,7 +59,7 @@ func (s *Shell) OpenSettings(from uint, section string) uint {
 	w := s.cfg.Platform.NewWindow(WindowOptions{
 		Kind:      KindSettings,
 		Name:      nameSettings,
-		Title:     "Settings",
+		Title:     words(s.Lang(), "Settings", "설정"),
 		URL:       pageSettings + "&section=" + url.QueryEscape(section),
 		Bounds:    Rect{Width: SettingsWidth, Height: SettingsHeight},
 		Frameless: true,

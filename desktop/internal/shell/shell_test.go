@@ -108,6 +108,7 @@ type fakePlatform struct {
 	refuse    map[string]error // accelerators the desktop will not give
 	events    []event
 	tray      Tray
+	lang      string // the app's own words' language (SetLanguage)
 	quit      bool
 }
 
@@ -149,6 +150,11 @@ func (p *fakePlatform) Emit(name string, data any) {
 func (p *fakePlatform) SetTray(t Tray) {
 	p.mu.Lock()
 	p.tray = t
+	p.mu.Unlock()
+}
+func (p *fakePlatform) SetLanguage(lang string) {
+	p.mu.Lock()
+	p.lang = lang
 	p.mu.Unlock()
 }
 func (p *fakePlatform) PickFolder() (string, error) { return "", nil }

@@ -112,28 +112,30 @@ func (x *SetupService) UninstallCommand() (InstallAnswer, error) {
 // Agents says where Claude Code and Codex stand, each scope by scope
 // (setup --status). From the settings opened over a board, or a board's
 // own window, the project's and local scopes are that board's folder's.
-func (x *SetupService) Agents(ctx context.Context) (model.AgentsStatus, error) {
+// lang is the window's language ("ko", "en"), for what stickypane says.
+func (x *SetupService) Agents(ctx context.Context, lang string) (model.AgentsStatus, error) {
 	project := x.S.agentsProject(ctx)
 	ctx, cancel := context.WithTimeout(context.Background(), installTimeout)
 	defer cancel()
-	return x.S.cfg.Install.Agents(ctx, project)
+	return x.S.cfg.Install.Agents(ctx, project, lang)
 }
 
 // AgentPlan is what one agent's setup would run (setup --dry-run): its
 // skills (the plugin) or its MCP server, at a scope.
-func (x *SetupService) AgentPlan(ctx context.Context, r model.AgentRequest) (installsvc.Result, error) {
+// What it prints is in lang, the window's language.
+func (x *SetupService) AgentPlan(ctx context.Context, r model.AgentRequest, lang string) (installsvc.Result, error) {
 	project := x.S.agentsProject(ctx)
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
-	return x.S.cfg.Install.SetupAgent(ctx, project, r, true)
+	return x.S.cfg.Install.SetupAgent(ctx, project, lang, r, true)
 }
 
 // AgentRun runs it.
-func (x *SetupService) AgentRun(ctx context.Context, r model.AgentRequest) (installsvc.Result, error) {
+func (x *SetupService) AgentRun(ctx context.Context, r model.AgentRequest, lang string) (installsvc.Result, error) {
 	project := x.S.agentsProject(ctx)
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
-	return x.S.cfg.Install.SetupAgent(ctx, project, r, false)
+	return x.S.cfg.Install.SetupAgent(ctx, project, lang, r, false)
 }
 
 // agentsProject is the local folder of the board the calling window acts
