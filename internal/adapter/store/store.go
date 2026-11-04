@@ -437,7 +437,7 @@ func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 		return err
 	}
 	if !ok {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 			return err // a new page of a new book needs its folder
 		}
 	}
@@ -460,7 +460,7 @@ func (s *Store) write(name string, content []byte) error {
 	path := s.onDisk(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
-	} else if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	} else if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 		return err // a new page of a new book needs its folder
 	}
 	return writeAtomic(path, content)
@@ -472,15 +472,17 @@ func (s *Store) write(name string, content []byte) error {
 // it is not there.
 func (s *Store) WriteNew(name string, content []byte) error {
 	path := s.onDisk(name)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
 		return err
 	}
-	return atomicfile.Create(path, content, 0o644)
+	return atomicfile.Create(path, content, atomicfile.FileMode)
 }
 
-// writeAtomic replaces the file at path in one step. A new file is 0644; a
-// file that is there keeps its mode.
-func writeAtomic(path string, data []byte) error { return atomicfile.WriteFile(path, data, 0o644) }
+// writeAtomic replaces the file at path in one step. A new file is
+// atomicfile.FileMode; a file that is there keeps its mode.
+func writeAtomic(path string, data []byte) error {
+	return atomicfile.WriteFile(path, data, atomicfile.FileMode)
+}
 
 // Create writes a new note named after text, with the extension ext, and
 // returns the file name. It never overwrites: a taken name gets "-2", "-3"
@@ -492,7 +494,7 @@ func (s *Store) Create(text, ext string, content []byte, now time.Time) (string,
 		if i > 1 {
 			name = fmt.Sprintf("%s-%d%s", base, i, ext)
 		}
-		err := atomicfile.Create(filepath.Join(s.Dir, name), content, 0o644)
+		err := atomicfile.Create(filepath.Join(s.Dir, name), content, atomicfile.FileMode)
 		if errors.Is(err, fs.ErrExist) {
 			continue
 		}
@@ -558,7 +560,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return "", err
 		}
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(full), atomicfile.DirMode); err != nil {
 			return "", err
 		}
 		if err := os.Rename(src, full); err != nil {
@@ -643,7 +645,7 @@ func (s *Store) move(name, to string) error {
 	if _, err := os.Lstat(dst); err == nil {
 		return fmt.Errorf("%s: %w", to, fs.ErrExist)
 	}
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), atomicfile.DirMode); err != nil {
 		return err
 	}
 	if err := os.Rename(src, dst); err != nil {

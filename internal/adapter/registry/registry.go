@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
 )
 
@@ -119,11 +120,11 @@ func (w Writer) Append(e Event) {
 		return
 	}
 	dir := filepath.Join(w.Home, "events")
-	if os.MkdirAll(dir, 0o755) != nil {
+	if os.MkdirAll(dir, atomicfile.DirMode) != nil {
 		return
 	}
 	f, err := os.OpenFile(filepath.Join(dir, now.Format(when.Date)+".jsonl"),
-		os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		os.O_WRONLY|os.O_APPEND|os.O_CREATE, atomicfile.FileMode)
 	if err != nil {
 		return
 	}

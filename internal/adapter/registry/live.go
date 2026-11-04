@@ -33,7 +33,7 @@ func (w Writer) Live(project, kind string) (end func()) {
 		return func() {}
 	}
 	file := filepath.Join(w.Home, "run", strconv.Itoa(w.PID)+".json")
-	if os.MkdirAll(filepath.Dir(file), 0o755) == nil {
+	if os.MkdirAll(filepath.Dir(file), atomicfile.DirMode) == nil {
 		b, err := json.Marshal(Run{
 			Kind:    kind,
 			PID:     w.PID,
@@ -42,7 +42,7 @@ func (w Writer) Live(project, kind string) (end func()) {
 		})
 		if err == nil {
 			// The app reads run/: it never sees half a file.
-			_ = atomicfile.WriteFile(file, b, 0o644)
+			_ = atomicfile.WriteFile(file, b, atomicfile.FileMode)
 		}
 	}
 	w.Append(Event{Type: "session.start", Project: project, PID: w.PID, Kind: kind})
@@ -67,10 +67,10 @@ func (w Writer) Touch(project, cmd string) {
 	if fi, err := os.Stat(marker); err == nil && now.Sub(fi.ModTime()) < touchEvery {
 		return
 	}
-	if os.MkdirAll(filepath.Dir(marker), 0o755) != nil {
+	if os.MkdirAll(filepath.Dir(marker), atomicfile.DirMode) != nil {
 		return
 	}
-	if os.WriteFile(marker, nil, 0o644) != nil || os.Chtimes(marker, now, now) != nil {
+	if os.WriteFile(marker, nil, atomicfile.FileMode) != nil || os.Chtimes(marker, now, now) != nil {
 		return
 	}
 	w.Append(Event{Type: "project.touch", Project: project, Cmd: cmd})
