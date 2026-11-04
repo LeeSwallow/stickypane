@@ -17,91 +17,87 @@ import (
 func init() {
 	handlers[modeConfirm] = confirmUpdate
 	footers[modeConfirm] = confirmFooter
+}
 
-	grow := onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, 1); return nil })
-	boardKeys["+"] = grow
-	boardKeys["="] = grow // the same key without shift
-	boardKeys["-"] = onFocused(func(m *Model, it item) tea.Cmd { m.resize(it, -1); return nil })
-	// The height: shift+up and shift+down add or take away a line, with
-	// pgup and pgdown five, and 0 gives the note back its own height.
-	for k, delta := range map[string]int{"shift+up": 1, "shift+down": -1, "shift+pgup": 5, "shift+pgdown": -5} {
-		boardKeys[k] = onFocused(func(m *Model, it item) tea.Cmd { m.stretch(it, delta); return nil })
-	}
-	boardKeys["0"] = onFocused(func(m *Model, it item) tea.Cmd { m.setRows(it, 0); return nil })
-	// The order: H and L (and { }) move the note a place earlier or later,
-	// K and J a row up or down. A note whose shape takes these keys (a
-	// kanban moves its cards with them) keeps them; { } still move it.
-	for k, delta := range map[string]int{"}": 1, "{": -1, "L": 1, "H": -1} {
-		boardKeys[k] = func(m *Model) tea.Cmd { m.move(delta); return nil }
-	}
-	boardKeys["J"] = func(m *Model) tea.Cmd { m.moveRow(1); return nil }
-	boardKeys["K"] = func(m *Model) tea.Cmd { m.moveRow(-1); return nil }
+// stretchBy makes the focused note delta lines taller or shorter: shift+up
+// and shift+down a line, with pgup and pgdown five.
+func stretchBy(delta int) func(*Model) tea.Cmd {
+	return onFocused(func(m *Model, it item) tea.Cmd { m.stretch(it, delta); return nil })
+}
 
-	// Pin and color are part of how the screen is arranged: they go to
-	// sticky.json, like open and size.
-	boardKeys["p"] = onFocused(func(m *Model, it item) tea.Cmd {
-		pin := !m.pinned(it)
-		m.setView(it.note.Name, func(v *store.View) { v.Pin = &pin })
-		return nil
-	})
-	boardKeys["c"] = onFocused(func(m *Model, it item) tea.Cmd {
-		current := arrange.Color(m.views[it.note.Name], it.note.Doc)
-		next := palette[(arrange.ColorIndex(it.note.Name, current)+1)%len(palette)]
-		m.setView(it.note.Name, func(v *store.View) { v.Color = next })
-		return nil
-	})
-	// The title, the archive and delete act on the file that is shown: a
-	// note's own, or the page of a book.
-	// A Markdown note keeps its title in its front matter. A book, a log
-	// or a script has none, so its name is kept in sticky.json; the file or
-	// folder is not renamed either way.
-	boardKeys["R"] = onFocused(func(m *Model, it item) tea.Cmd {
-		file := it.file()
-		if len(it.pages) > 0 || !store.IsMarkdown(file.Name) || m.store.Linked(file.Name) {
-			name := it.note.Name
-			m.ask(m.tr.Name, m.views[name].Title, func(title string) {
-				m.setView(name, func(v *store.View) { v.Title = title })
-			})
-			return nil
-		}
-		current, _ := file.Doc.Get("title")
-		m.ask(m.tr.Title, current, func(title string) {
-			m.apply(file.Name, doc.SetKey{Key: "title", Value: title})
+// Pin and color are part of how the screen is arranged: they go to
+// sticky.json, like open and size.
+
+func togglePin(m *Model, it item) tea.Cmd {
+	pin := !m.pinned(it)
+	m.setView(it.note.Name, func(v *store.View) { v.Pin = &pin })
+	return nil
+}
+
+func nextColor(m *Model, it item) tea.Cmd {
+	current := arrange.Color(m.views[it.note.Name], it.note.Doc)
+	next := palette[(arrange.ColorIndex(it.note.Name, current)+1)%len(palette)]
+	m.setView(it.note.Name, func(v *store.View) { v.Color = next })
+	return nil
+}
+
+// The title, the archive and delete act on the file that is shown: a
+// note's own, or the page of a book.
+
+// rename asks for a new title. A Markdown note keeps its title in its
+// front matter. A book, a log or a script has none, so its name is kept in
+// sticky.json; the file or folder is not renamed either way.
+func rename(m *Model, it item) tea.Cmd {
+	file := it.file()
+	if len(it.pages) > 0 || !store.IsMarkdown(file.Name) || m.store.Linked(file.Name) {
+		name := it.note.Name
+		m.ask(m.tr.Name, m.views[name].Title, func(title string) {
+			m.setView(name, func(v *store.View) { v.Title = title })
 		})
 		return nil
+	}
+	current, _ := file.Doc.Get("title")
+	m.ask(m.tr.Title, current, func(title string) {
+		m.apply(file.Name, doc.SetKey{Key: "title", Value: title})
 	})
-	// Neither x nor D removes anything from the disk: the file goes to
-	// archive/ or to .trash/, and u brings it back.
-	boardKeys["x"] = onFocused(func(m *Model, it item) tea.Cmd {
-		file := it.file()
-		moved, err := m.calls().Archive(file.Name)
+	return nil
+}
+
+// Neither archive nor remove takes anything from the disk: the file goes
+// to archive/ or to .trash/, and undo brings it back.
+
+func archive(m *Model, it item) tea.Cmd {
+	file := it.file()
+	moved, err := m.calls().Archive(file.Name)
+	if err != nil {
+		m.status = say(m.tr.CannotArchive, map[string]any{"Err": err.Error()})
+	} else {
+		m.undo = &undo{moved: moved, label: nameOf(file)}
+		m.status = say(m.tr.Archived, map[string]any{"Name": nameOf(file)})
+	}
+	m.reload()
+	return nil
+}
+
+func remove(m *Model, it item) tea.Cmd {
+	file := it.file()
+	m.confirm(say(m.tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
+		moved, err := m.calls().Remove(file.Name)
 		if err != nil {
-			m.status = say(m.tr.CannotArchive, map[string]any{"Err": err.Error()})
+			m.status = say(m.tr.CannotDelete, map[string]any{"Err": err.Error()})
 		} else {
 			m.undo = &undo{moved: moved, label: nameOf(file)}
-			m.status = say(m.tr.Archived, map[string]any{"Name": nameOf(file)})
+			m.status = say(m.tr.Deleted, map[string]any{"Name": nameOf(file)})
 		}
 		m.reload()
-		return nil
 	})
-	boardKeys["D"] = onFocused(func(m *Model, it item) tea.Cmd {
-		file := it.file()
-		m.confirm(say(m.tr.ConfirmDelete, map[string]any{"Name": nameOf(file)}), func() {
-			moved, err := m.calls().Remove(file.Name)
-			if err != nil {
-				m.status = say(m.tr.CannotDelete, map[string]any{"Err": err.Error()})
-			} else {
-				m.undo = &undo{moved: moved, label: nameOf(file)}
-				m.status = say(m.tr.Deleted, map[string]any{"Name": nameOf(file)})
-			}
-			m.reload()
-		})
-		return nil
-	})
-	boardKeys["E"] = onFocused(func(m *Model, it item) tea.Cmd {
-		return tea.ExecProcess(m.editorCommand(it.file().Path), func(err error) tea.Msg {
-			return reloadMsg{what: m.tr.EditorFailed, err: err}
-		})
+	return nil
+}
+
+// editOutside opens the file in the user's editor.
+func editOutside(m *Model, it item) tea.Cmd {
+	return tea.ExecProcess(m.editorCommand(it.file().Path), func(err error) tea.Msg {
+		return reloadMsg{what: m.tr.EditorFailed, err: err}
 	})
 }
 

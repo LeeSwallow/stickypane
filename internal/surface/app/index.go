@@ -25,44 +25,46 @@ func init() {
 		return m.hints(m.width, "↑ ↓", m.tr.L("choose"), "enter", m.tr.L("go"), "esc", m.tr.L("close")) + "  " +
 			m.env.Styles.Bold.Render("/ ") + m.indexFilter.View()
 	}
-	open := func(m *Model) tea.Cmd {
-		idx, err := api.NewWithEnv(m.store, m.reg, m.env).Index()
-		if err != nil {
-			m.status = err.Error()
-			return nil
-		}
-		m.indexAll, m.indexAt = idx, 0
-		m.indexFilter = lineedit.New("", max(m.width/3, 10))
-		m.back, m.mode = m.mode, modeIndex
+}
+
+// openIndex lists every note of every tab.
+func openIndex(m *Model) tea.Cmd {
+	idx, err := api.NewWithEnv(m.store, m.reg, m.env).Index()
+	if err != nil {
+		m.status = err.Error()
 		return nil
 	}
-	boardKeys["i"] = open
-	boardKeys["/"] = open
-	// f: the notes the focused one links to and the notes that link to it.
-	boardKeys["f"] = func(m *Model) tea.Cmd {
-		if open(m); m.mode != modeIndex {
-			return nil
-		}
-		var self api.Entry
-		for _, e := range m.indexAll {
-			if e.Name == m.focus {
-				self = e
-			}
-		}
-		var linked []api.Entry
-		for _, e := range m.indexAll {
-			if slices.Contains(self.Links, e.Name) || slices.Contains(self.Backlinks, e.Name) {
-				linked = append(linked, e)
-			}
-		}
-		if len(linked) == 0 {
-			m.mode = m.back
-			m.status = m.tr.L("no links to or from this note")
-			return nil
-		}
-		m.indexAll = linked
+	m.indexAll, m.indexAt = idx, 0
+	m.indexFilter = lineedit.New("", max(m.width/3, 10))
+	m.back, m.mode = m.mode, modeIndex
+	return nil
+}
+
+// openLinks lists the notes the focused one links to and the notes that
+// link to it.
+func openLinks(m *Model) tea.Cmd {
+	if openIndex(m); m.mode != modeIndex {
 		return nil
 	}
+	var self api.Entry
+	for _, e := range m.indexAll {
+		if e.Name == m.focus {
+			self = e
+		}
+	}
+	var linked []api.Entry
+	for _, e := range m.indexAll {
+		if slices.Contains(self.Links, e.Name) || slices.Contains(self.Backlinks, e.Name) {
+			linked = append(linked, e)
+		}
+	}
+	if len(linked) == 0 {
+		m.mode = m.back
+		m.status = m.tr.L("no links to or from this note")
+		return nil
+	}
+	m.indexAll = linked
+	return nil
 }
 
 // indexShown is the index as the filter leaves it: every word of the filter

@@ -257,6 +257,16 @@ plugin of its own in the same marketplace. It is outside the Go module's
 layers: it runs the `stickypane` command (`index --json`, `cat`,
 `watch --json`) and imports nothing of the program.
 
+## The board's keys
+
+The terminal board's keys are one table of actions in
+`internal/surface/app/keymap.go`: a stable name (`note-archive`), the
+default keys, what it does in English (translated under `actions` in
+`internal/core/i18n`) and the handler. The keys are looked up there, and
+the help and the bottom line name the keys from it, so they cannot drift.
+A shape's own keys stay with the shape (`Kind.Keys`, `Kind.Hint`) and are
+handled first when its note is focused.
+
 ## The command line
 
 `cmd/stickypane` follows the shape of Go's own `cmd/go`, with the standard

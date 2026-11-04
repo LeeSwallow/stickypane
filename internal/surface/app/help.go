@@ -17,12 +17,12 @@ func init() {
 	footers[modeHelp] = func(m *Model) string {
 		return m.hints(m.width, "j k", "scroll") + "  " + m.env.Styles.Faint.Render(m.tr.L("any other key closes"))
 	}
+}
 
-	// Also reachable from a zoomed note, which it returns to.
-	boardKeys["?"] = func(m *Model) tea.Cmd {
-		m.back, m.mode, m.helpScroll = m.mode, modeHelp, 0
-		return nil
-	}
+// openHelp shows the key reference over the screen it came from.
+func openHelp(m *Model) tea.Cmd {
+	m.back, m.mode, m.helpScroll = m.mode, modeHelp, 0
+	return nil
 }
 
 func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
@@ -38,10 +38,11 @@ func helpUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// helpBody draws the key reference: section names stand out and the keys
-// line up. On a screen with room it sits in a centered dialog.
+// helpBody draws the key reference: the board's keys from its actions,
+// then the rest; section names stand out and the keys line up. On a screen with room it sits in a centered dialog.
 func helpBody(m *Model, h int) []string {
-	lines := strings.Split(m.tr.Help, "\n")
+	lines := append(m.keys.helpLines(m.tr), "")
+	lines = append(lines, strings.Split(m.tr.Help, "\n")...)
 	for i, l := range lines {
 		if l != "" && !strings.HasPrefix(l, " ") {
 			lines[i] = m.env.Styles.Bold.Render(l)

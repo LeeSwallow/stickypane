@@ -16,7 +16,7 @@ func init() {
 		if i := m.index(m.zoomName); i >= 0 {
 			pairs = append(pairs, m.items[i].kind.Hint...)
 		}
-		return m.hintsThen(m.width, "?", "keys", append(pairs, "g G", "top, end", "e", "edit")...)
+		return m.withHelp("keys", joinHints(pairs, []string{"g G", "top, end"}, m.keys.hint("edit", "note-edit"))...)
 	}
 }
 
@@ -44,10 +44,9 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	case key == "esc" || key == "q":
 		m.mode = modeBoard
 		m.reveal = revealCursor
-	case key == "e" || key == "E" || key == "?" || key == "T" || strings.ContainsAny(key, ",.<>") && len(key) == 1:
-		if f, ok := boardKeys[key]; ok {
-			return f(m)
-		}
+	case m.zoomKey(key):
+		a, _ := m.keys.lookup(key)
+		return a.run(m)
 	case m.items[i].kind.Handles(key):
 		m.toWidget(i, key)
 	default:
@@ -58,6 +57,13 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+// zoomKey reports whether key runs one of the board's actions that work on
+// a zoomed note too: edit, help, the theme and the pages of a book.
+func (m *Model) zoomKey(key string) bool {
+	a, ok := m.keys.lookup(key)
+	return ok && a.zoom
 }
 
 // zoomRows is how many lines of the note fit inside the zoomed frame.

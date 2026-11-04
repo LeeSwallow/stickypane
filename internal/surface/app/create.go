@@ -25,20 +25,18 @@ func init() {
 	footers[modeCatalog] = func(m *Model) string {
 		return m.hints(m.width, "j k", "choose", "enter", "pick", "esc", "cancel")
 	}
+}
 
-	// Jot: one line becomes a plain note. No shape, no title. N always
-	// jots; n jots too unless the focused open note uses n itself (a board
-	// adds a card, a checklist an item).
-	jot := func(m *Model) tea.Cmd {
-		m.ask(m.tr.Jot, "", func(text string) { m.create(text, "", []byte(text+"\n")) })
-		return nil
-	}
-	boardKeys["N"] = jot
-	boardKeys["n"] = jot
-	boardKeys["a"] = func(m *Model) tea.Cmd {
-		m.catalogIdx, m.mode = 0, modeCatalog
-		return nil
-	}
+// jot asks for one line and makes it a plain note: no shape, no title.
+func jot(m *Model) tea.Cmd {
+	m.ask(m.tr.Jot, "", func(text string) { m.create(text, "", []byte(text+"\n")) })
+	return nil
+}
+
+// openCatalog shows the shapes to make a note from.
+func openCatalog(m *Model) tea.Cmd {
+	m.catalogIdx, m.mode = 0, modeCatalog
+	return nil
 }
 
 // create writes a new note named after text and focuses it. ext is the
