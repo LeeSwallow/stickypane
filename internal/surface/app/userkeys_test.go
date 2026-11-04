@@ -183,7 +183,7 @@ func TestMessagesNameTheKeysInEffect(t *testing.T) {
 	ko, _ := i18n.Load("ko")
 	m.tr = ko
 	m.UseKeys("keys.json", map[string][]string{"undo": {"U"}}, nil)
-	if got := m.keyed(ko.Archived, map[string]any{"Name": "a"}); !strings.Contains(got, "U 키로 되돌립니다") {
+	if got := m.keyed(ko.Archived, map[string]any{"Name": "a"}); !strings.Contains(got, "U 키로 되돌릴 수 있어요") {
 		t.Errorf("Korean: %q", got)
 	}
 }
