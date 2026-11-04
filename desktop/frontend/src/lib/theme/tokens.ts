@@ -24,25 +24,25 @@ export function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-/** seedOf makes a stable positive seed for rough.js from an id (FNV-1a, 32 bits). */
-export function seedOf(s: string): number {
-  let h = 0x811c9dc5
+// FNV-1a, 32 bits: the offset basis and the prime
+const FNV_OFFSET = 0x811c9dc5
+const FNV_PRIME = 0x01000193
+
+/** fnv1a is FNV-1a 32 of a string's UTF-8 bytes, as Go's hash/fnv.New32a. */
+export function fnv1a(s: string): number {
+  let h = FNV_OFFSET
   for (const b of new TextEncoder().encode(s)) {
     h ^= b
-    h = Math.imul(h, 0x01000193) >>> 0
+    h = Math.imul(h, FNV_PRIME) >>> 0
   }
-  return (h % 0x7fffffff) + 1
+  return h
 }
 
+/** seedOf makes a stable positive seed for rough.js from an id (FNV-1a, 32 bits). */
+export const seedOf = (s: string): number => (fnv1a(s) % 0x7fffffff) + 1
+
 /** noteIndexOf is FNV-1a 32 of the name's UTF-8 bytes, mod 6: the Go note colour hash. */
-export function noteIndexOf(name: string): number {
-  let h = 0x811c9dc5
-  for (const b of new TextEncoder().encode(name)) {
-    h ^= b
-    h = Math.imul(h, 0x01000193) >>> 0
-  }
-  return h % NOTE_NAMES.length
-}
+export const noteIndexOf = (name: string): number => fnv1a(name) % NOTE_NAMES.length
 
 /**
  * agentColor is the colour of an agent name: the note colour its name

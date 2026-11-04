@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { THEMES } from '../../demo/themes'
-import { agentColor, cardColors, contrast, deriveTokens, mix, noteColors, seedOf } from './tokens'
+import { agentColor, cardColors, contrast, deriveTokens, fnv1a, mix, noteColors, seedOf } from './tokens'
 import { resolveDark, resolveThemeName } from './mode'
 import { normalizePalette } from './palette'
 
@@ -105,6 +105,13 @@ test('--card-ink carries the darkened ink and Sheet text uses it', () => {
   const t = deriveTokens(p, false)
   expect(t['--card-ink']).not.toBe(p.text)
   for (let i = 0; i < 6; i++) expect(cardColors(p, i, false).ink).toBe(t['--card-ink'])
+})
+
+test('fnv1a is FNV-1a 32 of the UTF-8 bytes, as Go hash/fnv', () => {
+  // the published test vectors
+  expect(fnv1a('')).toBe(0x811c9dc5)
+  expect(fnv1a('a')).toBe(0xe40c292c)
+  expect(fnv1a('foobar')).toBe(0xbf9cf968)
 })
 
 test('seedOf is stable and positive', () => {
