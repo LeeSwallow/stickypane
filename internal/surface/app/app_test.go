@@ -91,6 +91,21 @@ func key(k string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeyPgUp, Mod: tea.ModShift}
 	case "shift+pgdown":
 		return tea.KeyPressMsg{Code: tea.KeyPgDown, Mod: tea.ModShift}
+	case "up":
+		return tea.KeyPressMsg{Code: tea.KeyUp}
+	case "down":
+		return tea.KeyPressMsg{Code: tea.KeyDown}
+	case "left":
+		return tea.KeyPressMsg{Code: tea.KeyLeft}
+	case "right":
+		return tea.KeyPressMsg{Code: tea.KeyRight}
+	case "pgup":
+		return tea.KeyPressMsg{Code: tea.KeyPgUp}
+	case "pgdown":
+		return tea.KeyPressMsg{Code: tea.KeyPgDown}
+	}
+	if c, ok := strings.CutPrefix(k, "ctrl+"); ok && len(c) == 1 {
+		return tea.KeyPressMsg{Code: rune(c[0]), Mod: tea.ModCtrl}
 	}
 	r := []rune(k)[0]
 	return tea.KeyPressMsg{Code: unicode.ToLower(r), Text: k}
@@ -112,7 +127,8 @@ func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func TestKeyHelperMatchesBubbleTeaNames(t *testing.T) {
 	t.Parallel()
-	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-", "shift+up", "shift+down", "shift+pgup", "shift+pgdown", "0"} {
+	for _, k := range []string{"enter", "esc", "tab", "shift+tab", "space", "ctrl+c", "n", "D", "?", "+", "-", "shift+up", "shift+down", "shift+pgup", "shift+pgdown", "0",
+		"up", "down", "left", "right", "pgup", "pgdown", "ctrl+d", "ctrl+u", "ctrl+e", "ctrl+y"} {
 		if got := key(k).String(); got != k {
 			t.Errorf("key(%q).String() = %q", k, got)
 		}
@@ -150,9 +166,16 @@ func TestTheScreenHasVisualStructure(t *testing.T) {
 		t.Errorf("the frame should carry the shape's icon and the note's summary: %q", lines[1])
 	}
 	foot := lines[len(lines)-1]
-	if !strings.Contains(foot, "H L shift card") || !strings.Contains(foot, "enter zoom") {
+	// On the board the kanban's h l j k are the arrows, and H L J K the
+	// board's; zoomed, they are all its own.
+	if !strings.Contains(foot, "← → ↓ ↑ move") || strings.Contains(foot, "shift card") || !strings.Contains(foot, "enter zoom") || !strings.Contains(foot, "h j k l go") {
 		t.Errorf("the bottom line should guide the focused note's keys: %q", foot)
 	}
+	press(m, "enter")
+	if foot := lastLine(screen(m)); !strings.Contains(foot, "h l j k move") || !strings.Contains(foot, "H L shift card") {
+		t.Errorf("zoomed, the kanban's keys are its own: %q", foot)
+	}
+	press(m, "esc")
 	press(m, "tab")
 	if foot := strings.Split(screen(m), "\n")[23]; !strings.Contains(foot, "enter open") || strings.Contains(foot, "shift card") {
 		t.Errorf("a closed note has no keys of its own: %q", foot)
@@ -346,7 +369,7 @@ func TestTheSelectedCardsDetailsStayInView(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"b.md": sb.String()})
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 14})
 	for i := 2; i <= 12; i++ {
-		press(m, "j")
+		press(m, "down")
 		s := screen(m)
 		if want := fmt.Sprintf("detail c%02d", i); !strings.Contains(s, fmt.Sprintf("› card %02d", i)) || !strings.Contains(s, want) {
 			t.Fatalf("card %02d and all its details should be in view:\n%s", i, s)
@@ -372,9 +395,9 @@ func TestAnEmptyColumnStaysInViewWhenSelected(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"b.md": sb.String()})
 	m.Update(tea.WindowSizeMsg{Width: 36, Height: 14})
 	for i := 0; i < 19; i++ {
-		press(m, "j")
+		press(m, "down")
 	}
-	press(m, "l")
+	press(m, "right")
 	if s := screen(m); !strings.Contains(s, "Empty (0)") {
 		t.Errorf("the selected empty column should be on screen, where a new card would go:\n%s", s)
 	}
@@ -412,8 +435,8 @@ func TestSizeKeysWriteTheSize(t *testing.T) {
 	m.reload()
 	// A one-line note is a card, which is 1/2 on 80 cells.
 	steps := []struct{ key, size string }{
-		{"+", "2/3"}, {"+", "3/4"}, {"=", "1"}, {"+", "1"},
-		{"-", "3/4"}, {"-", "2/3"}, {"-", "1/2"}, {"-", "1/3"}, {"-", "1/4"}, {"-", "1/4"},
+		{">", "2/3"}, {"+", "3/4"}, {">", "1"}, {"+", "1"},
+		{"<", "3/4"}, {"-", "2/3"}, {"<", "1/2"}, {"-", "1/3"}, {"<", "1/4"}, {"-", "1/4"},
 	}
 	for _, step := range steps {
 		press(m, step.key)
@@ -505,13 +528,18 @@ func TestSizesDecideTheLayout(t *testing.T) {
 func TestKeysReachTheFocusedOpenNote(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
-	press(m, "L")
+	press(m, "right", "left", "n")
+	if m.mode != modeInput {
+		t.Fatalf("n adds a card without zooming in: mode %v", m.mode)
+	}
+	press(m, "esc")
+	if s := screen(m); !strings.Contains(s, "› payments") || m.mode != modeBoard {
+		t.Errorf("the arrows move the cursor without zooming in:\n%s", s)
+	}
+	press(m, "z", "L")
 	want := "---\ntype: board\ntitle: Auth\nopen: true\n---\n## To do\n## Doing\n- login API\n- payments\n## Done\n- schema\n"
 	if got := plain(readFile(t, dir, "b.md")); got != want {
-		t.Errorf("file = %q\nwant  %q", got, want)
-	}
-	if s := screen(m); !strings.Contains(s, "› payments") || m.mode != modeBoard {
-		t.Errorf("the card should move without zooming in:\n%s", s)
+		t.Errorf("zoomed, L moves the card: file = %q\nwant  %q", got, want)
 	}
 }
 
@@ -597,7 +625,7 @@ func TestScrollFollowsTheCursorInATallNote(t *testing.T) {
 	m, _ := newModel(t, map[string]string{"c.md": sb.String()})
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 12})
 	for i := 0; i < 50; i++ {
-		press(m, "j")
+		press(m, "down")
 		if !strings.Contains(screen(m), "› ☐ item") {
 			t.Fatalf("the cursor scrolled out of view after %d steps:\n%s", i+1, screen(m))
 		}
@@ -614,13 +642,25 @@ func TestScrollKeysMoveTheScreenForNotesWithoutACursor(t *testing.T) {
 	if s := screen(m); !strings.Contains(s, "line 01") || strings.Contains(s, "line 40") {
 		t.Fatalf("the top of the note should show first:\n%s", s)
 	}
-	press(m, "G")
-	if s := screen(m); !strings.Contains(s, "line 40") || strings.Contains(s, "line 01") {
-		t.Errorf("G should scroll to the end:\n%s", s)
+	press(m, "j", "G")
+	if s := screen(m); !strings.Contains(s, "line 01") {
+		t.Fatalf("j and G move between notes; they do not scroll:\n%s", s)
 	}
-	press(m, "g")
+	press(m, "ctrl+e")
+	if s := screen(m); strings.Contains(s, "line 01") || !strings.Contains(s, "line 02") {
+		t.Errorf("ctrl+e scrolls a line:\n%s", s)
+	}
+	press(m, "ctrl+d")
+	if s := screen(m); strings.Contains(s, "line 05") || strings.Contains(s, "line 40") {
+		t.Errorf("ctrl+d scrolls half the pane:\n%s", s)
+	}
+	press(m, "9", "ctrl+d")
+	if s := screen(m); !strings.Contains(s, "line 40") || strings.Contains(s, "line 01") {
+		t.Errorf("9 ctrl+d should scroll to the end:\n%s", s)
+	}
+	press(m, "ctrl+y", "9", "9", "ctrl+u")
 	if !strings.Contains(screen(m), "line 01") {
-		t.Errorf("g should scroll back to the top:\n%s", screen(m))
+		t.Errorf("ctrl+u should scroll back to the top:\n%s", screen(m))
 	}
 }
 
@@ -653,7 +693,7 @@ func TestRowsSetTheHeightANoteAsksFor(t *testing.T) {
 		t.Errorf("rows: 6 should limit the height, %d items visible:\n%s", n, screen(m))
 	}
 	for i := 0; i < 15; i++ {
-		press(m, "j")
+		press(m, "down")
 	}
 	if !strings.Contains(screen(m), "› ☐ item 16") {
 		t.Errorf("the cursor should stay visible inside a fixed-height note:\n%s", screen(m))

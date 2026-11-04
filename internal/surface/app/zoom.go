@@ -16,7 +16,7 @@ func init() {
 		if i := m.index(m.zoomName); i >= 0 {
 			pairs = append(pairs, m.items[i].kind.Hint...)
 		}
-		return m.withHelp("keys", joinHints(pairs, []string{"g G", "top, end"}, m.keys.hint("edit", "note-edit"))...)
+		return m.withHelp("keys", joinHints(pairs, []string{"g G", "top, end"}, m.keys.hint("scroll", "scroll-half-down", "scroll-half-up"), m.keys.hint("edit", "note-edit"))...)
 	}
 }
 
@@ -40,20 +40,24 @@ func zoomUpdate(m *Model, msg tea.Msg) tea.Cmd {
 		m.mode = modeBoard
 		return nil
 	}
-	// The board's keys that work on a zoomed note come before the note's
-	// own; esc drops keys waiting for more before it goes back.
+	// A zoomed note takes all of its own keys, h j k l too; the board's
+	// keys that work on a zoomed note get the rest. esc drops keys waiting
+	// for more before it goes back.
 	key := latinKey(k.String())
 	if !m.seq.pending() && (key == "esc" || key == "q") {
 		m.mode = modeBoard
 		m.reveal = revealCursor
 		return nil
 	}
+	if len(m.seq.keys) == 0 && m.items[i].kind.Handles(key) {
+		m.seq.reset()
+		m.toWidget(i, key)
+		return nil
+	}
 	if used, cmd := m.feedKey(key); used {
 		return cmd
 	}
-	if m.items[i].kind.Handles(key) {
-		m.toWidget(i, key)
-	} else if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
+	if offset, ok := widget.ScrollKey(m.zoomScroll, key, m.zoomRows()); ok {
 		// Keys the note does not use scroll freely, so every line of a
 		// zoomed note can be reached even when it has a cursor.
 		m.zoomScroll = offset

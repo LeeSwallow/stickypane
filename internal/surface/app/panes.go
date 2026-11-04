@@ -3,6 +3,8 @@ package app
 import (
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/LeeSwallow/stickypane/internal/core/layout"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 )
@@ -214,6 +216,21 @@ func (m *Model) paneOf(name string) (pane, bool) {
 // values are fixed when the screen is drawn.
 func (m *Model) scrollPane(p pane, offset int) {
 	m.offsets[p.file] = max(offset, 0)
+}
+
+// scrollBy scrolls the zoomed note, or else the focused open note inside
+// its pane, by the lines by gives for a window of rows lines.
+func scrollBy(by func(rows int) int) func(*Model) tea.Cmd {
+	return func(m *Model) tea.Cmd {
+		if m.mode == modeZoom {
+			m.zoomScroll = max(m.zoomScroll+by(m.zoomRows()), 0)
+			return nil
+		}
+		if p, ok := m.paneOf(m.focus); ok {
+			m.scrollPane(p, p.offset+by(p.rows()))
+		}
+		return nil
+	}
 }
 
 // flip shows the next or previous screen of notes and moves the focus to

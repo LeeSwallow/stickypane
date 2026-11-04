@@ -59,7 +59,7 @@ func TestKeysListsEveryAction(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil || len(got) < 40 {
 		t.Fatalf("%v: %s", err, out)
 	}
-	if got[0].Name != "focus-next" || got[0].Keys[0] != "tab" || got[0].Changed {
+	if got[0].Name != "focus-left" || got[0].Keys[0] != "h" || got[0].Changed {
 		t.Errorf("%+v", got[0])
 	}
 	t.Setenv("STICKYPANE_LANG", "ko")

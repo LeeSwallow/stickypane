@@ -97,38 +97,42 @@ func TestTheHelpNamesEveryAction(t *testing.T) {
 
 // The English help of the board's keys, as the table makes it.
 const englishBoardHelp = `Notes
+  h j k l          the note on that side
+  gg G             first, last note
   tab              next note
   shift+tab        previous note
   enter            open, then zoom
   z                zoom
   o                open or close
-  + -              wider, narrower
+  > <  + -         wider, narrower
   shift+up down    taller, shorter
   shift+pgup pgdn  five lines at a time
   0                content height
-  H L  { }         move earlier, later
+  H L              move earlier, later
   K J              move a row up, down
-  , .  < >         turn a folder's pages
+  , .              turn a folder's pages
   m                move to a folder
   N n              jot a note
   a                add by shape
   e                edit here (like vi)
   E                edit in $EDITOR
+  yy               copy its path
   p                pin
   c                change color
   R                rename
   x                move to archive
-  D                delete (to .trash)
+  dd               delete (to .trash)
   u                undo archive, delete
   r                reload
   T                next theme
   i /              index of every note
   f                linked notes
   S                settings
-  j k g G          scroll in the note
+  ctrl+e y  ↓ ↑    a line down, up
+  ctrl+d u         half a page down, up
   pgdn pgup        a page down, up
   [ ]              previous, next screen
-  1-9 ( )          switch tab
+  1-9 gt gT        switch tab
   ?                this help
   q                quit`
 
@@ -148,7 +152,7 @@ func TestTheHelpListsTheBoardKeys(t *testing.T) {
 				t.Errorf("%s: help line %q is %d cells wide, want at most 40", code, line, w)
 			}
 		}
-		for _, k := range []string{"+ -", "shift+up down", "shift+pgup pgdn", "0", "1-9 ( )"} {
+		for _, k := range []string{"h j k l", "gg G", "> <", "shift+up down", "shift+pgup pgdn", "0", "yy", "dd", "ctrl+d u", "1-9 gt gT"} {
 			if !slices.ContainsFunc(lines, func(l string) bool { return strings.HasPrefix(strings.TrimSpace(l), k+"  ") }) {
 				t.Errorf("%s: the help should list %q", code, k)
 			}
@@ -167,6 +171,7 @@ func TestShortKeys(t *testing.T) {
 		{[]string{"1", "2", "3", "4", "(", ")"}, "1-4 ( )"},
 		{[]string{"1", "2", "(", ")"}, "1 2 ( )"},
 		{[]string{"i", "/"}, "i /"},
+		{[]string{"ctrl+e", "ctrl+y", "down", "up"}, "ctrl+e y ↓ ↑"},
 		{[]string{"ctrl+a", "b"}, "ctrl+a b"},
 	} {
 		if got := shortKeys(c.keys); got != c.want {

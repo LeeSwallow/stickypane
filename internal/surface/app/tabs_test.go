@@ -39,13 +39,13 @@ func TestFoldersAreTabsAndOneIsActive(t *testing.T) {
 	if !strings.Contains(s, "≣ build") || !strings.Contains(s, "✎ notes") || !strings.Contains(s, "docs") {
 		t.Errorf("the second line lists the active tab's notes:\n%s", s)
 	}
-	press(m, ")")
+	press(m, "g", "t")
 	if s := screen(m); !strings.Contains(s, "compiled") {
-		t.Errorf(") stops at the last tab:\n%s", s)
+		t.Errorf("gt stops at the last tab:\n%s", s)
 	}
-	press(m, "(")
+	press(m, "g", "T")
 	if s := screen(m); !strings.Contains(s, "the plan") {
-		t.Errorf("( goes back to the first tab:\n%s", s)
+		t.Errorf("gT goes back to the first tab:\n%s", s)
 	}
 }
 

@@ -98,7 +98,7 @@ func TestKeysActOnThePageTheViewIsOn(t *testing.T) {
 	writeFile(t, dir, "t/docs/a-notes.md", "just text\n")
 	writeFile(t, dir, "t/docs/b-todo.md", "---\ntype: checklist\n---\n- [ ] one\n- [ ] two\n")
 	writeView(t, dir, openAll)
-	press(m, "r", ".", "j", "space")
+	press(m, "r", ".", "down", "space")
 	if got := readFile(t, dir, "t/docs/b-todo.md"); !strings.Contains(got, "- [ ] one\n- [x] two ✅ ") {
 		t.Fatalf("space should tick the item of the page the view is on: %q", got)
 	}
@@ -120,9 +120,9 @@ func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 	writeFile(t, dir, "t/docs/a.md", numbered(40))
 	writeFile(t, dir, "t/docs/b.md", strings.ReplaceAll(numbered(40), "line", "row"))
 	writeView(t, dir, openAll)
-	press(m, "r", "G")
+	press(m, "r", "9", "9", "pgdown")
 	if s := screen(m); !strings.Contains(s, "row 40") || !strings.Contains(s, "2/2") {
-		t.Fatalf("G scrolls through every page to the end:\n%s", s)
+		t.Fatalf("99 pages down scroll through every page to the end:\n%s", s)
 	}
 	press(m, ",")
 	if s := screen(m); !strings.Contains(s, "line 01") || !strings.Contains(s, "1/2") {
@@ -133,7 +133,7 @@ func TestABookScrollsAsOneAndTheKeysJumpBetweenPages(t *testing.T) {
 		t.Errorf(". should put the next page at the top of the pane:\n%s", s)
 	}
 	for i := 0; i < 50; i++ {
-		press(m, "k")
+		press(m, "up")
 	}
 	if s := screen(m); !strings.Contains(s, "line 01") || !strings.Contains(s, "1/2") {
 		t.Errorf("scrolling up through the pages is one scroll:\n%s", s)
@@ -155,9 +155,9 @@ func TestEditingAndDeletingAPage(t *testing.T) {
 	if got := readFile(t, dir, "t/docs/b.md"); got != "page b!\n" {
 		t.Fatalf("t/docs/b.md = %q", got)
 	}
-	press(m, "D")
+	press(m, "d", "d")
 	if s := screen(m); !strings.Contains(s, "b") || m.mode != modeConfirm {
-		t.Fatalf("D should ask before deleting the page:\n%s", s)
+		t.Fatalf("dd should ask before deleting the page:\n%s", s)
 	}
 	press(m, "y")
 	if _, err := os.Stat(filepath.Join(dir, "docs", "b.md")); !os.IsNotExist(err) {

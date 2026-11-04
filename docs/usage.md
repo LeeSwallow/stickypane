@@ -19,43 +19,59 @@ of a note, [shapes.md](shapes.md).
 
 ## Keys
 
-| Any note | | Open board or checklist | |
+The board's keys are vim's where vim has one.
+
+| Any note | | Open kanban or checklist | |
 | --- | --- | --- | --- |
-| `tab` / `shift+tab` | next, previous note | `h` `l` | change column |
-| `enter` | open, then zoom | `j` `k` | change card or item |
-| `o` | open or close | `H` `L` | move a card sideways |
-| `+` / `-` | wider, narrower | `J` `K` | reorder a card |
+| `h` `j` `k` `l` | the note on that side | `←` `→` (zoomed: `h` `l`) | change column |
+| `gg` / `G` | first, last note | `↑` `↓` (zoomed: `k` `j`) | change card or item |
+| `tab` / `shift+tab` | next, previous note | `H` `L`, zoomed | move a card sideways |
+| `enter` | open, then zoom | `J` `K`, zoomed | reorder a card |
+| `o` | open or close | `space` | tick an item |
+| `>` / `<` (`+` `-`) | wider, narrower | `n` | new card or item |
 | `shift+up` / `down` | taller, shorter (`pgup` `pgdn`: by five) | | |
-| `0` | as tall as its content | | |
-| `N` | jot a note | `space` | tick an item |
-| `a` | add by shape | `n` | new card or item |
-| `p` / `c` / `R` | pin, color, rename | **Open script** | |
-| `H` `L` (`{` `}`) | move earlier, later | `enter` | run, after a yes |
-| `K` `J` | move a row up, down | | |
-| `,` / `.` | turn a book's pages | | |
+| `0` | as tall as its content | **Open script** | |
+| `ctrl+e` / `ctrl+y` (`↓` `↑`) | scroll a line | `enter` | run, after a yes |
+| `ctrl+d` / `ctrl+u` | scroll half a page | | |
+| `pgdn` / `pgup` | scroll a page | **Open form** | |
+| `N` | jot a note | `↑` `↓` (zoomed: `k` `j`) | change control |
+| `a` | add by shape | `enter` / `space` | choose, type, press |
+| `p` / `c` / `R` | pin, color, rename | | |
+| `H` `L` | move earlier, later | **Zoomed note** | |
+| `K` `J` | move a row up, down | `esc` | back |
+| `,` / `.` | turn a book's pages | `j` `k` `g` `G` | scroll |
 | `m` | move to a folder | | |
-| `x` / `D` / `u` | archive, delete, undo | **Zoomed note** | |
-| `e` / `E` | edit here, in `$EDITOR` | `esc` | back |
-| `r` / `?` / `q` | reload, help, quit | `j` `k` `g` `G` | scroll |
+| `x` / `dd` / `u` | archive, delete, undo | | |
+| `yy` | copy the note's path | | |
+| `e` / `E` | edit here, in `$EDITOR` | | |
+| `r` / `?` / `q` | reload, help, quit | | |
 | `T` | next theme | | |
-| `z` | zoom | **Open form** | |
-| `[` / `]` | previous, next screen | `j` `k` | change control |
-| `1`–`9` / `(` `)` | switch tab | `enter` / `space` | choose, type, press |
+| `z` | zoom | | |
+| `[` / `]` | previous, next screen | | |
+| `1`–`9` / `gt` `gT` | switch tab | | |
 | `i` / `/` | the index | `S` | settings |
 | `f` | linked notes | | |
 
-The focused open note takes the keys in the right-hand column where it is;
-you do not have to zoom in first. On an open kanban `H` `J` `K` `L` move
-its cards, so `{` `}` move the note itself. When the focused note has no cursor of its
-own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
-`ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
-a cursor scrolls to keep the cursor in view. A form uses `enter` itself, so
-`z` is the way to zoom into one.
+On the board `h` `j` `k` `l` always move between notes, as the screen shows
+them: down from the last row goes on to the next screen, and from a closed
+note they go along the title bar. `H` `J` `K` `L` and `gg` `G` are the
+board's too. The focused open note takes its other keys where it is, so you
+tick an item, add a card or move the cursor with the arrows without
+zooming. Zoomed (`enter`, or `z` for a note that uses `enter` itself, such
+as a form), a note takes all of its keys: a kanban moves its cursor with
+`h` `j` `k` `l` and its cards with `H` `J` `K` `L`, and a note without a
+cursor scrolls with `j` `k` `g` `G`. A note with a cursor scrolls to keep
+the cursor in view.
 
-A count before a key repeats it: `3J` moves a note three rows down. A
-digit alone goes to its tab once no key follows it. With the Korean
-2-set layout on, the board reads `ㅓ` as `j` and every other jamo as the
-key it is on.
+`yy` copies where the focused note's file is, from the project
+(`.sticky/plan.md`, or the project's own file a linked note shows), through
+the terminal (OSC 52): it works over ssh, and in tmux with
+`set -g set-clipboard on`.
+
+A count before a key repeats it: `3J` moves a note three rows down, `3l`
+goes three notes right. A digit alone goes to its tab once no key follows
+it. With the Korean 2-set layout on, the board reads `ㅓ` as `j` and every
+other jamo as the key it is on.
 
 These are the keys as they come. Each board key belongs to a named action
 (`note-archive`, `jot`), and `stickypane keys` lists them with the keys
@@ -69,7 +85,7 @@ otherwise (`1` to `4`; `S` on the board, or `stickypane config columns 4`).
 Notes go left to right, a row at a time. A note without a size of its own
 takes one column, and the notes of a row share its width equally, so a
 last row of two notes on three columns is two halves. A note whose size you
-chose (with `+` `-`, a drag, `stickypane set` or its front matter) spans its
+chose (with `>` `<`, a drag, `stickypane set` or its front matter) spans its
 share of the columns, rounded to the nearest: on three columns `1/2` and
 `2/3` are two, `1/4` and `1/3` one. The other notes of its row share what
 is left. On a screen too narrow for a column of 20 cells, fewer columns are
@@ -83,7 +99,7 @@ short ones leave, and the screen never scrolls as a whole. A note gets at
 least six lines, or all it needs if that is less; notes that would get
 less go to the next screen, shown as `2/3` under the title bar.
 
-`+` and `-` widen or narrow a note by one column and its border says the
+`>` and `<` widen or narrow a note by one column and its border says the
 new size for a moment; `H` `L` move it a place, `K` `J` a row up or down,
 trading places with the note there. `shift+up` and `shift+down` make it a
 line taller or shorter (`shift+pgup` and `shift+pgdn` five), and `0` lets
@@ -157,11 +173,11 @@ instead of every note.
 
 Nothing you do on the board erases a file.
 
-- `D` asks, then moves the note to `.sticky/.trash/`. `x` moves it to
+- `dd` asks, then moves the note to `.sticky/.trash/`. `x` moves it to
   `.sticky/archive/` without asking. `u` takes back whichever you did last.
 - `m` lists the folders: pick one and the note becomes a page of that book,
   pick the top level to take a page out of its book, or name a new folder.
-- `{` and `}` swap the note with its neighbor; the order is kept in
+- `H` and `L` swap the note with its neighbor; the order is kept in
   `sticky.json`.
 - `R` renames what you see, not the file: a Markdown note's `title`, or for
   a book, a log or a script the `title` in `sticky.json`.

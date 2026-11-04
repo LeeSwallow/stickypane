@@ -24,6 +24,18 @@ on GitHub are built from pull request labels.
 
 ### Changed
 
+- **Board keys are vim keys.** `h` `j` `k` `l` go to the note on that side,
+  as the screen shows them, and `gg` `G` to the first and last; `tab`
+  still cycles. `j` and `k` no longer scroll: `ctrl+e` `ctrl+y` scroll a
+  line (the arrows still do), `ctrl+d` `ctrl+u` half a page, `pgdn` `pgup`
+  a page. `D` is `dd`, `( )` are `gt` `gT`, `{ }` are gone (`H` `L`), and
+  `>` `<` widen and narrow (`+` `-` still do; `=` and the pages' `<` `>`
+  are gone, `,` `.` turn pages). New: `yy` copies a note's path through
+  the terminal (OSC 52). On the board `h` `j` `k` `l` and `H` `J` `K` `L`
+  are the board's even on a kanban, which takes its other keys there (the
+  arrows move its cursor) and all of them zoomed. An old key comes back
+  with `stickypane keys set`: `keys set note-delete D "d d"`, or
+  `keys set focus-down` then `keys set scroll-down j ctrl+e down`.
 - Records in `~/.stickypane` are on where the desktop app's `overlay.json`
   is, not wherever the folder is: a folder made for something else, such as
   a terminal user's settings, records nothing. The app writes the file on

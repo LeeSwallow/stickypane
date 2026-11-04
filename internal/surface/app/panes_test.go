@@ -71,15 +71,15 @@ func TestALongNoteScrollsInsideItsPane(t *testing.T) {
 	if !strings.Contains(s, "█") {
 		t.Errorf("a pane with more to show has a scroll bar:\n%s", s)
 	}
-	press(m, "j", "j")
+	press(m, "ctrl+e", "down")
 	if s := screen(m); strings.Contains(s, "line 02") || !strings.Contains(s, "line 03") || !strings.Contains(s, "the other note") {
-		t.Errorf("j should scroll inside the note and leave the rest alone:\n%s", s)
+		t.Errorf("ctrl+e and ↓ should scroll inside the note and leave the rest alone:\n%s", s)
 	}
-	press(m, "G")
+	press(m, "9", "9", "ctrl+d")
 	if s := screen(m); !strings.Contains(s, "line 60") || !strings.Contains(s, "the other note") {
-		t.Errorf("G should show the end of the note:\n%s", s)
+		t.Errorf("99 ctrl+d should show the end of the note:\n%s", s)
 	}
-	press(m, "g")
+	press(m, "9", "9", "ctrl+u")
 	m.Update(tea.KeyPressMsg{Code: tea.KeyPgDown})
 	if s := screen(m); strings.Contains(s, "line 01") || !strings.Contains(s, "the other note") {
 		t.Errorf("page down should move by what the pane shows:\n%s", s)
@@ -155,7 +155,7 @@ func TestTheCursorStaysInViewInsideAPane(t *testing.T) {
 		"z.md": "---\nopen: true\nsize: page\n---\n" + numbered(40),
 	})
 	for i := 0; i < 39; i++ {
-		press(m, "j")
+		press(m, "down")
 		if s := screen(m); !strings.Contains(s, "› ☐ item") {
 			t.Fatalf("the cursor left the pane after %d steps:\n%s", i+1, s)
 		}
@@ -179,13 +179,13 @@ func TestALogFollowsItsEndUntilItIsScrolled(t *testing.T) {
 	if s := screen(m); !strings.Contains(s, "the newest entry") {
 		t.Fatalf("a log follows the file as it grows:\n%s", s)
 	}
-	press(m, "k", "k", "k")
+	press(m, "ctrl+y", "ctrl+y", "ctrl+y")
 	writeFile(t, dir, "l.md", "---\ntype: log\nopen: true\n---\n"+numbered(40)+"the newest entry\nand one more\n")
 	press(m, "r")
 	if s := screen(m); strings.Contains(s, "and one more") {
 		t.Errorf("a log the user scrolled up stays where it was put:\n%s", s)
 	}
-	press(m, "G")
+	press(m, "pgdown")
 	writeFile(t, dir, "l.md", "---\ntype: log\nopen: true\n---\n"+numbered(40)+"the newest entry\nand one more\nand the last\n")
 	press(m, "r")
 	if s := screen(m); !strings.Contains(s, "and the last") {

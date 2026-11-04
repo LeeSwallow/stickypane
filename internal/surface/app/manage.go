@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -92,6 +93,41 @@ func remove(m *Model, it item) tea.Cmd {
 		m.reload()
 	})
 	return nil
+}
+
+// copyPath puts where the note's file is, from the project, on the
+// clipboard: .sticky/plan.md, or the project's own file a linked note
+// shows. The terminal does the copying (OSC 52), over ssh and tmux too
+// where they let it.
+func copyPath(m *Model, it item) tea.Cmd {
+	path := m.projectPath(it.file())
+	m.status = m.keyed(m.tr.Copied, map[string]any{"Path": path})
+	return tea.SetClipboard(path)
+}
+
+// projectPath is a note's file as the project names it, with slashes:
+// relative to the folder that holds the notes folder. A linked note is the
+// file it links to, when that is in the project.
+func (m *Model) projectPath(n store.Note) string {
+	project, err := filepath.Abs(filepath.Dir(m.store.Dir))
+	if err != nil {
+		return n.Path
+	}
+	path, err := filepath.Abs(n.Path)
+	if err != nil {
+		return n.Path
+	}
+	if real, err := filepath.EvalSymlinks(path); err == nil && real != path {
+		if root, err := filepath.EvalSymlinks(project); err == nil {
+			if rel, err := filepath.Rel(root, real); err == nil && filepath.IsLocal(rel) {
+				return filepath.ToSlash(rel)
+			}
+		}
+	}
+	if rel, err := filepath.Rel(project, path); err == nil && filepath.IsLocal(rel) {
+		return filepath.ToSlash(rel)
+	}
+	return path
 }
 
 // editOutside opens the file in the user's editor.

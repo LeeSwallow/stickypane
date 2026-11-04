@@ -81,6 +81,7 @@ type Strings struct {
 	CannotRestore       string `json:"cannotRestore"`
 	Restored            string `json:"restored"`
 	CannotMove          string `json:"cannotMove"`
+	Copied              string `json:"copied"`
 	AlreadyRunning      string `json:"alreadyRunning"`
 	ConfirmRun          string `json:"confirmRun"`
 	CannotWriteLog      string `json:"cannotWriteLog"`
@@ -153,6 +154,7 @@ func English() Strings {
 		NothingToUndo:       "Nothing to undo.",
 		CannotRestore:       "Cannot bring {{.Name}} back: it is still in {{.Where}} ({{.Err}})",
 		Restored:            "Restored {{.Name}}.",
+		Copied:              "Copied {{.Path}}",
 		CannotMove:          "Cannot move the note: {{.Err}}",
 		AlreadyRunning:      "{{.Name}} is already running.",
 		ConfirmRun:          "Run {{.Name}} in {{.Dir}}? (y/n)",
@@ -168,22 +170,22 @@ func English() Strings {
 		Help: `Zoomed note
   esc              back
   j k g G          scroll
+  h j k l H J K L  the note's own keys
 
-Open board
-  h l              change column
-  j k              change card
-  H L              move a card sideways
-  J K              reorder a card
-  { }              move the note
+Open kanban
+  ← →  h l zoomed  change column
+  ↑ ↓  k j zoomed  change card
+  H L  zoomed      move a card sideways
+  J K  zoomed      reorder a card
   n                new card
 
 Open checklist
-  j k              change item
+  ↑ ↓  k j zoomed  change item
   space            tick an item
   n                new item
 
 Open form
-  j k              change control
+  ↑ ↓  k j zoomed  change control
   enter space      choose, type, press
 
 Editing a note

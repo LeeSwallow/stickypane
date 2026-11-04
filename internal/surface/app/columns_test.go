@@ -83,15 +83,14 @@ func TestAWidthStepIsOneColumn(t *testing.T) {
 	}
 }
 
-// H and L move a note a place, K and J a row; { } are H and L.
+// H and L move a note a place, K and J a row.
 func TestKeysMoveANoteAlongAndBetweenRows(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, fiveNotes())
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 60})
 	m.setFocus("b.md")
 	for _, step := range []struct{ key, want string }{
-		{"J", "a e c d b"}, {"K", "a b c d e"}, {"L", "a c b d e"}, {"H", "a b c d e"},
-		{"}", "a c b d e"}, {"{", "a b c d e"}, {"K", "a b c d e"},
+		{"J", "a e c d b"}, {"K", "a b c d e"}, {"L", "a c b d e"}, {"H", "a b c d e"}, {"K", "a b c d e"},
 	} {
 		press(m, step.key)
 		if got := order(m); got != step.want {
@@ -108,18 +107,31 @@ func TestKeysMoveANoteAlongAndBetweenRows(t *testing.T) {
 	}
 }
 
-// A kanban takes H J K L for its cards; { } still move the note.
-func TestAKanbanKeepsItsKeys(t *testing.T) {
+// On the board h j k l move between notes and H J K L move the note, a
+// kanban too; the arrows reach its cards. Zoomed, a kanban takes h j k l
+// and H J K L for its cards.
+func TestAKanbanTakesHJKLWhenZoomed(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"a.md": opened("one\n"), "b.md": boardFile})
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	m.setFocus("b.md")
-	press(m, "L")
-	if got := order(m); got != "a b" || !strings.Contains(readFile(t, dir, "b.md"), "## To do\n## Doing") {
-		t.Errorf("L moved the card, not the note: %q\n%s", got, readFile(t, dir, "b.md"))
+	press(m, "H")
+	if got := order(m); got != "b a" || !strings.Contains(readFile(t, dir, "b.md"), "## To do\n- payments") {
+		t.Errorf("H moves the kanban on the board, not its card: %q\n%s", got, readFile(t, dir, "b.md"))
 	}
-	press(m, "{")
+	press(m, "l")
+	if m.focus != "a.md" {
+		t.Fatalf("l goes to the note on the right: %q", m.focus)
+	}
+	press(m, "h", "right")
+	if m.focus != "b.md" || !strings.Contains(screen(m), "› login API") {
+		t.Errorf("→ moves the kanban's cursor on the board:\n%s", screen(m))
+	}
+	press(m, "enter", "h", "L")
+	if got := plain(readFile(t, dir, "b.md")); m.mode != modeZoom || !strings.Contains(got, "## To do\n## Doing\n- login API\n- payments") {
+		t.Errorf("zoomed, h and L are the kanban's: %v\n%s", m.mode, got)
+	}
 	if got := order(m); got != "b a" {
-		t.Errorf("{ moves the kanban: %q", got)
+		t.Errorf("the kanban's keys leave the note where it is: %q", got)
 	}
 }

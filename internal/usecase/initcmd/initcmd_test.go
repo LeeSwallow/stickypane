@@ -88,7 +88,7 @@ func TestEveryWelcomeMatchesTheEnglish(t *testing.T) {
 				t.Errorf("%s: %s = %q, the English has %q", lang, key, b, a)
 			}
 		}
-		for _, k := range []string{"**tab**", "**enter**", "**N**", "**a**", "**o**", "**?**", "**×**", "`.sticky/`", "Claude Code", "Codex"} {
+		for _, k := range []string{"**h j k l**", "**tab**", "**enter**", "**N**", "**a**", "**o**", "**?**", "**×**", "`.sticky/`", "Claude Code", "Codex"} {
 			if !strings.Contains(w.Body, k) {
 				t.Errorf("%s: the welcome note should name %s", lang, k)
 			}

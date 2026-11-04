@@ -113,7 +113,7 @@ func TestConflictIsReportedAndNothingIsWritten(t *testing.T) {
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
 	agent := strings.Replace(boardFile, "## To do\n- payments\n", "## To do\n", 1) + "- payments shipped\n"
 	writeFile(t, dir, "b.md", agent) // the agent edits before the screen catches up
-	press(m, "L")
+	press(m, "z", "L")
 	if got := plain(readFile(t, dir, "b.md")); got != agent {
 		t.Errorf("the agent's version must survive, got %q", got)
 	}
@@ -234,7 +234,7 @@ func TestZoomSurvivesKindChange(t *testing.T) {
 func TestExternalEditKeepsTheCursor(t *testing.T) {
 	t.Parallel()
 	m, dir := newModel(t, map[string]string{"b.md": boardFile})
-	press(m, "l")
+	press(m, "right")
 	writeFile(t, dir, "b.md", strings.Replace(boardFile, "- schema\n", "- schema\n- docs\n", 1))
 	m.Update(changedMsg{})
 	if s := screen(m); !strings.Contains(s, "› login API") || !strings.Contains(s, "docs") {

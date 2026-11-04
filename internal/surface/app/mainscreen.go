@@ -58,32 +58,25 @@ func turnPage(delta int) func(*Model) tea.Cmd {
 }
 
 // mainUpdate routes a key. A focused open note gets the keys its kind
-// lists; the screen gets the rest; and scroll keys nobody claimed scroll
-// the focused note inside its pane. While a sequence waits for its next
-// key ("g" of "g g"), that key goes to it first; a count alone does not
-// take a key from the note, and is dropped when the note takes it. A key
-// typed with the Korean layout on is read as the Latin key it is on.
+// lists, except the ones the board takes first (h j k l and the others
+// that move between notes or move them: see action.first); the screen gets
+// the rest. While a sequence waits for its next key ("g" of "g g"), that
+// key goes to it first; a count alone does not take a key from the note,
+// and is dropped when the note takes it. A key typed with the Korean
+// layout on is read as the Latin key it is on.
 func mainUpdate(m *Model, msg tea.Msg) tea.Cmd {
 	k, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return nil
 	}
 	key := latinKey(k.String())
-	if i := m.index(m.focus); len(m.seq.keys) == 0 && i >= 0 && m.isOpen(m.items[i]) && m.items[i].kind.Handles(key) {
+	if i := m.index(m.focus); len(m.seq.keys) == 0 && i >= 0 && m.isOpen(m.items[i]) && m.items[i].kind.Handles(key) && !m.keys.first[key] {
 		m.seq.reset()
 		m.toWidget(i, key)
 		return nil
 	}
-	if used, cmd := m.feedKey(key); used {
-		return cmd
-	}
-	// Scroll keys nobody claimed move the focused note inside its pane.
-	if p, ok := m.paneOf(m.focus); ok {
-		if offset, ok := widget.ScrollKey(p.offset, key, p.rows()); ok {
-			m.scrollPane(p, offset)
-		}
-	}
-	return nil
+	_, cmd := m.feedKey(key)
+	return cmd
 }
 
 func mainBody(m *Model, h int) []string {
@@ -107,20 +100,21 @@ func mainFooter(m *Model) string {
 	case i < 0:
 		return m.withHelp("help", jotAddQuit...)
 	case !m.isOpen(m.items[i]):
-		return m.withHelp("help", joinHints(k.hint("next", "focus-next"), k.hint("open", "note-open"), jotAddQuit)...)
+		return m.withHelp("help", joinHints(k.hint("go", "focus-left", "focus-down", "focus-up", "focus-right"), k.hint("open", "note-open"), jotAddQuit)...)
 	case len(m.items[i].kind.Hint) > 0:
-		// A note that uses enter itself is zoomed with z.
+		// A note that uses enter itself is zoomed with z. Zoomed, it
+		// takes the keys the board takes first.
 		zoom := k.hint("zoom", "note-open")
 		if len(zoom) == 0 || m.items[i].kind.Handles(zoom[0]) {
 			zoom = k.hint("zoom", "note-zoom")
 		}
-		own := append(append([]string(nil), m.items[i].kind.Hint...), zoom...)
-		return m.withHelp("help", append(own, m.moving(joinHints(k.hint("close", "note-toggle"), k.hint("next", "focus-next"))...)...)...)
+		own := append(k.ownHints(m.items[i].kind), zoom...)
+		return m.withHelp("help", append(own, m.moving(joinHints(k.hint("go", "focus-left", "focus-down", "focus-up", "focus-right"), k.hint("close", "note-toggle"))...)...)...)
 	}
-	return m.withHelp("help", joinHints(k.hint("next", "focus-next"), k.hint("zoom", "note-open"),
-		m.moving(joinHints([]string{"j k", "scroll"}, k.hint("close", "note-toggle"), k.hint("size", "note-wider", "note-narrower"),
+	return m.withHelp("help", joinHints(k.hint("go", "focus-left", "focus-down", "focus-up", "focus-right"), k.hint("zoom", "note-open"),
+		m.moving(joinHints(k.hint("scroll", "scroll-half-down", "scroll-half-up"), k.hint("close", "note-toggle"), k.hint("size", "note-wider", "note-narrower"),
 			k.hint("move", "note-move-earlier", "note-move-down", "note-move-up", "note-move-later"),
-			k.hint("to folder", "note-to-folder"), k.hint("delete", "note-delete"), k.hint("jot", "jot"))...))...)
+			k.hint("to folder", "note-to-folder"), k.hint("copy", "note-copy"), k.hint("delete", "note-delete"), k.hint("jot", "jot"))...))...)
 }
 
 // withHelp draws pairs on the bottom line and ends with the key to the
@@ -282,6 +276,78 @@ func (m *Model) stepFocus(delta int) {
 	if n := len(m.items); n > 0 {
 		i := (m.index(m.focus) + delta + n) % n
 		m.setFocus(m.items[i].note.Name)
+	}
+}
+
+// focusEnd moves to the first note in title bar order, or the last.
+func (m *Model) focusEnd(last bool) {
+	if len(m.items) == 0 {
+		return
+	}
+	i := 0
+	if last {
+		i = len(m.items) - 1
+	}
+	m.setFocus(m.items[i].note.Name)
+}
+
+// focusToward moves to the open note on one side of the focused one, as
+// the screen shows them: dx -1 is left and 1 right, dy -1 up and 1 down.
+// Left and right go to a note beside it, one that shares some of its
+// lines. Up and down go to the nearest row that way, to the note there
+// that shares most of its columns, or else the nearest; the screens of
+// notes stand one above the other, so down from the last row goes on to
+// the next screen. A closed note has no side: from it the focus moves in
+// the title bar's order.
+func (m *Model) focusToward(dx, dy int) {
+	from, ok := m.paneOf(m.focus)
+	if !ok {
+		m.stepFocus(dx + dy)
+		return
+	}
+	// Where a pane is, top to bottom across the screens.
+	top := func(p pane) int { return p.screen*(m.bodyHeight()+1) + p.rect.Y }
+	// overlap is how much of a and b's spans [a0,a1) and [b0,b1) they share,
+	// less than 0 by how far apart they are.
+	overlap := func(a0, a1, b0, b1 int) int { return min(a1, b1) - max(a0, b0) }
+	best, bestKey := "", [3]int{}
+	for _, p := range m.panes {
+		if p.name == from.name || p.rect.H < 2 {
+			continue
+		}
+		var gap, shared int
+		switch {
+		case dx > 0:
+			gap = p.rect.X - (from.rect.X + from.rect.W)
+		case dx < 0:
+			gap = from.rect.X - (p.rect.X + p.rect.W)
+		case dy > 0:
+			// The notes of a row start on the same line: the next row
+			// is the nearest top below this one.
+			gap = top(p) - top(from) - 1
+		default:
+			gap = top(from) - top(p) - 1
+		}
+		if dx != 0 {
+			shared = overlap(from.rect.Y, from.rect.Y+from.rect.H, p.rect.Y, p.rect.Y+p.rect.H)
+			if p.screen != from.screen || shared <= 0 {
+				continue
+			}
+		} else {
+			shared = overlap(from.rect.X, from.rect.X+from.rect.W, p.rect.X, p.rect.X+p.rect.W)
+		}
+		if gap < 0 {
+			continue
+		}
+		// Nearest first, then the most shared, then the one further left
+		// or up.
+		key := [3]int{gap, -shared, p.rect.X + top(p)}
+		if best == "" || key[0] < bestKey[0] || key[0] == bestKey[0] && (key[1] < bestKey[1] || key[1] == bestKey[1] && key[2] < bestKey[2]) {
+			best, bestKey = p.name, key
+		}
+	}
+	if best != "" {
+		m.setFocus(best)
 	}
 }
 
