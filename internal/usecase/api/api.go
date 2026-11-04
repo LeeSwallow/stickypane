@@ -222,7 +222,7 @@ func (a *API) Write(name string, opts Options, body []byte) (string, error) {
 	if err != nil {
 		return file, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, nil
 }
 
@@ -270,7 +270,7 @@ func (a *API) Create(name string, opts Options, body []byte) (string, error) {
 	if err := a.st.WriteNew(file, d.Bytes()); err != nil {
 		return file, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, nil
 }
 

@@ -85,7 +85,7 @@ func (a *API) change(name string, kinds []string, op doc.Op) (string, doc.Docume
 	if err != nil {
 		return file, doc.Document{}, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return file, after, nil
 }
 
@@ -404,7 +404,7 @@ func (a *API) Remove(name string) (Moved, error) {
 	} else if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive() // charts computed from this note follow it
+	a.follow()
 	return Moved{From: file, To: to}, nil
 }
 
@@ -439,7 +439,7 @@ func (a *API) Return(m Moved) (Moved, error) {
 	if err := a.st.Restore(m.To, m.From); err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: m.To, To: m.From}, nil
 }
 
@@ -456,7 +456,7 @@ func (a *API) Archive(name string) (Moved, error) {
 	} else if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: file, To: to}, nil
 }
 
@@ -469,7 +469,7 @@ func (a *API) Move(name, to string) (Moved, error) {
 	if err != nil {
 		return Moved{}, err
 	}
-	_, _ = a.Derive()
+	a.follow()
 	return Moved{From: file, To: dest}, nil
 }
 
