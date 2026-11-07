@@ -20,7 +20,7 @@ import (
 
 // appVersion is the app's version: build/config.yml's info.version
 // (version_test.go keeps them the same).
-const appVersion = "0.2.1"
+const appVersion = "0.3.0"
 
 // focusSettle is how long a board that lost the focus waits to see where
 // it went before it hides (shell.Config.FocusSettle).

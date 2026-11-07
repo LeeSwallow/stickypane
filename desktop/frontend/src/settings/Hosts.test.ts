@@ -42,7 +42,7 @@ const dev: Host = { name: 'dev', target: 'min@dev.lan', boards: ['/srv/api'] }
 describe('원격 호스트', () => {
   it('is a section of the settings window, saying what is kept', async () => {
     const f = fakeHosts([dev])
-    const app = { prefs: vi.fn(async () => ({ hotkey: '', language: 'ko', mode: '' })), onPrefs: () => () => {}, onBoard: () => () => {}, autostart: vi.fn(async () => ({ supported: false, enabled: false })), about: vi.fn(async () => ({ app: '0.2.1', stickypane: { found: true, bridge: true } })) } as unknown as AppApi
+    const app = { prefs: vi.fn(async () => ({ hotkey: '', language: 'ko', mode: '' })), onPrefs: () => () => {}, onBoard: () => () => {}, autostart: vi.fn(async () => ({ supported: false, enabled: false })), about: vi.fn(async () => ({ app: '0.3.0', stickypane: { found: true, bridge: true } })) } as unknown as AppApi
     const board = { status: vi.fn(async () => ({ window: 0, path: '', state: 'closed', pinned: false })), load: vi.fn(), themes: vi.fn(async () => []), setSettings: vi.fn(), layout: vi.fn(), setMode: vi.fn() }
     render(SettingsWindow, { board, app, setup: fakeSetup().api, hosts: f.api, section: 'hosts' })
     expect(await screen.findByRole('heading', { name: '원격 호스트' })).toBeTruthy()

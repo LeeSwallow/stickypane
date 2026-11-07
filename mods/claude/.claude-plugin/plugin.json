@@ -1,6 +1,6 @@
 {
   "name": "board-mod",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "The stickypane board inside Claude Code: a pane of its notes, and a toast when the user changes it.",
   "author": {
     "name": "LeeSwallow",

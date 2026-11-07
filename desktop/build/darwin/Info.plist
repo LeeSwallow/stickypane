@@ -12,11 +12,11 @@
         <key>CFBundleIdentifier</key>
             <string>io.github.leeswallow.stickypane</string>
         <key>CFBundleVersion</key>
-            <string>0.2.1</string>
+            <string>0.3.0</string>
         <key>CFBundleGetInfoString</key>
             <string>stickypane</string>
         <key>CFBundleShortVersionString</key>
-            <string>0.2.1</string>
+            <string>0.3.0</string>
         <key>CFBundleIconFile</key>
             <string>icons</string>
         <key>CFBundleIconName</key>

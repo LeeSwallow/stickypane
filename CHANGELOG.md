@@ -6,6 +6,11 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-07
+
+The board's keys are vim keys now; see Changed for the old ones. 0.2.1 was
+never tagged, so its changes ship here too.
+
 ### Added
 
 - The board's keys are yours to change. `stickypane keys` lists every
@@ -98,6 +103,8 @@ on GitHub are built from pull request labels.
   that column alone, with no empty To do, Doing and Done beside it.
 
 ## [0.2.1] - 2026-11-04
+
+Not tagged; these changes ship in 0.3.0.
 
 ### Added
 
