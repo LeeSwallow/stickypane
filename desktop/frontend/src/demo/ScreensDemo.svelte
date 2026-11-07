@@ -189,7 +189,7 @@
     },
     autostart: async () => ({ supported: true, enabled: false }),
     setAutostart: async (on) => ({ supported: true, enabled: on }),
-    about: async () => ({ app: '0.2.1', stickypane: { found: true, bridge: true, path: '/Applications/stickypane.app/Contents/Helpers/stickypane', version: '0.4.0' } }),
+    about: async () => ({ app: '0.3.0', stickypane: { found: true, bridge: true, path: '/Applications/stickypane.app/Contents/Helpers/stickypane', version: '0.4.0' } }),
     onBoard: () => () => {},
     openURL: async (u) => void window.open(u),
   }
