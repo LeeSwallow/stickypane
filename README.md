@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/Windows_Terminal-4D4D4D" alt="Windows Terminal">
 </p>
 
-![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
+![An agent's shell on the left runs stickypane commands; the board on the right ticks the plan, moves a card to Done, and fills a log, a chat and a chart as it goes](demo/live.gif)
 
 [What it is](#what-it-is) · [Install](#install) · [Getting started](#getting-started) · [Desktop app](#the-desktop-app) · [How it works](#how-it-works) · [Note shapes](#note-shapes) · [Agents](#working-with-agents) · [Usage](#usage-reference) · [Configuration](#configuration) · [FAQ](#faq) · [Contributing](#contributing)
 
@@ -142,7 +142,7 @@ Next: stickypane help, then stickypane help <command>.
 
 ![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/desktop/assets/app-board.png)
 
-For macOS (Apple silicon) and Linux, from v0.2.1 on: the DMG and the
+For macOS (Apple silicon) and Linux, from v0.3.0 on: the DMG and the
 Linux archive are on the
 [releases page](https://github.com/LeeSwallow/stickypane/releases), and
 [docs/install.md](docs/install.md#the-desktop-app) says how to install
