@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/Windows_Terminal-4D4D4D" alt="Windows Terminal">
 </p>
 
-![The board next to an agent: a kanban with who has each card and since when, a checklist that keeps when each item was done, a chart counted from the kanban, and a chat](demo/screenshots/1-board.png)
+![An agent's shell on the left runs stickypane commands; the board on the right ticks the plan, moves a card to Done, and fills a log, a chat and a chart as it goes](demo/live.gif)
 
 [What it is](#what-it-is) · [Install](#install) · [Getting started](#getting-started) · [Desktop app](#the-desktop-app) · [How it works](#how-it-works) · [Note shapes](#note-shapes) · [Agents](#working-with-agents) · [Usage](#usage-reference) · [Configuration](#configuration) · [FAQ](#faq) · [Contributing](#contributing)
 
