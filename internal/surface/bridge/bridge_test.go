@@ -725,3 +725,16 @@ func TestOpenRefusesABook(t *testing.T) {
 		t.Errorf("ran %d commands, want only the page's", ran)
 	}
 }
+
+func TestServeThatCannotStartClosesItsInput(t *testing.T) {
+	// A board that cannot be read ends the session before it begins; whoever
+	// writes the first request must not wait for ever on a reader that is gone.
+	missing := filepath.Join(t.TempDir(), "gone", store.DirName)
+	inR, inW := io.Pipe()
+	if err := Serve(context.Background(), newAPI(missing), kinds.Default(note.Plain), inR, io.Discard); err == nil {
+		t.Fatal("Serve on a missing board returned no error")
+	}
+	if _, err := io.WriteString(inW, "{}\n"); err != io.ErrClosedPipe {
+		t.Errorf("writing after Serve ended: %v, want io.ErrClosedPipe", err)
+	}
+}
