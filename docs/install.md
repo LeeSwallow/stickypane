@@ -15,7 +15,7 @@ brew install --cask LeeSwallow/tap/stickypane
 
 ## The desktop app
 
-Each release from v0.2.1 on carries the app beside the command line
+Each release from v0.3.0 on carries the app beside the command line
 program, on the [releases page](https://github.com/LeeSwallow/stickypane/releases):
 a DMG for Apple silicon Macs and a tar.gz for Linux on amd64. It carries
 its own `stickypane`, so it is the only thing to install.

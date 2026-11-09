@@ -142,7 +142,7 @@ Next: stickypane help, then stickypane help <command>.
 
 ![The desktop app: agents and their cards in a line at the top, a checklist, a kanban with a stalled card circled, and notes on graph paper](docs/desktop/assets/app-board.png)
 
-For macOS (Apple silicon) and Linux, from v0.2.1 on: the DMG and the
+For macOS (Apple silicon) and Linux, from v0.3.0 on: the DMG and the
 Linux archive are on the
 [releases page](https://github.com/LeeSwallow/stickypane/releases), and
 [docs/install.md](docs/install.md#the-desktop-app) says how to install

@@ -139,10 +139,10 @@ stickypane init
 
 ![데스크톱 앱: 위쪽 줄에 에이전트와 맡은 카드, 체크리스트, 멈춘 카드에 동그라미가 쳐진 칸반, 모눈종이 위의 노트들](docs/desktop/assets/app-board.png)
 
-**아직 출시 전입니다.** 앱은 이 저장소의 [`desktop/`](desktop/)에서 macOS와
-Linux용으로 만들고 시험했습니다. DMG와 Linux 압축 파일은 첫 앱 릴리스와 함께
-나옵니다([#10](https://github.com/LeeSwallow/stickypane/issues/10)). 그 전에는
-내려받을 것이 없습니다.
+macOS(Apple silicon)와 Linux용이고 v0.3.0부터 나옵니다. DMG와 Linux 압축 파일은
+[릴리스 페이지](https://github.com/LeeSwallow/stickypane/releases)에 있고, 설치 방법은
+영문 [docs/install.md](docs/install.md#the-desktop-app)에 있습니다. 코드는
+[`desktop/`](desktop/)에 있습니다.
 
 같은 보드를 독립된 앱 창에 띄웁니다. 표, Mermaid, 수식, 샌드박스 안의 `.html`
 페이지까지 노트를 빠짐없이 그립니다. 클릭은 키와 똑같이 파일을 바꾸므로, 체크하고
