@@ -63,6 +63,11 @@ type server struct {
 func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, out io.Writer) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	// Closing the input on every way out, an early one too, unblocks the
+	// reader and whoever writes to it. Deferred first, so it runs last.
+	if c, ok := in.(io.Closer); ok {
+		defer c.Close()
+	}
 	s := &server{ctx: ctx, api: a, reg: reg, out: out, fail: cancel, script: map[*runner.Run]struct{}{}}
 	// The watcher first: a change made while the board is read is then seen
 	// as a change, not lost between the reading and the watching. The
@@ -89,9 +94,6 @@ func Serve(ctx context.Context, a *api.API, reg widget.Registry, in io.Reader, o
 		s.stopScripts()
 		s.runs.Wait()
 		following.Wait()
-		if c, ok := in.(io.Closer); ok {
-			c.Close() // unblocks the reader
-		}
 	}()
 
 	lines := make(chan []byte)
