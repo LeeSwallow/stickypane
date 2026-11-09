@@ -13,7 +13,7 @@ jobs:
   flow:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: check the title, the issue and the labels
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
