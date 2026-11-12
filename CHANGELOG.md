@@ -11,6 +11,10 @@ on GitHub are built from pull request labels.
 - Orca is a pane tool. In an Orca terminal, `stickypane env` and
   `stickypane init` give `orca terminal split --direction vertical --command
   stickypane`, which opens the board beside the agent.
+- An `.rpm` and a `.deb` on each release, for `dnf` and `apt`: one of the
+  command line program (`stickypane`, amd64 and arm64) and one of the app
+  (`stickypane-app`, amd64), which carries its own `stickypane` and depends
+  on GTK 4 and WebKitGTK 6.0 (#128).
 
 ## [0.3.0] - 2026-11-07
 
