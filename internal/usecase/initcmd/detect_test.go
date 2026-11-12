@@ -19,6 +19,8 @@ func TestMain(m *testing.M) {
 	}
 	os.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(tmp, "claude"))
 	os.Setenv("CODEX_HOME", filepath.Join(tmp, "codex"))
+	// The tests read the English output, whatever the machine's language.
+	os.Setenv("STICKYPANE_LANG", "en")
 	// No pane tool, so the next step a test sees is the plain one.
 	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)
