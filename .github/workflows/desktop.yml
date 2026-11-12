@@ -70,9 +70,9 @@ jobs:
       - run: sh scripts/licenses.sh
 
   package:
-    # The DMG and the Linux archive of a pull request (docs/desktop/09), kept
-    # as workflow artifacts to try out. Nothing is released, tagged or
-    # published to Homebrew here.
+    # The DMG and the Linux archive, rpm and deb of a pull request
+    # (docs/desktop/09), kept as workflow artifacts to try out. Nothing is
+    # released, tagged or published to Homebrew here.
     if: github.event_name == 'pull_request'
     needs: desktop
     strategy:
@@ -119,12 +119,14 @@ jobs:
           arch=$(uname -m | sed 's/x86_64/amd64/')
           sh ../scripts/desktop-dmg.sh bin/stickypane-app.app "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
           hdiutil verify "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
-      - name: Linux archive
+      - name: Linux archive, rpm and deb
         if: runner.os == 'Linux'
         run: |
           wails3 build
           sh ../scripts/desktop-linux.sh bin/stickypane-app "$VERSION" "$(go env GOARCH)" "$RUNNER_TEMP/dist"
           tar -tzf "$RUNNER_TEMP"/dist/*.tar.gz
+          sh ../scripts/desktop-linux-packages.sh "$RUNNER_TEMP"/dist/*.tar.gz "$RUNNER_TEMP/dist"
+          dpkg-deb -c "$RUNNER_TEMP"/dist/*.deb
       - uses: actions/upload-artifact@v7
         with:
           name: stickypane-app-${{ runner.os }}

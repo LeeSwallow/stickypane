@@ -61,7 +61,7 @@ flowchart LR
 | --- | --- |
 | <img src="https://img.shields.io/badge/Homebrew-FBB040?logo=homebrew&logoColor=white" alt="Homebrew"> | `brew install --cask LeeSwallow/tap/stickypane` |
 | <img src="https://img.shields.io/badge/Go_1.26+-00ADD8?logo=go&logoColor=white" alt="Go"> | `go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest` |
-| <img src="https://img.shields.io/badge/GitHub_Releases-181717?logo=github&logoColor=white" alt="GitHub Releases"> | [릴리스 페이지](https://github.com/LeeSwallow/stickypane/releases)의 macOS, Linux, Windows용 압축 파일 |
+| <img src="https://img.shields.io/badge/GitHub_Releases-181717?logo=github&logoColor=white" alt="GitHub Releases"> | [릴리스 페이지](https://github.com/LeeSwallow/stickypane/releases)의 macOS, Linux, Windows용 압축 파일과 `.rpm`, `.deb` |
 
 <img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white" alt="macOS"> <img src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black" alt="Linux"> <img src="https://img.shields.io/badge/Windows-0078D4" alt="Windows">
 
