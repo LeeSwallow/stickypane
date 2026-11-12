@@ -39,6 +39,8 @@ stickypane이 그 보드입니다. 평범한 파일이 든 폴더(`.sticky/`) �
 
 ```sh
 brew install --cask LeeSwallow/tap/stickypane
+# 또는 Fedora에서 (ARM은 _arm64, 릴리스 페이지에 .deb도 있습니다)
+sudo dnf install https://github.com/LeeSwallow/stickypane/releases/latest/download/stickypane_amd64.rpm
 # 또는
 go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest
 ```

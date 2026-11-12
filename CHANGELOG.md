@@ -25,6 +25,7 @@ share.
   `link`, forms with `answers` and `wait`, `init --skill`.
 - A Claude Code and Codex plugin with three skills, four commands and a
   session hook.
+- `.rpm` and `.deb` packages on each release, for Fedora and Debian.
 
 ### Known limits
 

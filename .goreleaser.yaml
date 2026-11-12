@@ -23,6 +23,22 @@ archives:
   - formats:
       - tar.gz
 
+nfpms:
+  - formats:
+      - rpm
+      - deb
+    # No version in the name, so releases/latest/download/... always works.
+    file_name_template: "{{ .ProjectName }}_{{ .Arch }}"
+    maintainer: LeeSwallow <noreply@github.com>
+    homepage: https://github.com/LeeSwallow/stickypane
+    description: A sticky-note board in your terminal, for you and your coding agent
+    license: MIT
+    recommends:
+      - tmux
+    contents:
+      - src: LICENSE
+        dst: /usr/share/licenses/stickypane/LICENSE
+
 checksum:
   name_template: checksums.txt
 

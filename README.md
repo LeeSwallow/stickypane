@@ -74,6 +74,8 @@ in your repository, readable without stickypane.
 
 ```sh
 brew install --cask LeeSwallow/tap/stickypane
+# or, on Fedora (use _arm64 on ARM; a .deb is on the release page too)
+sudo dnf install https://github.com/LeeSwallow/stickypane/releases/latest/download/stickypane_amd64.rpm
 # or
 go install github.com/LeeSwallow/stickypane/cmd/stickypane@latest
 ```
