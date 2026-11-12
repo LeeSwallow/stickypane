@@ -26,7 +26,7 @@ jobs:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   # The desktop app goes onto the same release (docs/desktop/09 §9.1): a DMG
-  # built on a Mac and a tar.gz on Linux, after goreleaser has made the
+  # built on a Mac and a tar.gz, an rpm and a deb on Linux, after goreleaser has made the
   # release. The app's version (desktop/build/config.yml) must be the tag's.
   app:
     needs: release
@@ -81,10 +81,12 @@ jobs:
           arch=$(uname -m | sed 's/x86_64/amd64/')
           sh ../scripts/desktop-dmg.sh bin/stickypane-app.app "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
           hdiutil verify "$RUNNER_TEMP/dist/stickypane-$VERSION-$arch.dmg"
-      - name: Linux archive
+      - name: Linux archive, rpm and deb
         if: runner.os == 'Linux'
         run: |
           wails3 build
           sh ../scripts/desktop-linux.sh bin/stickypane-app "$VERSION" "$(go env GOARCH)" "$RUNNER_TEMP/dist"
+          sh ../scripts/desktop-linux-packages.sh "$RUNNER_TEMP"/dist/*.tar.gz "$RUNNER_TEMP/dist"
+          dpkg-deb -c "$RUNNER_TEMP"/dist/*.deb
       - name: Upload to the release
         run: gh release upload "$TAG" "$RUNNER_TEMP"/dist/* --clobber

@@ -33,7 +33,31 @@ tar -xzf stickypane-app-<version>-linux-amd64.tar.gz
 sh stickypane-app-<version>-linux-amd64/install.sh   # --uninstall takes it out
 ```
 
+Or, for every user of the machine, the `.rpm` or the `.deb` beside it,
+which brings GTK 4 and WebKitGTK 6.0 with it:
+
+```sh
+sudo dnf install ./stickypane-app-<version>-linux-amd64.rpm   # Fedora
+sudo apt install ./stickypane-app-<version>-linux-amd64.deb   # Debian, Ubuntu
+```
+
 The app's own design and build notes are in [docs/desktop](desktop/README.md).
+
+## An rpm or a deb
+
+Each release has a package of the command line program for Fedora and its
+kin (`.rpm`) and for Debian and Ubuntu (`.deb`), for `amd64` and `arm64`.
+Download the one for your machine from the
+[release](https://github.com/LeeSwallow/stickypane/releases), then:
+
+```sh
+sudo dnf install ./stickypane_<version>_linux_amd64.rpm   # Fedora
+sudo apt install ./stickypane_<version>_linux_amd64.deb   # Debian, Ubuntu
+```
+
+It puts `stickypane` in `/usr/bin` and the licenses in
+`/usr/share/licenses/stickypane`. There is no package repository yet, so
+a newer version is installed the same way.
 
 ## A release archive
 
@@ -94,9 +118,10 @@ stickypane env         # the system, shell, pane tool, locale and editor it foun
 ## Update and remove
 
 Update the way you installed it: `brew upgrade --cask stickypane`, a newer
-archive, or `go install ...@latest` again. To remove it, run
+archive or package, or `go install ...@latest` again. To remove it, run
 `stickypane setup --undo` if you installed the plugin (with the same
 `--scope`, and `--mcp` if you registered the MCP server), then
-`brew uninstall --cask stickypane` or delete the program. Your notes stay
+`brew uninstall --cask stickypane`, `sudo dnf remove stickypane` (or
+`apt remove`), or delete the program. Your notes stay
 in each project's `.sticky/` folder; they are plain files, yours to keep or
 delete.
