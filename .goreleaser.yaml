@@ -36,6 +36,24 @@ archives:
       - src: build/THIRD_PARTY_LICENSES.txt
         strip_parent: true
 
+# An rpm and a deb of the command line program, holding what the archives
+# hold: the program, its license and the licenses of its modules.
+nfpms:
+  - formats:
+      - rpm
+      - deb
+    maintainer: LeeSwallow <LeeSwallow@users.noreply.github.com>
+    homepage: https://github.com/LeeSwallow/stickypane
+    description: A sticky-note board in your terminal, for you and your coding agent
+    license: MIT
+    contents:
+      - src: LICENSE
+        dst: /usr/share/licenses/stickypane/LICENSE
+      - src: THIRD_PARTY_NOTICES.md
+        dst: /usr/share/licenses/stickypane/THIRD_PARTY_NOTICES.md
+      - src: build/THIRD_PARTY_LICENSES.txt
+        dst: /usr/share/licenses/stickypane/THIRD_PARTY_LICENSES.txt
+
 checksum:
   name_template: checksums.txt
 

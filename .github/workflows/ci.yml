@@ -34,6 +34,42 @@ jobs:
           go-version-file: go.mod
       - run: sh scripts/licenses.sh
 
+  packages:
+    # The archives and the rpm and deb of a release, built as a tag builds
+    # them and kept as workflow artifacts. Nothing is published.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
+        env:
+          # The cask's template reads it; nothing is sent to the tap here.
+          HOMEBREW_TAP_TOKEN: ""
+      - name: The packages hold the program and its licenses
+        run: |
+          for deb in dist/*.deb; do
+            list=$(dpkg-deb -c "$deb")
+            for f in usr/bin/stickypane usr/share/licenses/stickypane/LICENSE usr/share/licenses/stickypane/THIRD_PARTY_LICENSES.txt; do
+              printf '%s\n' "$list" | grep -q "\./$f\$" || { echo "$deb: no /$f"; printf '%s\n' "$list"; exit 1; }
+            done
+          done
+          ls dist/*.rpm
+      - uses: actions/upload-artifact@v7
+        with:
+          name: stickypane-packages
+          path: |
+            dist/*.rpm
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
   commits:
     # A commit names the people who made it. AI tools are not listed as
     # co-authors; see CONTRIBUTING.md.

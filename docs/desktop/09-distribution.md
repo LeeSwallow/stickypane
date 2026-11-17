@@ -11,6 +11,7 @@
 | macOS (arm64, amd64) | `stickypane-<버전>-<arch>.dmg`, 볼륨 이름 `stickypane`, 안에 `Stickypane.app` | `wails3 package` → `scripts/desktop-dmg.sh`(hdiutil + 배경 + 아이콘 배치) |
 | macOS | Homebrew cask | 같은 DMG를 가리킨다([미결정]: 이름과 본체 cask와의 관계) |
 | Linux (amd64, arm64) | `stickypane-app-<버전>-linux-<arch>.tar.gz` (앱 + `stickypane` + `.desktop` + 아이콘 + `install.sh` + 라이선스(`LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`)) | Linux에서 `wails3 build` → `scripts/desktop-linux.sh`. GTK4와 WebKitGTK 6.0이 필요하다(Wails v3의 기본). 풀고 `sh install.sh`를 하면 `~/.local/lib/stickypane-app/`에 앱과 CLI, `~/.local/bin/stickypane-app` 링크, `~/.local/share/applications/stickypane.desktop`과 아이콘이 깔린다(`--uninstall`로 지운다) |
+| Linux (amd64) | `stickypane-app-<버전>-linux-<arch>.rpm`, `.deb` (압축과 같은 내용) | 위 tar.gz → `scripts/desktop-linux-packages.sh`(`wails3 tool package`, 곧 nfpm, 배치는 `desktop/build/linux/nfpm/nfpm.yaml`). `/usr/lib/stickypane-app/`에 앱과 CLI, `/usr/bin/stickypane-app` 링크, `/usr/share/applications/stickypane.desktop`과 아이콘, `/usr/share/licenses/stickypane-app/`에 라이선스가 깔린다. GTK4와 WebKitGTK 6.0은 의존성으로 따라온다(rpm: `gtk4`, `webkitgtk6.0`; deb: `libgtk-4-1`, `libwebkitgtk-6.0-4`). 본체 `stickypane`의 rpm·deb는 goreleaser가 따로 만든다 |
 
 | 이름 | 값 |
 |---|---|
@@ -24,7 +25,7 @@
 
 라이선스 전문도 앱과 함께 간다. macOS는 `Contents/Resources/`, Linux는 압축 폴더 맨 위에 `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/`를 둔다. `licenses/stickypane-app.txt`는 `desktop/scripts/licenses.sh --write`가 앱에 링크된 Go 모듈과 번들된 npm 패키지(글꼴의 OFL-1.1 포함)의 라이선스 파일을 그대로 모은 것이고, `licenses/stickypane.txt`는 `scripts/licenses.sh`가 번들 CLI의 모듈로 만든 것이다. robust-predicates(mermaid → d3-delaunay, Unlicense)도 목록에 그대로 둔다([미결정]: 뺄지).
 
-본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다. CGO와 WebKit 때문에 `.github/workflows/release.yml`의 `app` 작업이 goreleaser 다음에 macOS 러너(arm64)에서 DMG를, Linux 러너(amd64)에서 tar.gz를 만들어 같은 릴리스에 올린다. 태그와 `desktop/build/config.yml`의 버전이 다르면 실패한다. Intel Mac용과 cask는 아직 없다. 그와 별도로 `desktop/`나 `scripts/desktop-*.sh`를 건드린 PR마다 `.github/workflows/desktop.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
+본체 `stickypane`은 지금처럼 goreleaser로 배포한다. 앱은 같은 태그에 산출물을 더한다. CGO와 WebKit 때문에 `.github/workflows/release.yml`의 `app` 작업이 goreleaser 다음에 macOS 러너(arm64)에서 DMG를, Linux 러너(amd64)에서 tar.gz와 그것으로 rpm·deb를 만들어 같은 릴리스에 올린다. 태그와 `desktop/build/config.yml`의 버전이 다르면 실패한다. Intel Mac용과 cask는 아직 없다. 그와 별도로 `desktop/`나 `scripts/desktop-*.sh`를 건드린 PR마다 `.github/workflows/desktop.yml`의 `package` 작업이 macOS 러너에서 DMG를, Linux 러너에서 tar.gz·rpm·deb를 만들어 워크플로 산출물(14일)로 올린다. 태그·릴리스·Homebrew에는 손대지 않는다. [설계자 판단] 앱은 Windows용을 만들지 않는다(R-30).
 
 ## 9.2 DMG 설치 화면
 
@@ -121,7 +122,7 @@ CLI는 `-trimpath -buildvcs=false`로 빌드해 같은 체크아웃에서 같은
 | 번들 CLI | 마운트한 볼륨의 `Stickypane.app/Contents/Helpers/stickypane version`이 앱 버전을 말한다. `bridge` 테스트가 가짜 번들 배치에서 번들 사본을 먼저 고르는지 본다 |
 | 앱 실행 | Applications에 복사 후 실행, 세션 목록이 뜨는지 |
 | 격리된 첫 실행(수동) | 내려받은 것과 같은 상태를 만들어 본다: 마운트한 볼륨에서 `ditto /Volumes/stickypane/Stickypane.app /tmp/qa/Stickypane.app`, `xattr -w -r com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" /tmp/qa/Stickypane.app`, `open /tmp/qa/Stickypane.app`. Gatekeeper 경고 → 시스템 설정의 **그래도 열기**로 열리는지, 보드를 열 때 bridge가 번들 CLI로 뜨는지(`ps -o command= -p $(pgrep -f 'Helpers/stickypane bridge')`가 `/tmp/qa/Stickypane.app/Contents/Helpers/stickypane`을 가리키는지) 본다. 사람이 한다 |
-| Linux | CI(ubuntu)에서 빌드와 Go 테스트, PR이면 tar.gz를 만들어 산출물로 올린다. 실기 실행은 [미검증] |
+| Linux | CI(ubuntu)에서 빌드와 Go 테스트, PR이면 tar.gz·rpm·deb를 만들어 산출물로 올린다. v0.3.0 tar.gz의 앱은 Fedora 44(x86_64, Cinnamon, X11)에서 공유 라이브러리가 모두 풀리고 첫 화면이 뜬다. 트레이·단축키·항상 위는 [미검증] |
 
 ### 9.6.1 사람이 이 Mac에서 하는 점검표
 

@@ -1,28 +1,40 @@
-# Feel free to remove those if you don't want/need to use them.
-# Make sure to check the documentation at https://nfpm.goreleaser.com
-#
-# The lines below are called `modelines`. See `:help modeline`
+# The app as an rpm or a deb (docs/desktop/09 §9.1), built by
+# scripts/desktop-linux-packages.sh from the unpacked Linux archive in
+# ./bin/pkg, with VERSION and GOARCH in the environment. As install.sh does
+# under ~/.local, it puts the app and the stickypane it runs in one folder
+# and links the app onto the PATH.
 
 name: "stickypane-app"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.3.0"
-section: "default"
-priority: "extra"
-maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
+version: ${VERSION}
+release: "1"
+section: "utils"
+maintainer: "LeeSwallow <LeeSwallow@users.noreply.github.com>"
 description: "A second screen for stickypane boards"
 vendor: "stickypane"
 homepage: "https://github.com/LeeSwallow/stickypane"
 license: "MIT"
-release: "1"
 
 contents:
-  - src: "./bin/stickypane-app"
-    dst: "/usr/local/bin/stickypane-app"
-  - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/stickypane.png"
-  - src: "./build/linux/stickypane.desktop"
+  - src: "./bin/pkg/stickypane-app"
+    dst: "/usr/lib/stickypane-app/stickypane-app"
+  # The command line program the app runs; it looks beside itself first.
+  - src: "./bin/pkg/stickypane"
+    dst: "/usr/lib/stickypane-app/stickypane"
+  - src: "/usr/lib/stickypane-app/stickypane-app"
+    dst: "/usr/bin/stickypane-app"
+    type: symlink
+  - src: "./bin/pkg/stickypane.desktop"
     dst: "/usr/share/applications/stickypane.desktop"
+  - src: "./bin/pkg/stickypane.png"
+    dst: "/usr/share/icons/hicolor/512x512/apps/stickypane.png"
+  - src: "./bin/pkg/LICENSE"
+    dst: "/usr/share/licenses/stickypane-app/LICENSE"
+  - src: "./bin/pkg/THIRD_PARTY_NOTICES.md"
+    dst: "/usr/share/licenses/stickypane-app/THIRD_PARTY_NOTICES.md"
+  - src: "./bin/pkg/licenses/"
+    dst: "/usr/share/licenses/stickypane-app/licenses/"
 
 # Wails v3 builds on GTK4 + WebKitGTK 6.0 unless the gtk3 tag is given
 # (CI installs libgtk-4-dev and libwebkitgtk-6.0-dev).
@@ -30,36 +42,13 @@ depends:
   - libgtk-4-1
   - libwebkitgtk-6.0-4
 
-# Distribution-specific overrides for different package formats
 overrides:
-  # RPM packages for Fedora / RHEL / AlmaLinux / Rocky Linux
+  # Fedora, RHEL and their kin name the libraries differently.
   rpm:
     depends:
       - gtk4
       - webkitgtk6.0
 
-  # Arch Linux packages
-  archlinux:
-    depends:
-      - gtk4
-      - webkitgtk-6.0
-
-# scripts section to ensure desktop database is updated after install
+# The applications menu learns of the .desktop entry.
 scripts:
   postinstall: "./build/linux/nfpm/scripts/postinstall.sh"
-  # You can also add preremove, postremove if needed
-  # preremove: "./build/linux/nfpm/scripts/preremove.sh"
-  # postremove: "./build/linux/nfpm/scripts/postremove.sh"
-
-# replaces:
-#   - foobar
-# provides:
-#   - bar
-# recommends:
-#   - whatever
-# suggests:
-#   - something-else
-# conflicts:
-#   - not-foo
-#   - not-bar
-# changelog: "changelog.yaml"
