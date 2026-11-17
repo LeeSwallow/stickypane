@@ -2,7 +2,7 @@
 
 stickypane is one program with no runtime dependencies. It runs on macOS,
 Linux and Windows, in any terminal that shows Unicode and color: Terminal,
-iTerm2, Ghostty, WezTerm, Kitty, Alacritty, Windows Terminal, and inside
+iTerm2, Ghostty, WezTerm, Kitty, Alacritty, Windows Terminal, Orca, and inside
 tmux or Zellij. No special font is needed.
 
 Back to the [README](../README.md).

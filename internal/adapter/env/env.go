@@ -1,7 +1,7 @@
 // Package env tells what stickypane is running in: the system, the shell,
 // the tool that can open a pane next to the agent, and the user's locale.
 // Everything that differs between macOS, Linux and Windows, or between
-// tmux, Zellij, WezTerm and Windows Terminal, is decided here, so the rest
+// tmux, Zellij, Orca, WezTerm and Windows Terminal, is decided here, so the rest
 // of the code asks instead of guessing.
 //
 // The files: env.go detects, pane.go knows the pane tools, shell.go the
