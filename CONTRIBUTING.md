@@ -89,7 +89,7 @@ proposal.
 ## Setting up
 
 You need Go (the version in `go.mod`, 1.26 or later), git, and a terminal.
-tmux, WezTerm, Zellij or Windows Terminal is handy for running the board
+tmux, WezTerm, Zellij, Orca or Windows Terminal is handy for running the board
 next to a shell, but not required.
 
 ```sh

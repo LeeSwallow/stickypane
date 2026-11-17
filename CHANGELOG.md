@@ -6,6 +6,12 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+### Added
+
+- Orca is a pane tool. In an Orca terminal, `stickypane env` and
+  `stickypane init` give `orca terminal split --direction vertical --command
+  stickypane`, which opens the board beside the agent.
+
 ## [0.3.0] - 2026-11-07
 
 The board's keys are vim keys now; see Changed for the old ones. 0.2.1 was

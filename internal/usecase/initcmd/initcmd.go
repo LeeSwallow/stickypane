@@ -212,7 +212,7 @@ func Run(root string, opts Options, out io.Writer) error {
 }
 
 // NextStep is the one thing to do once the board is there: open it.
-// Inside tmux, Zellij, WezTerm or Windows Terminal it is that tool's
+// Inside tmux, Zellij, Orca, WezTerm or Windows Terminal it is that tool's
 // split command.
 func NextStep(tr i18n.Strings) string {
 	if split := env.Detect().Pane.Split("stickypane"); split != "" {

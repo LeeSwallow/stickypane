@@ -23,6 +23,9 @@ func TestThePaneToolIsRecognized(t *testing.T) {
 	}{
 		{[]string{"TMUX", "/tmp/tmux-501/default,1,0", "WEZTERM_PANE", "3"}, "darwin", "tmux", "tmux split-window -h stickypane"},
 		{[]string{"ZELLIJ", "0"}, "linux", "zellij", "zellij run --direction right -- stickypane"},
+		{[]string{"ORCA_TERMINAL_HANDLE", "term_1"}, "darwin", "orca", "orca terminal split --direction vertical --command stickypane"},
+		{[]string{"TMUX", "/tmp/tmux-501/default,1,0", "ORCA_TERMINAL_HANDLE", "term_1"}, "darwin", "tmux", "tmux split-window -h stickypane"},
+		{[]string{"ORCA_TERMINAL_HANDLE", "term_1", "TERM_PROGRAM", "WezTerm"}, "darwin", "orca", "orca terminal split --direction vertical --command stickypane"},
 		{[]string{"WEZTERM_PANE", "3"}, "linux", "wezterm", "wezterm cli split-pane --right -- stickypane"},
 		{[]string{"TERM_PROGRAM", "WezTerm"}, "darwin", "wezterm", "wezterm cli split-pane --right -- stickypane"},
 		{[]string{"WT_SESSION", "x"}, "windows", "windows-terminal", "wt -w 0 split-pane -V stickypane"},

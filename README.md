@@ -104,6 +104,7 @@ terminal you are in.
 | <img src="https://cdn.simpleicons.org/tmux" height="16" alt=""> tmux | `tmux split-window -h stickypane`, or a popup: `tmux display-popup -E stickypane` |
 | <img src="https://cdn.simpleicons.org/wezterm" height="16" alt=""> WezTerm | `wezterm cli split-pane --right -- stickypane` |
 | Zellij | `zellij run --direction right -- stickypane` |
+| Orca | `orca terminal split --direction vertical --command stickypane` |
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
 | <img src="https://cdn.simpleicons.org/iterm2" height="16" alt=""> iTerm2, <img src="https://cdn.simpleicons.org/ghostty" height="16" alt=""> Ghostty | on macOS, split with `⌘ D`, then `stickypane` |
 | anything else | a second window or tab in the same folder, then `stickypane` |

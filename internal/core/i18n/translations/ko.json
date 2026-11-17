@@ -456,7 +456,7 @@
     "keys.removed": "{{.File}} 파일을 지웠어요. 이제 기본 키를 써요.",
     "keys.noAction": "없는 동작이에요: {{.Action}}. 목록은 stickypane keys에서 볼 수 있어요.",
     "env.split": "{{.Pane}}: `{{.Split}}` 명령으로 에이전트 옆에 보드를 열어요",
-    "env.noPane": "tmux, Zellij, WezTerm, Windows Terminal이 없어요. 에이전트 옆 터미널에서 `stickypane`을 실행하세요",
+    "env.noPane": "tmux, Zellij, Orca, WezTerm, Windows Terminal이 없어요. 에이전트 옆 터미널에서 `stickypane`을 실행하세요",
     "env.langNone": "설정이 없어 영어",
     "env.langFrom": "{{.Var}}={{.Value}} 기준",
     "env.langSystem": "시스템 로캘 {{.Locale}} 기준",

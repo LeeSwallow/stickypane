@@ -101,6 +101,7 @@ stickypane init
 | <img src="https://cdn.simpleicons.org/tmux" height="16" alt=""> tmux | `tmux split-window -h stickypane`, 팝업으로는 `tmux display-popup -E stickypane` |
 | <img src="https://cdn.simpleicons.org/wezterm" height="16" alt=""> WezTerm | `wezterm cli split-pane --right -- stickypane` |
 | Zellij | `zellij run --direction right -- stickypane` |
+| Orca | `orca terminal split --direction vertical --command stickypane` |
 | Windows Terminal | `wt -w 0 split-pane -V stickypane` |
 | <img src="https://cdn.simpleicons.org/iterm2" height="16" alt=""> iTerm2, <img src="https://cdn.simpleicons.org/ghostty" height="16" alt=""> Ghostty | macOS에서 `⌘ D`로 나누고 `stickypane` |
 | 그 밖의 터미널 | 같은 폴더에서 창이나 탭을 하나 더 열고 `stickypane` |

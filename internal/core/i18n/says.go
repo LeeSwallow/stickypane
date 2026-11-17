@@ -108,7 +108,7 @@ var says = map[string]string{
 
 	// stickypane env, after each row's name.
 	"env.split":      "{{.Pane}}: `{{.Split}}` opens the board next to your agent",
-	"env.noPane":     "no tmux, Zellij, WezTerm or Windows Terminal here: run `stickypane` in a terminal beside your agent",
+	"env.noPane":     "no tmux, Zellij, Orca, WezTerm or Windows Terminal here: run `stickypane` in a terminal beside your agent",
 	"env.langNone":   "nothing set, so English",
 	"env.langFrom":   "from {{.Var}}={{.Value}}",
 	"env.langSystem": "from the system's locale {{.Locale}}",
