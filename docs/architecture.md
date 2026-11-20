@@ -83,7 +83,7 @@ pane next to the agent. It detects, from the environment alone:
 
 | What | How | Used for |
 | --- | --- | --- |
-| pane tool | `TMUX`, `ZELLIJ`, `WEZTERM_PANE` or `TERM_PROGRAM`, `WT_SESSION`, in that order | the split command init and `stickypane env` suggest |
+| pane tool | `TMUX`, `ZELLIJ`, `ORCA_TERMINAL_HANDLE`, `WEZTERM_PANE` or `TERM_PROGRAM`, `WT_SESSION`, in that order | the split command init and `stickypane env` suggest |
 | shell | `SHELL`; on Windows, whether `PSModulePath` holds the user's PowerShell modules | how to set a variable, in messages |
 | locale | `STICKYPANE_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`, then the system: macOS `AppleLocale`, Windows `GetUserDefaultLocaleName` | the screen's language |
 | interpreters | `sh` for `.sh`, `pwsh` or `powershell` for `.ps1` | running a script note |

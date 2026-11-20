@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	// wants another language sets it.
 	os.Setenv("STICKYPANE_LANG", "en")
 	// No pane tool, so the next step a test sees is the plain one.
-	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
+	for _, v := range []string{"TMUX", "ZELLIJ", "ORCA_TERMINAL_HANDLE", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)
 	}
 	// Nothing is ever launched: the desktop app is not there, unless a test

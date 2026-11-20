@@ -11,6 +11,10 @@ import (
 // the screen speaks and why, and how scripts run. It needs no board.
 func TestEnvSaysWhatItFound(t *testing.T) {
 	t.Chdir(t.TempDir())
+	// WezTerm is the pane tool here, even when the tests run inside another.
+	for _, v := range []string{"TMUX", "ZELLIJ", "ORCA_TERMINAL_HANDLE"} {
+		t.Setenv(v, "")
+	}
 	t.Setenv("WEZTERM_PANE", "3")
 	t.Setenv("SHELL", "/bin/zsh")
 	t.Setenv("STICKYPANE_LANG", "ko")
