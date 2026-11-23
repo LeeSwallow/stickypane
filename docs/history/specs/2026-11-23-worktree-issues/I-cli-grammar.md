@@ -94,6 +94,8 @@
 
 - `cmd/stickypane/commands.go`의 명령 표: 이름과 별칭, 도움말. 표와 도움말이 어긋나지 않게 잡아 주는 테스트가 이미 있다.
 - 새 명령 `note`, `page`, `worktree`, `diff`, `chat`의 처리부. 안쪽은 지금의 `api` 호출을 그대로 쓴다.
+- `stickypane help --json`은 지금 없다(`flag provided but not defined: -json`). 새로 만든다.
+- `stickypane <명령> --help`는 지금 사용법 한 블록만 낸다. `stickypane help <명령>`과 같은 내용(설명, 인자, 예시, 관련 명령)을 주게 맞춘다. 사람도 에이전트도 `--help`를 가장 먼저 치기 때문이다.
 - `help`(번역 대상): 한국어와 영어 글. `docs/usage.md`, README, README.ko.md.
 - `plugin/guide.md`, `plugin/rules/`, `plugin/skills/*`: 새 형태로. 줄 수 한도 55줄.
 - MCP 서버의 도구 이름이 명령 이름을 따르는지 (확인 필요).

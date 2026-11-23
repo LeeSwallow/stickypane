@@ -92,7 +92,7 @@ sequenceDiagram
 
 ### 첫 주제 목록
 
-열두 개다. 지금 스킬 다섯 개(`using-the-board`, `tracking-progress`, `asking-the-user`, `talking-in-chat`, `connecting-notes`)를 이 목록 안으로 다시 자른다. 출처 칸의 코드는 `docs/history/specs/2026-11-23-shape-usecases.md`의 사례 번호다.
+열여섯 개다. 처음 정한 열두 개에 판정표가 찾아낸 새 주제 넷(`connecting-notes`, `working-in-a-worktree`, `resuming-and-handing-off`, `finishing-the-task`)을 더했다. 지금 스킬 다섯 개(`using-the-board`, `tracking-progress`, `asking-the-user`, `talking-in-chat`, `connecting-notes`)를 이 목록 안으로 다시 자른다. 출처 칸의 코드는 `docs/history/specs/2026-11-23-shape-usecases.md`의 사례 번호다.
 
 | 주제 | Use when | 모양 | 출처 사례 |
 | --- | --- | --- | --- |
@@ -108,8 +108,30 @@ sequenceDiagram
 | `handing-over-a-command` | a command should run on the user's yes, not by you | script, form, log | S1, S7, S10 |
 | `checking-an-api` | you changed or learn an HTTP, WebSocket or gRPC API and want proof | api (`.http`), log | A1, A2, A3 |
 | `reading-long-material` | a report, a comparison or a guide runs to many pages | book, html, note | B1, B2, B5, H1, H2, H3 |
+| `connecting-notes` | one note should point to, show, count or react to another | `[[links]]`, `![[embeds]]`, `from:`, `watch` | 판정표 |
+| `working-in-a-worktree` | you work in a git worktree, or another agent in one is waiting for the user | form, say, checklist | 판정표 (#141, #144 선행) |
+| `resuming-and-handing-off` | a session starts from what an earlier one left, or ends and someone else must go on | checklist, log, board | 판정표 |
+| `finishing-the-task` | you are done and the user will come back to see that it is | checklist, log, note, form | 판정표 |
 
-`connecting-notes`(`[[링크]]`, `![[임베드]]`, `from:`, `stickypane watch`)는 위 열두 개에 들지 못해서, `using-the-board`의 표 한 줄과 `approving-a-risky-action`(`watch --type form.submitted`)에서 가리킨다. 이 자리는 열린 질문이다.
+`connecting-notes`는 독립 주제로 세웠다. 사례 판정에서 `![[임베드]]`로 요약 허브를 만드는 쓰임이 중심 사례로 나왔기 때문이다. `approving-a-risky-action`의 `watch --type form.submitted`는 그 주제로 가리킨다.
+
+### 사용 사례는 레시피로 낸다
+
+조사한 사례 120개를 [판정표](docs/history/specs/2026-11-23-usecase-triage.md)에서 하나씩 판정했다. 모두 정확히 한 판정을 받는다.
+
+| 판정 | 개수 | 안내에서 |
+| --- | --- | --- |
+| `topic` | 29 | 주제의 중심. 주제 본문(`SKILL.md`)에 들어간다 |
+| `example` | 44 | 그 주제의 레시피. `references/` 아래에 한 사례당 한 파일 |
+| `exclude` | 47 | 싣지 않는다. 검사할 수 있는 이유를 판정표에 단다 (중복, 에이전트의 일이 아님, 계획에 없는 기능이 필요함, 근거 없음) |
+
+필요 없는 사례를 빼는 것은 허용한다. 모든 사례가 안내에 들어가는 것이 목표가 아니라, **모든 사례를 판정하고, 들어가는 것은 레시피로 쓰는 것**이 목표다.
+
+- **레시피 형식.** 영어, 짧게 고정한다: `Use when`(상황), 쓰는 모양, 실제 명령 몇 줄, 끝났다고 볼 확인. 한국어 조사 글(`shape-usecases.md`)을 옮겨 쓴다. 안내는 영어다(언어 정책).
+- **꺼내 쓰는 길.** `stickypane guide <주제>`가 주제 본문과 함께 그 주제의 레시피 목록을 보여 주고, 에이전트가 필요한 레시피만 가져온다. MCP의 `guide` 도구도 같은 길을 쓴다. 명령 이름과 인자는 (확인 필요). 지금 `Read`는 `references/`를 싣지 않으므로 이 길을 새로 낸다.
+- **아직 없는 기능에 기대는 레시피**(판정표의 "의존" 칸)는 그 이슈가 병합될 때 켠다. 그 전에는 레시피 파일을 두지 않거나 `Use when`에 "when available"을 둔다 (확인 필요).
+- **판정표와 레시피가 어긋나지 않게 잡는다.** 판정표의 `topic`과 `example` 행마다 레시피(또는 주제 본문) 하나가 짝이고, 레시피가 쓰는 명령은 모두 실제 있는 명령이다(`plugin_test.go`의 기존 검사). 판정표에 없는 레시피가 있어도 실패한다.
+- 판정표가 확인하지 못한 것: `write <책>/<쪽>`이 책에 되는지, `stickypane todo plan`(동사 없이 읽기)과 `submitted_at` 키는 없다는 것, `note.changed` 이벤트 이름이 `help watch`에 없다는 것(`checklist-C9`).
 
 ## 위키와 같은 점과 다른 점
 
@@ -150,7 +172,7 @@ LLM wiki 식의 읽기를 따른다. 색인 하나를 먼저 읽고, 필요한 �
 
 ## 바뀌는 것
 
-- `plugin/skills/` 아래를 스킬 열두 개로 다시 자른다. 이름을 바꾸거나 합친 스킬은 `plugin/commands/*.md`(`/board:ask`, `/board:track`, `/board:say` …)가 가리키는 이름도 함께 고친다.
+- `plugin/skills/` 아래를 주제(스킬) 열여섯 개로 다시 자르고, 각 주제의 `references/`에 판정표의 `example` 사례를 레시피로 둔다. 이름을 바꾸거나 합친 스킬은 `plugin/commands/*.md`(`/board:ask`, `/board:track`, `/board:say` …)가 가리키는 이름도 함께 고친다.
 - `plugin/rules/`: 승인 규칙(위 다섯 가지)을 한 번 쓴다. 어디에 쓸지(새 규칙 파일이나 `touching-the-board.md`)는 열린 질문이다. 줄 수는 한도 안에 둔다.
 - `plugin/skills/using-the-board/SKILL.md`: 모양 표와 색인의 길잡이.
 - `test/plugin_test.go`의 `skillNames` 목록, 그리고 `harness_test.go`의 `len(skills) < 5` 같은 숫자.
@@ -170,10 +192,10 @@ LLM wiki 식의 읽기를 따른다. 색인 하나를 먼저 읽고, 필요한 �
 
 ## 열린 질문
 
-1. 열두 개로 충분한가. `connecting-notes`를 독립 주제로 세우고 다른 주제를 합칠지, 지금 안대로 둘지.
+1. (해결) 열두 개로는 모자라서 열여섯 개로 한다. 더 줄일지는 구현에서 안내 크기를 보고 정한다.
 2. 승인 규칙은 `plugin/rules/`의 새 파일이 맞는가, 기존 파일에 붙일 것인가. 합친 줄 수가 55줄을 넘으면 안 된다.
 3. 모양 표를 `using-the-board` 아닌 곳에 두면 에이전트가 더 자주 보는가. E로 확인한다.
-4. 워크트리 주제(여러 워크트리에서 누가 기다리는지, 내 폴더가 어디인지)는 총괄 이슈의 설계가 확정된 뒤에 추가한다. 이번 열두 개에는 넣지 않았다.
+4. (해결) 워크트리 주제 `working-in-a-worktree`를 넣었다. #141, #144가 병합될 때 켠다.
 5. `submitted_at`이라는 키가 실제로 있는가. 지금 `wait` 출력은 `at:`이다. 승인 시각을 어디서 읽을지는 (확인 필요).
 6. 주제가 `references/`를 갖게 될 때 MCP로는 읽히지 않는다(`Read`가 싣지 않으므로). 모양 전체는 `stickypane help <shape>`로 가는 것으로 충분한가.
 7. 주제 이름의 영어 형식(`-ing` 동명사, `approving-a-risky-action` 같은 긴 이름)이 `stickypane guide <주제>`를 치기에 부담스럽지 않은가.
@@ -183,7 +205,7 @@ LLM wiki 식의 읽기를 따른다. 색인 하나를 먼저 읽고, 필요한 �
 
 기존 테스트는 설명을 바꾸지 않고 그대로 통과해야 한다. 바꾸는 것은 스킬 이름과 개수뿐이다.
 
-- `internal/usecase/harness`: 스킬이 열두 개이고 `using-the-board`가 처음이며, 모든 `Description`이 `Use when`으로 시작한다. `Index()`가 줄마다 주제 이름을 가진다. `Read`가 규칙은 한 번씩 싣고 `references/`는 싣지 않는다.
+- `internal/usecase/harness`: 스킬이 열여섯 개이고 `using-the-board`가 처음이며, 모든 `Description`이 `Use when`으로 시작한다. `Index()`가 줄마다 주제 이름을 가진다. `Read`가 규칙은 한 번씩 싣고 `references/`는 싣지 않는다.
 - `test/plugin_test.go`: 모든 주제가 80줄 이하이고 600자 안에 명령이 있다. 쓰인 파일은 모두 있고, `stickypane <명령>`은 모두 실제 명령이다. 모양 표가 `stickypane kinds`의 모든 모양을 한 번씩 다룬다(새 테스트. 모양 목록을 코드에서 읽는 방법은 (확인 필요)).
 - `internal/usecase/initcmd`: `TestGuideIsShortAndCoversEveryShape`가 그대로 통과한다(55줄).
 - 새 테스트: 승인 규칙의 핵심 문장(종료 코드 3은 no, 새 form)이 `plugin/rules/`에만 있고 주제 파일에는 되풀이되지 않는다.
@@ -195,9 +217,16 @@ LLM wiki 식의 읽기를 따른다. 색인 하나를 먼저 읽고, 필요한 �
 - **목표:** 같은 명령을 상황으로 찾게 한다. 틀린 모양이 줄어든다.
 - **먼저 읽을 것:** `docs/translating.md`, `internal/usecase/harness/harness.go`와 그 테스트, 루트의 `harness.go`, `internal/usecase/api/guide.go`, `test/plugin_test.go`, `plugin/skills/*`와 `references/`, `plugin/rules/*`, `plugin/guide.md`, `docs/plugin.md`, `docs/agents.md`, `docs/history/specs/2026-11-23-shape-usecases.md`(네 보고서 전부), 워크트리 이슈 초안의 "Revisions after the use-case research"(R8).
 - **할 일:**
-  1. 위 열두 주제를 `plugin/skills/<주제>/SKILL.md`로 쓴다. 한 주제에 사례 하나가 아니라, 출처 칸의 가장 강한 사례들을 한 상황으로 묶는다.
+  1. 위 열여섯 주제를 `plugin/skills/<주제>/SKILL.md`로 쓴다. 한 주제에 사례 하나가 아니라, 출처 칸의 가장 강한 사례들을 한 상황으로 묶는다.
   2. 모양 표를 `using-the-board`에 넣고, 승인 규칙을 `plugin/rules/`에 한 번 쓴다.
   3. 이름이 바뀐 스킬을 가리키는 곳(`plugin/commands/`, 문서, 테스트의 `skillNames`)을 모두 고친다.
   4. 고치기 전과 후를 E로 같은 사례에서 잰다.
 - **하지 말 것:** 가이드를 번역하지 않는다. 규칙을 두 주제에 되풀이하지 않는다. `references/`를 기본으로 싣지 않는다. 가이드의 줄 수 한도를 넘기지 않는다. 존재하지 않는 명령이나 파일을 쓰지 않는다. 확인하지 못한 것은 `(확인 필요)`로 둔다.
 - **끝난 조건:** 위의 세 검사(`go vet`, `go test -race`, `gofmt`)가 통과하고, E에서 새 가이드의 올바른 모양 선택이 옛 가이드보다 늘었다.
+
+## 완료 조건 (개정)
+
+- 판정표의 사례 120개가 모두 판정되어 있고(이미 됨), `topic` 29개와 `example` 44개가 주제 본문이나 레시피로 있다. `exclude` 47개는 이유와 함께 판정표에만 남는다.
+- 주제 열여섯 개가 `Use when`으로 시작하는 색인에 있고, `stickypane guide`와 MCP `guide`가 같은 글을 낸다.
+- 안내 55줄, 스킬 테스트, 판정표와 레시피의 짝 검사가 통과한다.
+- #145의 실험으로 옛 안내와 새 안내를 같은 사례로 견주어, 알맞은 모양이 더 자주 골라지는지 확인한다.
