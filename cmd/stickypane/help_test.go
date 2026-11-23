@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
+	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -417,5 +420,41 @@ func TestKoreanHelpKeysAreReal(t *testing.T) {
 		if !known[k] {
 			t.Errorf("ko.json has the stale key %q", k)
 		}
+	}
+}
+
+var update = flag.Bool("update", false, "rewrite testdata/help.json")
+
+// help --json is stable: the golden file testdata/help.json, in English
+// whatever the language. go test -run HelpJSON -update rewrites it.
+func TestHelpJSONIsTheGoldenFile(t *testing.T) {
+	golden, err := filepath.Abs("testdata/help.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+	t.Setenv("STICKYPANE_LANG", "ko")
+	code, out, errOut := exec(t, "help", "--json")
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %q", code, errOut)
+	}
+	if *update {
+		if err := os.WriteFile(golden, []byte(out), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != string(want) {
+		t.Errorf("help --json differs from %s (go test -run HelpJSON -update):\n%s", golden, out)
+	}
+	var got struct{ Commands []commandJSON }
+	if err := json.Unmarshal([]byte(out), &got); err != nil || len(got.Commands) != len(commands) {
+		t.Errorf("%d commands, %v", len(got.Commands), err)
+	}
+	if code, _, _ := exec(t, "help", "card", "--json"); code != exitUsage {
+		t.Errorf("help card --json: code = %d", code)
 	}
 }

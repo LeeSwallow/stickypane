@@ -92,12 +92,17 @@ func hasBoard() bool {
 func helpCmd(e env, args []string) error {
 	fs := newFlags("help")
 	all := fs.Bool("all", false, "print every command with every option")
+	asJSON := fs.Bool("json", false, "print every command as JSON")
 	words, err := parse(fs, "help", args, 0, 2)
 	if err != nil {
 		return err
 	}
 	s := helpStrings()
 	switch {
+	case *asJSON && (*all || len(words) > 0):
+		return usageError{cmd: "help"}
+	case *asJSON:
+		err = printJSON(e.stdout, helpJSON())
 	case *all && helpLanguage() == "en":
 		_, err = io.WriteString(e.stdout, usage)
 	case *all:
@@ -112,6 +117,32 @@ func helpCmd(e env, args []string) error {
 		err = helpOn(e.stdout, s, strings.ToLower(strings.Join(words, " ")))
 	}
 	return err
+}
+
+// commandJSON is one command in help --json. Its fields are a contract:
+// scripts and agents read them, so a field is added, never renamed.
+type commandJSON struct {
+	Name     string   `json:"name"`
+	Group    string   `json:"group"`
+	Brief    string   `json:"brief"`
+	Syntax   string   `json:"syntax"`
+	Args     []string `json:"args,omitempty"`
+	Examples []string `json:"examples"`
+}
+
+// helpJSON is every command of the table, in its order, in English
+// whatever the language, so the output is the same everywhere.
+func helpJSON() map[string][]commandJSON {
+	var out []commandJSON
+	for _, c := range commands {
+		h := c.help
+		var args []string
+		if h.args != "" {
+			args = strings.Split(h.args, "\n")
+		}
+		out = append(out, commandJSON{c.names[0], h.group, h.brief, h.syntax, args, h.examples})
+	}
+	return map[string][]commandJSON{"commands": out}
 }
 
 // helpOn prints the help of one thing a person can ask about.

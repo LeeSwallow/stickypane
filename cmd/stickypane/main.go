@@ -87,9 +87,10 @@ Usage:
                          agent, the screen's language and how scripts run
   stickypane guide [topic]  print the agent guide: the overview, a skill or a shape
   stickypane version     print the version
-  stickypane help [command|shape|start] [--all]
+  stickypane help [command|shape|start] [--all] [--json]
                          a short overview, or the help of one command or shape,
-                         or getting started; --all: this page
+                         or getting started; --all: this page; --json: every
+                         command's name, syntax and examples as JSON
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane note list [--json]  list the notes
