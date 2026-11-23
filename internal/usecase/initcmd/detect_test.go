@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	// The tests read the English output, whatever the machine's language.
 	os.Setenv("STICKYPANE_LANG", "en")
 	// No pane tool, so the next step a test sees is the plain one.
-	for _, v := range []string{"TMUX", "ZELLIJ", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
+	for _, v := range []string{"TMUX", "ZELLIJ", "ORCA_TERMINAL_HANDLE", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)
 	}
 	code := m.Run()
@@ -250,9 +250,10 @@ func TestMakeBoard(t *testing.T) {
 
 func TestRunNamesTheSplitCommandOfEachPaneTool(t *testing.T) {
 	for v, want := range map[string]string{
-		"WEZTERM_PANE": "wezterm cli split-pane --right -- stickypane",
-		"ZELLIJ":       "zellij run --direction right -- stickypane",
-		"WT_SESSION":   "wt -w 0 split-pane -V stickypane",
+		"ORCA_TERMINAL_HANDLE": "orca terminal split --direction vertical --command stickypane",
+		"WEZTERM_PANE":         "wezterm cli split-pane --right -- stickypane",
+		"ZELLIJ":               "zellij run --direction right -- stickypane",
+		"WT_SESSION":           "wt -w 0 split-pane -V stickypane",
 	} {
 		t.Run(v, func(t *testing.T) {
 			t.Setenv(v, "1")
