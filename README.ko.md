@@ -126,7 +126,7 @@ stickypane init
    (내 터미널에서 띄우는 법은 stickypane env가 압니다)
 
 이제 에이전트에게 보드에 띄워 달라고 하거나, 직접 메모를 붙여 보세요.
-     echo "- [ ] 보드 써 보기" | stickypane write plan --type checklist --open
+     echo "- [ ] 보드 써 보기" | stickypane note write plan --type checklist --open
 (어떤 모양이 있는지는 stickypane kinds에서)
 
 다음: stickypane help, 그다음 stickypane help <명령>.
@@ -328,49 +328,49 @@ Claude Code 안의 창에 보드를 띄우고, 보드에서 바꾼 것을 토스
 stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신은 힐끗 봅니다.
 
 시작
-  [path]    경로의 프로젝트 보드를 엽니다 (기본: 여기)
-  init      보드를 만들고 에이전트에게 알립니다
-  kinds     노트가 가질 수 있는 모양을 나열합니다
-  env       보드가 찾은 실행 환경을 알려 줍니다
-  version   버전을 출력합니다
-  help      이 도움말: 명령, 모양, 처음 시작하기
+  [path]       경로의 프로젝트 보드를 엽니다 (기본: 여기)
+  init         보드를 만들고 에이전트에게 알립니다
+  kinds        노트가 가질 수 있는 모양을 나열합니다
+  env          보드가 찾은 실행 환경을 알려 줍니다
+  version      버전을 출력합니다
+  help         이 도움말: 명령, 모양, 처음 시작하기
 
 노트
-  list      노트 목록
-  index     노트마다 한 줄: 제목, 개수, 요약
-  show      노트, 파일, 폴더를 화면에 올립니다
-  hide      노트를 접어 둡니다
-  cat       노트의 파일을 출력합니다
-  write     표준 입력으로 노트를 만들거나 바꿉니다
-  todo      체크리스트 항목을 추가, 체크, 체크 해제합니다
-  card      보드의 카드를 추가하거나 옮깁니다
-  chart     차트의 숫자를 정하거나 더합니다
-  log       로그 노트에 한 줄을 덧붙입니다
-  say       채팅 노트에 메시지를 더합니다
-  set       노트의 키나 보드에서의 자리를 바꿉니다
+  note list    노트 목록
+  index        노트마다 한 줄: 제목, 개수, 요약
+  note show    노트, 파일, 폴더를 화면에 올립니다
+  note hide    노트를 접어 둡니다
+  note cat     노트의 파일을 출력합니다
+  note write   표준 입력으로 노트를 만들거나 바꿉니다
+  todo         체크리스트 항목을 추가, 체크, 체크 해제합니다
+  card         보드의 카드를 추가하거나 옮깁니다
+  chart        차트의 숫자를 정하거나 더합니다
+  log          로그 노트에 한 줄을 덧붙입니다
+  chat         채팅 노트에 메시지를 더합니다
+  note set     노트의 키나 보드에서의 자리를 바꿉니다
 
 정리
-  mv        노트 이름을 바꾸거나 탭, 책으로 옮깁니다
-  link      복사 없이 프로젝트의 파일이나 폴더를 보여 줍니다
-  rm        노트, 페이지, 폴더를 삭제합니다 (.trash/로 옮김)
-  restore   rm이 마지막으로 지운 것을 되돌립니다
-  archive   노트를 archive/로 보관합니다
+  note mv      노트 이름을 바꾸거나 탭, 책으로 옮깁니다
+  note link    복사 없이 프로젝트의 파일이나 폴더를 보여 줍니다
+  note rm      노트, 페이지, 폴더를 삭제합니다 (.trash/로 옮김)
+  note restore note rm이 마지막으로 지운 것을 되돌립니다
+  note archive 노트를 archive/로 보관합니다
 
 설정
-  config    설정을 보거나 읽거나 바꿉니다
-  keys      보드의 키를 보거나 바꿉니다
+  config       설정을 보거나 읽거나 바꿉니다
+  keys         보드의 키를 보거나 바꿉니다
 
 에이전트
-  setup     Claude Code와 Codex에 보드 플러그인을 설치합니다
-  guide     에이전트 안내문을 출력합니다
-  answers   폼에 사용자가 답한 것을 출력합니다
-  wait      폼의 버튼이 눌릴 때까지 기다린 뒤 답을 출력합니다
-  mcp       MCP 서버로 노트를 제공합니다
+  setup        Claude Code와 Codex에 보드 플러그인을 설치합니다
+  guide        에이전트 안내문을 출력합니다
+  answers      폼에 사용자가 답한 것을 출력합니다
+  wait         폼의 버튼이 눌릴 때까지 기다린 뒤 답을 출력합니다
+  mcp          MCP 서버로 노트를 제공합니다
 
 스크립트
-  api       (실험) .http 노트의 요청을 보냅니다
-  watch     보드에서 일어나는 일을 바로 출력합니다
-  bridge    데스크톱 앱에 보드를 제공합니다
+  api          (실험) .http 노트의 요청을 보냅니다
+  watch        보드에서 일어나는 일을 바로 출력합니다
+  bridge       데스크톱 앱에 보드를 제공합니다
 
 stickypane help <명령>    명령 하나의 설명과 예시
 stickypane help <모양>    노트의 파일 형식과 예시

@@ -55,9 +55,9 @@ func printJSON(w io.Writer, v any) error {
 
 // listCmd lists the notes, as a table or as JSON.
 func listCmd(e env, args []string) error {
-	fs := newFlags("list")
+	fs := newFlags("note list")
 	asJSON := fs.Bool("json", false, "print the list as JSON")
-	if _, err := parse(fs, "list", args, 0, 0); err != nil {
+	if _, err := parse(fs, "note list", args, 0, 0); err != nil {
 		return err
 	}
 	a, err := open(e, false)
@@ -84,7 +84,7 @@ func listCmd(e env, args []string) error {
 
 // catCmd prints a note's file.
 func catCmd(e env, args []string) error {
-	words, err := parse(newFlags("cat"), "cat", args, 1, 1)
+	words, err := parse(newFlags("note cat"), "note cat", args, 1, 1)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func catCmd(e env, args []string) error {
 
 // writeCmd creates or replaces a note from standard input.
 func writeCmd(e env, args []string) error {
-	fs := newFlags("write")
+	fs := newFlags("note write")
 	var opts api.Options
 	fs.StringVar(&opts.Type, "type", "", "note, board, checklist, log, chart or form")
 	fs.StringVar(&opts.Title, "title", "", "the note's title")
@@ -123,7 +123,7 @@ func writeCmd(e env, args []string) error {
 		given[name] = value
 		return nil
 	})
-	words, err := parse(fs, "write", args, 1, 1)
+	words, err := parse(fs, "note write", args, 1, 1)
 	if err != nil {
 		return err
 	}

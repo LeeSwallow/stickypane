@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/LeeSwallow/stickypane/internal/core/when"
 )
 
 // editCmd runs a command that changes one thing in a note: todo, card,
-// chart, log, say or set. The note is made when it is missing.
+// chart, log, chat or note set. The note is made when it is missing.
 func editCmd(cmd string) func(env, []string) error {
 	return func(e env, args []string) error {
 		fs := newFlags(cmd)
@@ -19,13 +20,17 @@ func editCmd(cmd string) func(env, []string) error {
 			fs.StringVar(&to, "to", "", "the column")
 		case "log":
 			fs.BoolVar(&stamp, "time", false, "start the line with the time")
-		case "say":
+		case "chat":
 			fs.StringVar(&to, "as", "agent", "who says it")
 		}
-		least := map[string]int{"todo": 3, "card": 3, "chart": 4, "log": 2, "say": 2, "set": 2}[cmd]
-		words, err := parse(fs, cmd, args, least, -1)
+		words, err := parse(fs, cmd, args, 0, -1)
 		if err != nil {
 			return err
+		}
+		words, ok := oldOrder(cmd, words)
+		least := map[string]int{"todo": 3, "card": 3, "chart": 4, "log": 2, "chat": 2, "note set": 2}[cmd]
+		if !ok || len(words) < least {
+			return usageError{cmd: cmd}
 		}
 		name, rest := words[0], words[1:]
 		if cmd == "card" && rest[0] == "move" && to == "" {
@@ -49,9 +54,9 @@ func editCmd(cmd string) func(env, []string) error {
 				line = e.now().Format(when.Clock) + " " + line
 			}
 			out, err = said(a.Log(name, line))(status)
-		case "say":
+		case "chat":
 			out, err = said(a.Say(name, to, strings.Join(rest, " ")))(status)
-		default: // set
+		default: // note set
 			out, err = said(a.Set(name, rest))(keyed)
 		}
 		if err != nil {
@@ -62,11 +67,35 @@ func editCmd(cmd string) func(env, []string) error {
 	}
 }
 
+// shapeVerbs are the verbs of each shape command.
+var shapeVerbs = map[string][]string{
+	"todo": {"add", "check", "uncheck"}, "card": {"add", "move"},
+	"chart": {"set", "add"}, "log": {"add"}, "chat": {"add"},
+}
+
+// oldOrder reads the words of a shape command, in the order
+// <verb> <name> ... or the old <name> <verb> ..., into the old order the
+// code takes: <name> <verb> ..., or <name> ... for log and chat, which had
+// no verb. A first word that is a verb of the noun means the new order,
+// even when the second is one too (#149): todo add check x adds x to the
+// note check. chat has no old order (say was its old form); without its
+// verb it is not ok.
+func oldOrder(cmd string, words []string) ([]string, bool) {
+	switch {
+	case len(words) < 2 || !slices.Contains(shapeVerbs[cmd], words[0]):
+		return words, cmd != "chat"
+	case cmd == "log" || cmd == "chat":
+		return words[1:], true
+	}
+	return append([]string{words[1], words[0]}, words[2:]...), true
+}
+
 // manageCmd runs a command that shows, hides, removes, restores or moves a
-// note.
+// note: cmd is note show, note hide, and so on.
 func manageCmd(cmd string) func(env, []string) error {
+	verb := strings.TrimPrefix(cmd, "note ")
 	least, most := 1, 1
-	switch cmd {
+	switch verb {
 	case "mv":
 		least, most = 2, 2
 	case "link":
@@ -77,12 +106,12 @@ func manageCmd(cmd string) func(env, []string) error {
 		if err != nil {
 			return err
 		}
-		a, err := open(e, cmd == "show" || cmd == "link")
+		a, err := open(e, verb == "show" || verb == "link")
 		if err != nil {
 			return err
 		}
 		var out string
-		switch cmd {
+		switch verb {
 		case "rm":
 			out, err = said(a.Remove(words[0]))(removed)
 		case "restore":

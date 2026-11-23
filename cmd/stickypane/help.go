@@ -53,7 +53,7 @@ const startText = `Getting started
    (not sure how in your terminal? stickypane env knows)
 
 Then ask your agent to put something on the board, or pin a note yourself:
-     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+     echo "- [ ] try the board" | stickypane note write plan --type checklist --open
 (stickypane kinds lists the shapes a note can take)
 
 Next: stickypane help, then stickypane help <command>.`
@@ -92,7 +92,7 @@ func hasBoard() bool {
 func helpCmd(e env, args []string) error {
 	fs := newFlags("help")
 	all := fs.Bool("all", false, "print every command with every option")
-	words, err := parse(fs, "help", args, 0, 1)
+	words, err := parse(fs, "help", args, 0, 2)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func helpCmd(e env, args []string) error {
 		}
 		_, err = io.WriteString(e.stdout, overview(s))
 	default:
-		err = helpOn(e.stdout, s, strings.ToLower(strings.TrimSpace(words[0])))
+		err = helpOn(e.stdout, s, strings.ToLower(strings.Join(words, " ")))
 	}
 	return err
 }
@@ -120,7 +120,7 @@ func helpOn(w io.Writer, s i18n.Strings, want string) error {
 		_, err := fmt.Fprintln(w, s.T("start", startText))
 		return err
 	}
-	if c, ok := lookup(want); ok {
+	if c, _, _, ok := find(strings.Fields(want)); ok {
 		_, err := io.WriteString(w, commandHelp(s, c))
 		return err
 	}
@@ -260,12 +260,12 @@ func overview(s i18n.Strings) string {
 	for _, g := range helpGroups {
 		fmt.Fprintf(&b, "\n%s\n", s.T("group."+g.key, g.title))
 		if g.key == "start" {
-			fmt.Fprintf(&b, "  %-9s %s\n", "[path]", s.T("open.brief", "open the board of the project at path (default: here)"))
+			fmt.Fprintf(&b, "  %-12s %s\n", "[path]", s.T("open.brief", "open the board of the project at path (default: here)"))
 		}
 		for _, c := range commands {
 			if c.help.group == g.key {
 				name := c.names[0]
-				fmt.Fprintf(&b, "  %-9s %s\n", name, s.T(name+".brief", c.help.brief))
+				fmt.Fprintf(&b, "  %-12s %s\n", name, s.T(name+".brief", c.help.brief))
 			}
 		}
 	}
