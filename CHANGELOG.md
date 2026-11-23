@@ -6,6 +6,8 @@ on GitHub are built from pull request labels.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-23
+
 ### Added
 
 - Orca is a pane tool. In an Orca terminal, `stickypane env` and
