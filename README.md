@@ -285,7 +285,7 @@ sequenceDiagram
     participant F as .sticky/deploy.md
     participant B as Board
     participant U as You
-    A->>F: stickypane write deploy --type form --open
+    A->>F: stickypane note write deploy --type form --open
     A->>A: stickypane wait deploy --timeout 10m
     F-->>B: the file changed
     B->>U: a form with options and buttons
@@ -302,16 +302,16 @@ sequenceDiagram
 
 | Shape | For | Example |
 | --- | --- | --- |
-| note | anything in Markdown; a `mermaid` block is drawn | `echo "check env" \| stickypane write deploy-notes --open` |
-| board | cards in columns, a kanban | `stickypane card work add "login API" --to Doing` |
-| checklist | steps to tick off, with a progress bar | `stickypane todo plan add "write tests"` |
-| log | one entry per line, the newest in sight | `stickypane log worklog --time "tests passed"` |
-| chat | who said what and when; `say` signs as `agent` unless `--as` names someone | `stickypane say chat "41/41 pass"` |
-| chart | bars, a trend line, or a calendar of days | `stickypane chart tokens add input 1200` |
+| note | anything in Markdown; a `mermaid` block is drawn | `echo "check env" \| stickypane note write deploy-notes --open` |
+| board | cards in columns, a kanban | `stickypane card add work "login API" --to Doing` |
+| checklist | steps to tick off, with a progress bar | `stickypane todo add plan "write tests"` |
+| log | one entry per line, the newest in sight | `stickypane log add worklog --time "tests passed"` |
+| chat | who said what and when; `chat add` signs as `agent` unless `--as` names someone | `stickypane chat add chat "41/41 pass"` |
+| chart | bars, a trend line, or a calendar of days | `stickypane chart add tokens input 1200` |
 | form | options, lines to fill in, buttons | `stickypane wait deploy --timeout 10m` |
-| script | a shell script with a Run button | `stickypane show deploy.sh` |
+| script | a shell script with a Run button | `stickypane note show deploy.sh` |
 | api | REST, WebSocket and gRPC requests (experimental) | `stickypane api api.http "Log in"` |
-| html | a web page; the terminal shows its text | `stickypane show report.html` |
+| html | a web page; the terminal shows its text | `stickypane note show report.html` |
 
 `stickypane kinds` lists them and `stickypane help <shape>` prints one in
 full. [docs/shapes.md](docs/shapes.md) has each format, links between

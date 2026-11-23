@@ -111,7 +111,7 @@ otherwise (`1` to `4`; `S` on the board, or `stickypane config columns 4`).
 Notes go left to right, a row at a time. A note without a size of its own
 takes one column, and the notes of a row share its width equally, so a
 last row of two notes on three columns is two halves. A note whose size you
-chose (with `>` `<`, a drag, `stickypane set` or its front matter) spans its
+chose (with `>` `<`, a drag, `stickypane note set` or its front matter) spans its
 share of the columns, rounded to the nearest: on three columns `1/2` and
 `2/3` are two, `1/4` and `1/3` one. The other notes of its row share what
 is left. On a screen too narrow for a column of 20 cells, fewer columns are
@@ -211,13 +211,13 @@ Nothing you do on the board erases a file.
 From the command line:
 
 ```sh
-stickypane mv plan deploy/       # into the tab deploy
-stickypane mv deploy/plan .      # back to the first tab
-stickypane mv plan roadmap       # a new name; it keeps its place on the screen
-stickypane rm roadmap            # to .sticky/.trash/
-stickypane restore roadmap       # and back
-stickypane archive roadmap       # to .sticky/archive/
-stickypane link README.md        # show a project file without copying it
+stickypane note mv plan deploy/       # into the tab deploy
+stickypane note mv deploy/plan .      # back to the first tab
+stickypane note mv plan roadmap       # a new name; it keeps its place on the screen
+stickypane note rm roadmap            # to .sticky/.trash/
+stickypane note restore roadmap       # and back
+stickypane note archive roadmap       # to .sticky/archive/
+stickypane note link README.md        # show a project file without copying it
 ```
 
 None of these writes over another note or reaches outside `.sticky/`.
@@ -234,7 +234,7 @@ another and anything outside can listen:
 stickypane watch                                   # 14:02:05  plan.md  item.ticked  write tests
 stickypane watch --json | jq .                     # for programs
 stickypane watch --note plan --type item.ticked \
-  --exec 'stickypane chart progress add done 1'    # a chart that counts the ticks
+  --exec 'stickypane chart add progress done 1'    # a chart that counts the ticks
 stickypane watch --type card.moved \
   --exec '[ "$STICKY_TO" = Done ] && printf "\a"'  # a bell when a card is done
 stickypane watch --once --note deploy --type form.submitted   # wait for the user

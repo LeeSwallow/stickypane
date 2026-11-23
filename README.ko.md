@@ -270,7 +270,7 @@ sequenceDiagram
     participant F as .sticky/deploy.md
     participant B as 보드
     participant U as 사용자
-    A->>F: stickypane write deploy --type form --open
+    A->>F: stickypane note write deploy --type form --open
     A->>A: stickypane wait deploy --timeout 10m
     F-->>B: 파일이 바뀜
     B->>U: 선택지와 버튼이 있는 폼
@@ -287,16 +287,16 @@ sequenceDiagram
 
 | 모양 | 용도 | 예시 |
 | --- | --- | --- |
-| note | 마크다운이면 무엇이든. `mermaid` 블록은 그림으로 | `echo "환경 확인" \| stickypane write deploy-notes --open` |
-| board | 칸에 놓인 카드(칸반) | `stickypane card work add "로그인 API" --to Doing` |
-| checklist | 체크해 나가는 단계와 진행 막대 | `stickypane todo plan add "테스트 작성"` |
-| log | 한 줄에 하나, 최신 줄이 보이게 | `stickypane log worklog --time "테스트 통과"` |
-| chat | 누가 언제 무슨 말을 했는지. `say`는 `--as`가 없으면 `agent`로 서명 | `stickypane say chat "41/41 통과"` |
-| chart | 막대, 추세선, 날짜 달력 | `stickypane chart tokens add input 1200` |
+| note | 마크다운이면 무엇이든. `mermaid` 블록은 그림으로 | `echo "환경 확인" \| stickypane note write deploy-notes --open` |
+| board | 칸에 놓인 카드(칸반) | `stickypane card add work "로그인 API" --to Doing` |
+| checklist | 체크해 나가는 단계와 진행 막대 | `stickypane todo add plan "테스트 작성"` |
+| log | 한 줄에 하나, 최신 줄이 보이게 | `stickypane log add worklog --time "테스트 통과"` |
+| chat | 누가 언제 무슨 말을 했는지. `chat add`는 `--as`가 없으면 `agent`로 서명 | `stickypane chat add chat "41/41 통과"` |
+| chart | 막대, 추세선, 날짜 달력 | `stickypane chart add tokens input 1200` |
 | form | 고를 것, 채울 줄, 버튼 | `stickypane wait deploy --timeout 10m` |
-| script | 실행 버튼이 달린 셸 스크립트 | `stickypane show deploy.sh` |
+| script | 실행 버튼이 달린 셸 스크립트 | `stickypane note show deploy.sh` |
 | api | REST, WebSocket, gRPC 요청(실험) | `stickypane api api.http "Log in"` |
-| html | 웹 페이지. 터미널은 글만 보여 줌 | `stickypane show report.html` |
+| html | 웹 페이지. 터미널은 글만 보여 줌 | `stickypane note show report.html` |
 
 `stickypane kinds`가 목록을, `stickypane help <모양>`이 하나를 자세히 보여 줍니다.
 모양별 형식, 노트 사이의 링크, 다른 노트에서 계산하는 차트는 영문
