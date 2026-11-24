@@ -84,7 +84,7 @@ and so on). A skill lists its recipes, a use case each, in its
 or the notes that match), `/board:track`, `/board:ask`, `/board:say` and
 `/board:setup` each start one. A session hook tells the agent what is on
 the board when a session starts in a project that has one. In a git
-repository the agent's first `stickypane show` or `stickypane todo` makes
+repository the agent's first `stickypane note show` or `stickypane todo add` makes
 the board, so no setup step is needed.
 
 [plugin.md](plugin.md) is for changing the plugin itself.
@@ -133,33 +133,33 @@ says what the plugin says. `stickypane guide` prints it; it stays English.
 Put something in front of the user:
 
 ```sh
-stickypane show plan                 # a note, by name
-stickypane show README.md            # any file of the project: linked and shown
-stickypane show logs/app.log         # a log file: linked, shown and followed live
-stickypane show docs/                # a folder: linked as a tab of its own
-stickypane hide plan
+stickypane note show plan            # a note, by name
+stickypane note show README.md       # any file of the project: linked and shown
+stickypane note show logs/app.log    # a log file: linked, shown and followed live
+stickypane note show docs/           # a folder: linked as a tab of its own
+stickypane note hide plan
 ```
 
 Read and write whole notes, and read the user's answers:
 
 ```sh
-stickypane list --json                       # every note: name, title, type, open, size
-stickypane cat plan                          # print a note's file
-echo "- [ ] build" | stickypane write plan --type checklist --title "Release" --open
+stickypane note list --json                  # every note: name, title, type, open, size
+stickypane note cat plan                     # print a note's file
+echo "- [ ] build" | stickypane note write plan --type checklist --title "Release" --open
 stickypane answers deploy                    # what the user answered in a form
 stickypane wait deploy --timeout 10m         # the same, once a button is pressed
 ```
 
 `wait` exits with code 3 when its time runs out. Both take `--json`.
-`write` replaces the whole note, exactly as overwriting the file would, so
+`note write` replaces the whole note, exactly as overwriting the file would, so
 read a note before rewriting it. A name may point into a book
-(`docs/intro`) or at a log (`build.log`). With `--opt`, `write` reads
+(`docs/intro`) or at a log (`build.log`). With `--opt`, `note write` reads
 nothing from standard input: the shape writes the note from its create
 options, the same ones the desktop app's create form shows
 (`stickypane kinds board` lists them):
 
 ```sh
-stickypane write sprint --type board --opt columns=Backlog --opt columns=Done --opt "cards=Backlog: login API @codex-1"
+stickypane note write sprint --type board --opt columns=Backlog --opt columns=Done --opt "cards=Backlog: login API @codex-1"
 ```
 
 **Small changes without reading the note.** An agent that ticks an item by
@@ -167,16 +167,16 @@ rewriting the whole checklist has to read it first, and may write it back
 wrong. These commands change one thing and print where the note stands:
 
 ```sh
-stickypane todo plan add "write tests"       # plan.md: 0/1
-stickypane todo plan check tests             # plan.md: 1/1
-stickypane card work add "login API" --to Doing
-stickypane card work move login --to Done    # work.md: 2 cards
-stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
-stickypane chart tokens add input 800        # tokens.md: input = 2,000
-stickypane log worklog --time "tests passed" # worklog.md: 12 lines
-stickypane say chat "41/41 pass"             # chat.md: 3 messages, signed agent (--as <name>)
-stickypane set plan open=true size=1/2       # to sticky.json
-stickypane set plan title="The plan"         # to the note's front matter
+stickypane todo add plan "write tests"           # plan.md: 0/1
+stickypane todo check plan tests                 # plan.md: 1/1
+stickypane card add work "login API" --to Doing
+stickypane card move work login --to Done        # work.md: 2 cards
+stickypane chart set tokens input 1,200          # tokens.md: input = 1,200
+stickypane chart add tokens input 800            # tokens.md: input = 2,000
+stickypane log add worklog --time "tests passed" # worklog.md: 12 lines
+stickypane chat add chat "41/41 pass"            # chat.md: 3 messages, signed agent (--as <name>)
+stickypane note set plan open=true size=1/2      # to sticky.json
+stickypane note set plan title="The plan"        # to the note's front matter
 ```
 
 A note that does not exist yet is made, open on the screen, so an agent

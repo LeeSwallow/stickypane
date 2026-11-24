@@ -54,7 +54,7 @@ keeps is in its skill: a `topic` case in the skill's `cases:`, an
 
 The slash commands are `/board:status` (what is on the board, or the notes
 that match), `/board:track`, `/board:ask`, `/board:say` and `/board:setup`.
-Showing a file is `stickypane show`, and a shape is `stickypane help
+Showing a file is `stickypane note show`, and a shape is `stickypane help
 <shape>`; neither needs a command of its own.
 
 ## Scripts

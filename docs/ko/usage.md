@@ -119,7 +119,7 @@ stickypane worktree show          # 지금 폴더가 속한 워크트리
 것을 되돌립니다.
 
 ```sh
-stickypane mv plan deploy/       # deploy 탭으로
-stickypane rm plan               # .sticky/.trash/로
-stickypane restore plan          # 되돌리기
+stickypane note mv plan deploy/       # deploy 탭으로
+stickypane note rm plan               # .sticky/.trash/로
+stickypane note restore plan          # 되돌리기
 ```

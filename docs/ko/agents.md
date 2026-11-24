@@ -39,14 +39,14 @@
 ## 에이전트용 명령
 
 ```sh
-stickypane show plan                 # 띄우기 (경로를 주면 링크해서 띄움)
-stickypane todo plan add "테스트 작성"      # plan.md: 0/1
-stickypane todo plan check 테스트           # plan.md: 1/1
-stickypane card work move 로그인 --to Done  # work.md: 2 cards
-stickypane chart tokens add input 800       # tokens.md: input = 2,000
-stickypane log worklog --time "테스트 통과"
-stickypane set plan open=true size=1/2
-stickypane mv plan docs/   /   rm plan   /   restore plan
+stickypane note show plan                   # 띄우기 (경로를 주면 링크해서 띄움)
+stickypane todo add plan "테스트 작성"      # plan.md: 0/1
+stickypane todo check plan 테스트           # plan.md: 1/1
+stickypane card move work 로그인 --to Done  # work.md: 2 cards
+stickypane chart add tokens input 800       # tokens.md: input = 2,000
+stickypane log add worklog --time "테스트 통과"
+stickypane note set plan open=true size=1/2
+stickypane note mv plan docs/   /   note rm plan   /   note restore plan
 stickypane wait deploy --timeout 10m        # 폼의 버튼이 눌릴 때까지
 ```
 
