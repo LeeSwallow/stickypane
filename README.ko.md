@@ -195,7 +195,8 @@ title: 릴리스
 저장소의 모든 git 워크트리는 메인 워크트리의 보드를 씁니다(자기 `.sticky/`가
 있으면 그것). 워크트리마다 책 `worktrees/<이름>/`이 그 안에 처음 쓸 때
 첫 쪽 `00-개요.md`와 함께 생기고, 워크트리가 지워지면 지우지 않고 닫힘으로
-표시됩니다([docs/usage.md](docs/usage.md#git-worktrees)).
+표시됩니다([docs/usage.md](docs/usage.md#git-worktrees)). 워크트리에서 시작한
+에이전트는 플러그인의 세션 훅에서 자기 책을 듣습니다.
 
 ### 변경은 한 길로
 
