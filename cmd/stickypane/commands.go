@@ -48,7 +48,7 @@ func init() {
 	commands = []command{
 		{[]string{"init"}, initCmd, helpText{
 			group: "start", brief: "make .sticky/ and tell your agents about it",
-			what:     "Makes .sticky/ in this folder and puts the agent guide where agents read it: CLAUDE.md, AGENTS.md or a .claude skill. Safe to run again.",
+			what:     "Makes .sticky/ in this folder and puts the agent guide where agents read it: CLAUDE.md, AGENTS.md or a .claude skill. In a linked git worktree the board goes in the main worktree, the one every worktree shares. Safe to run again.",
 			syntax:   "stickypane init [--skill] [--no-agent-docs] [--view terminal|app|both] [--style doodle|neat] [--language code]",
 			args:     "--skill          a Claude Code skill instead of the instruction files\n--no-agent-docs  the folder only\n--view V         where the board shows: terminal, app (the desktop app) or both\n--style S        the app's look: doodle or neat\n--language L     the board's language, and the welcome note's: ko, en or auto",
 			examples: []string{"stickypane init", "stickypane init --view app", "stickypane init --language ko", "stickypane init --skill", "stickypane init --no-agent-docs"},
@@ -417,7 +417,7 @@ func initCmd(e env, args []string) error {
 	if err := initcmd.RefuseBoard("."); err != nil {
 		return err
 	}
-	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill, Language: *lang}, e.stdout); err != nil {
+	if err := initcmd.Run(".", initcmd.Options{NoAgentDocs: *noDocs, Skill: *skill, Language: *lang, Board: initcmd.BoardRoot(".")}, e.stdout); err != nil {
 		return err
 	}
 	dir, err := store.Resolve(".")

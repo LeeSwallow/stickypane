@@ -259,7 +259,8 @@ anything without asking. Over MCP the same events come from `wait_event`.
 
 Every git worktree of a repository uses one board, the main worktree's
 `.sticky/`: a command run in any worktree finds it, and in a repository
-without a board the first change makes it there. A worktree with a
+without a board the first change makes it there, as `stickypane init` run
+in a worktree does. A worktree with a
 `.sticky/` of its own keeps using that one.
 
 Each worktree's work goes in a book of the `worktrees` tab,
