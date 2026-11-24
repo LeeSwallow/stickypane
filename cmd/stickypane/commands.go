@@ -143,6 +143,22 @@ func init() {
 			examples: []string{"stickypane worktree show feat-chart", "stickypane worktree show feat-chart --json"},
 			related:  []string{"worktree list"},
 		}},
+		{[]string{"diff list"}, diffCmd("list"), helpText{
+			group: "notes", brief: "what the git worktrees changed",
+			what:     "Lists the git worktrees of this repository, each with its base and the files and lines it changed since, then every file two of them changed. With a worktree's name (its branch), lists the files it changed: those committed since the base, then those not committed yet. The base is origin/HEAD's branch, else the main worktree's. Reads git; writes nothing.",
+			syntax:   "stickypane diff list [<worktree>] [--json]",
+			args:     "--json  print it as JSON",
+			examples: []string{"stickypane diff list", "stickypane diff list feat/chart-ui --json"},
+			related:  []string{"diff show", "worktree list"},
+		}},
+		{[]string{"diff show"}, diffCmd("show"), helpText{
+			group: "notes", brief: "one changed file's diff",
+			what:     "Prints the diff of one file a worktree changed, as git writes it. A diff over 1 MiB is cut there.",
+			syntax:   "stickypane diff show <worktree> <file> [--json]",
+			args:     "--json  print it as JSON",
+			examples: []string{"stickypane diff show feat/chart-ui internal/chart/view.go"},
+			related:  []string{"diff list"},
+		}},
 		{[]string{"index"}, indexCmd, helpText{
 			group: "notes", brief: "every note in a line: title, counts, a gist",
 			what:     "Prints every note in a line, by tab: its title, what it counts and a gist. Read it before the notes.",

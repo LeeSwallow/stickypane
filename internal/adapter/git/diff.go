@@ -24,13 +24,13 @@ const (
 // Change is one changed file: how it changed, its paths and its counts of
 // lines added and removed.
 type Change struct {
-	Status string // "A", "D", "M", "R", "C" or "T"
-	Old    string // the path before, for a rename or a copy
-	Path   string
-	Add    int
-	Del    int
-	Binary bool   // git counts no lines: --numstat said "-"
-	Where  string // Committed, Uncommitted or Untracked
+	Status string `json:"status"`        // "A", "D", "M", "R", "C" or "T"
+	Old    string `json:"old,omitempty"` // the path before, for a rename or a copy
+	Path   string `json:"path"`
+	Add    int    `json:"add"`
+	Del    int    `json:"del"`
+	Binary bool   `json:"binary,omitempty"` // git counts no lines: --numstat said "-"
+	Where  string `json:"where,omitempty"`  // Committed, Uncommitted or Untracked
 }
 
 // diffFlags make git's diff the same whatever a repository's config says:
