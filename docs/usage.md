@@ -193,7 +193,7 @@ at first: the next open item of a checklist, the latest line of a log, the
 first line of anything else.
 
 `stickypane index` prints the same index as Markdown (`--json` for
-programs), and the MCP tool `index` gives it to agents, which read it
+programs), and the MCP tool `note` with `action: list` gives it to agents, which read it
 instead of every note.
 
 ## Deleting and moving
