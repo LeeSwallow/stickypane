@@ -215,12 +215,14 @@ reading everything:
 | the way in | the `guide` tool | `stickypane guide` |
 | a skill for a situation: tracking the work, approving a risky action, and the rest the way in lists | `guide` with the skill as `topic`, or the prompt of that name | `stickypane guide tracking-the-work` |
 | a recipe of a skill, one use case in full | `guide` with `skill/recipe` as `topic` | `stickypane guide approving-a-risky-action/several-at-once` |
-| one thing changed | `index`, `read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `say`, `set_keys`, `arrange_note` (show, hide, move, remove, restore) | the commands above |
+| one thing changed | `note`, `todo`, `card`, `chart`, `log`, `chat`, `page`, `worktree`, `diff`, each with an `action` that is the command's verb (`note` with `action: show` is `stickypane note show`; `read` is `note cat`, `list` is `index`) | the commands above |
 | waiting for the user | `read_answers`, `wait_event` | `stickypane wait`, `stickypane watch` |
 
 The skills are the plugin's own files, carried in the program, so a client
-without the plugin reads the same ones. `write_note`, like `write`, replaces
-the whole note.
+without the plugin reads the same ones. `note` with `action: write`, like
+`note write`, replaces the whole note. The tools before this form
+(`read_note`, `write_note`, `set_keys`, `arrange_note`, `index`, `say`) are
+no longer listed, and a client that calls one by name still gets its answer.
 
 ## The bridge
 

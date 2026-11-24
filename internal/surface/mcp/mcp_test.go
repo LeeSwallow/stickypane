@@ -135,7 +135,7 @@ func TestInitializeAndListTools(t *testing.T) {
 			t.Errorf("tool %s needs a description and an object schema: %s", tool.Name, tool.InputSchema)
 		}
 	}
-	if got := strings.Join(names, ","); got != "guide,index,read_note,write_note,todo,card,chart,log,say,set_keys,arrange_note,read_answers,wait_event,api" {
+	if got := strings.Join(names, ","); got != "guide,note,todo,card,chart,log,chat,page,worktree,diff,read_answers,wait_event,api" {
 		t.Errorf("tools = %s", got)
 	}
 	if string(rs[2].ID) != "3" || string(rs[2].Result) != "{}" {
