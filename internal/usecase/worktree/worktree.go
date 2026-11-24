@@ -67,9 +67,13 @@ func (b Board) repo() (repo, bool) {
 	if err != nil || len(list) == 0 || list[0].Bare || !git.Same(list[0].Path, root) {
 		return repo{}, false
 	}
-	common, err := git.CommonDir(root)
-	if err != nil {
-		return repo{}, false
+	// The main worktree's .git folder is the common dir; git is asked
+	// only where .git is a file, as --separate-git-dir leaves.
+	common := filepath.Join(root, ".git")
+	if fi, err := os.Stat(common); err != nil || !fi.IsDir() {
+		if common, err = git.CommonDir(root); err != nil {
+			return repo{}, false
+		}
 	}
 	r := repo{root: root, common: common, locked: map[string]bool{}}
 	for _, w := range list[1:] {
