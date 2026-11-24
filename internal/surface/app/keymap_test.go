@@ -111,6 +111,7 @@ const englishBoardHelp = `Notes
   H L              move earlier, later
   K J              move a row up, down
   , .              turn a folder's pages
+  v                one page or all
   m                move to a folder
   N n              jot a note
   a                add by shape
