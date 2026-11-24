@@ -163,6 +163,35 @@ func TestHelpOnAnOldFormIsTheNewOnes(t *testing.T) {
 	}
 }
 
+// `stickypane <command> --help` prints what `stickypane help <command>`
+// does, on standard output, and runs nothing: every command of the table,
+// two words or one, an old form, and -h and -help too.
+func TestDashHelpIsTheHelpOfTheCommand(t *testing.T) {
+	english(t)
+	t.Chdir(t.TempDir())
+	var lines [][]string
+	for _, c := range commands {
+		if !strings.HasPrefix(c.names[0], "-") {
+			lines = append(lines, strings.Fields(c.names[0]))
+		}
+	}
+	lines = append(lines, []string{"show"}, []string{"say"}, []string{"theme"})
+	for _, words := range lines {
+		_, want, _ := exec(t, append([]string{"help"}, words...)...)
+		for _, flag := range []string{"--help", "-h", "-help"} {
+			code, out, errOut := exec(t, append(slices.Clone(words), flag)...)
+			if code != 0 || errOut != "" || out != want || want == "" {
+				t.Errorf("%s %s: code = %d, stderr = %q\n%s\n--- want\n%s", strings.Join(words, " "), flag, code, errOut, out, want)
+			}
+		}
+	}
+	// among the words, not only last; after -- it is text
+	_, want, _ := exec(t, "help", "todo")
+	if code, out, _ := exec(t, "todo", "add", "--help", "plan"); code != 0 || out != want {
+		t.Errorf("todo add --help plan: code = %d\n%s", code, out)
+	}
+}
+
 // Every command has help, in a known group, with a usage line that agrees
 // with the usage text and with the flags the command really reads, and at
 // least one example. Every flag the arguments name, in English and in
