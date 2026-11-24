@@ -5,6 +5,7 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,7 +51,7 @@ func Parse(out []byte) []Worktree {
 }
 
 // Worktrees lists the worktrees of the repository dir is in, the main one
-// first.
+// first. Where dir is in no repository, the error is ErrNoRepository.
 func Worktrees(dir string) ([]Worktree, error) {
 	out, err := run(dir, "worktree", "list", "--porcelain")
 	if err != nil {
@@ -153,13 +154,20 @@ func Environ() []string {
 	return env
 }
 
+// ErrNoRepository is git saying the folder is in no repository.
+var ErrNoRepository = errors.New("not a git repository")
+
 func run(dir string, args ...string) ([]byte, error) {
 	// No fsmonitor: a repository's config must not start a program here.
-	// Paths come back as they are, not with their bytes escaped.
+	// Paths come back as they are, not with their bytes escaped. git
+	// speaks English (LC_ALL=C), so that its complaint can be read.
 	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
-	cmd.Env = Environ()
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	cmd.Env = append(Environ(), "LC_ALL=C")
+	var out, complaint bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &complaint
 	err := cmd.Run()
+	if err != nil && strings.Contains(complaint.String(), "not a git repository") {
+		err = ErrNoRepository
+	}
 	return out.Bytes(), err
 }

@@ -58,6 +58,7 @@ type Strings struct {
 	LanguageChosen      string `json:"languageChosen"`
 	ArrangementNotSaved string `json:"arrangementNotSaved"`
 	CannotReadNotes     string `json:"cannotReadNotes"`
+	CannotReadChanges   string `json:"cannotReadChanges"`
 	ViewsBroken         string `json:"viewsBroken"`
 	CannotShowNote      string `json:"cannotShowNote"`
 	NoteRemoved         string `json:"noteRemoved"`
@@ -167,6 +168,7 @@ func English() Strings {
 		LanguageChosen:      "Language: {{.Name}}.",
 		ArrangementNotSaved: "The arrangement was not saved: {{.Err}}",
 		CannotReadNotes:     "Cannot read notes: {{.Err}}",
+		CannotReadChanges:   "Cannot read what git changed: {{.Err}}",
 		ViewsBroken:         "{{.Err}}. Notes are shown as they arrange themselves.",
 		CannotShowNote:      "Cannot show this note: {{.Err}}",
 		NoteRemoved:         "The note was removed.",

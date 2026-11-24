@@ -147,6 +147,7 @@
   "languageChosen": "언어: {{.Name}}.",
   "arrangementNotSaved": "배치를 저장하지 못했어요: {{.Err}}",
   "cannotReadNotes": "노트를 읽지 못했어요: {{.Err}}",
+  "cannotReadChanges": "git에서 바뀐 것을 읽지 못했어요: {{.Err}}",
   "viewsBroken": "{{.Err}}. 노트마다 자기 설정대로 놓았어요.",
   "cannotShowNote": "노트를 표시할 수 없어요: {{.Err}}",
   "noteRemoved": "노트가 사라졌어요.",

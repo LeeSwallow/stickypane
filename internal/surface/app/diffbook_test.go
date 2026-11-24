@@ -111,8 +111,8 @@ func TestAPinnedWorktreeSkipsTheList(t *testing.T) {
 func TestADiffNoteOutsideARepository(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"changes.md": diffNote})
-	if s := screen(m); !strings.Contains(s, "no git worktrees here") {
-		t.Fatalf("outside a repository:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "no git worktrees here") || strings.Contains(s, "exit status") || m.status != "" {
+		t.Fatalf("outside a repository, status %q:\n%s", m.status, s)
 	}
 }
 
