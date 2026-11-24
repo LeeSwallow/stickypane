@@ -669,22 +669,15 @@ func diffTool(a args) (string, error) {
 	if a.Action == "show" && (a.Name == "" || a.File == "") {
 		return "", errors.New(`show needs "name", the worktree, and "file"`)
 	}
-	book, err := diffbook.Read(".", a.Name, "")
+	if a.Action == "show" {
+		_, text, _, err := diffbook.Show(".", a.Name, a.File, a.Uncommitted)
+		return text, err
+	}
+	book, err := diffbook.List(".", a.Name)
 	if err != nil {
 		return "", err
 	}
-	if a.Name != "" && book.Overview.Chosen != a.Name {
-		return "", i18n.Err("diff.unknown", map[string]any{"Name": a.Name})
-	}
-	switch {
-	case a.Action == "show":
-		c, ok := book.Change(a.File, a.Uncommitted)
-		if !ok {
-			return "", i18n.Err("diff.nofile", map[string]any{"Name": a.Name, "File": a.File})
-		}
-		text, _, err := book.Diff(c)
-		return text, err
-	case a.Name != "":
+	if a.Name != "" {
 		return asJSON(book.Changes)
 	}
 	return asJSON(book.Overview)
