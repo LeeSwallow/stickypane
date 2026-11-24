@@ -18,7 +18,7 @@ export interface BoardCtx {
   navigate(link: string): void
   /** note.act on a note, with its version */
   act(note: Note, action: Action): Promise<void>
-  /** note.arrange: open, size, rows, pin, colour, title */
+  /** note.arrange: open, size, rows, pin, colour, title, a book's paging */
   arrange(note: string, patch: ArrangePatch): Promise<void>
   zoom(name: string): void
   back(): void

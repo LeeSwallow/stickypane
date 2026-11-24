@@ -13,6 +13,7 @@
   import NoteFrame from '../lib/doodle/NoteFrame.svelte'
   import { look } from '../lib/doodle/look.svelte'
   import { NOTE_NAMES } from '../lib/theme/palette'
+  import Badge from '../lib/ui/Badge.svelte'
   import IconButton from '../lib/ui/IconButton.svelte'
   import NoteHeader from '../lib/ui/NoteHeader.svelte'
   import type { MenuItem } from '../lib/ui/menu'
@@ -54,6 +55,12 @@
   const pages = $derived(note.pages ?? [])
   const page = $derived(pages.length ? board.pageOf(note.name, pages.length) : 0)
   const shown = $derived(pages.length ? pages[page] : note)
+  // a book shows every page, one after another, unless it is set to one
+  // at a time (paging: single), as on the terminal
+  const single = $derived(note.paging === 'single')
+  const every = $derived(pages.length > 1 && !single)
+  // a worktree's book: the state the board worked out, as a badge
+  const tone = { open: 'good', running: 'accent', waiting: 'warn', closed: 'neutral' } as const
   const color = $derived(noteHex(note.color, look.palette))
   const changed = $derived(board.changed(note) || pages.some((p) => board.changed(p)))
   // a note that cannot be read can only be zoomed and closed (10 §10.1)
@@ -88,6 +95,7 @@
     // the header's ↗ hides on a narrow note; ⋯ always has it
     ...(board.tear ? [{ id: 'tear', label: $tr('ui.tearOff'), icon: 'tear-off' as const }] : []),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
+    ...(readable && pages.length > 1 ? [{ id: 'paging', label: $tr(single ? 'note.pagingAll' : 'note.pagingSingle'), shortcut: 'v' }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
     ...(readable && board.layoutItems ? board.layoutItems(note) : []),
     ...(board.manage ? [{ kind: 'separator' as const, id: 'sep-manage' }, ...manageItems(note).map((m) => manageItem[m])] : []),
@@ -96,6 +104,7 @@
   function choose(id: string) {
     if (id === 'zoom') board.zoom(note.name)
     else if (id === 'color') colours = !colours
+    else if (id === 'paging') board.arrange(note.name, { paging: single ? '' : 'single' })
     else if (id === 'edit') board.edit?.(note.name)
     else if (id === 'putBack') board.putBack?.(note.name)
     else if (id === 'tear') board.tear?.(note.name)
@@ -156,6 +165,15 @@
       },
     )
   }
+
+  // showing every page, turning one brings it into view; the first
+  // drawing scrolls nothing
+  let turned = 0
+  $effect(() => {
+    if (page === turned) return
+    turned = page
+    if (every) body?.querySelector(`[data-page="${page}"]`)?.scrollIntoView?.({ block: 'nearest' })
+  })
 
   // a double-click on the note (not on its controls or its title) zooms it
   function dbl(e: MouseEvent) {
@@ -218,6 +236,7 @@
           <IconButton icon="back" size="sm" label={$tr('board.back')} shortcut="Esc" align="start" onclick={() => board.back()} />
         {/if}
         {#if note.icon}<span class="icon" aria-hidden="true">{note.icon}</span>{/if}
+        {#if note.state}<Badge tone={tone[note.state]}>{$tr(`state.${note.state}`, { n: note.waiting ?? 0 })}</Badge>{/if}
       {/snippet}
     </NoteHeader>
     {#if colours && readable}
@@ -239,9 +258,18 @@
       </div>
     {/if}
     <div class="body" bind:this={body} class:flush data-shape-body class:fixed={fixed !== null} style:height={fixed !== null ? `${fixed}px` : null}>
-      {#key shown.name}
-        <Shape note={shown} narrow={narrow || small} />
-      {/key}
+      {#if every}
+        {#each pages as p, i (p.name)}
+          <section class="page" data-page={i}>
+            <h4 class="rule" class:at={i === page}>{p.title}</h4>
+            <Shape note={p} narrow={narrow || small} />
+          </section>
+        {/each}
+      {:else}
+        {#key shown.name}
+          <Shape note={shown} narrow={narrow || small} />
+        {/key}
+      {/if}
     </div>
   </NoteFrame>
   <!-- the edges lie on the border drawn, half in and half out of it (#66) -->
@@ -320,6 +348,27 @@
   }
   .body.fixed {
     overflow: auto;
+  }
+  /* every page of a book, one after another: each under a rule with its
+     name, the page the view is on in the accent (the terminal's book) */
+  .page + .page {
+    margin-top: var(--space-3);
+  }
+  .rule {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+    color: var(--ink-3);
+    font: 600 var(--text-body-xs) / 1 var(--font-body);
+  }
+  .rule::after {
+    content: '';
+    flex: 1;
+    border-top: var(--stroke-hairline) solid var(--line);
+  }
+  .rule.at {
+    color: var(--accent-text);
   }
   .zoomed .body,
   .free .body {

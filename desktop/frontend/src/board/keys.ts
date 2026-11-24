@@ -5,6 +5,7 @@ export type KeyAction =
   | { type: 'zoom' }
   | { type: 'size'; dir: -1 | 1 }
   | { type: 'page'; delta: -1 | 1 }
+  | { type: 'paging' }
   | { type: 'tab'; index: number }
   | { type: 'focus'; delta: -1 | 1 }
   | { type: 'order'; delta: -1 | 1 }
@@ -70,10 +71,15 @@ export function keyAction(e: KeyLike, ctx: KeyContext): KeyAction | null {
     case '=':
     case '+':
       return { type: 'size', dir: 1 }
+    // [ ] and the terminal's , . turn a book's pages; v shows it one page at a time or all
     case '[':
+    case ',':
       return { type: 'page', delta: -1 }
     case ']':
+    case '.':
       return { type: 'page', delta: 1 }
+    case 'v':
+      return { type: 'paging' }
     case 'ArrowLeft':
       return ctx.book ? { type: 'page', delta: -1 } : { type: 'focus', delta: -1 }
     case 'ArrowRight':

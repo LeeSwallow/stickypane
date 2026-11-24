@@ -527,6 +527,10 @@
         if (!note?.pages?.length) return
         ctx.flip(note.name, a.delta)
         break
+      case 'paging':
+        if (!note?.pages?.length || note.error) return
+        ctx.arrange(note.name, { paging: note.paging === 'single' ? '' : 'single' })
+        break
       case 'tab':
         if (!board.tabs[a.index]) return
         view = selectTab(view, board.tabs[a.index].name)
