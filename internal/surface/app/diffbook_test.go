@@ -111,7 +111,23 @@ func TestAPinnedWorktreeSkipsTheList(t *testing.T) {
 func TestADiffNoteOutsideARepository(t *testing.T) {
 	t.Parallel()
 	m, _ := newModel(t, map[string]string{"changes.md": diffNote})
-	if s := screen(m); !strings.Contains(s, "no git worktrees here") {
-		t.Fatalf("outside a repository:\n%s", s)
+	if s := screen(m); !strings.Contains(s, "no git worktrees here") || strings.Contains(s, "exit status") || m.status != "" {
+		t.Fatalf("outside a repository, status %q:\n%s", m.status, s)
+	}
+}
+
+// A diff note always shows one page at a time: v changes nothing and its
+// hint is not offered.
+func TestADiffNoteHasNoPageMode(t *testing.T) {
+	t.Parallel()
+	m, dir := newModel(t, map[string]string{"changes.md": diffNote})
+	gitRepo(t, dir)
+	press(m, "r", "z", "j", "enter", "esc")
+	if s := screen(m); !strings.Contains(s, "2/3") || strings.Contains(s, "one page") || strings.Contains(s, "all pages") {
+		t.Fatalf("the hint offers page mode:\n%s", s)
+	}
+	press(m, "v")
+	if v := viewsOf(t, dir)["changes.md"]; v.Paging != "" {
+		t.Fatalf("v wrote paging: %+v", v)
 	}
 }

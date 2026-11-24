@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"time"
@@ -107,8 +108,9 @@ func (m *Model) readDiff(note, chosen, base string) *diffState {
 		return prev
 	}
 	book, err := diffbook.Read(filepath.Dir(m.store.Dir), chosen, base)
-	if err != nil && len(book.Overview.Worktrees) == 0 {
-		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+	// Outside a repository the list says there are no worktrees.
+	if err != nil && len(book.Overview.Worktrees) == 0 && !errors.Is(err, git.ErrNoRepository) {
+		m.status = say(m.tr.CannotReadChanges, map[string]any{"Err": err.Error()})
 	}
 	st := &diffState{key: key, at: m.now(), book: book, bodies: map[string]diffBody{}}
 	if prev != nil && prev.prPath == book.Path {

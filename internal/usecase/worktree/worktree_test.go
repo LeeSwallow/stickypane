@@ -294,3 +294,21 @@ func TestOutsideARepositoryNothingHappens(t *testing.T) {
 		t.Fatal("NewFolder outside a repository")
 	}
 }
+
+// Without records, a detached worktree finds its folder by the folder's
+// name, the last element of its path: it stays open and gets no new name.
+func TestWithoutRecordsADetachedWorktreeKeepsItsFolder(t *testing.T) {
+	r := newFixture(t, false)
+	r.git("worktree", "add", "-q", "--detach", filepath.Join(r.dir, "loose"))
+	r.sync()
+	if err := r.board.Store.Write(Tab+"/loose/plan.md", []byte("hi\n")); err != nil {
+		t.Fatal(err)
+	}
+	list := r.sync()
+	if len(list) != 1 || list[0].Name != "loose" || list[0].State != registry.StateOpen {
+		t.Fatalf("list = %+v", list)
+	}
+	if s, _ := r.overview("loose").Get("state"); s != "open" {
+		t.Fatalf("state = %q", s)
+	}
+}

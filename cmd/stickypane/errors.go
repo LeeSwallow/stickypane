@@ -88,12 +88,16 @@ func exitCode(err error, stderr io.Writer) int {
 
 // usageIn is what a usage error prints after its message: in English the
 // lines of the usage text about cmd (usageOf); in another language, the
-// command's usage line and where its help is, or the overview.
+// command's usage line and where its help is, a noun's commands, or the
+// overview.
 func usageIn(lang string, tr i18n.Strings, cmd string) string {
 	if lang == "en" {
 		return usageOf(cmd)
 	}
 	c, ok := lookup(cmd)
+	if n := nounHelp(tr, cmd); !ok && n != "" {
+		return tr.T("label.usage", "Usage") + ":\n" + n
+	}
 	if !ok {
 		return overview(tr)
 	}

@@ -103,13 +103,17 @@ func (b Board) folders() map[string]folder {
 	return out
 }
 
-// names gives each live worktree its folder name: the one a record or a
-// folder has for it (by branch, or by path when detached), else the last
-// element of its path, with a short hash of the path when that is taken.
+// names gives each live worktree its folder name: the one a record has for
+// it (by branch, or by path when detached), else the one a folder has for
+// it (by branch, or, when detached, the folder without a branch named as
+// the last element of its path), else that last element, with a short hash
+// of the path when it is taken.
 func names(live []git.Worktree, records []registry.Worktree, folders map[string]folder) []registry.Worktree {
 	taken := map[string]bool{}
+	recorded := map[string]bool{}
 	for _, r := range records {
 		taken[r.Name] = true
+		recorded[r.Name] = true
 	}
 	byName := make([]string, 0, len(folders))
 	for n := range folders {
@@ -118,6 +122,7 @@ func names(live []git.Worktree, records []registry.Worktree, folders map[string]
 	}
 	slices.Sort(byName)
 	var out []registry.Worktree
+	claimed := map[string]bool{}
 	for _, w := range live {
 		name := ""
 		for _, r := range records {
@@ -131,6 +136,11 @@ func names(live []git.Worktree, records []registry.Worktree, folders map[string]
 				name = n
 			}
 		}
+		if base := filepath.Base(w.Path); name == "" && w.Branch == "" && !recorded[base] && !claimed[base] {
+			if f, ok := folders[base]; ok && f.branch == "" {
+				name = base
+			}
+		}
 		if name == "" {
 			name = filepath.Base(w.Path)
 			if taken[name] {
@@ -139,6 +149,7 @@ func names(live []git.Worktree, records []registry.Worktree, folders map[string]
 			}
 			taken[name] = true
 		}
+		claimed[name] = true
 		out = append(out, registry.Worktree{Name: name, Path: w.Path, Branch: w.Branch, State: registry.StateOpen})
 	}
 	return out

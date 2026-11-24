@@ -121,7 +121,10 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 	run(main, "add", ".")
 	run(main, "commit", "-q", "-m", "first")
 	run(main, "worktree", "add", "-q", "-b", "feat", filepath.Join(root, "feat"))
+	// a.txt has a commit since the base and an edit not committed yet
 	os.WriteFile(filepath.Join(root, "feat", "a.txt"), []byte("a\nb\n"), 0o644)
+	run(filepath.Join(root, "feat"), "commit", "-q", "-am", "b")
+	os.WriteFile(filepath.Join(root, "feat", "a.txt"), []byte("a\nb\nc\n"), 0o644)
 	t.Chdir(main)
 	if code, _, errOut := exec(t, "init", "--no-agent-docs"); code != 0 {
 		t.Fatal(errOut)
@@ -137,9 +140,10 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 		"diff", `{"action":"list"}`,
 		"diff", `{"action":"list","name":"feat"}`,
 		"diff", `{"action":"show","name":"feat","file":"a.txt"}`,
+		"diff", `{"action":"show","name":"feat","file":"a.txt","uncommitted":true}`,
 		"diff", `{"action":"show","name":"feat","file":"nope.txt"}`,
 	)
-	if slices.Contains(failed[:7], true) || !failed[7] {
+	if slices.Contains(failed[:8], true) || !failed[8] {
 		t.Fatalf("failed = %v: %q", failed, texts)
 	}
 	if texts[0] != "added deploy/docs/release-notes.md" {
@@ -152,13 +156,57 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 		{"diff", "list", "--json"},
 		{"diff", "list", "feat", "--json"},
 		{"diff", "show", "feat", "a.txt"},
+		{"diff", "show", "feat", "a.txt", "--uncommitted"},
 	}
 	for i, args := range cli {
 		if _, out, _ := exec(t, args...); out != texts[i+1] {
 			t.Errorf("stickypane %v prints %q, MCP answers %q", args, out, texts[i+1])
 		}
 	}
-	if !strings.Contains(texts[6], "+b") {
+	if !strings.Contains(texts[6], "+b") || strings.Contains(texts[6], "+c") {
 		t.Errorf("diff show = %q", texts[6])
+	}
+	if !strings.Contains(texts[7], "+c") || strings.Contains(texts[7], "+b") {
+		t.Errorf("diff show --uncommitted = %q", texts[7])
+	}
+}
+
+// init in a linked worktree makes the repository's one board, in the main
+// worktree, and says so; a worktree with a .sticky/ of its own keeps it.
+func TestInitInAWorktreeMakesTheMainBoard(t *testing.T) {
+	if _, err := osexec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	for _, v := range git.Local {
+		t.Setenv(v, "")
+		os.Unsetenv(v)
+	}
+	english(t)
+	root, _ := filepath.EvalSymlinks(t.TempDir())
+	main, feat, own := filepath.Join(root, "main"), filepath.Join(root, "feat"), filepath.Join(root, "own")
+	os.MkdirAll(main, 0o755)
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"commit", "-q", "--allow-empty", "-m", "first"}, {"worktree", "add", "-q", "-b", "feat", feat}, {"worktree", "add", "-q", "-b", "own", own}} {
+		cmd := osexec.Command("git", args...)
+		cmd.Dir = main
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	t.Chdir(feat)
+	code, out, errOut := exec(t, "init", "--no-agent-docs")
+	if code != 0 || !strings.Contains(out, main) {
+		t.Fatalf("code = %d, stderr = %q\n%s", code, errOut, out)
+	}
+	if _, err := os.Stat(filepath.Join(main, ".sticky")); err != nil {
+		t.Fatal("no board in the main worktree")
+	}
+	if _, err := os.Stat(filepath.Join(feat, ".sticky")); err == nil {
+		t.Fatal("a second board in the worktree")
+	}
+	os.Mkdir(filepath.Join(own, ".sticky"), 0o755)
+	t.Chdir(own)
+	if code, out, _ := exec(t, "init", "--no-agent-docs"); code != 0 || strings.Contains(out, main) {
+		t.Fatalf("own board: code = %d\n%s", code, out)
 	}
 }

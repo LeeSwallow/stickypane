@@ -104,8 +104,9 @@ For scripts and agents that would rather not edit the files themselves:
                                  what each git worktree changed since its
                                  base, and the files two of them changed; with
                                  a worktree, the files it changed
-  stickypane diff show <worktree> <file> [--json]
-                                 one changed file's diff
+  stickypane diff show <worktree> <file> [--uncommitted] [--json]
+                                 one changed file's diff: its commits since the
+                                 base, or --uncommitted its edits not committed
   stickypane index [--json]      every note in a line, by tab: its title, what it
                                  counts and a gist; read it before the notes
   stickypane note show <name|path>
@@ -211,8 +212,8 @@ func runEnv(e env, args []string) int {
 			e.cmd = name
 			return exitCode(c.run(e, rest), stderr)
 		}
-		if args[0] == "note" {
-			return exitCode(usageError{cmd: "note"}, stderr)
+		if nounHelp(helpStrings(), args[0]) != "" {
+			return exitCode(usageError{cmd: args[0]}, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			return exitCode(usageSay("", "error.unknownCommand", map[string]any{"Name": args[0]}), stderr)
@@ -225,10 +226,11 @@ func runEnv(e env, args []string) int {
 	return exitCode(openBoard(e, start), stderr)
 }
 
-// asksHelp says whether the words of a command ask for its help: --help,
-// -help or -h among them, before any "--".
+// asksHelp says whether the words after a command ask for its help:
+// --help, -help or -h first, or after one word, a verb or a target (todo
+// add --help, note write plan -h). Later it is text: log add x run with -h.
 func asksHelp(words []string) bool {
-	for _, w := range words {
+	for _, w := range words[:min(2, len(words))] {
 		switch w {
 		case "--":
 			return false

@@ -119,14 +119,14 @@ func (m *Model) reload() {
 		if n.Book() || m.isDiff(n) {
 			// A diff note's pages come from git, and are read one at a
 			// time; a book that holds one shows a page at a time too.
-			single := views[n.Name].Paging == store.PagingSingle
+			single, fixed := views[n.Name].Paging == store.PagingSingle, false
 			pages := n.Pages
 			if !n.Book() {
 				pages = []store.Note{n}
 			}
 			for _, pn := range pages {
 				if m.isDiff(pn) {
-					it.pages, single = append(it.pages, m.diffPages(pn, old)...), true
+					it.pages, single, fixed = append(it.pages, m.diffPages(pn, old)...), true, true
 					continue
 				}
 				pn = unreadable(pn)
@@ -139,7 +139,7 @@ func (m *Model) reload() {
 					it.page = i
 				}
 			}
-			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, single: single, env: m.env}
+			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, single: single, fixed: fixed, env: m.env}
 		} else {
 			o, had := old[n.Name]
 			var oldLog store.Note

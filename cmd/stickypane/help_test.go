@@ -190,6 +190,18 @@ func TestDashHelpIsTheHelpOfTheCommand(t *testing.T) {
 	if code, out, _ := exec(t, "todo", "add", "--help", "plan"); code != 0 || out != want {
 		t.Errorf("todo add --help plan: code = %d\n%s", code, out)
 	}
+	// after the verb and the target it is no help: a flag log does not
+	// have, a usage error (exit 2), and text after --
+	project(t)
+	if code, out, _ := exec(t, "log", "add", "run", "with", "-h", "now"); code != 2 || out != "" {
+		t.Errorf("log add run with -h now: code = %d\n%s", code, out)
+	}
+	if code, _, errOut := exec(t, "log", "add", "run", "--", "with", "-h", "now"); code != 0 {
+		t.Errorf("log add run -- with -h now: code = %d, stderr = %q", code, errOut)
+	}
+	if code, out, _ := exec(t, "note", "cat", "run"); code != 0 || !strings.Contains(out, "with -h now") {
+		t.Errorf("the line was not logged: code = %d\n%s", code, out)
+	}
 }
 
 // Every command has help, in a known group, with a usage line that agrees
@@ -485,5 +497,36 @@ func TestHelpJSONIsTheGoldenFile(t *testing.T) {
 	}
 	if code, _, _ := exec(t, "help", "card", "--json"); code != exitUsage {
 		t.Errorf("help card --json: code = %d", code)
+	}
+}
+
+// The first word of a two-word command alone is a usage error that lists
+// its commands, never the board; help <noun> lists them too.
+func TestANounAloneListsItsCommands(t *testing.T) {
+	calls := fakeBoard(t)
+	t.Chdir(t.TempDir())
+	for _, lang := range []string{"en", "ko"} {
+		t.Setenv("STICKYPANE_LANG", lang)
+		for _, noun := range []string{"note", "worktree", "diff", "page"} {
+			want := "stickypane " + noun + " list"
+			if noun == "note" {
+				want = "stickypane note write"
+			}
+			if code, _, errOut := exec(t, noun); code != 2 || !strings.Contains(errOut, want) {
+				t.Errorf("%s %s: code = %d, stderr:\n%s", lang, noun, code, errOut)
+			}
+			if code, _, errOut := exec(t, noun, "nope"); code != 2 || !strings.Contains(errOut, want) {
+				t.Errorf("%s %s nope: code = %d, stderr:\n%s", lang, noun, code, errOut)
+			}
+			if noun == "note" {
+				continue // help note is the shape
+			}
+			if code, out, errOut := exec(t, "help", noun); code != 0 || !strings.Contains(out, want) {
+				t.Errorf("%s help %s: code = %d, stderr = %q\n%s", lang, noun, code, errOut, out)
+			}
+		}
+	}
+	if len(*calls) > 0 {
+		t.Fatalf("the board was opened: %v", *calls)
 	}
 }

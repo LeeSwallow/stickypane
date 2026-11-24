@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"text/tabwriter"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/git"
@@ -17,6 +16,10 @@ func diffCmd(verb string) func(env, []string) error {
 	return func(e env, args []string) error {
 		fs := newFlags("diff " + verb)
 		asJSON := fs.Bool("json", false, "print it as JSON")
+		var uncommitted *bool
+		if verb == "show" {
+			uncommitted = fs.Bool("uncommitted", false, "the edits not committed yet, not the commits")
+		}
 		least, most := 0, 1
 		if verb == "show" {
 			least, most = 2, 2
@@ -38,11 +41,11 @@ func diffCmd(verb string) func(env, []string) error {
 		}
 		switch {
 		case verb == "show":
-			i := slices.IndexFunc(book.Changes, func(c git.Change) bool { return c.Path == words[1] })
-			if i < 0 {
+			c, ok := book.Change(words[1], *uncommitted)
+			if !ok {
 				return i18n.Err("diff.nofile", map[string]any{"Name": chosen, "File": words[1]})
 			}
-			text, cut, err := book.Diff(book.Changes[i])
+			text, cut, err := book.Diff(c)
 			if err != nil {
 				return err
 			}
@@ -51,7 +54,7 @@ func diffCmd(verb string) func(env, []string) error {
 					git.Change
 					Diff string `json:"diff"`
 					Cut  bool   `json:"cut,omitempty"`
-				}{book.Changes[i], text, cut})
+				}{c, text, cut})
 			}
 			_, err = fmt.Fprint(e.stdout, text)
 			return err

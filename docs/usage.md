@@ -3,7 +3,8 @@
 Keys, the mouse, the editor, the index, moving notes, and watching what
 happens. Every command has its own help in the program: `stickypane help
 <command>` (or `stickypane <command> --help`) prints one with its
-examples, and `stickypane help --all`
+examples, `stickypane help worktree` (or `stickypane worktree` alone) the
+commands that start with that word, and `stickypane help --all`
 prints every command with every option on one page. Back to the
 [README](../README.md).
 
@@ -258,7 +259,8 @@ anything without asking. Over MCP the same events come from `wait_event`.
 
 Every git worktree of a repository uses one board, the main worktree's
 `.sticky/`: a command run in any worktree finds it, and in a repository
-without a board the first change makes it there. A worktree with a
+without a board the first change makes it there, as `stickypane init` run
+in a worktree does. A worktree with a
 `.sticky/` of its own keeps using that one.
 
 Each worktree's work goes in a book of the `worktrees` tab,
@@ -277,7 +279,9 @@ Each command and the board, when it opens, read `git worktree list`. When
 git no longer has a worktree, or calls it prunable, its overview says
 `state: closed` with the time it was seen gone, and the book stays; a
 worktree of the same branch that comes back opens it again. A worktree is
-known by its branch, so one that is moved keeps its book. A folder in
+known by its branch, so one that is moved keeps its book; one without a
+branch (detached) by its path, or, where `~/.stickypane` keeps no records,
+by its folder's name. A folder in
 `worktrees/` the board did not make is left alone.
 
 ```sh
@@ -308,6 +312,7 @@ stickypane note write changes --type diff --open </dev/null
 stickypane diff list                   # each worktree: base, files, lines; files two changed
 stickypane diff list feat/chart-ui     # the files one worktree changed
 stickypane diff show feat/chart-ui internal/chart/view.go
+stickypane diff show feat/chart-ui internal/chart/view.go --uncommitted  # its edits not committed yet
 ```
 
 ## How edits are written
