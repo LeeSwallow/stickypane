@@ -69,7 +69,7 @@ var says = map[string]string{
 	"setup.runs":            "stickypane setup runs:",
 	"setup.alreadyDone":     "(already done)",
 	"setup.toRun":           "Run `stickypane setup --yes` to do it, with the same flags.",
-	"setup.next":            "Next: `stickypane init` in a project makes its board; in a git repository the agent's first `stickypane show` does too.",
+	"setup.next":            "Next: `stickypane init` in a project makes its board; in a git repository the agent's first `stickypane note show` does too.",
 	"setup.carries":         "This stickypane carries the board plugin {{.Version}}.",
 	"setup.notFound":        "{{.Name}}: not found (no {{.Command}} command on the PATH)",
 	"setup.state.off":       "not connected",

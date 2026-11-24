@@ -459,7 +459,7 @@
     "setup.runs": "stickypane setup이 실행할 명령:",
     "setup.alreadyDone": "(이미 됨)",
     "setup.toRun": "실행하려면 같은 플래그로 `stickypane setup --yes`를 실행하세요.",
-    "setup.next": "다음: 프로젝트에서 `stickypane init`을 실행하면 보드가 생겨요. git 저장소에서는 에이전트의 첫 `stickypane show`로도 생겨요.",
+    "setup.next": "다음: 프로젝트에서 `stickypane init`을 실행하면 보드가 생겨요. git 저장소에서는 에이전트의 첫 `stickypane note show`로도 생겨요.",
     "setup.carries": "보드 플러그인 버전: {{.Version}}",
     "setup.notFound": "{{.Name}}: 없음 (PATH에 {{.Command}} 명령이 없어요)",
     "setup.state.off": "연결 안 됨",

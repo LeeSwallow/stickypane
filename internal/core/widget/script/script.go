@@ -24,7 +24,7 @@ var Kind = widget.Kind{
 	Icon:     "▶",
 	Hint:     []string{"enter", "run"},
 	Blurb:    "A shell script with a Run button. It runs in the project folder and its output is a log next to it.",
-	Command:  "stickypane show deploy.sh",
+	Command:  "stickypane note show deploy.sh",
 	Usage:    "A .sh file, or .ps1 for PowerShell. enter, a click on Run or a double click asks the user first, then runs it in the project folder with sh or PowerShell, whichever the file needs; the output shows under the script, from a .log of the same name.",
 	Example:  "#!/bin/sh\ngo test ./...\n",
 	Keys:     "enter space",

@@ -20,15 +20,15 @@ var folderShapes = []folderShape{
 	{
 		name:    "tab",
 		blurb:   "A folder of the notes folder: a screen of its own, switched with 1-9.",
-		command: "stickypane write deploy/notes --open",
-		usage:   "The files in the folder are the tab's notes. Its sticky.json can give it a title and keeps how its notes are arranged. `stickypane show deploy/run.sh` switches to it.",
+		command: "stickypane note write deploy/notes --open",
+		usage:   "The files in the folder are the tab's notes. Its sticky.json can give it a title and keeps how its notes are arranged. `stickypane note show deploy/run.sh` switches to it.",
 		example: ".sticky/deploy/\n  sticky.json   {\"title\": \"Deploy\"}\n  notes.md\n  run.sh",
 	},
 	{
 		name:    "book",
 		blurb:   "A folder inside a tab: one note whose pages are its files.",
-		command: "stickypane link docs",
-		usage:   "It scrolls like one long note, each page under a rule with its name; \",\" and \".\" turn the pages. `stickypane link <folder>` shows a folder of the project as a book without copying it.",
+		command: "stickypane note link docs",
+		usage:   "It scrolls like one long note, each page under a rule with its name; \",\" and \".\" turn the pages. `stickypane note link <folder>` shows a folder of the project as a book without copying it.",
 		example: ".sticky/deploy/guide/\n  01-intro.md\n  02-usage.md",
 	},
 }
