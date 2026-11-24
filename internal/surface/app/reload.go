@@ -126,7 +126,7 @@ func (m *Model) reload() {
 					it.page = i
 				}
 			}
-			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, env: m.env}
+			it.kind, it.w = it.pages[it.page].kind, &book{pages: it.pages, at: it.page, single: views[n.Name].Paging == store.PagingSingle, env: m.env}
 		} else {
 			o, had := old[n.Name]
 			var oldLog store.Note

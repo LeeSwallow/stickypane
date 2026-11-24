@@ -172,7 +172,8 @@ Design and build notes are in [docs/desktop](docs/desktop/README.md).
 ### The folder is the board
 
 Each file in `.sticky/` is one note. A folder is a tab, and a folder inside
-a tab is a book of pages. A Markdown note's front matter gives it a shape.
+a tab is a book of pages, shown one after another or, after `v`, one page
+at a time. A Markdown note's front matter gives it a shape.
 Where each note sits and how wide it is (a share of the screen, from `1/4`
 to `1`) are kept apart, in `sticky.json`, so rearranging the board never
 rewrites a note.

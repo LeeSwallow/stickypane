@@ -43,18 +43,48 @@ func toggleOpen(m *Model, it item) tea.Cmd {
 	return nil
 }
 
+// shownBook is the name of the note the page keys act on: the focused
+// one, or the zoomed one.
+func (m *Model) shownBook() string {
+	if m.zoomed() {
+		return m.zoomName
+	}
+	return m.focus
+}
+
 // turnPage turns the pages of a book, the focused one or the zoomed one.
 func turnPage(delta int) func(*Model) tea.Cmd {
 	return func(m *Model) tea.Cmd {
-		name := m.focus
-		if m.zoomed() {
-			name = m.zoomName
-		}
-		if i := m.index(name); i >= 0 {
+		if i := m.index(m.shownBook()); i >= 0 {
 			m.turn(i, delta)
 		}
 		return nil
 	}
+}
+
+// togglePaging shows a book's pages one at a time, or all again, and keeps
+// the choice in sticky.json; back to all pages takes the key out. The view
+// stays on its page, at the page's top.
+func togglePaging(m *Model) tea.Cmd {
+	name := m.shownBook()
+	i := m.index(name)
+	if i < 0 || len(m.items[i].pages) == 0 {
+		return nil
+	}
+	paging := store.PagingSingle
+	if m.views[name].Paging == store.PagingSingle {
+		paging = ""
+	}
+	// A start no page has makes the pane find the page again (panes.go).
+	m.anchors[name] = anchor{page: m.items[i].file().Name, start: -1}
+	m.setView(name, func(v *store.View) { v.Paging = paging })
+	if i = m.index(name); i >= 0 && m.zoomed() {
+		if b, ok := m.items[i].w.(*book); ok {
+			b.Draw(max(m.width-4, 1), true)
+			m.zoomScroll = b.starts[b.at]
+		}
+	}
+	return nil
 }
 
 // mainUpdate routes a key. A focused open note gets the keys its kind
@@ -388,7 +418,11 @@ func (m *Model) moving(pairs ...string) []string {
 		pairs = append(m.keys.hint("screen", "screen-prev", "screen-next"), pairs...)
 	}
 	if i := m.index(m.focus); i >= 0 && len(m.items[i].pages) > 1 {
-		pairs = append(m.keys.hint("page", "page-prev", "page-next"), pairs...)
+		mode := "one page"
+		if m.views[m.focus].Paging == store.PagingSingle {
+			mode = "all pages"
+		}
+		pairs = append(append(m.keys.hint("page", "page-prev", "page-next"), m.keys.hint(mode, "page-mode")...), pairs...)
 	}
 	return pairs
 }

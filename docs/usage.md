@@ -40,6 +40,7 @@ The board's keys are vim's where vim has one.
 | `H` `L` | move earlier, later | **Zoomed note** | |
 | `K` `J` | move a row up, down | `esc` | back |
 | `,` / `.` | turn a book's pages | `j` `k` `g` `G` | scroll |
+| `v` | a book one page at a time, or all | | |
 | `m` | move to a folder | | |
 | `x` / `dd` / `u` | archive, delete, undo | | |
 | `yy` | copy the note's path | | |

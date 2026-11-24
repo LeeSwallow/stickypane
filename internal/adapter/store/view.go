@@ -36,13 +36,19 @@ type View struct {
 	// matter or its kind says.
 	Rows  int    `json:"rows,omitempty"`
 	Color string `json:"color,omitempty"`
+	// Paging is how a book shows its pages: "single" one at a time; any
+	// other value, or none, one after another.
+	Paging string `json:"paging,omitempty"`
 }
+
+// PagingSingle is the Paging of a book that shows one page at a time.
+const PagingSingle = "single"
 
 // ContentRows is the Rows of a note the user made as tall as its content.
 const ContentRows = -1
 
 func (v View) empty() bool {
-	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == ""
+	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == "" && v.Paging == ""
 }
 
 // Views maps a note's full name ("deploy/build.log") to its view.
