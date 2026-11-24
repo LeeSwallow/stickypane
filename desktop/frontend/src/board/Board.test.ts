@@ -59,6 +59,22 @@ describe('the board window', () => {
     expect(writeText).toHaveBeenCalledWith('cd ~/Projects/Personal/stickypane && stickypane')
   })
 
+  it('페이지 추가 on a book makes the note a page of it', async () => {
+    const book = { ...base, name: 'work/docs', title: 'docs', size: '1/2', kind: 'note', data: null, pages: [note('docs/a.md', '1/2'), note('docs/b.md', '1/2')] } as unknown as Note
+    const a = api(boardOf([note('plan.md', '1/2'), book]))
+    const create = vi.fn(a.create)
+    a.create = create
+    render(Board, { props: { api: a, bus: fakeBus().bus } })
+    await screen.findByText('plan.md')
+    const frame = document.querySelector('[data-frame="work/docs"]') as HTMLElement
+    await fireEvent.click(within(frame).getByRole('button', { name: '더 보기' }))
+    await fireEvent.click(await screen.findByRole('menuitem', { name: /페이지 추가/ }))
+    const dialog = await screen.findByRole('dialog')
+    await fireEvent.input(await within(dialog).findByRole('textbox', { name: /제목/ }), { target: { value: 'Notes' } })
+    await fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ tab: 'work/docs', title: 'Notes' })))
+  })
+
   it('⌘, opens the settings window for this board', async () => {
     const a = api(boardOf([note('a.md', '1/2')]))
     render(Board, { props: { api: a, bus: fakeBus().bus } })

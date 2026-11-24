@@ -40,3 +40,12 @@ test('the top level is offered to a note in a tab, and cancel closes', async () 
   await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
   expect(onclose).toHaveBeenCalled()
 })
+
+test('a book is offered too, and picking it makes the note one of its pages', async () => {
+  const onmove = vi.fn()
+  const withBook = [{ name: '' }, { name: 'work', notes: [note, { name: 'work/docs', pages: [{ name: 'work/docs/a.md' }] }] }] as Tab[]
+  render(MoveDialog, { note, tabs: withBook, width: 420, onmove, onclose: () => {} })
+  await fireEvent.click(screen.getByRole('button', { name: 'work/docs/' }))
+  await fireEvent.click(screen.getByRole('button', { name: 'Move to...' }))
+  expect(onmove).toHaveBeenCalledWith('work/docs/')
+})

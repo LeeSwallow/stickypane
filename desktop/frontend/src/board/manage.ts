@@ -83,10 +83,16 @@ export interface Request {
 export const send = (d: ManageDeps, n: Note, request?: Request) =>
   attempt(d, n.title, async () => (await d.api.send(n.name, request?.at ?? 1), { message: t('send.done') }))
 
-/** moveTargets are where a note can go: the top level and every other tab. */
-export function moveTargets(tabs: { name: string }[], from: string): string[] {
+/**
+ * moveTargets are where a note in the folder `from` (a tab or a book) can
+ * go: the top level, every other tab, and every other book, as the
+ * terminal's m lists them. A book goes into no book.
+ */
+export function moveTargets(tabs: { name: string; notes?: { name: string; pages?: unknown[] }[] }[], from: string, book = false): string[] {
   const out = from === '' ? [] : ['.']
   for (const x of tabs) if (x.name && x.name !== from) out.push(x.name + '/')
+  if (book) return out
+  for (const x of tabs) for (const n of x.notes ?? []) if (n.pages && n.name !== from) out.push(n.name + '/')
   return out
 }
 

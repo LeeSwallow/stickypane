@@ -40,6 +40,7 @@
   "note.trash": "삭제",
   "note.move": "옮기기…",
   "note.openInEditor": "편집기로 열기",
+  "note.addPage": "페이지 추가",
   "note.trashed": "삭제했어요",
   "note.confirmTrash": "\"{title}\" 노트를 삭제할까요?",
   "note.restore": "되돌리기",

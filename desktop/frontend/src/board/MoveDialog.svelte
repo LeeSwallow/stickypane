@@ -18,7 +18,8 @@
   }: { note: Note; tabs: Tab[]; width: number; onmove: (to: string) => void; onclose: () => void } = $props()
 
   let to = $state('')
-  const targets = $derived(moveTargets(tabs, note.tab))
+  // the folder the note is in: its tab, or its book for a page
+  const targets = $derived(moveTargets(tabs, note.name.split('/').slice(0, -1).join('/'), !!note.pages))
   // the window closes the dialog; an empty name moves nothing
   const move = () => onmove(to)
 </script>

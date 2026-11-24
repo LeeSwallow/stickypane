@@ -80,4 +80,15 @@ describe('the ⋯ menu of a note', () => {
     expect(manage.moveTargets(tabs, 'work')).toEqual(['.', 'notes/'])
     expect(manage.moveTargets(tabs, '')).toEqual(['work/', 'notes/'])
   })
+
+  it('a note moves into a book too, but not into the one it is in, and a book only to a tab', () => {
+    const tabs = [
+      { name: '' },
+      { name: 'deploy', notes: [{ name: 'deploy/plan.md' }, { name: 'deploy/docs', pages: [{ name: 'deploy/docs/a.md' }] }] },
+    ]
+    expect(manage.moveTargets(tabs, '')).toEqual(['deploy/', 'deploy/docs/'])
+    expect(manage.moveTargets(tabs, 'deploy')).toEqual(['.', 'deploy/docs/'])
+    expect(manage.moveTargets(tabs, 'deploy/docs')).toEqual(['.', 'deploy/'])
+    expect(manage.moveTargets(tabs, 'deploy', true)).toEqual(['.'])
+  })
 })

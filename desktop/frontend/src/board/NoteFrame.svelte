@@ -88,6 +88,7 @@
     // the header's ↗ hides on a narrow note; ⋯ always has it
     ...(board.tear ? [{ id: 'tear', label: $tr('ui.tearOff'), icon: 'tear-off' as const }] : []),
     ...(readable ? [{ id: 'color', label: $tr('note.color') }] : []),
+    ...(pages.length && board.addPage ? [{ id: 'addPage', label: $tr('note.addPage'), icon: 'plus' as const }] : []),
     ...(readable && !pages.length && board.edit ? [{ id: 'edit', label: $tr('note.openInEditor'), icon: 'edit-external' as const, shortcut: 'E' }] : []),
     ...(readable && board.layoutItems ? board.layoutItems(note) : []),
     ...(board.manage ? [{ kind: 'separator' as const, id: 'sep-manage' }, ...manageItems(note).map((m) => manageItem[m])] : []),
@@ -99,6 +100,7 @@
     else if (id === 'edit') board.edit?.(note.name)
     else if (id === 'putBack') board.putBack?.(note.name)
     else if (id === 'tear') board.tear?.(note.name)
+    else if (id === 'addPage') board.addPage?.(note.name)
     else if (id in manageItem) board.manage?.(note, id as Manage)
     else board.layoutAct?.(note, id)
   }

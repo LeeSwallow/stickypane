@@ -165,6 +165,16 @@
   const tags = $derived(board ? glance(board.tabs, now) : [])
   const stalled = $derived(board ? stalledCount(board.tabs) : 0)
   const files = $derived(board ? allNotes(board.tabs).map((n) => n.name) : [])
+  // where + 새 노트 makes the note: the book 페이지 추가 names, else the
+  // focused book (as the terminal's N and a do), else the tab shown
+  let createIn = $state<string | null>(null)
+  $effect(() => {
+    if (!creating) createIn = null
+  })
+  const createBook = $derived.by(() => {
+    const n = board ? findNote(board.tabs, createIn ?? focused ?? '') : null
+    return n?.pages ? n : null
+  })
   const editTarget = $derived.by(() => {
     const n = board ? findNote(board.tabs, zoomed?.name ?? focused ?? '') : null
     return n && !n.pages && !n.error ? n.name : null
@@ -343,6 +353,10 @@
     },
     manage: manageNote,
     tear: (name) => void tear(name),
+    addPage(book) {
+      createIn = book
+      creating = true
+    },
   }
   /** tearTab opens every note the tab shows in a window of its own; 되돌리기 puts them back. */
   const tearTab = () => tearOff(open.map((n) => n.name))
@@ -794,8 +808,8 @@
     <CreateDialog
       bind:open={creating}
       {api}
-      tabs={board.tabs.map((x) => ({ name: x.name, label: tabLabel(x) }))}
-      tab={tab?.name ?? ''}
+      tabs={[...board.tabs.map((x) => ({ name: x.name, label: tabLabel(x) })), ...(createBook ? [{ name: createBook.name, label: createBook.title }] : [])]}
+      tab={createBook?.name ?? tab?.name ?? ''}
       start={startCreate}
       oncreated={created}
     />
