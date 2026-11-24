@@ -211,8 +211,8 @@ func runEnv(e env, args []string) int {
 			e.cmd = name
 			return exitCode(c.run(e, rest), stderr)
 		}
-		if args[0] == "note" {
-			return exitCode(usageError{cmd: "note"}, stderr)
+		if nounHelp(helpStrings(), args[0]) != "" {
+			return exitCode(usageError{cmd: args[0]}, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			return exitCode(usageSay("", "error.unknownCommand", map[string]any{"Name": args[0]}), stderr)

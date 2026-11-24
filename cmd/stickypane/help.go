@@ -163,6 +163,10 @@ func helpOn(w io.Writer, s i18n.Strings, want string) error {
 		}
 		return nil
 	}
+	if n := nounHelp(s, want); n != "" {
+		_, err := io.WriteString(w, s.T("label.usage", "Usage")+":\n"+n)
+		return err
+	}
 	if near := closest(want); near != "" {
 		return usageSay("help", "help.unknownNear", map[string]any{"Name": strconv.Quote(want), "Near": strconv.Quote(near), "Cmd": near})
 	}
@@ -183,6 +187,18 @@ func findShape(want string) (*widget.Kind, *folderShape, bool) {
 		}
 	}
 	return nil, nil, false
+}
+
+// nounHelp is the usage line and brief of every command whose first word
+// is noun (worktree list, worktree show), or "" when noun is none's.
+func nounHelp(s i18n.Strings, noun string) string {
+	var b strings.Builder
+	for _, c := range commands {
+		if strings.HasPrefix(c.names[0], noun+" ") {
+			fmt.Fprintf(&b, "  %s\n      %s\n", c.help.syntax, s.T(c.names[0]+".brief", c.help.brief))
+		}
+	}
+	return b.String()
 }
 
 // helpNames are what an unknown name is matched against: the commands and

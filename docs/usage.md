@@ -3,7 +3,8 @@
 Keys, the mouse, the editor, the index, moving notes, and watching what
 happens. Every command has its own help in the program: `stickypane help
 <command>` (or `stickypane <command> --help`) prints one with its
-examples, and `stickypane help --all`
+examples, `stickypane help worktree` (or `stickypane worktree` alone) the
+commands that start with that word, and `stickypane help --all`
 prints every command with every option on one page. Back to the
 [README](../README.md).
 
