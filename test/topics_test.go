@@ -11,6 +11,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/core/kinds"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
+	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
 )
 
 // The skills are the guide's topics, a situation each, and their recipes
@@ -158,24 +159,39 @@ func helpVerbs(t *testing.T) map[string][]string {
 	return verbs
 }
 
-// The topics write every command as <noun> <verb> <target>: the old forms
-// (todo plan add, show, write, say) still run, but are not taught.
-func TestTopicsWriteCommandsAsNounVerb(t *testing.T) {
+// Everything that teaches an agent the commands writes them as <noun>
+// <verb> <target>: the topics, the guide and its rules, the slash
+// commands, the session hook, the manifests, docs/agents.md, and what
+// stickypane kinds prints. The old forms (todo plan add, show, write, say)
+// still run, but are not taught.
+func TestTheGuideWritesCommandsAsNounVerb(t *testing.T) {
 	verbs := helpVerbs(t)
 	if !slices.Contains(verbs["todo"], "check") || !slices.Contains(verbs["note"], "write") || !slices.Contains(verbs["chat"], "add") {
 		t.Fatalf("verbs = %v", verbs)
+	}
+	texts := harnessFiles(t)
+	texts["guide"] = initcmd.Guide()
+	for _, f := range []string{"plugin/.claude-plugin/plugin.json", "plugin/.codex-plugin/plugin.json", "docs/agents.md", "docs/ko/agents.md"} {
+		b, err := os.ReadFile(filepath.Join(repoRoot, f))
+		if err != nil {
+			t.Fatal(err)
+		}
+		texts[f] = string(b)
+	}
+	shapes := []string{"tab", "book"}
+	for _, k := range kinds.Default(note.Plain) {
+		shapes = append(shapes, k.Name)
+	}
+	for _, k := range shapes {
+		texts["kinds "+k] = run(t, "en", "kinds", k)
 	}
 	cmd := regexp.MustCompile(`stickypane ([a-z]+)(?: ([a-z]+))?`)
 	old := map[string]bool{}
 	for _, c := range strings.Fields("show hide cat write set mv link rm restore archive list say") {
 		old[c] = true
 	}
-	err := filepath.WalkDir(filepath.Join(pluginRoot, "skills"), func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		b, err := os.ReadFile(path)
-		for _, m := range cmd.FindAllStringSubmatch(string(b), -1) {
+	for path, text := range texts {
+		for _, m := range cmd.FindAllStringSubmatch(text, -1) {
 			if old[m[1]] {
 				t.Errorf("%s: `%s` is an old form", path, m[0])
 			}
@@ -183,10 +199,6 @@ func TestTopicsWriteCommandsAsNounVerb(t *testing.T) {
 				t.Errorf("%s: `%s`: %s takes %v", path, m[0], m[1], vs)
 			}
 		}
-		return err
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 
