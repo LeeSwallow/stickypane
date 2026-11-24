@@ -5,7 +5,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/git"
-	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/usecase/diffbook"
 )
 
@@ -32,20 +31,8 @@ func diffCmd(verb string) func(env, []string) error {
 		if len(words) > 0 {
 			chosen = words[0]
 		}
-		book, err := diffbook.Read(".", chosen, "")
-		if err != nil {
-			return err
-		}
-		if chosen != "" && book.Overview.Chosen != chosen {
-			return i18n.Err("diff.unknown", map[string]any{"Name": chosen})
-		}
-		switch {
-		case verb == "show":
-			c, ok := book.Change(words[1], *uncommitted)
-			if !ok {
-				return i18n.Err("diff.nofile", map[string]any{"Name": chosen, "File": words[1]})
-			}
-			text, cut, err := book.Diff(c)
+		if verb == "show" {
+			c, text, cut, err := diffbook.Show(".", chosen, words[1], *uncommitted)
 			if err != nil {
 				return err
 			}
@@ -58,7 +45,12 @@ func diffCmd(verb string) func(env, []string) error {
 			}
 			_, err = fmt.Fprint(e.stdout, text)
 			return err
-		case chosen != "":
+		}
+		book, err := diffbook.List(".", chosen)
+		if err != nil {
+			return err
+		}
+		if chosen != "" {
 			if *asJSON {
 				return printJSON(e.stdout, book.Changes)
 			}

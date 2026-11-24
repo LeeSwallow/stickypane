@@ -23,6 +23,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/form"
 )
 
 const (
@@ -64,12 +65,16 @@ type repo struct {
 func (b Board) repo() (repo, bool) {
 	root := filepath.Dir(b.Store.Dir)
 	list, err := git.Worktrees(root)
-	if err != nil || len(list) == 0 || list[0].Bare || !sameDir(list[0].Path, root) {
+	if err != nil || len(list) == 0 || list[0].Bare || !git.Same(list[0].Path, root) {
 		return repo{}, false
 	}
-	common, err := git.CommonDir(root)
-	if err != nil {
-		return repo{}, false
+	// The main worktree's .git folder is the common dir; git is asked
+	// only where .git is a file, as --separate-git-dir leaves.
+	common := filepath.Join(root, ".git")
+	if fi, err := os.Stat(common); err != nil || !fi.IsDir() {
+		if common, err = git.CommonDir(root); err != nil {
+			return repo{}, false
+		}
 	}
 	r := repo{root: root, common: common, locked: map[string]bool{}}
 	for _, w := range list[1:] {
@@ -192,9 +197,26 @@ func merge(old, live []registry.Worktree, project string) ([]registry.Worktree, 
 // folders closed or open again. It answers every worktree the board knows
 // of; nil where there is no repository.
 func (b Board) Sync() ([]Worktree, error) {
+	r, all, folders, err := b.sync()
+	if r.root == "" {
+		return nil, nil
+	}
+	return b.view(r, all, folders), err
+}
+
+// Follow is Sync for a command that does not show the worktrees: it does
+// not count the forms in every folder.
+func (b Board) Follow() error {
+	_, _, _, err := b.sync()
+	return err
+}
+
+// sync is Sync without the view; r.root is "" where there is no
+// repository.
+func (b Board) sync() (repo, []registry.Worktree, map[string]folder, error) {
 	r, ok := b.repo()
 	if !ok {
-		return nil, nil
+		return repo{}, nil, nil, nil
 	}
 	folders := b.folders()
 	var all []registry.Worktree
@@ -222,7 +244,7 @@ func (b Board) Sync() ([]Worktree, error) {
 		}
 		folders[name] = folder{f.branch, op.state}
 	}
-	return b.view(r, all, folders), first
+	return r, all, folders, first
 }
 
 // view is what is known of every worktree, in the record's order, then the
@@ -262,12 +284,8 @@ func (b Board) waiting(name string) int {
 		if !store.IsMarkdown(e.Name()) {
 			continue
 		}
-		raw, err := os.ReadFile(b.Store.Path(Tab + "/" + name + "/" + e.Name()))
-		if err != nil {
-			continue
-		}
-		d := doc.Parse(raw)
-		if s, _ := d.Get("submitted"); d.Type() == "form" && s == "" {
+		raw, err := b.Store.Read(Tab + "/" + name + "/" + e.Name())
+		if err == nil && form.Open(doc.Parse(raw)) {
 			n++
 		}
 	}
@@ -316,10 +334,4 @@ func (o state) Apply(d doc.Document) (doc.Document, error) {
 		return d.Unset("closed"), nil
 	}
 	return d.Set("closed", o.closed), nil
-}
-
-func sameDir(a, b string) bool {
-	fa, err1 := os.Stat(a)
-	fb, err2 := os.Stat(b)
-	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
 }

@@ -293,7 +293,7 @@ var runBoard = board
 // background. status, when there is one, is shown on the status line at the
 // start.
 func board(ctx context.Context, dir, status string) error {
-	st, _ := followWorktrees(dir, time.Now)
+	st := followWorktrees(dir, time.Now)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	watch, watchErr := st.Watch(ctx)

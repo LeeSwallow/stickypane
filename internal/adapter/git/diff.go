@@ -191,8 +191,7 @@ func Diff(dir, base string, c Change) (text string, cut bool, err error) {
 		}
 		args = diffArgs("", base+"...HEAD", paths...)
 	}
-	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
-	cmd.Env = Environ()
+	cmd := command(dir, args...)
 	out := &capped{max: MaxDiff}
 	cmd.Stdout = out
 	err = cmd.Run()

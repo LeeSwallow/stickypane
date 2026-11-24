@@ -133,49 +133,49 @@ func GuideText() string {
 // would be found from every folder under it. In a second worktree of a
 // repository it is the main worktree, whose board every worktree shares.
 func ProjectRoot(start string) string {
-	dir, err := filepath.Abs(start)
-	if err != nil {
+	dir, fi := top(start)
+	if fi == nil {
 		return ""
 	}
-	home, _ := os.UserHomeDir()
-	for {
-		if fi, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
-			if !fi.IsDir() {
-				if main := git.Main(dir); main != "" {
-					dir = main
-				}
-			}
-			if home != "" && sameDir(dir, home) {
-				return ""
-			}
-			return dir
+	if !fi.IsDir() {
+		if main := git.Main(dir); main != "" {
+			dir = main
 		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
 	}
+	if home, _ := os.UserHomeDir(); home != "" && sameDir(dir, home) {
+		return ""
+	}
+	return dir
 }
 
 // BoardRoot is the main worktree when start is in a linked worktree of a
 // repository that has no .sticky/ of its own, else "": the repository has
 // one board, in its main worktree, unless a person made a worktree its own.
 func BoardRoot(start string) string {
+	dir, fi := top(start)
+	if fi == nil || fi.IsDir() {
+		return ""
+	}
+	if _, own := os.Stat(filepath.Join(dir, store.DirName)); own == nil {
+		return ""
+	}
+	return git.Main(dir)
+}
+
+// top is the nearest folder at or above start with a .git, and that .git;
+// nil when there is none.
+func top(start string) (string, os.FileInfo) {
 	dir, err := filepath.Abs(start)
 	if err != nil {
-		return ""
+		return "", nil
 	}
 	for {
 		if fi, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
-			if _, own := os.Stat(filepath.Join(dir, store.DirName)); fi.IsDir() || own == nil {
-				return ""
-			}
-			return git.Main(dir)
+			return dir, fi
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return ""
+			return "", nil
 		}
 		dir = parent
 	}
