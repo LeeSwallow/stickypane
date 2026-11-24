@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "05-from-chart",
+  "description": "Notes that count each other: does it chart them with from:, not with numbers it wrote itself?",
+  "tags": [
+    "showing-numbers"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Show on the board a chart of how far along the api and ui checklists are, one that stays right as they change.",
+    "max_turns": 30,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}
