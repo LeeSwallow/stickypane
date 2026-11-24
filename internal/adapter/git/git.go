@@ -157,12 +157,19 @@ func Environ() []string {
 // ErrNoRepository is git saying the folder is in no repository.
 var ErrNoRepository = errors.New("not a git repository")
 
-func run(dir string, args ...string) ([]byte, error) {
-	// No fsmonitor: a repository's config must not start a program here.
-	// Paths come back as they are, not with their bytes escaped. git
-	// speaks English (LC_ALL=C), so that its complaint can be read.
+// command is git run in dir. No fsmonitor: a repository's config must not
+// start a program here. Paths come back as they are, not with their bytes
+// escaped.
+func command(dir string, args ...string) *exec.Cmd {
 	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
-	cmd.Env = append(Environ(), "LC_ALL=C")
+	cmd.Env = Environ()
+	return cmd
+}
+
+func run(dir string, args ...string) ([]byte, error) {
+	// git speaks English (LC_ALL=C), so that its complaint can be read.
+	cmd := command(dir, args...)
+	cmd.Env = append(cmd.Env, "LC_ALL=C")
 	var out, complaint bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &complaint
 	err := cmd.Run()
