@@ -61,37 +61,44 @@ func Worktrees(dir string) ([]Worktree, error) {
 }
 
 // Main is the path of the main worktree of the repository whose worktree
-// is at dir, or "" when there is none: no git, no repository, a bare one,
-// or a .git file that git's own records do not point back to. A .git file
-// is only a line of text, one an archive could carry: it is believed only
+// is at dir, or "" when there is none: no repository, a bare one, or a
+// .git file that git's own records do not point back to. A .git file is
+// only a line of text, one an archive could carry: it is believed only
 // when it names <main>/.git/worktrees/<id> and that folder's gitdir file
-// names this .git again.
+// names this .git again; main is then read from it, without git. A .git
+// folder is asked of git.
 func Main(dir string) string {
 	dotgit := filepath.Join(dir, ".git")
 	fi, err := os.Lstat(dotgit)
-	if err != nil || !(fi.IsDir() || fi.Mode().IsRegular()) {
+	switch {
+	case err != nil:
+		return ""
+	case fi.Mode().IsRegular():
+		return linked(dotgit)
+	case !fi.IsDir():
 		return ""
 	}
 	list, err := Worktrees(dir)
 	if err != nil || len(list) == 0 || list[0].Bare {
 		return ""
 	}
-	main := list[0].Path
-	if fi.Mode().IsRegular() && !linked(dotgit, main) {
-		return ""
-	}
-	return main
+	return list[0].Path
 }
 
-// linked says whether the .git file dotgit names a worktree folder of the
-// repository at main, and that folder names dotgit back.
-func linked(dotgit, main string) bool {
+// linked is the main worktree of the repository whose worktree folder
+// <main>/.git/worktrees/<id> the .git file dotgit names, when that folder
+// names dotgit back; "" otherwise.
+func linked(dotgit string) string {
 	gitdir, ok := pointer(dotgit, "gitdir: ")
-	if !ok || !Same(filepath.Dir(gitdir), filepath.Join(main, ".git", "worktrees")) {
-		return false
+	worktrees := filepath.Dir(gitdir)
+	common := filepath.Dir(worktrees)
+	if !ok || filepath.Base(worktrees) != "worktrees" || filepath.Base(common) != ".git" {
+		return ""
 	}
-	back, ok := pointer(filepath.Join(gitdir, "gitdir"), "")
-	return ok && Same(back, dotgit)
+	if back, ok := pointer(filepath.Join(gitdir, "gitdir"), ""); !ok || !Same(back, dotgit) {
+		return ""
+	}
+	return filepath.Dir(common)
 }
 
 // pointer reads the path in the one-line file at p after prefix, taken
