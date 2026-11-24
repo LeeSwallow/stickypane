@@ -27,7 +27,8 @@ it('the fixture has a note of every shape', () => {
 
 it('no shape of the fixture falls back to its summary', () => {
   for (const t of fixture.tabs)
-    for (const n of t.notes) {
+    // a book draws its pages
+    for (const n of t.notes.flatMap((x) => x.pages ?? [x])) {
       const { container, unmount } = render(Shape, { props: { note: n }, context: context() })
       expect(container.querySelector('p.plain'), n.name).toBeNull()
       expect(container.querySelector('.unreadable'), n.name).toBeNull()
