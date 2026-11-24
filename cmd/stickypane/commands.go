@@ -127,6 +127,22 @@ func init() {
 			examples: []string{"stickypane note list", "stickypane note list --json"},
 			related:  []string{"index", "note cat", "note show"},
 		}},
+		{[]string{"worktree list"}, worktreeCmd("list"), helpText{
+			group: "notes", brief: "list the git worktrees the board follows",
+			what:     "Lists the worktrees of this repository: the name of each one's folder, worktrees/<name>/, its state (open, running while git has it locked, or closed), its branch, how many forms in its folder wait for an answer, and its path. A folder is made at the first write into it.",
+			syntax:   "stickypane worktree list [--json]",
+			args:     "--json  print the list as JSON",
+			examples: []string{"stickypane worktree list", "stickypane worktree list --json"},
+			related:  []string{"worktree show", "note list"},
+		}},
+		{[]string{"worktree show"}, worktreeCmd("show"), helpText{
+			group: "notes", brief: "show one worktree the board follows",
+			what:     "Shows one worktree by its folder name: its state, branch, path, folder and the forms waiting there.",
+			syntax:   "stickypane worktree show <name> [--json]",
+			args:     "--json  print it as JSON",
+			examples: []string{"stickypane worktree show feat-chart", "stickypane worktree show feat-chart --json"},
+			related:  []string{"worktree list"},
+		}},
 		{[]string{"index"}, indexCmd, helpText{
 			group: "notes", brief: "every note in a line: title, counts, a gist",
 			what:     "Prints every note in a line, by tab: its title, what it counts and a gist. Read it before the notes.",

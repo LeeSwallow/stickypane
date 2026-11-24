@@ -28,6 +28,7 @@ var says = map[string]string{
 	// A worktree's folder: the first lines of its overview page.
 	"worktree.overview":         "Branch `{{.Branch}}`. What this worktree is for goes here.",
 	"worktree.overviewDetached": "A worktree with no branch. What it is for goes here.",
+	"worktree.unknown":          "no worktree is called {{.Name}}; stickypane worktree list lists them",
 
 	// stickypane init, and the board it makes.
 	"init.badView":     "--view is terminal, app or both, not {{.Value}}",
