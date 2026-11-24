@@ -54,6 +54,9 @@ func (s *server) noteArrange(params json.RawMessage) (any, error) {
 	if p.Color != nil {
 		add("color", *p.Color)
 	}
+	if p.Paging != nil {
+		add("paging", *p.Paging)
+	}
 	for _, kv := range view {
 		key, value, _ := strings.Cut(kv, "=")
 		if _, _, err := arrange.Change(key, value); err != nil {
@@ -68,11 +71,14 @@ func (s *server) noteArrange(params json.RawMessage) (any, error) {
 		title = []string{"title=" + *p.Title}
 	}
 	if len(view)+len(title) == 0 {
-		return nil, badRequest("note.arrange needs one of open, size, rows, pin, color or title")
+		return nil, badRequest("note.arrange needs one of open, size, rows, pin, color, paging or title")
 	}
 	n, owner, err := s.find(p.Note)
 	if err != nil {
 		return nil, err
+	}
+	if p.Paging != nil && !owner.Book() {
+		return nil, badRequest(fmt.Sprintf("%s is no book: only a book has paging", p.Note))
 	}
 	// A page is arranged by its book, by the book's folder name, but has
 	// its own title.
