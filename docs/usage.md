@@ -279,7 +279,9 @@ Each command and the board, when it opens, read `git worktree list`. When
 git no longer has a worktree, or calls it prunable, its overview says
 `state: closed` with the time it was seen gone, and the book stays; a
 worktree of the same branch that comes back opens it again. A worktree is
-known by its branch, so one that is moved keeps its book. A folder in
+known by its branch, so one that is moved keeps its book; one without a
+branch (detached) by its path, or, where `~/.stickypane` keeps no records,
+by its folder's name. A folder in
 `worktrees/` the board did not make is left alone.
 
 ```sh
