@@ -110,6 +110,11 @@ For scripts and agents that would rather not edit the files themselves:
   stickypane note write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]
                                  create or replace a note from standard input,
                                  or from the shape's create options
+  stickypane page add <book> [name]
+                                 add a page to a book (a folder in a tab), named
+                                 after the words, as N on the board does
+  stickypane page list <book> [--json]
+                                 list the pages of a book, in the board's order
   stickypane todo add|check|uncheck <name> <item>
   stickypane card add|move <name> <card> [--to <column>]
   stickypane chart set|add <name> <label> <number>

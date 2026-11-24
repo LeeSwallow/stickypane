@@ -180,6 +180,21 @@ func init() {
 			examples: []string{"echo \"- [ ] build\" | stickypane note write plan --type checklist --title \"Release\" --open", "stickypane note write sprint --type board --opt columns=Backlog --opt columns=Done", "echo \"hello\" | stickypane note write hello", "echo \"- [ ] a\" | stickypane note write deploy/steps --type checklist"},
 			related:  []string{"kinds", "note set", "note cat"},
 		}},
+		{[]string{"page add"}, pageAddCmd, helpText{
+			group: "notes", brief: "add a page to a book",
+			what:     "Adds a page to a book, a folder in a tab, named after the words as N on the board names it, with -2 when the name is taken. The page holds the words; note write fills it.",
+			syntax:   "stickypane page add <book> [name]",
+			examples: []string{"stickypane page add deploy/docs \"Release notes\"", "stickypane page add deploy/docs"},
+			related:  []string{"page list", "note write", "note mv"},
+		}},
+		{[]string{"page list"}, pageListCmd, helpText{
+			group: "notes", brief: "list the pages of a book",
+			what:     "Lists the pages of a book in the order the board shows them: name, shape and title.",
+			syntax:   "stickypane page list <book> [--json]",
+			args:     "--json  print the pages as JSON",
+			examples: []string{"stickypane page list deploy/docs", "stickypane page list deploy/docs --json"},
+			related:  []string{"page add", "note list", "note cat"},
+		}},
 		{[]string{"todo"}, editCmd("todo"), helpText{
 			group: "notes", brief: "add, tick or untick a checklist item",
 			what:     "Changes one item of a checklist without reading or rewriting it, and prints where the note stands. An item is named by its text, a part of it, or #2.",
@@ -422,7 +437,7 @@ func viewOf(v string) (string, bool) {
 // changes are the commands that change a board; each one notes its project
 // in the registry, once a minute, as soon as open has found it.
 var changes = map[string]bool{
-	"note write": true, "todo": true, "card": true, "chart": true, "log": true,
+	"note write": true, "page add": true, "todo": true, "card": true, "chart": true, "log": true,
 	"chat": true, "note set": true, "note mv": true, "note link": true,
 	"note rm": true, "note restore": true, "note archive": true,
 	"note show": true, "note hide": true,

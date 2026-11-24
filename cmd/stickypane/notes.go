@@ -313,3 +313,55 @@ func bridgeCmd(e env, args []string) error {
 	bridge.Version = fullVersion()
 	return bridge.Serve(e.ctx, a, kinds.Default(note.Plain), e.stdin, e.stdout)
 }
+
+// pageAddCmd adds a page to a book, named and made as the board's N makes
+// it (api.CreateFrom).
+func pageAddCmd(e env, args []string) error {
+	words, err := parse(newFlags("page add"), "page add", args, 1, 2)
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(strings.Trim(words[0], "/"), "/") {
+		return usagef("page add", "%s is not a book: a book is a folder in a tab, such as deploy/docs", words[0])
+	}
+	a, err := open(e, false)
+	if err != nil {
+		return err
+	}
+	text, body := "", []byte(nil)
+	if len(words) > 1 {
+		text, body = words[1], []byte(words[1]+"\n")
+	}
+	file, err := a.CreateFrom(words[0], text, "", api.Options{}, body)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(e.stdout, "added", file)
+	return err
+}
+
+// pageListCmd lists the pages of a book.
+func pageListCmd(e env, args []string) error {
+	fs := newFlags("page list")
+	asJSON := fs.Bool("json", false, "print the pages as JSON")
+	words, err := parse(fs, "page list", args, 1, 1)
+	if err != nil {
+		return err
+	}
+	a, err := open(e, false)
+	if err != nil {
+		return err
+	}
+	pages, err := a.Pages(words[0])
+	if err != nil {
+		return err
+	}
+	if *asJSON {
+		return printJSON(e.stdout, pages)
+	}
+	w := tabwriter.NewWriter(e.stdout, 0, 0, 2, ' ', 0)
+	for _, p := range pages {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", p.Name, p.Type, p.Title)
+	}
+	return w.Flush()
+}

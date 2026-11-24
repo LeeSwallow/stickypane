@@ -183,3 +183,18 @@ func TestBridgeOffersABoardsColumnsInTheBoardsLanguage(t *testing.T) {
 		t.Errorf("file: %q", b)
 	}
 }
+
+// note.create takes a book ("tab/book") where it takes a tab: the note is a
+// new page of it, made as the terminal's N makes one.
+func TestBridgeCreatesAPageInABook(t *testing.T) {
+	dir := board(t, map[string]string{"deploy/docs/01-intro.md": "x\n"})
+	s := serve(t, dir)
+	var got struct{ Note string }
+	s.ok("note.create", map[string]any{"tab": "deploy/docs", "kind": "note", "title": "Notes", "body": "a page\n"}, &got)
+	if got.Note != "deploy/docs/notes.md" || !strings.Contains(read(t, dir, "deploy/docs/notes.md"), "a page\n") {
+		t.Errorf("note = %q, %q", got.Note, readOrEmpty(dir, "deploy/docs/notes.md"))
+	}
+	if r := s.call("note.create", map[string]any{"tab": "deploy/nowhere", "kind": "note", "title": "x"}); r.code != "not_found" {
+		t.Errorf("a book that is not there: %q", r.code)
+	}
+}

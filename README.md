@@ -369,6 +369,8 @@ Notes
   note hide      fold a note away
   note cat       print a note's file
   note write     create or replace a note from standard input
+  page add       add a page to a book
+  page list      list the pages of a book
   todo           add, tick or untick a checklist item
   card           add or move a card of a board
   chart          set or add to a number of a chart

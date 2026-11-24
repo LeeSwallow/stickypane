@@ -71,7 +71,10 @@ view is on. `v` shows the book one page at a time instead: only that page
 is drawn, `,` and `.` turn to the next from its top, and a long page
 scrolls to its own end and no further. `v` again shows every page. The
 board keeps the choice as `"paging": "single"` in the book's entry of
-`sticky.json` and takes it out again. `stickypane link docs` puts a folder of your project on the
+`sticky.json` and takes it out again. `N` on a book adds a page to it (`a`
+one of a shape), named after what you type, and `stickypane page add
+deploy/docs notes` does the same; pages follow their file names, so a
+number in front orders them. `stickypane link docs` puts a folder of your project on the
 board as a tab without copying it, and `stickypane link README.md` does the
 same for a file; both make a symbolic link, so what you change on the board
 is changed in the real file.
