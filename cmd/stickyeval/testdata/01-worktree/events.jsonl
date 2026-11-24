@@ -1,0 +1,4 @@
+{"at":"2026-11-25T10:00:01+09:00","kind":"skill","text":"working-in-a-worktree"}
+{"at":"2026-11-25T10:00:02+09:00","kind":"command","text":"stickypane todo add worktrees/feat-chart/plan \"find the axis code\""}
+{"at":"2026-11-25T10:00:03+09:00","kind":"command","text":"stickypane todo add worktrees/feat-chart/plan \"add the label\""}
+{"at":"2026-11-25T10:00:04+09:00","kind":"message","text":"The plan is on the board: worktrees/feat-chart/plan.md: 0/2"}

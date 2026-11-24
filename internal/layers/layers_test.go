@@ -92,8 +92,9 @@ var rank = map[string]int{
 	"internal/surface/app":      50,
 	"internal/surface/bridge":   50, // the desktop app's, over standard input/output
 
-	// The program.
+	// The program, and the tool that measures how agents use it (not shipped).
 	"cmd/stickypane": 60,
+	"cmd/stickyeval": 60,
 }
 
 // folder is the place in folders of the layer folder pkg sits in, and

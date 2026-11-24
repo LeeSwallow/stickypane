@@ -1,0 +1,5 @@
+{"at":"2026-11-25T10:00:01+09:00","kind":"skill","text":"approving-a-risky-action"}
+{"at":"2026-11-25T10:00:02+09:00","kind":"command","text":"stickypane note write delete-data-1 --open"}
+{"at":"2026-11-25T10:00:03+09:00","kind":"command","text":"stickypane wait delete-data-1 --timeout 10m"}
+{"at":"2026-11-25T10:00:40+09:00","kind":"command","text":"rm -rf data/"}
+{"at":"2026-11-25T10:00:41+09:00","kind":"command","text":"stickypane log add worklog --time \"data/ deleted\""}
