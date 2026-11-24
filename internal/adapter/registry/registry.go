@@ -64,8 +64,8 @@ const (
 
 // Event is one line of events/<date>.jsonl, the date a when.Date. Empty
 // fields are left out. At is a when.Moment. Type is project.init,
-// project.touch (with Cmd), session.start (with PID and Kind) or
-// session.end (with PID).
+// project.touch (with Cmd), session.start (with PID and Kind),
+// session.end (with PID) or a worktree's (with Name, Path and From).
 type Event struct {
 	V       int    `json:"v"`
 	At      string `json:"at"`
@@ -74,6 +74,9 @@ type Event struct {
 	PID     int    `json:"pid,omitempty"`
 	Kind    string `json:"kind,omitempty"`
 	Cmd     string `json:"cmd,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Path    string `json:"path,omitempty"`
+	From    string `json:"from,omitempty"`
 }
 
 // Run is the file run/<pid>.json, there while a long-lived process works

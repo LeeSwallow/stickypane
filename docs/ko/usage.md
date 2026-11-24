@@ -90,6 +90,24 @@
 휠(그 노트 스크롤), 오른쪽 끝 끌기(너비, 가까운 칸으로), 아래 끝 끌기(높이),
 아래 끝 더블 클릭(내용만큼 높이). tmux에서는 `set -g mouse on`이 필요합니다.
 
+## git 워크트리
+
+저장소의 모든 git 워크트리는 보드 하나, 메인 워크트리의 `.sticky/`를 씁니다.
+어느 워크트리에서 낸 명령도 그것을 찾고, 보드가 없는 저장소에서는 첫 변경이
+거기에 만듭니다. 자기 `.sticky/`가 있는 워크트리는 그것을 씁니다.
+
+워크트리의 일은 `worktrees` 탭의 책, `worktrees/<이름>/`에 둡니다. 이름은
+워크트리 폴더 이름입니다(`.claude/worktrees/chart`면 `chart`, 겹치면 경로의
+짧은 해시를 붙임). 책은 그 안에 처음 쓸 때 생기고, 첫 쪽 `00-개요.md`의
+front matter에 브랜치와 `state: open`이 적힙니다. git이 그 워크트리를 더
+모르거나 prunable이라 하면 `state: closed`와 시각이 적히고 책은 남습니다.
+같은 브랜치가 돌아오면 다시 열립니다.
+
+```sh
+stickypane todo add worktrees/chart/todo "막대에 이름 달기"
+stickypane worktree list          # 이름, 상태, 브랜치, 기다리는 form, 경로
+```
+
 ## 지우기와 옮기기
 
 보드에서 하는 어떤 일도 파일을 없애지 않습니다. `dd`는 묻고 나서

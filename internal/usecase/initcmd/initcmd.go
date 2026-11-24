@@ -20,6 +20,7 @@ import (
 	"github.com/LeeSwallow/stickypane"
 	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/adapter/filelock"
+	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"github.com/LeeSwallow/stickypane/internal/adapter/httpfile"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
@@ -125,7 +126,8 @@ func GuideText() string {
 
 // ProjectRoot returns the top of the git repository that start is in, or ""
 // outside one. A repository at the home folder does not count: a board there
-// would be found from every folder under it.
+// would be found from every folder under it. In a second worktree of a
+// repository it is the main worktree, whose board every worktree shares.
 func ProjectRoot(start string) string {
 	dir, err := filepath.Abs(start)
 	if err != nil {
@@ -133,7 +135,12 @@ func ProjectRoot(start string) string {
 	}
 	home, _ := os.UserHomeDir()
 	for {
-		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+		if fi, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			if !fi.IsDir() {
+				if main := git.Main(dir); main != "" {
+					dir = main
+				}
+			}
 			if home != "" && sameDir(dir, home) {
 				return ""
 			}

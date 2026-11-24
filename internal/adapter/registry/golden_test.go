@@ -59,11 +59,18 @@ func files(t *testing.T, home string) map[string]string {
 func TestTheWriterWritesTheGoldenFiles(t *testing.T) {
 	home := appHome(t)
 	writeGolden(home)
+	matchGolden(t, home, golden)
+}
+
+// matchGolden holds the records under home to the golden folder dir, or
+// rewrites dir with -update.
+func matchGolden(t *testing.T, home, dir string) {
+	t.Helper()
 	got := files(t, home)
 	if *update {
-		os.RemoveAll(golden)
+		os.RemoveAll(dir)
 		for rel, body := range got {
-			p := filepath.Join(golden, filepath.FromSlash(rel))
+			p := filepath.Join(dir, filepath.FromSlash(rel))
 			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -72,7 +79,7 @@ func TestTheWriterWritesTheGoldenFiles(t *testing.T) {
 			}
 		}
 	}
-	want := files(t, golden)
+	want := files(t, dir)
 	if len(got) != len(want) {
 		t.Fatalf("files = %v, want %v", keys(got), keys(want))
 	}

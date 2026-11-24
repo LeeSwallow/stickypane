@@ -94,6 +94,12 @@ Usage:
 
 For scripts and agents that would rather not edit the files themselves:
   stickypane note list [--json]  list the notes
+  stickypane worktree list [--json]
+                                 the git worktrees the board follows: each
+                                 one's folder worktrees/<name>/, state, branch,
+                                 forms waiting and path
+  stickypane worktree show <name> [--json]
+                                 one of them
   stickypane index [--json]      every note in a line, by tab: its title, what it
                                  counts and a gist; read it before the notes
   stickypane note show <name|path>
@@ -262,7 +268,7 @@ var runBoard = board
 // background. status, when there is one, is shown on the status line at the
 // start.
 func board(ctx context.Context, dir, status string) error {
-	st := store.Open(dir)
+	st, _ := followWorktrees(dir, time.Now)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	watch, watchErr := st.Watch(ctx)

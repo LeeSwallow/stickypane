@@ -85,6 +85,12 @@ of the same name next to the script, which the board opens and follows while
 the script runs. A script never runs without that yes, each time: it is a
 file your agent may have written.
 
+**Worktrees.** The tab `worktrees` holds a book for each git worktree of
+the repository, made at the first write into it with a page
+`00-개요.md`: front matter `branch`, `state: open` or `closed`, and
+`closed` with the time; the rest is for people
+([usage](usage.md#git-worktrees)).
+
 Where a note sits on the screen is kept apart from the note, in
 `sticky.json`; see [configuration](configuration.md#stickyjson-how-the-board-is-arranged).
 

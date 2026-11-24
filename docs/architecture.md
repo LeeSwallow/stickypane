@@ -38,6 +38,7 @@ where a stamp is made.
 | 0 | `surface/editor`, `surface/lineedit` | the terminal's text editor and the one-line editor of its bottom line |
 | | **usecase** | |
 | 40 | `usecase/api`, `usecase/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
+| 35 | `usecase/worktree` | the board in step with the repository's git worktrees: each recorded in the registry, its folder `worktrees/<name>/` made with `00-개요.md` at the first write into it (through `store.Store.NewFolder`), and marked closed, never deleted, when git no longer has it |
 | 30 | `usecase/arrange` | how a note is arranged: the user's choice, the front matter, the kind |
 | 15 | `usecase/prefs` | what a user may change, each with a default |
 | 5 | `usecase/harness` | the plugin's skills, read for MCP and `stickypane guide` |
@@ -47,6 +48,7 @@ where a stamp is made.
 | 6 | `adapter/keyfile` | `keys.json` in the same home: the board's keys a user changed, read and written only here; what its names and keys mean is `surface/app`'s |
 | 5 | `adapter/httpfile` | sending `.http` requests and keeping their log |
 | 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has written its `overlay.json` there: written, read and pruned only here |
+| 4 | `adapter/git` | what `git worktree list --porcelain` says of a repository; `store` finds the main worktree's board through it, from a second worktree with no board of its own |
 | 3 | `adapter/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `adapter/wsock`, `adapter/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `adapter/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |
@@ -167,12 +169,15 @@ code that decides; the screen and `stickypane list` and `set` ask it.
 and it writes only where the app's `overlay.json` (`registry.AppFile`) is
 (`keys.json` beside them has its own writer, `internal/adapter/keyfile`):
 `registry.Event` is a line of `events/<date>.jsonl`, `registry.Run` the
-file `run/<pid>.json`, and a `registry.Writer` writes them on its own
+file `run/<pid>.json`, `worktrees.json` where each repository's worktrees
+are (`registry.Worktree`, changed by `Writer.UpdateWorktrees` under the
+home folder's lock), and a `registry.Writer` writes them on its own
 clock, through `internal/core/when`. `registry.Read` reads them back for the
 desktop app, and `registry.Prune`, run when the board or the bridge
 opens, is the only code that deletes them. `internal/adapter/registry/testdata/home`
 is a home written with a fixed clock; a test keeps the writer to it, and
-the app's tests read it rather than copy the format.
+the app's tests read it rather than copy the format. `testdata/worktrees`
+pins the worktrees' records the same way.
 
 ## A shape of note
 

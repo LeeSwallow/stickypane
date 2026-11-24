@@ -1,0 +1,22 @@
+worktree /work/demo
+HEAD 1111111111111111111111111111111111111111
+branch refs/heads/main
+
+worktree /work/demo/.claude/worktrees/chart
+HEAD 2222222222222222222222222222222222222222
+branch refs/heads/worktree-chart
+locked claude agent agent-a1 (pid 4242)
+
+worktree /work/wt/feat-a
+HEAD 3333333333333333333333333333333333333333
+branch refs/heads/feat/a
+
+worktree /work/wt/gone
+HEAD 4444444444444444444444444444444444444444
+branch refs/heads/gone
+prunable gitdir file points to non-existent location
+
+worktree /work/wt/try it
+HEAD 5555555555555555555555555555555555555555
+detached
+

@@ -291,12 +291,12 @@ func overview(s i18n.Strings) string {
 	for _, g := range helpGroups {
 		fmt.Fprintf(&b, "\n%s\n", s.T("group."+g.key, g.title))
 		if g.key == "start" {
-			fmt.Fprintf(&b, "  %-12s %s\n", "[path]", s.T("open.brief", "open the board of the project at path (default: here)"))
+			fmt.Fprintf(&b, "  %-14s %s\n", "[path]", s.T("open.brief", "open the board of the project at path (default: here)"))
 		}
 		for _, c := range commands {
 			if c.help.group == g.key {
 				name := c.names[0]
-				fmt.Fprintf(&b, "  %-12s %s\n", name, s.T(name+".brief", c.help.brief))
+				fmt.Fprintf(&b, "  %-14s %s\n", name, s.T(name+".brief", c.help.brief))
 			}
 		}
 	}

@@ -7,18 +7,21 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/kinds"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/note"
 	"github.com/LeeSwallow/stickypane/internal/surface/bridge"
 	"github.com/LeeSwallow/stickypane/internal/surface/mcp"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
 	"github.com/LeeSwallow/stickypane/internal/usecase/initcmd"
+	"github.com/LeeSwallow/stickypane/internal/usecase/worktree"
 )
 
 // open returns the API for the notes folder of the project here. With
@@ -43,7 +46,74 @@ func open(e env, create bool) (*api.API, error) {
 	if changes[e.cmd] {
 		registry.Touch(filepath.Dir(dir), e.cmd)
 	}
-	return api.NewWithClock(store.Open(dir), kinds.Default(note.Plain), e.now), nil
+	st, _ := followWorktrees(dir, e.now)
+	return api.NewWithClock(st, kinds.Default(note.Plain), e.now), nil
+}
+
+// followWorktrees opens the board dir in step with its repository's git
+// worktrees: what changed is recorded and the folders closed or opened
+// again (best effort: a command does not fail for it), and a first write
+// into worktrees/<name>/ makes that worktree's folder.
+func followWorktrees(dir string, now func() time.Time) (*store.Store, []worktree.Worktree) {
+	st := store.Open(dir)
+	b := worktree.Board{Store: st, Records: registry.Default(), Now: now}
+	list, _ := b.Sync()
+	st.NewFolder = b.NewFolder
+	return st, list
+}
+
+// worktreeCmd lists the worktrees of the repository as the board follows
+// them, or shows one.
+func worktreeCmd(verb string) func(env, []string) error {
+	return func(e env, args []string) error {
+		fs := newFlags("worktree " + verb)
+		asJSON := fs.Bool("json", false, "print it as JSON")
+		n := 0
+		if verb == "show" {
+			n = 1
+		}
+		words, err := parse(fs, "worktree "+verb, args, n, n)
+		if err != nil {
+			return err
+		}
+		dir, err := store.Resolve(".")
+		if errors.Is(err, store.ErrNotFound) {
+			return errNoBoard
+		}
+		if err != nil {
+			return err
+		}
+		_, list := followWorktrees(dir, e.now)
+		if verb == "show" {
+			i := slices.IndexFunc(list, func(w worktree.Worktree) bool { return w.Name == words[0] })
+			if i < 0 {
+				return i18n.Err("worktree.unknown", map[string]any{"Name": words[0]})
+			}
+			if *asJSON {
+				return printJSON(e.stdout, list[i])
+			}
+			w := list[i]
+			fmt.Fprintf(e.stdout, "name: %s\nstate: %s\nbranch: %s\npath: %s\nfolder: %s\nwaiting: %d\n",
+				w.Name, shownState(w), w.Branch, w.Path, worktree.Tab+"/"+w.Name+"/", w.Waiting)
+			return nil
+		}
+		if *asJSON {
+			return printJSON(e.stdout, list)
+		}
+		tw := tabwriter.NewWriter(e.stdout, 0, 0, 2, ' ', 0)
+		for _, w := range list {
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\n", w.Name, shownState(w), w.Branch, w.Waiting, w.Path)
+		}
+		return tw.Flush()
+	}
+}
+
+// shownState is a worktree's state with running for a locked open one.
+func shownState(w worktree.Worktree) string {
+	if w.Running {
+		return "running"
+	}
+	return w.State
 }
 
 // printJSON writes v as JSON without escaping HTML.

@@ -68,6 +68,7 @@ var rank = map[string]int{
 	"internal/adapter/proto/prototest": 1,  // a descriptor for tests
 	"internal/adapter/rpc/rpctest":     2,  // a gRPC server for tests
 	"internal/adapter/rpc":             3,  // a gRPC client on the standard library
+	"internal/adapter/git":             4,  // what git says of a repository's worktrees; store finds the main board through it
 	"internal/adapter/httpfile":        5,  // .http files: send, check; writes times with when
 	"internal/adapter/registry":        5,  // which boards are used on this machine; writes times with when
 	"internal/adapter/keyfile":         6,  // keys.json, the board's keys a user changed, in the same home
@@ -75,11 +76,12 @@ var rank = map[string]int{
 	"internal/adapter/runner":          12, // running a script and keeping its log, for every front end
 
 	// usecase: what the command line, agents and every screen call.
-	"internal/usecase/harness": 5,  // the plugin's skills, read for MCP and guide
-	"internal/usecase/prefs":   15, // what a user may change, each with a default
-	"internal/usecase/arrange": 30, // how a note is arranged
-	"internal/usecase/api":     40,
-	"internal/usecase/initcmd": 40,
+	"internal/usecase/harness":  5,  // the plugin's skills, read for MCP and guide
+	"internal/usecase/prefs":    15, // what a user may change, each with a default
+	"internal/usecase/arrange":  30, // how a note is arranged
+	"internal/usecase/worktree": 35, // the board in step with the repository's git worktrees
+	"internal/usecase/api":      40,
+	"internal/usecase/initcmd":  40,
 
 	// surface: the front ends over it.
 	"internal/surface/editor":   0,

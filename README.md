@@ -173,7 +173,7 @@ Design and build notes are in [docs/desktop](docs/desktop/README.md).
 
 Each file in `.sticky/` is one note. A folder is a tab, and a folder inside
 a tab is a book of pages, shown one after another or, after `v`, one page
-at a time (`N` on a book adds one). A Markdown note's front matter gives it a shape.
+at a time. A Markdown note's front matter gives it a shape.
 Where each note sits and how wide it is (a share of the screen, from `1/4`
 to `1`) are kept apart, in `sticky.json`, so rearranging the board never
 rewrites a note.
@@ -203,6 +203,13 @@ title: Release
 
 [docs/shapes.md](docs/shapes.md#the-folder-is-the-board) has every file
 type, tabs, books and scripts.
+
+Every git worktree of a repository uses the main worktree's board, unless
+it has a `.sticky/` of its own. Each worktree's work goes in a book,
+`worktrees/<name>/`, named after the worktree's folder: it appears with an
+overview page, `00-개요.md`, at the first write into it, and is marked
+closed, never deleted, when the worktree is removed
+([docs/usage.md](docs/usage.md#git-worktrees)).
 
 ### One path for every change
 
@@ -346,51 +353,53 @@ The help is in the program, in English or Korean. This is
 stickypane - sticky notes for coding agents. They pin, you glance.
 
 Start
-  [path]       open the board of the project at path (default: here)
-  init         make .sticky/ and tell your agents about it
-  kinds        list the shapes a note can take
-  env          say what the board found about where it runs
-  version      print the version
-  help         this help: a command, a shape, or getting started
+  [path]         open the board of the project at path (default: here)
+  init           make .sticky/ and tell your agents about it
+  kinds          list the shapes a note can take
+  env            say what the board found about where it runs
+  version        print the version
+  help           this help: a command, a shape, or getting started
 
 Notes
-  note list    list the notes
-  index        every note in a line: title, counts, a gist
-  note show    put a note, a file or a folder on the screen
-  note hide    fold a note away
-  note cat     print a note's file
-  note write   create or replace a note from standard input
-  page add     add a page to a book
-  page list    list the pages of a book
-  todo         add, tick or untick a checklist item
-  card         add or move a card of a board
-  chart        set or add to a number of a chart
-  log          append a line to a log note
-  chat         add a message to a chat note
-  note set     change keys of a note or its place on the board
+  note list      list the notes
+  worktree list  list the git worktrees the board follows
+  worktree show  show one worktree the board follows
+  index          every note in a line: title, counts, a gist
+  note show      put a note, a file or a folder on the screen
+  note hide      fold a note away
+  note cat       print a note's file
+  note write     create or replace a note from standard input
+  page add       add a page to a book
+  page list      list the pages of a book
+  todo           add, tick or untick a checklist item
+  card           add or move a card of a board
+  chart          set or add to a number of a chart
+  log            append a line to a log note
+  chat           add a message to a chat note
+  note set       change keys of a note or its place on the board
 
 Arrange
-  note mv      rename a note or move it into a tab or book
-  note link    show a file or folder of the project without copying
-  note rm      move a note, a page or a folder to .trash/
-  note restore bring back what note rm removed last
-  note archive move a note out of sight into archive/
+  note mv        rename a note or move it into a tab or book
+  note link      show a file or folder of the project without copying
+  note rm        move a note, a page or a folder to .trash/
+  note restore   bring back what note rm removed last
+  note archive   move a note out of sight into archive/
 
 Settings
-  config       list, read or change a setting
-  keys         list the board's keys or change them
+  config         list, read or change a setting
+  keys           list the board's keys or change them
 
 Agents
-  setup        install the board plugin for Claude Code and Codex
-  guide        print the agent guide
-  answers      print what the user answered in a form
-  wait         wait for a form's button, then print the answers
-  mcp          serve the notes over MCP
+  setup          install the board plugin for Claude Code and Codex
+  guide          print the agent guide
+  answers        print what the user answered in a form
+  wait           wait for a form's button, then print the answers
+  mcp            serve the notes over MCP
 
 Scripts
-  api          (experimental) send the requests of a .http note
-  watch        print what happens on the board as it happens
-  bridge       serve the board to the desktop app
+  api            (experimental) send the requests of a .http note
+  watch          print what happens on the board as it happens
+  bridge         serve the board to the desktop app
 
 stickypane help <command>   one command, with examples
 stickypane help <shape>     a note's file format and an example

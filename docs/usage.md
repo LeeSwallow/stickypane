@@ -253,6 +253,44 @@ the event in `STICKY_EVENT` (JSON) and in `STICKY_NOTE`, `STICKY_KIND`,
 Nothing reacts unless you start a watch: the board itself never runs
 anything without asking. Over MCP the same events come from `wait_event`.
 
+## Git worktrees
+
+Every git worktree of a repository uses one board, the main worktree's
+`.sticky/`: a command run in any worktree finds it, and in a repository
+without a board the first change makes it there. A worktree with a
+`.sticky/` of its own keeps using that one.
+
+Each worktree's work goes in a book of the `worktrees` tab,
+`worktrees/<name>/`, named after the worktree's folder (`chart` for
+`.claude/worktrees/chart`; a short hash of the path is added when two
+would share a name). The book is made at the first write into it, with an
+overview page, `00-개요.md`, whose front matter carries the branch and
+`state: open`:
+
+```sh
+echo "- [ ] draw the axis" | stickypane note write worktrees/chart/todo --type checklist
+stickypane todo add worktrees/chart/todo "label the bars"
+```
+
+Each command and the board, when it opens, read `git worktree list`. When
+git no longer has a worktree, or calls it prunable, its overview says
+`state: closed` with the time it was seen gone, and the book stays; a
+worktree of the same branch that comes back opens it again. A worktree is
+known by its branch, so one that is moved keeps its book. A folder in
+`worktrees/` the board did not make is left alone.
+
+```sh
+stickypane worktree list          # name, state, branch, forms waiting, path
+stickypane worktree show chart --json
+```
+
+`running` is shown for a worktree git reports locked (Claude Code locks
+one while its agent runs), and the count of forms in its book not yet
+answered says who is waiting. Where each worktree is is kept in
+`~/.stickypane/worktrees.json`, with a line in `events/` for each opened,
+moved or closed one, only where the desktop app keeps its records; a
+path is never written into the board.
+
 ## How edits are written
 
 The board never overwrites a file with what it last saw. An edit is an
