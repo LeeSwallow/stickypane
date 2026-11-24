@@ -9,6 +9,7 @@ package diffbook
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/git"
@@ -117,6 +118,18 @@ func Read(dir, chosen, base string) (Book, error) {
 // Diff is the diff of one of the book's changed files, read only now.
 func (b Book) Diff(c git.Change) (text string, cut bool, err error) {
 	return git.Diff(b.Path, b.Base, c)
+}
+
+// Change is the book's changed file at path: its commits since the base,
+// else its edits not committed yet; with uncommitted, only those edits.
+func (b Book) Change(path string, uncommitted bool) (git.Change, bool) {
+	i := slices.IndexFunc(b.Changes, func(c git.Change) bool {
+		return c.Path == path && (!uncommitted || c.Where != git.Committed)
+	})
+	if i < 0 {
+		return git.Change{}, false
+	}
+	return b.Changes[i], true
 }
 
 // PR is the pull request of the worktree at path, or nil when gh does not

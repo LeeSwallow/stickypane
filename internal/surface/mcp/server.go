@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
@@ -216,9 +215,10 @@ var tools = []tool{
 		Name:        "diff",
 		Description: "What the git worktrees changed, read from git; writes nothing. list: every worktree with the files and lines it changed and the files two of them changed, or with name the files that worktree changed, as JSON. show: one file's diff.",
 		InputSchema: object([]string{"action"}, map[string]any{
-			"action": map[string]any{"type": "string", "enum": []string{"list", "show"}},
-			"name":   str("The worktree, by its branch. Needed for show."),
-			"file":   str("For show: the file's path in the repository."),
+			"action":      map[string]any{"type": "string", "enum": []string{"list", "show"}},
+			"name":        str("The worktree, by its branch. Needed for show."),
+			"file":        str("For show: the file's path in the repository."),
+			"uncommitted": map[string]any{"type": "boolean", "description": "For show: the file's edits not committed yet, where it also has commits since the base."},
 		}),
 	},
 	{
@@ -432,6 +432,8 @@ type args struct {
 	Types   string         `json:"types"`
 	Topic   string         `json:"topic"`
 	File    string         `json:"file"`
+	// Uncommitted, for diff show, is the file's edits not committed yet.
+	Uncommitted bool `json:"uncommitted"`
 }
 
 // oldTools are the tools before every tool was a <noun> + action (#162),
@@ -676,11 +678,11 @@ func diffTool(a args) (string, error) {
 	}
 	switch {
 	case a.Action == "show":
-		i := slices.IndexFunc(book.Changes, func(c git.Change) bool { return c.Path == a.File })
-		if i < 0 {
+		c, ok := book.Change(a.File, a.Uncommitted)
+		if !ok {
 			return "", i18n.Err("diff.nofile", map[string]any{"Name": a.Name, "File": a.File})
 		}
-		text, _, err := book.Diff(book.Changes[i])
+		text, _, err := book.Diff(c)
 		return text, err
 	case a.Name != "":
 		return asJSON(book.Changes)

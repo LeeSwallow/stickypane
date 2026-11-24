@@ -310,6 +310,7 @@ stickypane note write changes --type diff --open </dev/null
 stickypane diff list                   # each worktree: base, files, lines; files two changed
 stickypane diff list feat/chart-ui     # the files one worktree changed
 stickypane diff show feat/chart-ui internal/chart/view.go
+stickypane diff show feat/chart-ui internal/chart/view.go --uncommitted  # its edits not committed yet
 ```
 
 ## How edits are written

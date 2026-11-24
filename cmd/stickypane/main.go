@@ -104,8 +104,9 @@ For scripts and agents that would rather not edit the files themselves:
                                  what each git worktree changed since its
                                  base, and the files two of them changed; with
                                  a worktree, the files it changed
-  stickypane diff show <worktree> <file> [--json]
-                                 one changed file's diff
+  stickypane diff show <worktree> <file> [--uncommitted] [--json]
+                                 one changed file's diff: its commits since the
+                                 base, or --uncommitted its edits not committed
   stickypane index [--json]      every note in a line, by tab: its title, what it
                                  counts and a gist; read it before the notes
   stickypane note show <name|path>

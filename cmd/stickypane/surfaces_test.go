@@ -121,7 +121,10 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 	run(main, "add", ".")
 	run(main, "commit", "-q", "-m", "first")
 	run(main, "worktree", "add", "-q", "-b", "feat", filepath.Join(root, "feat"))
+	// a.txt has a commit since the base and an edit not committed yet
 	os.WriteFile(filepath.Join(root, "feat", "a.txt"), []byte("a\nb\n"), 0o644)
+	run(filepath.Join(root, "feat"), "commit", "-q", "-am", "b")
+	os.WriteFile(filepath.Join(root, "feat", "a.txt"), []byte("a\nb\nc\n"), 0o644)
 	t.Chdir(main)
 	if code, _, errOut := exec(t, "init", "--no-agent-docs"); code != 0 {
 		t.Fatal(errOut)
@@ -137,9 +140,10 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 		"diff", `{"action":"list"}`,
 		"diff", `{"action":"list","name":"feat"}`,
 		"diff", `{"action":"show","name":"feat","file":"a.txt"}`,
+		"diff", `{"action":"show","name":"feat","file":"a.txt","uncommitted":true}`,
 		"diff", `{"action":"show","name":"feat","file":"nope.txt"}`,
 	)
-	if slices.Contains(failed[:7], true) || !failed[7] {
+	if slices.Contains(failed[:8], true) || !failed[8] {
 		t.Fatalf("failed = %v: %q", failed, texts)
 	}
 	if texts[0] != "added deploy/docs/release-notes.md" {
@@ -152,14 +156,18 @@ func TestPageWorktreeAndDiffOverMCPAreTheCommandLine(t *testing.T) {
 		{"diff", "list", "--json"},
 		{"diff", "list", "feat", "--json"},
 		{"diff", "show", "feat", "a.txt"},
+		{"diff", "show", "feat", "a.txt", "--uncommitted"},
 	}
 	for i, args := range cli {
 		if _, out, _ := exec(t, args...); out != texts[i+1] {
 			t.Errorf("stickypane %v prints %q, MCP answers %q", args, out, texts[i+1])
 		}
 	}
-	if !strings.Contains(texts[6], "+b") {
+	if !strings.Contains(texts[6], "+b") || strings.Contains(texts[6], "+c") {
 		t.Errorf("diff show = %q", texts[6])
+	}
+	if !strings.Contains(texts[7], "+c") || strings.Contains(texts[7], "+b") {
+		t.Errorf("diff show --uncommitted = %q", texts[7])
 	}
 }
 

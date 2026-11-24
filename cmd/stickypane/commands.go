@@ -153,10 +153,10 @@ func init() {
 		}},
 		{[]string{"diff show"}, diffCmd("show"), helpText{
 			group: "notes", brief: "one changed file's diff",
-			what:     "Prints the diff of one file a worktree changed, as git writes it. A diff over 1 MiB is cut there.",
-			syntax:   "stickypane diff show <worktree> <file> [--json]",
-			args:     "--json  print it as JSON",
-			examples: []string{"stickypane diff show feat/chart-ui internal/chart/view.go"},
+			what:     "Prints the diff of one file a worktree changed, as git writes it: its commits since the base, else its edits not committed yet. A diff over 1 MiB is cut there.",
+			syntax:   "stickypane diff show <worktree> <file> [--uncommitted] [--json]",
+			args:     "--uncommitted  the edits not committed yet, where the file also has commits\n--json         print it as JSON",
+			examples: []string{"stickypane diff show feat/chart-ui internal/chart/view.go", "stickypane diff show feat/chart-ui internal/chart/view.go --uncommitted"},
 			related:  []string{"diff list"},
 		}},
 		{[]string{"index"}, indexCmd, helpText{
