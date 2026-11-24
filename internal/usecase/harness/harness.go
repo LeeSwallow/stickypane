@@ -73,15 +73,42 @@ func parse(dir, text string) Skill {
 
 func isFence(line string) bool { return strings.TrimRight(line, "\r\n") == "---" }
 
-// Lookup finds a skill by its name.
+// Lookup finds a skill by its name, or a recipe by its skill's name and
+// its own: approving-a-risky-action/several-at-once.
 func Lookup(name string) (Skill, bool) {
 	name = strings.TrimPrefix(strings.TrimSpace(name), "board:")
+	if skill, recipe, ok := strings.Cut(name, "/"); ok {
+		for _, r := range Recipes(skill) {
+			if r.Name == skill+"/"+recipe {
+				return r, true
+			}
+		}
+		return Skill{}, false
+	}
 	for _, s := range Skills() {
 		if s.Name == name {
 			return s, true
 		}
 	}
 	return Skill{}, false
+}
+
+// Recipes are a skill's references that say when to use them: a use case
+// each, written out. Each is named skill/recipe.
+func Recipes(skill string) []Skill {
+	dir := path.Join("skills", skill, "references")
+	entries, _ := fs.ReadDir(stickypane.Harness, dir)
+	var out []Skill
+	for _, e := range entries {
+		b, err := fs.ReadFile(stickypane.Harness, path.Join(dir, e.Name()))
+		if err != nil || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		if r := parse(skill+"/"+strings.TrimSuffix(e.Name(), ".md"), string(b)); r.Description != "" {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // Read is a skill to follow away from the plugin: its body, then each
@@ -91,6 +118,9 @@ func Lookup(name string) (Skill, bool) {
 func Read(s Skill) string {
 	var b strings.Builder
 	b.WriteString(s.Body)
+	if len(Recipes(s.Name)) > 0 {
+		b.WriteString("\nWithout the plugin, a recipe above in full: `stickypane guide " + s.Name + "/<recipe>`.\n")
+	}
 	seen := map[string]bool{}
 	for _, file := range pointsTo(s) {
 		if seen[file] {

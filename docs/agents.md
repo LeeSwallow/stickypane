@@ -71,9 +71,15 @@ project's scopes are those of the repository around the current folder.
 read it. Each agent's `state` is `missing`, `off`, `ok`, `outdated` or
 `broken`.
 
-The plugin is in layers. The way in, `using-the-board`, says which of four
-skills fits a job: `tracking-progress`, `asking-the-user`,
-`talking-in-chat` and `connecting-notes`. The rules they share are in
+The plugin is in layers. The way in, `using-the-board`, says which shape
+shows what and which of fifteen skills fits the situation: tracking the
+work, talking while working, drawing a diagram, planning before code,
+reporting a blocker, choosing between options, approving a risky action,
+showing numbers, handing over a command, checking an API, reading long
+material, connecting notes, working in a worktree, resuming and handing
+off, and finishing the task (`tracking-the-work`, `approving-a-risky-action`
+and so on). A skill lists its recipes, a use case each, in its
+`references/`, read only when needed. The rules they share are in
 `plugin/rules/`, written once. The commands `/board:status` (what is on the board,
 or the notes that match), `/board:track`, `/board:ask`, `/board:say` and
 `/board:setup` each start one. A session hook tells the agent what is on
@@ -207,7 +213,8 @@ reading everything:
 | Layer | Over MCP | At the command line |
 | --- | --- | --- |
 | the way in | the `guide` tool | `stickypane guide` |
-| a skill for a job: tracking progress, asking the user, talking in a chat, connecting notes | `guide` with the skill as `topic`, or the prompt of that name | `stickypane guide tracking-progress` |
+| a skill for a situation: tracking the work, approving a risky action, and the rest the way in lists | `guide` with the skill as `topic`, or the prompt of that name | `stickypane guide tracking-the-work` |
+| a recipe of a skill, one use case in full | `guide` with `skill/recipe` as `topic` | `stickypane guide approving-a-risky-action/several-at-once` |
 | one thing changed | `index`, `read_note`, `write_note`, `todo`, `card`, `chart`, `log`, `say`, `set_keys`, `arrange_note` (show, hide, move, remove, restore) | the commands above |
 | waiting for the user | `read_answers`, `wait_event` | `stickypane wait`, `stickypane watch` |
 

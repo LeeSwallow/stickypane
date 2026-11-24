@@ -165,22 +165,22 @@ func TestToolsReadAndWriteNotes(t *testing.T) {
 	}
 	// The guide opens with the short guide, then names the skills and the
 	// shapes, each of which is a topic of its own.
-	if got := call(t, rs[3]).Content[0].Text; !strings.HasPrefix(got, "GUIDE TEXT\n\n## Skills") || !strings.Contains(got, "- tracking-progress: Use when") || !strings.Contains(got, "checklist, log, chat") {
+	if got := call(t, rs[3]).Content[0].Text; !strings.HasPrefix(got, "GUIDE TEXT\n\n## Skills") || !strings.Contains(got, "- tracking-the-work: Use when") || !strings.Contains(got, "checklist, log, chat") {
 		t.Errorf("guide = %q", got)
 	}
 }
 
 func TestGuideTopicsAndPromptsAreTheSkills(t *testing.T) {
 	rs, _ := serve(t,
-		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"talking-in-chat"}}}`,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"talking-while-working"}}}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"board"}}}`,
 		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"guide","arguments":{"topic":"nope"}}}`,
 		`{"jsonrpc":"2.0","id":4,"method":"prompts/list"}`,
-		`{"jsonrpc":"2.0","id":5,"method":"prompts/get","params":{"name":"asking-the-user"}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"prompts/get","params":{"name":"choosing-between-options"}}`,
 		`{"jsonrpc":"2.0","id":6,"method":"prompts/get","params":{"name":"nope"}}`,
 	)
-	if got := call(t, byID(t, rs, 1)).Content[0].Text; !strings.HasPrefix(got, "# Talking in a chat note") || !strings.Contains(got, "<!-- rules/touching-the-board.md -->") {
-		t.Errorf("guide talking-in-chat = %.200q", got)
+	if got := call(t, byID(t, rs, 1)).Content[0].Text; !strings.HasPrefix(got, "# Talking while working") || !strings.Contains(got, "<!-- rules/touching-the-board.md -->") {
+		t.Errorf("guide talking-while-working = %.200q", got)
 	}
 	if got := call(t, byID(t, rs, 2)).Content[0].Text; !strings.HasPrefix(got, "# board") || !strings.Contains(got, "type: board") {
 		t.Errorf("guide board = %q", got)
@@ -200,7 +200,7 @@ func TestGuideTopicsAndPromptsAreTheSkills(t *testing.T) {
 			Content struct{ Text string } `json:"content"`
 		} `json:"messages"`
 	}
-	if err := json.Unmarshal(byID(t, rs, 5).Result, &got); err != nil || len(got.Messages) != 1 || !strings.HasPrefix(got.Messages[0].Content.Text, "# Asking the user") {
+	if err := json.Unmarshal(byID(t, rs, 5).Result, &got); err != nil || len(got.Messages) != 1 || !strings.HasPrefix(got.Messages[0].Content.Text, "# Choosing between options") {
 		t.Errorf("prompts/get = %s, %v", byID(t, rs, 5).Result, err)
 	}
 	if byID(t, rs, 6).Error == nil {

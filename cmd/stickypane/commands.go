@@ -98,7 +98,7 @@ func init() {
 			group: "agents", brief: "print the agent guide",
 			what:     "Prints the agent guide in layers: the overview, or one skill or shape in full. The guide is English. Needs no board.",
 			syntax:   "stickypane guide [topic]",
-			examples: []string{"stickypane guide", "stickypane guide tracking-progress", "stickypane guide checklist"},
+			examples: []string{"stickypane guide", "stickypane guide tracking-the-work", "stickypane guide checklist"},
 			related:  []string{"setup", "mcp", "kinds"},
 		}},
 		{[]string{"version", "--version", "-v"}, func(e env, _ []string) error {

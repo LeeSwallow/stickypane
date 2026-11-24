@@ -3,7 +3,7 @@ description: Keep this task's steps on the board as a checklist, ticked as you g
 allowed-tools: Bash(stickypane:*)
 ---
 
-Follow the `board:tracking-progress` skill for this task:
+Follow the `board:tracking-the-work` skill for this task:
 $ARGUMENTS
 
 Put its steps on the board now with `stickypane todo`, and keep them ticked

@@ -117,8 +117,14 @@ func TestPluginManifestsNameTheRelease(t *testing.T) {
 	}
 }
 
-// skillNames are the plugin's skills.
-var skillNames = []string{"using-the-board", "asking-the-user", "tracking-progress", "talking-in-chat", "connecting-notes"}
+// skillNames are the plugin's skills: the topics of the guide, a situation
+// each, the way in first.
+var skillNames = []string{
+	"using-the-board", "tracking-the-work", "talking-while-working", "drawing-a-diagram",
+	"planning-before-code", "reporting-a-blocker", "choosing-between-options", "approving-a-risky-action",
+	"showing-numbers", "handing-over-a-command", "checking-an-api", "reading-long-material",
+	"connecting-notes", "working-in-a-worktree", "resuming-and-handing-off", "finishing-the-task",
+}
 
 // harnessFiles are every file of the plugin an agent reads.
 func harnessFiles(t *testing.T) map[string]string {
@@ -176,7 +182,7 @@ func TestTheHarnessNamesOnlyFilesThatExist(t *testing.T) {
 
 func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 	real := map[string]bool{}
-	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api worktree") {
+	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api note page worktree chat keys bridge diff") {
 		real[c] = true
 	}
 	cmd := regexp.MustCompile("stickypane ([a-z]+)")

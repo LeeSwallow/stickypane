@@ -24,9 +24,16 @@
 오래된 플러그인은 업데이트하고, 사라진 폴더를 가리키는 마켓플레이스는 GitHub로 다시
 잇습니다.
 
-플러그인은 계층으로 되어 있습니다. 입구 스킬 `using-the-board`가 일에 맞는 스킬을
-알려 줍니다: 진행 추적(`tracking-progress`), 묻기(`asking-the-user`), 채팅
-(`talking-in-chat`), 노트 연결(`connecting-notes`). 에이전트 안내문
+플러그인은 계층으로 되어 있습니다. 입구 스킬 `using-the-board`가 무엇을 어떤 모양으로
+보여 줄지와 상황에 맞는 스킬 열다섯 개를 알려 줍니다: 진행 추적(`tracking-the-work`),
+일하며 대화(`talking-while-working`), 그림 그리기(`drawing-a-diagram`), 코드 전 계획
+(`planning-before-code`), 막힘 보고(`reporting-a-blocker`), 고르기
+(`choosing-between-options`), 위험한 일의 승인(`approving-a-risky-action`), 숫자
+(`showing-numbers`), 명령 넘기기(`handing-over-a-command`), API 확인
+(`checking-an-api`), 긴 글(`reading-long-material`), 노트 연결(`connecting-notes`),
+워크트리(`working-in-a-worktree`), 이어받기와 넘기기(`resuming-and-handing-off`),
+마무리(`finishing-the-task`). 스킬마다 사례 하나씩을 담은 레시피가 `references/`에
+있고, 필요할 때만 `stickypane guide <스킬>/<레시피>`로 읽습니다. 에이전트 안내문
 (`stickypane guide`)은 영어로 남습니다.
 
 ## 에이전트용 명령

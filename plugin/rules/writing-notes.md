@@ -12,10 +12,8 @@ shape and `open: true`. `stickypane help <shape>` shows one in full.
 - `type: form`, to ask the user: `- ( ) option` (pick one), `- [ ] option`
   (pick any), an indented line under an option to explain it, `> ` (a line
   to type), and a last line of buttons named by what they do:
-  `[ Deploy ] [ Cancel ]`. `stickypane wait <name> --timeout 10m` prints
-  the answers. To ask again, leave the `submitted` keys out.
-- `name.sh`: a script the user runs after a yes. A folder: a tab; a folder
-  in a tab: a book.
+  `[ Deploy ] [ Cancel ]`.
+- `name.sh`: a script run on the user's yes. A folder: a tab; in a tab: a book.
 
 Write in the user's language. A title is what the user would call it; an
 item or a card is one action, verb first; a log line is one event, with

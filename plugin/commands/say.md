@@ -3,7 +3,7 @@ description: Talk with the user in a chat note on the board, and listen for the 
 allowed-tools: Bash(stickypane:*)
 ---
 
-Follow the `board:talking-in-chat` skill. Say this in the chat note `chat`:
+Follow the `board:talking-while-working` skill. Say this in the chat note `chat`:
 $ARGUMENTS
 
 Run `stickypane say chat "<message>"` (it signs as `agent`; add
