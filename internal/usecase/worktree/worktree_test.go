@@ -294,3 +294,31 @@ func TestOutsideARepositoryNothingHappens(t *testing.T) {
 		t.Fatal("NewFolder outside a repository")
 	}
 }
+
+// List is what Sync says, read without writing: no record, no event, no
+// overview changed.
+func TestListReadsWhatSyncSaysAndWritesNothing(t *testing.T) {
+	r := newFixture(t, true)
+	wt := filepath.Join(r.dir, "wt", "feat-a")
+	r.git("worktree", "add", "-q", "-b", "feat/a", wt)
+	r.git("worktree", "lock", wt)
+	r.board.Store.Write(Tab+"/feat-a/ask.md", []byte("---\ntype: form\n---\nok?\n"))
+	want := r.sync()
+	records, _ := os.ReadFile(filepath.Join(r.home, registry.WorktreesFile))
+	r.git("worktree", "unlock", wt)
+	r.git("worktree", "remove", wt)
+
+	got := r.board.List()
+	if w := r.find(got, "feat-a"); w.State != registry.StateClosed || w.Running || w.Waiting != 1 || !w.Folder {
+		t.Fatalf("after the worktree went, List says %+v", w)
+	}
+	if w := r.find(want, "feat-a"); !w.Running || w.Waiting != 1 {
+		t.Fatalf("Sync said %+v", w)
+	}
+	if after, _ := os.ReadFile(filepath.Join(r.home, registry.WorktreesFile)); string(after) != string(records) {
+		t.Fatalf("List wrote the records:\n%s", after)
+	}
+	if s, _ := r.overview("feat-a").Get("state"); s != registry.StateOpen {
+		t.Fatalf("List wrote the overview: state %q", s)
+	}
+}

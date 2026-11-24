@@ -214,6 +214,20 @@ func (b Board) Sync() ([]Worktree, error) {
 	return b.view(r, all, folders), first
 }
 
+// List is what Sync would answer, worked out without writing anything:
+// for a screen that reads the board each time it changes, and leaves the
+// records and the folders to Sync.
+func (b Board) List() []Worktree {
+	r, ok := b.repo()
+	if !ok {
+		return nil
+	}
+	folders := b.folders()
+	old := b.Records.Worktrees(r.common)
+	all, _ := merge(old, names(r.live, old, folders), r.root)
+	return b.view(r, all, folders)
+}
+
 // view is what is known of every worktree, in the record's order, then the
 // folders without a record.
 func (b Board) view(r repo, all []registry.Worktree, folders map[string]folder) []Worktree {
