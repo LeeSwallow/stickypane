@@ -77,7 +77,7 @@ func diffCmd(verb string) func(env, []string) error {
 			case w.Err != "":
 				state = w.Err
 			}
-			fmt.Fprintf(tw, "%s\t%s\t%d files\t+%d\t-%d\t%s\n", w.Name, w.Base, w.Files, w.Add, w.Del, state)
+			fmt.Fprintf(tw, "%s\t%s\t%d\t+%d\t-%d\t%s\n", w.Name, w.Base, w.Files, w.Add, w.Del, state)
 		}
 		tw.Flush()
 		for _, o := range book.Overview.Overlaps {
