@@ -113,11 +113,17 @@ type List struct {
 	env widget.Env
 }
 
-// NewList makes the list page of o with the cursor on the chosen worktree.
-func NewList(o Overview, e widget.Env) *List {
+// NewList makes the list page of o with the cursor on the worktree called
+// cursor, or on the chosen one when there is none by that name.
+func NewList(o Overview, cursor string, e widget.Env) *List {
 	l := &List{o: o, env: e}
 	for i, w := range o.Worktrees {
 		if w.Name == o.Chosen {
+			l.at = i
+		}
+	}
+	for i, w := range o.Worktrees {
+		if w.Name == cursor {
 			l.at = i
 		}
 	}
@@ -183,7 +189,11 @@ func (l *List) row(w Worktree) string {
 	case w.Base == "":
 		return l.env.T("no base: b chooses one")
 	}
-	return fmt.Sprintf("%s…  "+l.env.T("%d files")+"  +%d −%d", w.Base, w.Files, w.Add, w.Del)
+	files := fmt.Sprintf(l.env.T("%d files"), w.Files)
+	if w.Files == 1 {
+		files = l.env.T("1 file")
+	}
+	return fmt.Sprintf("%s…  %s  +%d −%d", w.Base, files, w.Add, w.Del)
 }
 
 // Summary implements widget.Widget: how many files two worktrees changed.

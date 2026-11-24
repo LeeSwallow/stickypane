@@ -80,7 +80,7 @@ func TestListShowsWorktreesOverlapsAndThePullRequest(t *testing.T) {
 		Chosen:   "feat/chart-ui",
 		PR:       &PR{Title: "feat: chart", State: "OPEN", URL: "https://x"},
 	}
-	l := NewList(o, widget.DefaultEnv())
+	l := NewList(o, "", widget.DefaultEnv())
 	out, at := l.Draw(80, true)
 	out = ansi.Strip(out)
 	for _, want := range []string{
@@ -110,6 +110,9 @@ func TestListShowsWorktreesOverlapsAndThePullRequest(t *testing.T) {
 	if l.Cursor() != "gone" {
 		t.Errorf("k from the end is on %q", l.Cursor())
 	}
+	if c := NewList(o, "refactor/widget", widget.DefaultEnv()).Cursor(); c != "refactor/widget" {
+		t.Errorf("a list made again keeps its cursor: %q", c)
+	}
 	for _, w := range []int{1, 7, 20} {
 		out, _ := l.Draw(w, true)
 		for _, line := range strings.Split(out, "\n") {
@@ -122,7 +125,7 @@ func TestListShowsWorktreesOverlapsAndThePullRequest(t *testing.T) {
 
 func TestAnEmptyListSaysSo(t *testing.T) {
 	t.Parallel()
-	l := NewList(Overview{}, widget.DefaultEnv())
+	l := NewList(Overview{}, "", widget.DefaultEnv())
 	out, _ := l.Draw(40, false)
 	if !strings.Contains(out, "no git worktrees here") || l.Cursor() != "" {
 		t.Errorf("empty list = %q", out)

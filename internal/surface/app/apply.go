@@ -34,6 +34,9 @@ func (m *Model) apply(name string, op doc.Op) {
 
 // toWidget sends a key to a note's widget and carries out what it asks for.
 func (m *Model) toWidget(i int, key string) {
+	if m.diffKey(i, key) {
+		return
+	}
 	name := m.items[i].file().Name
 	w, res := m.items[i].w.Update(key)
 	m.setWidget(i, w)

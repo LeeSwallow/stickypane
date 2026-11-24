@@ -70,7 +70,7 @@ func chooseFolder(m *Model, it item) tea.Cmd {
 		m.moveTargets = append(m.moveTargets, m.tabName)
 	}
 	for _, other := range m.items {
-		if len(other.pages) > 0 && other.note.Name != here {
+		if other.note.Book() && other.note.Name != here {
 			m.moveTargets = append(m.moveTargets, other.note.Name)
 		}
 	}
