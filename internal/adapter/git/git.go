@@ -87,11 +87,11 @@ func Main(dir string) string {
 // repository at main, and that folder names dotgit back.
 func linked(dotgit, main string) bool {
 	gitdir, ok := pointer(dotgit, "gitdir: ")
-	if !ok || !same(filepath.Dir(gitdir), filepath.Join(main, ".git", "worktrees")) {
+	if !ok || !Same(filepath.Dir(gitdir), filepath.Join(main, ".git", "worktrees")) {
 		return false
 	}
 	back, ok := pointer(filepath.Join(gitdir, "gitdir"), "")
-	return ok && same(back, dotgit)
+	return ok && Same(back, dotgit)
 }
 
 // pointer reads the path in the one-line file at p after prefix, taken
@@ -111,8 +111,8 @@ func pointer(p, prefix string) (string, bool) {
 	return v, true
 }
 
-// same says whether a and b are the same file or folder.
-func same(a, b string) bool {
+// Same says whether a and b are the same file or folder.
+func Same(a, b string) bool {
 	fa, err1 := os.Stat(a)
 	fb, err2 := os.Stat(b)
 	return err1 == nil && err2 == nil && os.SameFile(fa, fb)

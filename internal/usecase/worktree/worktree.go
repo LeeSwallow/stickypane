@@ -64,7 +64,7 @@ type repo struct {
 func (b Board) repo() (repo, bool) {
 	root := filepath.Dir(b.Store.Dir)
 	list, err := git.Worktrees(root)
-	if err != nil || len(list) == 0 || list[0].Bare || !sameDir(list[0].Path, root) {
+	if err != nil || len(list) == 0 || list[0].Bare || !git.Same(list[0].Path, root) {
 		return repo{}, false
 	}
 	common, err := git.CommonDir(root)
@@ -316,10 +316,4 @@ func (o state) Apply(d doc.Document) (doc.Document, error) {
 		return d.Unset("closed"), nil
 	}
 	return d.Set("closed", o.closed), nil
-}
-
-func sameDir(a, b string) bool {
-	fa, err1 := os.Stat(a)
-	fb, err2 := os.Stat(b)
-	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
 }

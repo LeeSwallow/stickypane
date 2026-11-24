@@ -7,7 +7,6 @@
 package diffbook
 
 import (
-	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -68,7 +67,7 @@ func Read(dir, chosen, base string) (Book, error) {
 		if w.Bare {
 			continue
 		}
-		row := diff.Worktree{Name: Name(w), Path: w.Path, Base: base, Closed: w.Prunable, Current: same(w.Path, dir)}
+		row := diff.Worktree{Name: Name(w), Path: w.Path, Base: base, Closed: w.Prunable, Current: git.Same(w.Path, dir)}
 		if row.Current {
 			current = row.Name
 		}
@@ -140,11 +139,4 @@ func PR(path string) *diff.PR {
 		return nil
 	}
 	return &diff.PR{Title: pr.Title, State: pr.State, URL: pr.URL}
-}
-
-// same says whether a and b are the same folder.
-func same(a, b string) bool {
-	fa, err1 := os.Stat(a)
-	fb, err2 := os.Stat(b)
-	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
 }
