@@ -168,12 +168,15 @@ code that decides; the screen and `stickypane list` and `set` ask it.
 and it writes only where the app's `overlay.json` (`registry.AppFile`) is
 (`keys.json` beside them has its own writer, `internal/adapter/keyfile`):
 `registry.Event` is a line of `events/<date>.jsonl`, `registry.Run` the
-file `run/<pid>.json`, and a `registry.Writer` writes them on its own
+file `run/<pid>.json`, `worktrees.json` where each repository's worktrees
+are (`registry.Worktree`, changed by `Writer.UpdateWorktrees` under the
+home folder's lock), and a `registry.Writer` writes them on its own
 clock, through `internal/core/when`. `registry.Read` reads them back for the
 desktop app, and `registry.Prune`, run when the board or the bridge
 opens, is the only code that deletes them. `internal/adapter/registry/testdata/home`
 is a home written with a fixed clock; a test keeps the writer to it, and
-the app's tests read it rather than copy the format.
+the app's tests read it rather than copy the format. `testdata/worktrees`
+pins the worktrees' records the same way.
 
 ## A shape of note
 

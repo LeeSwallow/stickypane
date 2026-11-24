@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "boards": {
+    "/work/demo/.git": [
+      {
+        "name": "feat-a",
+        "path": "/work/elsewhere/feat-a",
+        "branch": "feat/a",
+        "state": "closed"
+      },
+      {
+        "name": "feat-b",
+        "path": "/work/wt/feat-b",
+        "branch": "feat/b",
+        "state": "open"
+      }
+    ]
+  }
+}

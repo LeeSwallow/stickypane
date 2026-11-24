@@ -1,0 +1,4 @@
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"worktree.open","project":"/work/demo","name":"feat-a","path":"/work/wt/feat-a"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"worktree.move","project":"/work/demo","name":"feat-a","path":"/work/elsewhere/feat-a","from":"/work/wt/feat-a"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"worktree.open","project":"/work/demo","name":"feat-b","path":"/work/wt/feat-b"}
+{"v":1,"at":"2026-10-28T14:02:11+09:00","type":"worktree.close","project":"/work/demo","name":"feat-a","path":"/work/elsewhere/feat-a"}
