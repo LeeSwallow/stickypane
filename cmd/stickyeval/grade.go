@@ -13,8 +13,10 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
+	"github.com/LeeSwallow/stickypane/internal/usecase/worktree"
 )
 
 // Event is one thing an agent did, in the form both agents' records are
@@ -116,8 +118,8 @@ func made(r Run) []note {
 	var out []note
 	for path := range files(r.Sticky) {
 		base := filepath.Base(path)
-		if r.Before[path] || base == "welcome.md" || base == "00-개요.md" || base == "sticky.json" || strings.HasPrefix(base, ".") ||
-			strings.HasPrefix(path, ".trash/") || strings.HasPrefix(path, "archive/") {
+		if r.Before[path] || base == "welcome.md" || base == worktree.Overview || base == store.ViewFile || strings.HasPrefix(base, ".") ||
+			strings.HasPrefix(path, store.TrashDir+"/") || strings.HasPrefix(path, store.ArchiveDir+"/") {
 			continue
 		}
 		b, err := os.ReadFile(filepath.Join(r.Sticky, path))
@@ -137,12 +139,12 @@ func readNote(r Run, path string) (doc.Document, bool) {
 // "stickypane" and the rest of its line.
 var stickyCmd = regexp.MustCompile(`(?:^|[\s;&|('"])stickypane\s+([a-z][a-z-]*)([^\n;&|]*)`)
 
-// real are the commands `stickypane help` names, the old forms included.
-var real = map[string]bool{}
+// known are the commands `stickypane help` names, the old forms included.
+var known = map[string]bool{}
 
 func init() {
 	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api note page worktree chat keys bridge diff") {
-		real[c] = true
+		known[c] = true
 	}
 }
 
@@ -177,10 +179,11 @@ func opened(r Run, skill string) bool {
 // grade scores a run: no command that stickypane does not have, then the
 // case's own check.
 func grade(r Run) Result {
-	res := Result{Case: r.Case, Cmds: len(commands(r))}
-	for _, e := range commands(r) {
+	cmds := commands(r)
+	res := Result{Case: r.Case, Cmds: len(cmds)}
+	for _, e := range cmds {
 		for _, m := range stickyCmd.FindAllStringSubmatch(e.Text, -1) {
-			if !real[m[1]] {
+			if !known[m[1]] {
 				res.Reason = fmt.Sprintf("`stickypane %s` is not a command", m[1])
 				return res
 			}
