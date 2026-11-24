@@ -39,6 +39,8 @@ export interface BoardCtx {
    * a .http note's own Send names the request (its place from 1 and title)
    */
   manage?(note: Note, what: Manage, request?: Request): void
+  /** + 새 노트 with this book as the place: the note is a new page of it (the terminal's N and a on a book) */
+  addPage?(book: string): void
   /** tear the note off into a window of its own (the board window) */
   tear?(name: string): void
   /** put a torn-off note back on its board (the note's own window); its close does this */

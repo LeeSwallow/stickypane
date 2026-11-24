@@ -40,6 +40,7 @@
   "note.trash": "Delete",
   "note.move": "Move to...",
   "note.openInEditor": "Open in editor",
+  "note.addPage": "Add a page",
   "note.trashed": "Deleted",
   "note.confirmTrash": "Delete \"{title}\"?",
   "note.restore": "Undo",
