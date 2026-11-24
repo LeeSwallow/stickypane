@@ -21,7 +21,7 @@ func repo(t *testing.T) (main, a, b string) {
 		t.Helper()
 		cmd := exec.Command("git", args...)
 		cmd.Dir = in
-		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		cmd.Env = append(noGitDir(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
@@ -132,7 +132,9 @@ func TestAChosenBaseIsUsedForEveryWorktree(t *testing.T) {
 // uncommitted changes alone.
 func TestNoBase(t *testing.T) {
 	main, _, b := repo(t)
-	if out, err := exec.Command("git", "-C", main, "checkout", "-q", "--detach").CombinedOutput(); err != nil {
+	cmd := exec.Command("git", "-C", main, "checkout", "-q", "--detach")
+	cmd.Env = noGitDir()
+	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("%v %s", err, out)
 	}
 	book, err := Read(b, "", "")
@@ -153,4 +155,17 @@ func TestOutsideARepository(t *testing.T) {
 	if _, err := Read(t.TempDir(), "", ""); err == nil {
 		t.Error("no error outside a repository")
 	}
+}
+
+// noGitDir is the environment without git's GIT_ variables, which a hook
+// or rebase --exec sets: the git a test runs must work in its own folder,
+// never in the repository the tests were started from.
+func noGitDir() []string {
+	var env []string
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "GIT_") {
+			env = append(env, kv)
+		}
+	}
+	return env
 }

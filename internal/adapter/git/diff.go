@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,7 +52,37 @@ func OriginHead(dir string) string {
 // `git diff base...HEAD`, so a base that moved on since the branch left it
 // counts only what the branch did.
 func Changes(dir, base string) ([]Change, error) {
+	if err := CheckBase(dir, base); err != nil {
+		return nil, err
+	}
 	return changes(dir, base+"...HEAD", Committed)
+}
+
+// ErrBadBase is a base that is not a commit git knows. A base comes from
+// sticky.json or a note's front matter: text anyone may write, so it is
+// never handed to git as an option.
+var ErrBadBase = errors.New("not a commit")
+
+// CheckBase says whether base names a commit in the repository at dir.
+func CheckBase(dir, base string) error {
+	if base == "" || strings.HasPrefix(base, "-") {
+		return fmt.Errorf("base %q: %w", base, ErrBadBase)
+	}
+	if _, err := run(dir, "rev-parse", "--quiet", "--verify", "--end-of-options", base+"^{commit}"); err != nil {
+		return fmt.Errorf("base %q: %w", base, ErrBadBase)
+	}
+	return nil
+}
+
+// diffArgs are the words of a `git diff` the board runs: the flags that
+// keep the repository's programs out, mode (--name-status, --numstat or
+// none), the revision after --end-of-options and the paths after --.
+func diffArgs(mode, what string, paths ...string) []string {
+	args := append([]string{"diff"}, diffFlags...)
+	if mode != "" {
+		args = append(args, mode, "-z")
+	}
+	return append(append(append(args, "--end-of-options", what), "--"), paths...)
 }
 
 // Pending are the changes not committed yet: the tracked files changed
@@ -74,11 +106,11 @@ func Pending(dir string) ([]Change, error) {
 
 // changes reads what `git diff <what>` changed, by name and by count.
 func changes(dir, what, where string) ([]Change, error) {
-	names, err := run(dir, append(append([]string{"diff"}, diffFlags...), "--name-status", "-z", what, "--")...)
+	names, err := run(dir, diffArgs("--name-status", what)...)
 	if err != nil {
 		return nil, err
 	}
-	counts, err := run(dir, append(append([]string{"diff"}, diffFlags...), "--numstat", "-z", what, "--")...)
+	counts, err := run(dir, diffArgs("--numstat", what)...)
 	if err != nil {
 		return nil, err
 	}
@@ -141,21 +173,25 @@ const MaxDiff = 1 << 20
 // Diff is the unified diff of one changed file in the worktree at dir,
 // read no further than MaxDiff; cut says that some was left out.
 func Diff(dir, base string, c Change) (text string, cut bool, err error) {
-	paths := []string{"--", c.Path}
+	paths := []string{c.Path}
 	if c.Old != "" {
-		paths = []string{"--", c.Old, c.Path}
+		paths = []string{c.Old, c.Path}
 	}
-	args := append([]string{"diff"}, diffFlags...)
+	var args []string
 	switch c.Where {
 	case Untracked:
 		// Exit status 1 is "they differ", which a new file always does.
-		args = append(args, "--no-index", "--", os.DevNull, c.Path)
+		args = append(append([]string{"diff"}, diffFlags...), "--no-index", "--", os.DevNull, c.Path)
 	case Uncommitted:
-		args = append(append(args, "HEAD"), paths...)
+		args = diffArgs("", "HEAD", paths...)
 	default:
-		args = append(append(args, base+"...HEAD"), paths...)
+		if err := CheckBase(dir, base); err != nil {
+			return "", false, err
+		}
+		args = diffArgs("", base+"...HEAD", paths...)
 	}
 	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
+	cmd.Env = gitEnv()
 	out := &capped{max: MaxDiff}
 	cmd.Stdout = out
 	err = cmd.Run()
@@ -200,10 +236,34 @@ func PullRequest(dir string) (pr PR, ok bool) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "gh", "pr", "view", "--json", "title,state,url")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "NO_COLOR=1")
+	cmd.Env = append(gitEnv(), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1", "NO_COLOR=1")
 	out, err := cmd.Output()
 	if err != nil || json.Unmarshal(out, &pr) != nil || pr.Title == "" {
 		return PR{}, false
 	}
 	return pr, true
+}
+
+// gitLocal are the variables by which git is told which repository it is
+// in (git rev-parse --local-env-vars). git sets them for a hook or a
+// rebase --exec; a git started here must find the repository from its
+// folder.
+var gitLocal = []string{
+	"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS",
+	"GIT_CONFIG_COUNT", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE",
+	"GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE", "GIT_INDEX_FILE",
+	"GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX",
+	"GIT_SHALLOW_FILE", "GIT_COMMON_DIR",
+}
+
+// gitEnv is this process's environment without gitLocal.
+// ponytail: the same as git.Environ of #157; use that once it is merged.
+func gitEnv() []string {
+	var env []string
+	for _, kv := range os.Environ() {
+		if name, _, _ := strings.Cut(kv, "="); !slices.Contains(gitLocal, name) {
+			env = append(env, kv)
+		}
+	}
+	return env
 }

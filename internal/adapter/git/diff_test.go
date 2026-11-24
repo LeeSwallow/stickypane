@@ -1,10 +1,12 @@
 package git
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -36,7 +38,7 @@ func repo(t *testing.T) (main, wt string) {
 		t.Helper()
 		cmd := exec.Command("git", args...)
 		cmd.Dir = in
-		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		cmd.Env = append(gitEnv(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
@@ -147,7 +149,9 @@ func TestOriginHead(t *testing.T) {
 		t.Errorf("no remote: OriginHead = %q", h)
 	}
 	for _, args := range [][]string{{"update-ref", "refs/remotes/origin/main", "main"}, {"symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"}} {
-		if out, err := exec.Command("git", append([]string{"-C", main}, args...)...).CombinedOutput(); err != nil {
+		cmd := exec.Command("git", append([]string{"-C", main}, args...)...)
+		cmd.Env = gitEnv()
+		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("%v: %s", err, out)
 		}
 	}
@@ -162,5 +166,44 @@ func TestPullRequestWithoutGh(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	if _, ok := PullRequest(t.TempDir()); ok {
 		t.Error("a pull request without gh")
+	}
+}
+
+// A base is text from sticky.json or front matter: one that reads as an
+// option, or names no commit, is refused before git sees it as a revision.
+func TestABadBaseIsRefused(t *testing.T) {
+	_, wt := repo(t)
+	out := filepath.Join(t.TempDir(), "x")
+	for _, base := range []string{"--output=" + out, "-p", "no-such-branch", ""} {
+		if _, err := Changes(wt, base); !errors.Is(err, ErrBadBase) {
+			t.Errorf("Changes(%q) = %v, want ErrBadBase", base, err)
+		}
+		if _, _, err := Diff(wt, base, Change{Path: "run.sh"}); !errors.Is(err, ErrBadBase) {
+			t.Errorf("Diff(%q) = %v, want ErrBadBase", base, err)
+		}
+	}
+	if _, err := os.Stat(out); err == nil {
+		t.Error("a base wrote a file")
+	}
+	if err := CheckBase(wt, "main"); err != nil {
+		t.Errorf("CheckBase(main) = %v", err)
+	}
+}
+
+// Every git diff the board runs keeps the repository's own diff programs
+// and text filters out, and takes its revision and paths where no option
+// can hide.
+func TestDiffArgsKeepTheRepositorysProgramsOut(t *testing.T) {
+	t.Parallel()
+	for _, args := range [][]string{diffArgs("--name-status", "main...HEAD"), diffArgs("--numstat", "main...HEAD"), diffArgs("", "HEAD", "-x", "y")} {
+		got := strings.Join(args, " ")
+		for _, want := range []string{"--no-ext-diff", "--no-textconv", "--end-of-options "} {
+			if !strings.Contains(got, want) {
+				t.Errorf("%q lacks %q", got, want)
+			}
+		}
+		if i, j := slices.Index(args, "--end-of-options"), slices.Index(args, "--"); i < 0 || j != i+2 {
+			t.Errorf("%q: the revision is not alone between --end-of-options and --", got)
+		}
 	}
 }
