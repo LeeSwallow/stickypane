@@ -225,10 +225,11 @@ func runEnv(e env, args []string) int {
 	return exitCode(openBoard(e, start), stderr)
 }
 
-// asksHelp says whether the words of a command ask for its help: --help,
-// -help or -h among them, before any "--".
+// asksHelp says whether the words after a command ask for its help:
+// --help, -help or -h first, or after one word, a verb or a target (todo
+// add --help, note write plan -h). Later it is text: log add x run with -h.
 func asksHelp(words []string) bool {
-	for _, w := range words {
+	for _, w := range words[:min(2, len(words))] {
 		switch w {
 		case "--":
 			return false

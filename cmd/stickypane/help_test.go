@@ -190,6 +190,18 @@ func TestDashHelpIsTheHelpOfTheCommand(t *testing.T) {
 	if code, out, _ := exec(t, "todo", "add", "--help", "plan"); code != 0 || out != want {
 		t.Errorf("todo add --help plan: code = %d\n%s", code, out)
 	}
+	// after the verb and the target it is no help: a flag log does not
+	// have, a usage error (exit 2), and text after --
+	project(t)
+	if code, out, _ := exec(t, "log", "add", "run", "with", "-h", "now"); code != 2 || out != "" {
+		t.Errorf("log add run with -h now: code = %d\n%s", code, out)
+	}
+	if code, _, errOut := exec(t, "log", "add", "run", "--", "with", "-h", "now"); code != 0 {
+		t.Errorf("log add run -- with -h now: code = %d, stderr = %q", code, errOut)
+	}
+	if code, out, _ := exec(t, "note", "cat", "run"); code != 0 || !strings.Contains(out, "with -h now") {
+		t.Errorf("the line was not logged: code = %d\n%s", code, out)
+	}
 }
 
 // Every command has help, in a known group, with a usage line that agrees
