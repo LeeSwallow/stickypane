@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,11 +29,33 @@ func TestGuidePrintsTheAgentGuide(t *testing.T) {
 	if code != 0 || !strings.HasPrefix(out, initcmd.GuideText()) || !strings.Contains(out, "## Skills") {
 		t.Errorf("code = %d, out = %q", code, out)
 	}
-	if code, out, _ = exec(t, "guide", "tracking-progress"); code != 0 || !strings.HasPrefix(out, "# Tracking progress") {
+	if code, out, _ = exec(t, "guide", "tracking-the-work"); code != 0 || !strings.HasPrefix(out, "# Tracking the work") {
 		t.Errorf("a skill: code = %d, out = %.80q", code, out)
 	}
 	if code, _, _ = exec(t, "guide", "nope"); code != 2 {
 		t.Errorf("an unknown topic: code = %d", code)
+	}
+}
+
+// The guide over MCP is the guide at the command line, word for word: the
+// overview with the topics, a topic, and a recipe of one.
+func TestGuideIsTheSameOverMCP(t *testing.T) {
+	t.Chdir(t.TempDir())
+	topics := []string{"", "approving-a-risky-action", "approving-a-risky-action/several-at-once", "chart"}
+	var calls []string
+	for _, topic := range topics {
+		calls = append(calls, "guide", fmt.Sprintf(`{"topic":%q}`, topic))
+	}
+	texts, failed := mcpTools(t, calls...)
+	for i, topic := range topics {
+		args := []string{"guide"}
+		if topic != "" {
+			args = append(args, topic)
+		}
+		code, out, _ := exec(t, args...)
+		if code != 0 || failed[i] || strings.TrimRight(texts[i], "\n") != strings.TrimRight(out, "\n") {
+			t.Errorf("guide %q: code %d, the command line and MCP differ:\n%.300q\n%.300q", topic, code, out, texts[i])
+		}
 	}
 }
 

@@ -10,14 +10,14 @@ import (
 // Guide is the agent's way in, in layers. With no topic it is overview
 // (the short guide), then the skills with when to follow each and the
 // shapes a note takes. A topic is a skill's name, which gives the whole
-// skill with the files it points to, or a shape's name, which gives its
-// format with an example.
+// skill with the files it points to, a skill's recipe (skill/recipe), or a
+// shape's name, which gives its format with an example.
 func (a *API) Guide(topic, overview string) (string, error) {
 	topic = strings.ToLower(strings.TrimSpace(topic))
 	if topic == "" {
 		var b strings.Builder
 		b.WriteString(strings.TrimRight(overview, "\n"))
-		b.WriteString("\n\n## Skills\n\nFor a bigger job, read the skill: the guide with its name as the topic.\n\n")
+		b.WriteString("\n\n## Skills\n\nOne skill per situation: read the one that fits, the guide with its name as the topic. A recipe a skill lists is the guide with skill/recipe as the topic.\n\n")
 		b.WriteString(harness.Index())
 		b.WriteString("\n## Shapes\n\nA shape's file format and an example: the guide with its name as the topic.\n\n")
 		b.WriteString(strings.Join(a.shapes(), ", ") + "\n")

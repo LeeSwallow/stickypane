@@ -7,7 +7,7 @@ import (
 
 func TestSkillsComeFromThePluginWithTheWayInFirst(t *testing.T) {
 	skills := Skills()
-	if len(skills) < 5 || skills[0].Name != First {
+	if len(skills) != 16 || skills[0].Name != First {
 		t.Fatalf("skills = %v", skills)
 	}
 	for _, s := range skills {
@@ -43,7 +43,7 @@ func TestReadCarriesTheRulesASkillPointsTo(t *testing.T) {
 }
 
 func TestIndexSaysWhenToUseEach(t *testing.T) {
-	if got := Index(); !strings.HasPrefix(got, "- using-the-board: Use when") || !strings.Contains(got, "- talking-in-chat: Use when") {
+	if got := Index(); !strings.HasPrefix(got, "- using-the-board: Use when") || !strings.Contains(got, "- talking-while-working: Use when") {
 		t.Errorf("Index = %q", got)
 	}
 }
@@ -58,5 +58,31 @@ func TestParseReadsFrontMatterWithCRLF(t *testing.T) {
 	}
 	if s := parse("dir", "---\r\nname: open\r\n"); s.Name != "dir" || s.Body != "---\r\nname: open\r\n" {
 		t.Errorf("front matter that is never closed is body: %+v", s)
+	}
+}
+
+// A recipe is a case written out, in a skill's references/: read by the
+// skill's name and its own, and named at the end of the skill for a reader
+// without the plugin.
+func TestARecipeIsReadByItsSkillAndName(t *testing.T) {
+	r, ok := Lookup("approving-a-risky-action/several-at-once")
+	if !ok || r.Name != "approving-a-risky-action/several-at-once" || !strings.HasPrefix(r.Description, "Use when") || !strings.HasPrefix(r.Body, "# ") {
+		t.Fatalf("recipe = %+v, %v", r, ok)
+	}
+	if len(Recipes("approving-a-risky-action")) < 2 || len(Recipes("connecting-notes")) != 0 {
+		t.Error("a skill's recipes are its references that say when to use them")
+	}
+	for _, name := range []string{"using-the-board/kinds", "approving-a-risky-action/nope", "nope/several-at-once"} {
+		if _, ok := Lookup(name); ok {
+			t.Errorf("%s is not a recipe", name)
+		}
+	}
+	s, _ := Lookup("approving-a-risky-action")
+	if text := Read(s); !strings.Contains(text, "`stickypane guide approving-a-risky-action/<recipe>`") {
+		t.Errorf("Read should say how to read a recipe: %.300q", text)
+	}
+	s, _ = Lookup("connecting-notes")
+	if strings.Contains(Read(s), "<recipe>") {
+		t.Error("a skill without recipes says nothing of them")
 	}
 }

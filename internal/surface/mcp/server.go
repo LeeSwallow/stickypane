@@ -123,7 +123,7 @@ var tools = []tool{
 		Name:        "guide",
 		Description: "Start here. Without a topic: how the board works, the skills (which to follow for a job: tracking progress, asking the user, talking in a chat, connecting notes) and the shapes of note. With a topic: that skill in full, or that shape's file format with an example.",
 		InputSchema: object(nil, map[string]any{
-			"topic": str(`A skill, such as "tracking-progress", or a shape, such as "board". Omit for the overview.`),
+			"topic": str(`A topic, such as "tracking-the-work", a recipe of one, such as "approving-a-risky-action/several-at-once", or a shape, such as "board". Omit for the overview.`),
 		}),
 	},
 	{

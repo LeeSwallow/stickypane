@@ -3,7 +3,7 @@ description: Ask the user a question on the board, as a form with buttons, and w
 allowed-tools: Bash(stickypane:*), Write
 ---
 
-Follow the `board:asking-the-user` skill to ask this on the board:
+Follow the `board:choosing-between-options` skill to ask this on the board:
 $ARGUMENTS
 
 Report the answer, or that the time ran out.
