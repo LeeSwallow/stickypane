@@ -536,10 +536,10 @@ func (a *API) move(name, to string) (from, dest string, err error) {
 		}
 	}
 	// What was arranged for the old name now belongs to the new one, in
-	// the same step as the move. A page has no arrangement of its own: its
-	// book has.
+	// the same step as the move, in a tab as at the top. A page
+	// ("tab/book/page") has no arrangement of its own: its book has.
 	move := a.st.MoveArranged
-	if strings.Contains(dest, "/") {
+	if strings.Count(dest, "/") > 1 {
 		move = a.st.Move
 	}
 	if err := move(file, dest); errors.Is(err, fs.ErrNotExist) {

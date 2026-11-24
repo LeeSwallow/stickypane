@@ -310,3 +310,37 @@ func TestShowABareFileNameOfTheProject(t *testing.T) {
 		t.Error("a name that is neither a note nor a file cannot be shown")
 	}
 }
+
+// A note moved into a tab, or renamed in one, keeps what sticky.json
+// arranged for it; a note that becomes a page leaves it, as its book has
+// the arrangement.
+func TestMovingIntoATabTakesTheArrangementAlong(t *testing.T) {
+	a, dir := newAPI(t, map[string]string{"plan.md": "the plan\n", "b.md": "b\n"})
+	if err := os.MkdirAll(filepath.Join(dir, "deploy/docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "deploy/docs/intro.md"), []byte("x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"plan", "b"} {
+		if _, err := a.Set(n, []string{"open=true", "size=half", "pin=true", "color=pink"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st := store.Open(dir)
+	for _, step := range [][2]string{{"plan", "deploy/"}, {"deploy/plan", "deploy/roadmap"}} {
+		if _, err := a.Move(step[0], step[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	v, _ := st.Views()
+	if n := v["deploy/roadmap.md"]; n.Open == nil || !*n.Open || n.Size != "1/2" || n.Pin == nil || !*n.Pin || n.Color != "pink" {
+		t.Errorf("a note moved into a tab and renamed there keeps its arrangement: %+v", v)
+	}
+	if _, err := a.Move("b", "deploy/docs/"); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := st.Views(); v["deploy/docs/b.md"] != (store.View{}) {
+		t.Errorf("a page has no arrangement of its own: %+v", v)
+	}
+}
