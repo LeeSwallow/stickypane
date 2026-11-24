@@ -42,12 +42,23 @@ func openCatalog(m *Model) tea.Cmd {
 // create writes a new note named after text and focuses it. ext is the
 // file's extension when it is not Markdown. A note made here is opened in
 // sticky.json, so it is still on the screen after a restart: it is the
-// user's own note, and no agent is in the middle of editing it.
+// user's own note, and no agent is in the middle of editing it. When a
+// book has the focus, the note is a new page of it, and the book turns to
+// it.
 func (m *Model) create(text, ext string, content []byte) {
+	book := ""
+	if i := m.index(m.focus); i >= 0 && len(m.items[i].pages) > 0 {
+		book = m.items[i].note.Name
+	}
 	// Named and stamped as every screen makes a note (api.CreateFrom).
-	name, err := m.calls().CreateFrom("", text, ext, api.Options{}, content)
+	name, err := m.calls().CreateFrom(book, text, ext, api.Options{}, content)
 	if err != nil {
 		m.status = say(m.tr.CannotCreate, map[string]any{"Err": err.Error()})
+		return
+	}
+	if book != "" {
+		m.reload()
+		m.focusFile(name)
 		return
 	}
 	open := true
