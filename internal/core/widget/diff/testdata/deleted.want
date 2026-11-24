@@ -1,0 +1,4 @@
+file D old="gone.txt" new="" +0 -2
+  @@ -1,2 +0,0 @@
+    -|bye
+    -|bye

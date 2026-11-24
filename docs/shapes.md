@@ -8,7 +8,7 @@ one in full. Back to the [README](../README.md).
 - [Front matter](#front-matter)
 - Shapes: [board](#board), [checklist](#checklist), [log](#log),
   [chart](#chart), [diagrams](#diagrams), [chat](#chat), [form](#form),
-  [API requests](#api-requests-experimental)
+  [API requests](#api-requests-experimental), [diff](#diff)
 - [Notes that link](#notes-that-link): `[[links]]`, embeds, charts computed from other notes
 
 ## The folder is the board
@@ -336,6 +336,41 @@ the logs of a failed run too. Each request's last result stays in `api.log`
 under its title, a line such as `[101 Switching Protocols · 1.1s · Live
 updates · 2↑ 2↓ · 1/1 ✔]` at its end, so `stickypane watch --note api.log`
 hears when one is sent.
+
+## Diff
+
+A note with `type: diff` shows what the repository's git worktrees
+changed. It reads git each time it is drawn and writes nothing, so it
+never disagrees with the repository; its body is not used.
+
+```markdown
+---
+type: diff
+---
+```
+
+On the board it is a book shown one page at a time. The first page lists
+the worktrees (from `git worktree list`, so it works without the
+`worktrees` tab): each one's base and the files and lines it changed since
+(`git diff <base>...HEAD`), then every file two worktrees both changed,
+where a merge may conflict, and the pull request of the chosen worktree
+when `gh` knows one. Zoomed, `j` `k` choose a worktree, `enter` shows its
+files and `b` sets the base. Then each changed file is a page, turned with
+`,` and `.`: its status and counts (`R old → new`, `mode 100644 → 100755`,
+`binary`), then its hunks, added lines in green and removed ones in red.
+Changes not committed yet, and new files, come last. A file's diff is read
+from git when its page is shown, and cut at 1 MiB.
+
+The worktree and the base chosen are kept in the note's entry in
+`sticky.json` (`"worktree"`, `"base"`), like its size. `worktree:` in the
+front matter pins one worktree and skips the list; `base:` is the base
+when none was chosen. Without either, the base is the branch `origin/HEAD`
+names, else the main worktree's branch; a base that is not a commit is
+refused. A page made from git cannot be edited, moved or deleted.
+`stickypane diff list` and `stickypane diff show` print the same.
+
+A `type: diff` note may sit in a book with notes of its own (review notes,
+say): its pages come where the note is, and the book shows a page at a time.
 
 ## Notes that link
 

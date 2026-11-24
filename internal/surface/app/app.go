@@ -157,6 +157,8 @@ type notes struct {
 
 	embedFiles map[string]store.Note // reload.go: every note, for a ![[name]] line
 	embedNames []string
+
+	diffs map[string]*diffState // diffbook.go: what was read of git for each diff note
 }
 
 // tabState is the tabs and which one is shown.
@@ -344,6 +346,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.finished(msg)
 	case sentMsg:
 		m.sent(msg)
+	case prMsg:
+		m.gotPR(msg)
 	case wakeMsg:
 		// Time passed to a moment a note changes by itself: draw again.
 		m.drawn, m.wakeAt = nil, time.Time{}

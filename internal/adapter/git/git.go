@@ -155,7 +155,8 @@ func Environ() []string {
 
 func run(dir string, args ...string) ([]byte, error) {
 	// No fsmonitor: a repository's config must not start a program here.
-	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-C", dir}, args...)...)
+	// Paths come back as they are, not with their bytes escaped.
+	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
 	cmd.Env = Environ()
 	var out bytes.Buffer
 	cmd.Stdout = &out
