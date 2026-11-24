@@ -98,8 +98,8 @@ For scripts and agents that would rather not edit the files themselves:
                                  the git worktrees the board follows: each
                                  one's folder worktrees/<name>/, state, branch,
                                  forms waiting and path
-  stickypane worktree show <name> [--json]
-                                 one of them
+  stickypane worktree show [name] [--json]
+                                 one of them, or the one you are in
   stickypane index [--json]      every note in a line, by tab: its title, what it
                                  counts and a gist; read it before the notes
   stickypane note show <name|path>
