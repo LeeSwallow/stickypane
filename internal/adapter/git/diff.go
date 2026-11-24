@@ -62,12 +62,14 @@ func Changes(dir, base string) ([]Change, error) {
 // never handed to git as an option.
 var ErrBadBase = errors.New("not a commit")
 
-// CheckBase says whether base names a commit in the repository at dir.
+// CheckBase says whether base names a commit in the repository at dir. A
+// base that starts with "-" is refused here, so rev-parse needs no
+// --end-of-options, which it learned only in git 2.30.
 func CheckBase(dir, base string) error {
 	if base == "" || strings.HasPrefix(base, "-") {
 		return fmt.Errorf("base %q: %w", base, ErrBadBase)
 	}
-	if _, err := run(dir, "rev-parse", "--quiet", "--verify", "--end-of-options", base+"^{commit}"); err != nil {
+	if _, err := run(dir, "rev-parse", "--quiet", "--verify", base+"^{commit}"); err != nil {
 		return fmt.Errorf("base %q: %w", base, ErrBadBase)
 	}
 	return nil

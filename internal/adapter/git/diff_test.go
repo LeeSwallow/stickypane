@@ -207,3 +207,17 @@ func TestDiffArgsKeepTheRepositorysProgramsOut(t *testing.T) {
 		}
 	}
 }
+
+// A base is a commit, never an option: one that starts with "-" is turned
+// away before git sees it.
+func TestCheckBase(t *testing.T) {
+	_, wt := repo(t)
+	if err := CheckBase(wt, "main"); err != nil {
+		t.Errorf("main: %v", err)
+	}
+	for _, base := range []string{"", "nope", "-q", "--output=x", "--end-of-options"} {
+		if err := CheckBase(wt, base); !errors.Is(err, ErrBadBase) {
+			t.Errorf("%q: %v", base, err)
+		}
+	}
+}
