@@ -98,8 +98,8 @@ For scripts and agents that would rather not edit the files themselves:
                                  the git worktrees the board follows: each
                                  one's folder worktrees/<name>/, state, branch,
                                  forms waiting and path
-  stickypane worktree show <name> [--json]
-                                 one of them
+  stickypane worktree show [name] [--json]
+                                 one of them, or the one you are in
   stickypane diff list [<worktree>] [--json]
                                  what each git worktree changed since its
                                  base, and the files two of them changed; with

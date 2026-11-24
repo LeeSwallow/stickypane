@@ -282,7 +282,11 @@ known by its branch, so one that is moved keeps its book. A folder in
 ```sh
 stickypane worktree list          # name, state, branch, forms waiting, path
 stickypane worktree show chart --json
+stickypane worktree show          # the worktree this folder is in
 ```
+
+The plugin's session hook runs that last one, in the folder the agent's
+session starts in, and tells the agent `worktree: chart → worktrees/chart/`.
 
 `running` is shown for a worktree git reports locked (Claude Code locks
 one while its agent runs), and the count of forms in its book not yet

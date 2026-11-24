@@ -31,6 +31,7 @@ var says = map[string]string{
 	"worktree.unknown":          "no worktree is called {{.Name}}; stickypane worktree list lists them",
 	"diff.unknown":              "no worktree is called {{.Name}}; stickypane diff list lists them",
 	"diff.nofile":               "{{.File}} did not change in {{.Name}}; stickypane diff list {{.Name}} lists what did",
+	"worktree.notHere":          "this folder is in no worktree the board follows; stickypane worktree list lists them",
 
 	// stickypane init, and the board it makes.
 	"init.badView":     "--view is terminal, app or both, not {{.Value}}",

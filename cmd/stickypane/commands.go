@@ -137,10 +137,10 @@ func init() {
 		}},
 		{[]string{"worktree show"}, worktreeCmd("show"), helpText{
 			group: "notes", brief: "show one worktree the board follows",
-			what:     "Shows one worktree by its folder name: its state, branch, path, folder and the forms waiting there.",
-			syntax:   "stickypane worktree show <name> [--json]",
+			what:     "Shows one worktree by its folder name, or without a name the one this folder is in: its state, branch, path, folder and the forms waiting there.",
+			syntax:   "stickypane worktree show [name] [--json]",
 			args:     "--json  print it as JSON",
-			examples: []string{"stickypane worktree show feat-chart", "stickypane worktree show feat-chart --json"},
+			examples: []string{"stickypane worktree show feat-chart", "stickypane worktree show", "stickypane worktree show feat-chart --json"},
 			related:  []string{"worktree list"},
 		}},
 		{[]string{"diff list"}, diffCmd("list"), helpText{
