@@ -124,6 +124,9 @@ func TestAWorktreeIsRecordedButGetsNoFolderUntilWritten(t *testing.T) {
 	if s, _ := d.Get("state"); s != "open" {
 		t.Fatalf("state = %q", s)
 	}
+	if o, _ := d.Get("open"); o != "true" {
+		t.Fatalf("open = %q: the book would not show", o)
+	}
 	if b, _ := d.Get("branch"); b != "feat/a" {
 		t.Fatalf("branch = %q", b)
 	}
