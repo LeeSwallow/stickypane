@@ -12,10 +12,15 @@ import (
 // every page is reached the same way everything else is. Keys go to the
 // page at the top of the view; "," and "." jump to the page before or
 // after it.
+//
+// A book set to paging: single draws only the page the view is on, under
+// its rule; every page then starts at line 0, so "," and "." show the page
+// from its top and a long page scrolls no further than its own end.
 type book struct {
 	pages  []page
 	at     int   // the page the view is on
 	starts []int // the line each page started at in the last Draw
+	single bool  // one page at a time
 	env    widget.Env
 }
 
@@ -23,6 +28,9 @@ func (b *book) current() page { return b.pages[max(min(b.at, len(b.pages)-1), 0)
 
 // pageAt returns the page that holds line of the last Draw.
 func (b *book) pageAt(line int) int {
+	if b.single {
+		return b.at
+	}
 	at := 0
 	for i, s := range b.starts {
 		if s <= line {
@@ -37,6 +45,9 @@ func (b *book) pageAt(line int) int {
 // still in view (a short book cannot scroll a late page to the top), else
 // the page at the top of the view.
 func (b *book) settle(offset, rows int) {
+	if b.single {
+		return
+	}
 	if b.at < len(b.starts) {
 		if s := b.starts[b.at]; s >= offset && s < offset+rows {
 			return
@@ -51,7 +62,14 @@ func (b *book) Draw(width int, active bool) (string, widget.Span) {
 	at := widget.NoSpan
 	b.starts = b.starts[:0]
 	for i, p := range b.pages {
-		b.starts = append(b.starts, len(out))
+		if b.single {
+			b.starts = append(b.starts, 0) // the one page drawn is at the top
+			if i != b.at {
+				continue
+			}
+		} else {
+			b.starts = append(b.starts, len(out))
+		}
 		name := nameOf(p.note)
 		rule := widget.Truncate(" "+name+" ", max(width-4, 1))
 		if i == b.at {
@@ -65,7 +83,7 @@ func (b *book) Draw(width int, active bool) (string, widget.Span) {
 			at = span.Shift(len(out))
 		}
 		out = append(out, strings.Split(drawn, "\n")...)
-		if i < len(b.pages)-1 {
+		if i < len(b.pages)-1 && !b.single {
 			out = append(out, "")
 		}
 	}

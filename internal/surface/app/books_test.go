@@ -180,3 +180,109 @@ func TestABookZooms(t *testing.T) {
 		t.Errorf("a zoomed book turns its pages too:\n%s", s)
 	}
 }
+
+// threePages makes the book t/docs of three pages of different shapes: a
+// note, a checklist and a log.
+func threePages(t *testing.T, dir string) {
+	t.Helper()
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/01-intro.md", "the first page\n")
+	writeFile(t, dir, "t/docs/02-todo.md", "---\ntype: checklist\n---\n- [ ] one\n- [ ] two\n")
+	writeFile(t, dir, "t/docs/03-run.log", "a log page\n")
+	writeView(t, dir, openAll)
+}
+
+func TestABookWithoutPagingDrawsEveryPage(t *testing.T) {
+	t.Parallel()
+	for _, view := range []string{openAll, `{"notes":{"docs":{"paging":"spread"}}}`} {
+		m, dir := newModel(t, nil)
+		threePages(t, dir)
+		if view != openAll {
+			writeFile(t, dir, "t/"+store.ViewFile, view)
+		}
+		press(m, "r")
+		s := screen(m)
+		for _, want := range []string{"the first page", "☐ one", "a log page", "1/3"} {
+			if !strings.Contains(s, want) {
+				t.Errorf("without paging: single every page is drawn, missing %q:\n%s", want, s)
+			}
+		}
+		press(m, ".")
+		if s := screen(m); !strings.Contains(s, "2/3") {
+			t.Errorf(". still jumps to the next page:\n%s", s)
+		}
+	}
+}
+
+func TestPageModeShowsOnePageAtATime(t *testing.T) {
+	t.Parallel()
+	m, dir := newModel(t, nil)
+	threePages(t, dir)
+	press(m, "r", "v")
+	if got := viewsOf(t, dir)["t/docs"].Paging; got != "single" {
+		t.Fatalf("v writes paging: single to sticky.json, got %q", got)
+	}
+	s := screen(m)
+	if !strings.Contains(s, "─ intro ─") || !strings.Contains(s, "the first page") || strings.Contains(s, "☐ one") || strings.Contains(s, "a log page") || !strings.Contains(s, "1/3") {
+		t.Fatalf("paging: single draws the page the view is on, alone:\n%s", s)
+	}
+	press(m, ".")
+	if s := screen(m); !strings.Contains(s, "☐ one") || strings.Contains(s, "the first page") || !strings.Contains(s, "2/3") {
+		t.Fatalf(". shows the next page instead:\n%s", s)
+	}
+	press(m, "down", "space")
+	if got := readFile(t, dir, "t/docs/02-todo.md"); !strings.Contains(got, "- [x] two ✅ ") {
+		t.Fatalf("the checklist page takes its own keys: %q", got)
+	}
+	press(m, ".", ".", ".")
+	if s := screen(m); !strings.Contains(s, "a log page") || strings.Contains(s, "☑ two") || !strings.Contains(s, "3/3") {
+		t.Fatalf(". stops at the last page, a log:\n%s", s)
+	}
+	press(m, ",")
+	if s := screen(m); !strings.Contains(s, "☑ two") || !strings.Contains(s, "2/3") {
+		t.Errorf(", goes back a page:\n%s", s)
+	}
+	press(m, "v")
+	if got := readFile(t, dir, "t/"+store.ViewFile); strings.Contains(got, "paging") {
+		t.Errorf("v again takes the key out of sticky.json:\n%s", got)
+	}
+	if s := screen(m); !strings.Contains(s, "☑ two") || !strings.Contains(s, "a log page") || !strings.Contains(s, "2/3") {
+		t.Errorf("back to every page, on the same page:\n%s", s)
+	}
+}
+
+func TestALongPageScrollsWithinItself(t *testing.T) {
+	t.Parallel()
+	m, dir := newModel(t, nil)
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/a.md", numbered(40))
+	writeFile(t, dir, "t/docs/b.md", "page b\n")
+	writeView(t, dir, openAll)
+	press(m, "r", "v", "9", "9", "pgdown")
+	if s := screen(m); !strings.Contains(s, "line 40") || strings.Contains(s, "page b") || !strings.Contains(s, "1/2") {
+		t.Fatalf("a long page scrolls to its own end and no further:\n%s", s)
+	}
+	press(m, ".")
+	if s := screen(m); !strings.Contains(s, "page b") || strings.Contains(s, "line 40") || !strings.Contains(s, "2/2") {
+		t.Fatalf(". shows the next page from its top:\n%s", s)
+	}
+	press(m, ",", "z")
+	if s := screen(m); !strings.Contains(s, "line 01") || m.mode != modeZoom {
+		t.Fatalf(", goes back to the first page's top, and z zooms it:\n%s", s)
+	}
+	for i := 0; i < 60; i++ {
+		press(m, "j")
+	}
+	if s := screen(m); !strings.Contains(s, "line 40") || strings.Contains(s, "page b") || !strings.Contains(s, "1/2") {
+		t.Errorf("zoomed, j scrolls within the page and stops at its end:\n%s", s)
+	}
+	press(m, "k")
+	press(m, ".")
+	if s := screen(m); !strings.Contains(s, "page b") || !strings.Contains(s, "2/2") {
+		t.Errorf("zoomed, . turns to the next page:\n%s", s)
+	}
+	press(m, "v")
+	if got := viewsOf(t, dir)["t/docs"].Paging; got != "" {
+		t.Errorf("v works on a zoomed book too, got %q", got)
+	}
+}
