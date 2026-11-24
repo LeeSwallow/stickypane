@@ -1,0 +1,5 @@
+file M old="run2.sh" new="run2.sh" mode=100644→100755 +1 -1
+  @@ -1,2 +1,2 @@
+     |#!/bin/sh
+    -|echo old
+    +|echo new

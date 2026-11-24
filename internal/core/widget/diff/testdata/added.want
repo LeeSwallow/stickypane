@@ -1,0 +1,4 @@
+file A old="" new="added.txt" +2 -0
+  @@ -0,0 +1,2 @@
+    +|fresh
+    +|file

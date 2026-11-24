@@ -1,0 +1,31 @@
+file A old="" new="added.txt" +2 -0
+  @@ -0,0 +1,2 @@
+    +|fresh
+    +|file
+file D old="gone.txt" new="" +0 -2
+  @@ -1,2 +0,0 @@
+    -|bye
+    -|bye
+file M old="image.bin" new="image.bin" binary +0 -0
+file R old="moved.txt" new="moved-to.txt" similarity=100% +0 -0
+file R old="renamed-edit.txt" new="renamed-done.txt" similarity=86% +1 -1
+  @@ -1,6 +1,6 @@
+     |alpha
+     |beta
+    -|gamma
+    +|GAMMA
+     |delta
+     |epsilon
+     |zeta
+file M old="run.sh" new="run.sh" mode=100644→100755 +0 -0
+file M old="run2.sh" new="run2.sh" mode=100644→100755 +1 -1
+  @@ -1,2 +1,2 @@
+     |#!/bin/sh
+    -|echo old
+    +|echo new
+file M old="tail.txt" new="tail.txt" +1 -0
+  @@ -1,2 +1,3 @@
+     |a
+     |b
+    +|c
+    \| No newline at end of file

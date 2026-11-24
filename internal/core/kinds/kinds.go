@@ -13,6 +13,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/core/widget/chart"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/chat"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/checklist"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/diff"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/form"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/html"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/logview"
@@ -34,6 +35,7 @@ func Default(render note.Renderer) widget.Registry {
 		script.Kind,
 		api.Kind,
 		html.Kind,
+		diff.Kind,
 	}
 }
 

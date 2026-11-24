@@ -56,6 +56,7 @@ var rank = map[string]int{
 	"internal/core/widget/script":    22,
 	"internal/core/widget/api":       22,
 	"internal/core/widget/html":      22,
+	"internal/core/widget/diff":      22,
 	// The registry of shapes.
 	"internal/core/kinds": 30,
 

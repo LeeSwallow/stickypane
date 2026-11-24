@@ -1,0 +1,6 @@
+file M old="tail.txt" new="tail.txt" +1 -0
+  @@ -1,2 +1,3 @@
+     |a
+     |b
+    +|c
+    \| No newline at end of file
