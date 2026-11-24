@@ -87,7 +87,7 @@ type (
 		Action  *widget.Action `json:"action"`
 	}
 	createParams struct {
-		Tab   string `json:"tab"`
+		Tab   string `json:"tab"` // a tab, a book ("tab/book") or "" for the top level
 		Kind  string `json:"kind"`
 		Title string `json:"title"`
 		Body  string `json:"body"`

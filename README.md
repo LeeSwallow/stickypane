@@ -173,7 +173,7 @@ Design and build notes are in [docs/desktop](docs/desktop/README.md).
 
 Each file in `.sticky/` is one note. A folder is a tab, and a folder inside
 a tab is a book of pages, shown one after another or, after `v`, one page
-at a time. A Markdown note's front matter gives it a shape.
+at a time (`N` on a book adds one). A Markdown note's front matter gives it a shape.
 Where each note sits and how wide it is (a share of the screen, from `1/4`
 to `1`) are kept apart, in `sticky.json`, so rearranging the board never
 rewrites a note.
@@ -360,6 +360,8 @@ Notes
   note hide    fold a note away
   note cat     print a note's file
   note write   create or replace a note from standard input
+  page add     add a page to a book
+  page list    list the pages of a book
   todo         add, tick or untick a checklist item
   card         add or move a card of a board
   chart        set or add to a number of a chart

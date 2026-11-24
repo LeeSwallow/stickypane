@@ -191,7 +191,7 @@ func TestEveryCommandIsSortedIntoChanges(t *testing.T) {
 	reads := map[string]bool{
 		"init": true, "setup": true,
 		"config": true, "keys": true, "kinds": true, "env": true, "guide": true,
-		"version": true, "help": true, "note list": true, "index": true,
+		"version": true, "help": true, "note list": true, "page list": true, "index": true,
 		"note cat": true, "answers": true, "wait": true, "api": true,
 		"watch": true, "mcp": true, "bridge": true,
 	}

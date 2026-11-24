@@ -170,3 +170,37 @@ func TestCatalogCanBeCancelled(t *testing.T) {
 		t.Errorf("no file should exist, got %v", entries)
 	}
 }
+
+// N on a book makes a page in it and turns to that page; on any other
+// note it makes a note at the top, as ever.
+func TestJotOnABookAddsAPage(t *testing.T) {
+	t.Parallel()
+	m, dir := newModel(t, nil)
+	mkdir(t, dir, "t/docs")
+	writeFile(t, dir, "t/docs/01-intro.md", "the first page\n")
+	writeFile(t, dir, "t/docs/02-usage.md", "the second page\n")
+	writeFile(t, dir, "t/plan.md", "plan\n")
+	writeView(t, dir, `{"tab":"t"}`)
+	press(m, "r")
+	m.setFocus("t/docs")
+	press(m, "N")
+	typeText(m, "Notes")
+	press(m, "enter")
+	if got := plain(readFile(t, dir, "t/docs/notes.md")); got != "Notes\n" {
+		t.Errorf("the page holds %q", got)
+	}
+	if i := m.index("t/docs"); m.focus != "t/docs" || i < 0 || m.items[i].file().Name != "t/docs/notes.md" {
+		t.Errorf("focus = %q, want the book turned to its new page", m.focus)
+	}
+	if s := screen(m); !strings.Contains(s, "3/3") {
+		t.Errorf("the book should show its new, last page:\n%s", s)
+	}
+
+	m.setFocus("t/plan.md")
+	press(m, "N")
+	typeText(m, "Top")
+	press(m, "enter")
+	if got := plain(readFile(t, dir, "top.md")); got != "Top\n" {
+		t.Errorf("N on a note that is not a book makes a note at the top: %q", got)
+	}
+}
