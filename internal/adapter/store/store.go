@@ -17,6 +17,7 @@ import (
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
 	"github.com/LeeSwallow/stickypane/internal/adapter/filelock"
+	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
 
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
@@ -144,17 +145,23 @@ func isDir(e os.DirEntry, path string) bool {
 // Open returns the store for a notes folder.
 func Open(dir string) *Store { return &Store{Dir: dir} }
 
-// Find walks up from start until it finds a notes folder.
+// Find walks up from start until it finds a notes folder. At the top of a
+// git worktree that is not the main one (its .git is a file) and has no
+// notes folder of its own, it is the main worktree's: every worktree of a
+// repository shares one board.
 func Find(start string) (string, error) {
 	dir, err := filepath.Abs(start)
 	if err != nil {
 		return "", err
 	}
+	dirAt := func(p string) bool { fi, err := os.Stat(p); return err == nil && fi.IsDir() }
 	for {
-		for _, name := range []string{DirName} {
-			candidate := filepath.Join(dir, name)
-			if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
-				return candidate, nil
+		if candidate := filepath.Join(dir, DirName); dirAt(candidate) {
+			return candidate, nil
+		}
+		if fi, err := os.Lstat(filepath.Join(dir, ".git")); err == nil && fi.Mode().IsRegular() {
+			if main := git.Main(dir); main != "" && dirAt(filepath.Join(main, DirName)) {
+				return filepath.Join(main, DirName), nil
 			}
 		}
 		parent := filepath.Dir(dir)

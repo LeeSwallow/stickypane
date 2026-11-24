@@ -47,6 +47,7 @@ where a stamp is made.
 | 6 | `adapter/keyfile` | `keys.json` in the same home: the board's keys a user changed, read and written only here; what its names and keys mean is `surface/app`'s |
 | 5 | `adapter/httpfile` | sending `.http` requests and keeping their log |
 | 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has written its `overlay.json` there: written, read and pruned only here |
+| 4 | `adapter/git` | what `git worktree list --porcelain` says of a repository; `store` finds the main worktree's board through it, from a second worktree with no board of its own |
 | 3 | `adapter/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `adapter/wsock`, `adapter/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `adapter/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |

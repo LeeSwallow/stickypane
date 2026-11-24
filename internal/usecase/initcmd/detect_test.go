@@ -3,6 +3,7 @@ package initcmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -261,5 +262,28 @@ func TestRunNamesTheSplitCommandOfEachPaneTool(t *testing.T) {
 				t.Errorf("with %s the next step is %q: %q", v, want, out)
 			}
 		})
+	}
+}
+
+// In a second worktree of a repository, the project is the main worktree:
+// its board is the one every worktree shares.
+func TestProjectRootOfAWorktreeIsTheMainOne(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	dir := t.TempDir()
+	main, wt := filepath.Join(dir, "main"), filepath.Join(dir, "wt")
+	os.Mkdir(main, 0o755)
+	for _, args := range [][]string{{"init", "-q"}, {"commit", "-q", "--allow-empty", "-m", "first"}, {"worktree", "add", "-q", "-b", "feat", wt}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = main
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	got, want := ProjectRoot(wt), main
+	if !sameDir(got, want) {
+		t.Fatalf("ProjectRoot = %q, want %q", got, want)
 	}
 }

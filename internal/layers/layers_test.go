@@ -68,6 +68,7 @@ var rank = map[string]int{
 	"internal/adapter/proto/prototest": 1,  // a descriptor for tests
 	"internal/adapter/rpc/rpctest":     2,  // a gRPC server for tests
 	"internal/adapter/rpc":             3,  // a gRPC client on the standard library
+	"internal/adapter/git":             4,  // what git says of a repository's worktrees; store finds the main board through it
 	"internal/adapter/httpfile":        5,  // .http files: send, check; writes times with when
 	"internal/adapter/registry":        5,  // which boards are used on this machine; writes times with when
 	"internal/adapter/keyfile":         6,  // keys.json, the board's keys a user changed, in the same home
