@@ -182,7 +182,7 @@ func TestTheHarnessNamesOnlyFilesThatExist(t *testing.T) {
 
 func TestTheHarnessNamesOnlyRealCommands(t *testing.T) {
 	real := map[string]bool{}
-	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api note page worktree chat keys bridge") {
+	for _, c := range strings.Fields("init setup env watch config index guide version help theme language list cat write answers wait mcp show hide todo card chart log say set rm restore archive mv link kinds api note page worktree chat keys bridge diff") {
 		real[c] = true
 	}
 	cmd := regexp.MustCompile("stickypane ([a-z]+)")
@@ -271,6 +271,67 @@ func TestBoardContextTakesOnlyStickyForABoard(t *testing.T) {
 	}
 	if out, code := run(project); code != 0 || !strings.Contains(out, "BOARD_DIR="+filepath.Join(project, ".sticky")+"\n") {
 		t.Errorf(".sticky is the board: exit %d\n%s", code, out)
+	}
+}
+
+// In a linked worktree the hook finds the main worktree's board and says
+// the worktree's folder in one line. It finds the worktree from the cwd in
+// its input, not CLAUDE_PROJECT_DIR, which stays at the project's root,
+// and from where it runs when the input is empty.
+func TestSessionStartHookNamesTheWorktreesFolder(t *testing.T) {
+	script, err := filepath.Abs(filepath.Join(pluginRoot, "scripts", "session-start.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range []string{"sh", "git"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skip("no " + tool)
+		}
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the hook runs under a Unix shell")
+	}
+	bin := filepath.Dir(program(t))
+	dir, _ := filepath.EvalSymlinks(t.TempDir())
+	main, wt, home := filepath.Join(dir, "app"), filepath.Join(dir, "feat-chart"), filepath.Join(dir, "home")
+	for _, d := range []string{filepath.Join(main, ".sticky"), home} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	envs := append(os.Environ(), "HOME="+home, "STICKYPANE_LANG=en", "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"commit", "-q", "--allow-empty", "-m", "first"}, {"worktree", "add", "-q", "-b", "feat", wt}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir, cmd.Env = main, envs
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	hook := func(where, input string, more ...string) string {
+		cmd := exec.Command("sh", script)
+		cmd.Dir = where
+		cmd.Env = append(append(envs, "PWD="+where), more...)
+		cmd.Stdin = strings.NewReader(input)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("hook: %v\n%s", err, out)
+		}
+		return string(out)
+	}
+	const line = "worktree: feat-chart → worktrees/feat-chart/\n"
+	if out := hook(main, ""); strings.Contains(out, "worktree:") || !strings.Contains(out, filepath.Join(main, ".sticky")) {
+		t.Errorf("in the main worktree: the board, no worktree line\n%s", out)
+	}
+	input := `{"session_id":"x","cwd":"` + wt + `","hook_event_name":"SessionStart"}`
+	for name, out := range map[string]string{
+		"cwd in the input":                 hook(dir, input),
+		"CLAUDE_PROJECT_DIR at the root":   hook(main, input, "CLAUDE_PROJECT_DIR="+main),
+		"empty input, run in the worktree": hook(wt, ""),
+	} {
+		if !strings.Contains(out, line) || !strings.Contains(out, filepath.Join(main, ".sticky")) {
+			t.Errorf("%s: want the main board and %q\n%s", name, line, out)
+		}
 	}
 }
 

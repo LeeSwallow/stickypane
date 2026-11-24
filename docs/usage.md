@@ -282,7 +282,11 @@ known by its branch, so one that is moved keeps its book. A folder in
 ```sh
 stickypane worktree list          # name, state, branch, forms waiting, path
 stickypane worktree show chart --json
+stickypane worktree show          # the worktree this folder is in
 ```
+
+The plugin's session hook runs that last one, in the folder the agent's
+session starts in, and tells the agent `worktree: chart → worktrees/chart/`.
 
 `running` is shown for a worktree git reports locked (Claude Code locks
 one while its agent runs), and the count of forms in its book not yet
@@ -290,6 +294,20 @@ answered says who is waiting. Where each worktree is is kept in
 `~/.stickypane/worktrees.json`, with a line in `events/` for each opened,
 moved or closed one, only where the desktop app keeps its records; a
 path is never written into the board.
+
+### What the worktrees changed
+
+A note with `type: diff` is a book of what each worktree changed: the list
+of worktrees with the files two of them both changed, then a page for each
+file the chosen worktree changed ([docs/shapes.md](shapes.md#diff)). It
+reads git itself, so it works without the `worktrees` tab.
+
+```sh
+stickypane note write changes --type diff --open </dev/null
+stickypane diff list                   # each worktree: base, files, lines; files two changed
+stickypane diff list feat/chart-ui     # the files one worktree changed
+stickypane diff show feat/chart-ui internal/chart/view.go
+```
 
 ## How edits are written
 

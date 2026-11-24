@@ -1,0 +1,9 @@
+file R old="renamed-edit.txt" new="renamed-done.txt" similarity=86% +1 -1
+  @@ -1,6 +1,6 @@
+     |alpha
+     |beta
+    -|gamma
+    +|GAMMA
+     |delta
+     |epsilon
+     |zeta

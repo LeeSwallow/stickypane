@@ -31,6 +31,7 @@ of its own, and word it: `${CLAUDE_PLUGIN_ROOT}/rules/writing-notes.md`.
 | HTTP, WebSocket or gRPC requests and their checks | api (`.http`) | `stickypane api` (experimental) |
 | a comparison or a report, read only | html | the terminal shows its text: put the result in a note too |
 | writing that runs to many pages | book: a folder in a tab | `stickypane page add` |
+| what each worktree changed, and files two of them changed | diff (`type: diff`) | `stickypane diff list` |
 | a screen of its own | tab: a folder | `stickypane note mv <name> <tab>/` |
 
 A shape in full, with an example: `stickypane help <shape>`.

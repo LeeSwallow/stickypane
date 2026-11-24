@@ -195,7 +195,8 @@ title: 릴리스
 저장소의 모든 git 워크트리는 메인 워크트리의 보드를 씁니다(자기 `.sticky/`가
 있으면 그것). 워크트리마다 책 `worktrees/<이름>/`이 그 안에 처음 쓸 때
 첫 쪽 `00-개요.md`와 함께 생기고, 워크트리가 지워지면 지우지 않고 닫힘으로
-표시됩니다([docs/usage.md](docs/usage.md#git-worktrees)).
+표시됩니다([docs/usage.md](docs/usage.md#git-worktrees)). 워크트리에서 시작한
+에이전트는 플러그인의 세션 훅에서 자기 책을 듣습니다.
 
 ### 변경은 한 길로
 
@@ -303,6 +304,7 @@ sequenceDiagram
 | script | 실행 버튼이 달린 셸 스크립트 | `stickypane note show deploy.sh` |
 | api | REST, WebSocket, gRPC 요청(실험) | `stickypane api api.http "Log in"` |
 | html | 웹 페이지. 터미널은 글만 보여 줌 | `stickypane note show report.html` |
+| diff | git 워크트리가 바꾼 것. 파일마다 한 쪽, 읽기 전용 | `stickypane note write changes --type diff` |
 
 `stickypane kinds`가 목록을, `stickypane help <모양>`이 하나를 자세히 보여 줍니다.
 모양별 형식, 노트 사이의 링크, 다른 노트에서 계산하는 차트는 영문
@@ -345,6 +347,8 @@ stickypane - 코딩 에이전트의 메모판. 에이전트는 붙이고, 당신
   note list      노트 목록
   worktree list  보드가 따라가는 git 워크트리 목록
   worktree show  보드가 따라가는 워크트리 하나 보기
+  diff list      git 워크트리가 바꾼 것
+  diff show      바뀐 파일 하나의 diff
   index          노트마다 한 줄: 제목, 개수, 요약
   note show      노트, 파일, 폴더를 화면에 올립니다
   note hide      노트를 접어 둡니다

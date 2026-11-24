@@ -209,7 +209,8 @@ it has a `.sticky/` of its own. Each worktree's work goes in a book,
 `worktrees/<name>/`, named after the worktree's folder: it appears with an
 overview page, `00-개요.md`, at the first write into it, and is marked
 closed, never deleted, when the worktree is removed
-([docs/usage.md](docs/usage.md#git-worktrees)).
+([docs/usage.md](docs/usage.md#git-worktrees)). An agent that starts in a
+worktree is told its book by the plugin's session hook.
 
 ### One path for every change
 
@@ -320,6 +321,7 @@ sequenceDiagram
 | script | a shell script with a Run button | `stickypane note show deploy.sh` |
 | api | REST, WebSocket and gRPC requests (experimental) | `stickypane api api.http "Log in"` |
 | html | a web page; the terminal shows its text | `stickypane note show report.html` |
+| diff | what the git worktrees changed, a page for each file; read only | `stickypane note write changes --type diff` |
 
 `stickypane kinds` lists them and `stickypane help <shape>` prints one in
 full. [docs/shapes.md](docs/shapes.md) has each format, links between
@@ -364,6 +366,8 @@ Notes
   note list      list the notes
   worktree list  list the git worktrees the board follows
   worktree show  show one worktree the board follows
+  diff list      what the git worktrees changed
+  diff show      one changed file's diff
   index          every note in a line: title, counts, a gist
   note show      put a note, a file or a folder on the screen
   note hide      fold a note away

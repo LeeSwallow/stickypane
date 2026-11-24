@@ -1,0 +1,10 @@
+diff --git a/run2.sh b/run2.sh
+old mode 100644
+new mode 100755
+index 4ea150a..05cfd7f
+--- a/run2.sh
++++ b/run2.sh
+@@ -1,2 +1,2 @@
+ #!/bin/sh
+-echo old
++echo new

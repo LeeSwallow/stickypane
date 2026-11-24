@@ -12,6 +12,7 @@ metadata:
 stickypane todo add refactor "find every caller"     # makes refactor.md, open
 stickypane todo add refactor "move the function"
 stickypane todo add refactor "run the tests"
+stickypane todo add worktrees/feat-chart/todo "fix the axis"   # in a worktree
 
 # while working: tick a step once it is done, log what happened
 stickypane todo check refactor callers               # a part of the text, or #1

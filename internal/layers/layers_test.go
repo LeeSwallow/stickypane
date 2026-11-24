@@ -56,6 +56,7 @@ var rank = map[string]int{
 	"internal/core/widget/script":    22,
 	"internal/core/widget/api":       22,
 	"internal/core/widget/html":      22,
+	"internal/core/widget/diff":      22,
 	// The registry of shapes.
 	"internal/core/kinds": 30,
 
@@ -68,7 +69,7 @@ var rank = map[string]int{
 	"internal/adapter/proto/prototest": 1,  // a descriptor for tests
 	"internal/adapter/rpc/rpctest":     2,  // a gRPC server for tests
 	"internal/adapter/rpc":             3,  // a gRPC client on the standard library
-	"internal/adapter/git":             4,  // what git says of a repository's worktrees; store finds the main board through it
+	"internal/adapter/git":             4,  // what git says of a repository: its worktrees, what each changed; store finds the main board through it
 	"internal/adapter/httpfile":        5,  // .http files: send, check; writes times with when
 	"internal/adapter/registry":        5,  // which boards are used on this machine; writes times with when
 	"internal/adapter/keyfile":         6,  // keys.json, the board's keys a user changed, in the same home
@@ -80,6 +81,7 @@ var rank = map[string]int{
 	"internal/usecase/prefs":    15, // what a user may change, each with a default
 	"internal/usecase/arrange":  30, // how a note is arranged
 	"internal/usecase/worktree": 35, // the board in step with the repository's git worktrees
+	"internal/usecase/diffbook": 35, // what the worktrees changed, for the diff note and `stickypane diff`
 	"internal/usecase/api":      40,
 	"internal/usecase/initcmd":  40,
 

@@ -207,3 +207,27 @@ func TestTheThemeIsKeptInStickyJSON(t *testing.T) {
 		t.Errorf("sticky.json =\n%s", got)
 	}
 }
+
+// A diff note's chosen worktree and base are kept in its entry, next to
+// what the store does not know, and taken out when they are cleared.
+func TestADiffNotesWorktreeAndBaseAreKept(t *testing.T) {
+	s := newStore(t)
+	write(t, s, "changes.md", "---\ntype: diff\n---\n")
+	write(t, s, ViewFile, `{"notes":{"changes.md":{"later":1}},"future":true}`)
+	if err := s.SetView("changes.md", func(v *View) { v.Worktree, v.Base = "feat/a", "origin/main" }); err != nil {
+		t.Fatal(err)
+	}
+	views, err := s.Views()
+	if err != nil || views["changes.md"].Worktree != "feat/a" || views["changes.md"].Base != "origin/main" {
+		t.Fatalf("Views = %+v, %v", views, err)
+	}
+	if got := read(t, s, ViewFile); !strings.Contains(got, `"future": true`) {
+		t.Errorf("a key this version does not know is lost:\n%s", got)
+	}
+	if err := s.SetView("changes.md", func(v *View) { v.Worktree, v.Base = "", "" }); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, ViewFile); strings.Contains(got, "worktree") {
+		t.Errorf("a cleared choice stays:\n%s", got)
+	}
+}

@@ -8,15 +8,14 @@ description: Use when you work in a worktree and another worktree of the same re
 Shapes: chat.
 
 ```sh
-stickypane worktree list                   # the other branches
-comm -12 <(git diff --name-only main...HEAD | sort) <(git diff --name-only main...table | sort)
+stickypane diff list                       # each worktree's files, and those two changed
 stickypane chat add chat --as chart "chart and table both change render/axis.go; one of us should wait"
 ```
 
-Compare the files your branch changed with each other branch's, from
-the same base. When they share a file, say so in the chat, naming the
-file and both worktrees, and let the user decide the order. Do not
-change the other branch.
+`diff list` compares every worktree's changes from its base and names
+the files two of them changed. When yours shares a file, say so in the
+chat, naming the file and both worktrees, and let the user decide the
+order. Do not change the other branch.
 
 Done when: every shared file is named in the chat, and you changed
 nothing outside your worktree.

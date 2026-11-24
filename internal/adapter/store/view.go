@@ -39,6 +39,11 @@ type View struct {
 	// Paging is how a book shows its pages: "single" one at a time; any
 	// other value, or none, one after another.
 	Paging string `json:"paging,omitempty"`
+	// Worktree and Base are what a diff note shows: the git worktree the
+	// user chose, by name, and what it is compared with. "" leaves them to
+	// the note's front matter, then to the board.
+	Worktree string `json:"worktree,omitempty"`
+	Base     string `json:"base,omitempty"`
 }
 
 // PagingSingle is the Paging of a book that shows one page at a time.
@@ -48,7 +53,7 @@ const PagingSingle = "single"
 const ContentRows = -1
 
 func (v View) empty() bool {
-	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == "" && v.Paging == ""
+	return v.Title == "" && v.Open == nil && v.Pin == nil && v.Size == "" && v.Rows == 0 && v.Color == "" && v.Paging == "" && v.Worktree == "" && v.Base == ""
 }
 
 // Views maps a note's full name ("deploy/build.log") to its view.

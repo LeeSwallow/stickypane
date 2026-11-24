@@ -39,6 +39,7 @@ where a stamp is made.
 | | **usecase** | |
 | 40 | `usecase/api`, `usecase/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
 | 35 | `usecase/worktree` | the board in step with the repository's git worktrees: each recorded in the registry, its folder `worktrees/<name>/` made with `00-개요.md` at the first write into it (through `store.Store.NewFolder`), and marked closed, never deleted, when git no longer has it |
+| 35 | `usecase/diffbook` | what the git worktrees changed, read from git itself (the registry may be off): the base each is compared with, the files each changed, the files two of them changed, and one file's diff when its page is shown; the diff note's book and `stickypane diff` read it |
 | 30 | `usecase/arrange` | how a note is arranged: the user's choice, the front matter, the kind |
 | 15 | `usecase/prefs` | what a user may change, each with a default |
 | 5 | `usecase/harness` | the plugin's skills, read for MCP and `stickypane guide` |
@@ -48,7 +49,7 @@ where a stamp is made.
 | 6 | `adapter/keyfile` | `keys.json` in the same home: the board's keys a user changed, read and written only here; what its names and keys mean is `surface/app`'s |
 | 5 | `adapter/httpfile` | sending `.http` requests and keeping their log |
 | 5 | `adapter/registry` | the record of which boards are used on this machine, kept in `~/.stickypane` when the desktop app has written its `overlay.json` there: written, read and pruned only here |
-| 4 | `adapter/git` | what `git worktree list --porcelain` says of a repository; `store` finds the main worktree's board through it, from a second worktree with no board of its own |
+| 4 | `adapter/git` | what `git worktree list --porcelain` says of a repository; `store` finds the main worktree's board through it, from a second worktree with no board of its own. Also what a worktree changed (`git diff` by name, by count, one file at a time, with no program of the repository's run) and the pull request `gh` knows of its branch |
 | 3 | `adapter/rpc` | gRPC calls on the standard library's HTTP/2; `rpc/rpctest` is a server for tests (2) |
 | 0 | `adapter/wsock`, `adapter/proto` | a WebSocket client and server; protocol buffers without generated code, with `proto/prototest` (1) for tests |
 | 0 | `adapter/atomicfile` | the one way a file is replaced or made: a synced temporary file renamed (or linked) into place, so no reader sees half of it |

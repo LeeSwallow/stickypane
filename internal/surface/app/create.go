@@ -47,7 +47,7 @@ func openCatalog(m *Model) tea.Cmd {
 // it.
 func (m *Model) create(text, ext string, content []byte) {
 	book := ""
-	if i := m.index(m.focus); i >= 0 && len(m.items[i].pages) > 0 {
+	if i := m.index(m.focus); i >= 0 && m.items[i].note.Book() {
 		book = m.items[i].note.Name
 	}
 	// Named and stamped as every screen makes a note (api.CreateFrom).

@@ -1,0 +1,15 @@
+diff --git a/renamed-edit.txt b/renamed-done.txt
+similarity index 86%
+rename from renamed-edit.txt
+rename to renamed-done.txt
+index 1e395f2..01567d3 100644
+--- a/renamed-edit.txt
++++ b/renamed-done.txt
+@@ -1,6 +1,6 @@
+ alpha
+ beta
+-gamma
++GAMMA
+ delta
+ epsilon
+ zeta
