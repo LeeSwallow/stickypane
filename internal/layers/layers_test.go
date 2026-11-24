@@ -81,6 +81,7 @@ var rank = map[string]int{
 	"internal/usecase/prefs":    15, // what a user may change, each with a default
 	"internal/usecase/arrange":  30, // how a note is arranged
 	"internal/usecase/worktree": 35, // the board in step with the repository's git worktrees
+	"internal/usecase/diffbook": 35, // what the worktrees changed, for the diff note and `stickypane diff`
 	"internal/usecase/api":      40,
 	"internal/usecase/initcmd":  40,
 
