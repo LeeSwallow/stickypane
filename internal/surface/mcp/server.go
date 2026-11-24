@@ -622,14 +622,7 @@ func noteTool(b *api.API, a args) (string, error) {
 func pageTool(b *api.API, a args) (string, error) {
 	switch a.Action {
 	case "add":
-		if !strings.Contains(strings.Trim(a.Name, "/"), "/") {
-			return "", fmt.Errorf("%s is not a book: a book is a folder in a tab, such as deploy/docs", a.Name)
-		}
-		var body []byte
-		if a.Text != "" {
-			body = []byte(a.Text + "\n")
-		}
-		file, err := b.CreateFrom(a.Name, a.Text, "", api.Options{}, body)
+		file, err := b.AddPage(a.Name, a.Text)
 		if err != nil {
 			return "", err
 		}

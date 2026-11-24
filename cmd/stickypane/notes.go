@@ -340,18 +340,18 @@ func pageAddCmd(e env, args []string) error {
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(strings.Trim(words[0], "/"), "/") {
-		return usagef("page add", "%s is not a book: a book is a folder in a tab, such as deploy/docs", words[0])
+	if err := api.NotBook(words[0]); err != nil {
+		return usagef("page add", "%v", err)
 	}
 	a, err := open(e, false)
 	if err != nil {
 		return err
 	}
-	text, body := "", []byte(nil)
+	text := ""
 	if len(words) > 1 {
-		text, body = words[1], []byte(words[1]+"\n")
+		text = words[1]
 	}
-	file, err := a.CreateFrom(words[0], text, "", api.Options{}, body)
+	file, err := a.AddPage(words[0], text)
 	if err != nil {
 		return err
 	}

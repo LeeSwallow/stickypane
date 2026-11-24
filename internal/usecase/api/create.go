@@ -71,6 +71,28 @@ func (a *API) folder(name string) ([]store.Note, error) {
 	return nil, missing(fmt.Sprintf("there is no tab or book %q", name))
 }
 
+// NotBook is the error for a name that cannot be a book: a book is a
+// folder in a tab, "deploy/docs". nil when it can.
+func NotBook(name string) error {
+	if !strings.Contains(strings.Trim(name, "/"), "/") {
+		return fmt.Errorf("%s is not a book: a book is a folder in a tab, such as deploy/docs", name)
+	}
+	return nil
+}
+
+// AddPage adds a page to book, named after text and holding it, and says
+// which file it is.
+func (a *API) AddPage(book, text string) (string, error) {
+	if err := NotBook(book); err != nil {
+		return "", err
+	}
+	var body []byte
+	if text != "" {
+		body = []byte(text + "\n")
+	}
+	return a.CreateFrom(book, text, "", Options{}, body)
+}
+
 // Pages lists the pages of a book ("deploy/docs"), in the order the board
 // shows them. Anything that is not a book is fs.ErrNotExist.
 func (a *API) Pages(book string) ([]Info, error) {
