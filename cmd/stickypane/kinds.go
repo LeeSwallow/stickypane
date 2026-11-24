@@ -109,7 +109,7 @@ func printShape(w io.Writer, s i18n.Strings, name, blurb, command, usage, exampl
 		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.keys", "Keys on the board"), keys)
 	}
 	if options != "" {
-		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.options", "Make one from options (write --type, the desktop app)"), options)
+		fmt.Fprintf(w, "\n%s:\n  %s\n", s.T("shape.options", "Make one from options (note write --type, the desktop app)"), options)
 	}
 }
 
