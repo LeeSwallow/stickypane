@@ -7,6 +7,7 @@
 package test
 
 import (
+	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,6 +33,11 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	// git's variables, set when the tests run from a git hook, would send
+	// the git the tests run to the repository being worked on.
+	for _, v := range git.Local {
+		os.Unsetenv(v)
+	}
 	code := m.Run()
 	if buildDir != "" {
 		os.RemoveAll(buildDir)
