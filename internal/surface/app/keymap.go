@@ -83,6 +83,7 @@ func actions() []action {
 		{name: "scroll-page-up", repeat: true, keys: []string{"pgup"}, english: "a page up", zoom: true, run: scrollBy(func(rows int) int { return -max(rows-1, 1) })},
 		{name: "page-prev", repeat: true, keys: []string{","}, english: "previous page", zoom: true, run: turnPage(-1)},
 		{name: "page-next", repeat: true, keys: []string{"."}, english: "next page", zoom: true, run: turnPage(1)},
+		{name: "page-mode", keys: []string{"v"}, english: "one page or all", zoom: true, run: togglePaging},
 		{name: "note-to-folder", keys: []string{"m"}, english: "move to a folder", run: onFocused(chooseFolder)},
 		// n jots too unless the focused open note uses n itself (a board
 		// adds a card, a checklist an item).
@@ -147,6 +148,7 @@ var boardHelp = []helpLine{
 	{actions: []string{"note-move-earlier", "note-move-later"}, text: "help.order", english: "move earlier, later"},
 	{actions: []string{"note-move-up", "note-move-down"}, text: "help.rows", english: "move a row up, down"},
 	{actions: []string{"page-prev", "page-next"}, text: "help.pages", english: "turn a folder's pages"},
+	{actions: []string{"page-mode"}},
 	{actions: []string{"note-to-folder"}},
 	{actions: []string{"jot"}},
 	{actions: []string{"add"}},
@@ -185,7 +187,7 @@ var keyGroups = []struct {
 	{"notes", []string{"note-open", "note-zoom", "note-toggle", "jot", "add", "note-edit", "note-editor", "note-copy", "note-pin", "note-color", "note-rename", "note-archive", "note-delete", "undo"}},
 	{"arrange", []string{"note-move-earlier", "note-move-later", "note-move-up", "note-move-down", "note-to-folder"}},
 	{"size", []string{"note-wider", "note-narrower", "note-taller", "note-shorter", "note-taller-5", "note-shorter-5", "note-fit"}},
-	{"scroll", []string{"scroll-down", "scroll-up", "scroll-half-down", "scroll-half-up", "scroll-page-down", "scroll-page-up", "page-prev", "page-next", "screen-prev", "screen-next"}},
+	{"scroll", []string{"scroll-down", "scroll-up", "scroll-half-down", "scroll-half-up", "scroll-page-down", "scroll-page-up", "page-prev", "page-next", "page-mode", "screen-prev", "screen-next"}},
 	{"tabs", []string{"tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7", "tab-8", "tab-9", "tab-next", "tab-prev"}},
 	{"board", []string{"reload", "theme-next", "index", "links", "settings", "help", "command-line", "quit"}},
 }
