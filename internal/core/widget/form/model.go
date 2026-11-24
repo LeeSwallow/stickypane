@@ -109,6 +109,12 @@ func Read(d doc.Document) Answers {
 	return a
 }
 
+// Open says whether d is a form not answered yet.
+func Open(d doc.Document) bool {
+	s, _ := d.Get(keySubmitted)
+	return d.Type() == "form" && s == ""
+}
+
 // collect gathers what was chosen or written, question by question.
 func collect(lines []line, questions []string) []Answer {
 	answers := make([]Answer, len(questions))

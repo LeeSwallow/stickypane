@@ -23,6 +23,7 @@ import (
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/when"
+	"github.com/LeeSwallow/stickypane/internal/core/widget/form"
 )
 
 const (
@@ -266,12 +267,8 @@ func (b Board) waiting(name string) int {
 		if !store.IsMarkdown(e.Name()) {
 			continue
 		}
-		raw, err := os.ReadFile(b.Store.Path(Tab + "/" + name + "/" + e.Name()))
-		if err != nil {
-			continue
-		}
-		d := doc.Parse(raw)
-		if s, _ := d.Get("submitted"); d.Type() == "form" && s == "" {
+		raw, err := b.Store.Read(Tab + "/" + name + "/" + e.Name())
+		if err == nil && form.Open(doc.Parse(raw)) {
 			n++
 		}
 	}

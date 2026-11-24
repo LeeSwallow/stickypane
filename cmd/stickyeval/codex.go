@@ -124,7 +124,7 @@ func press(ctx context.Context, sticky string, before map[string]bool, now func(
 				continue
 			}
 			d := doc.Parse(b)
-			if done, _ := d.Get("submitted"); d.Type() != "form" || done != "" {
+			if !form.Open(d) {
 				continue
 			}
 			lines := strings.Split(strings.TrimRight(d.Body, "\n"), "\n")
