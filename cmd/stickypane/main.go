@@ -87,39 +87,43 @@ Usage:
                          agent, the screen's language and how scripts run
   stickypane guide [topic]  print the agent guide: the overview, a skill or a shape
   stickypane version     print the version
-  stickypane help [command|shape|start] [--all]
+  stickypane help [command|shape|start] [--all] [--json]
                          a short overview, or the help of one command or shape,
-                         or getting started; --all: this page
+                         or getting started; --all: this page; --json: every
+                         command's name, syntax and examples as JSON
 
 For scripts and agents that would rather not edit the files themselves:
-  stickypane list [--json]       list the notes
+  stickypane note list [--json]  list the notes
   stickypane index [--json]      every note in a line, by tab: its title, what it
                                  counts and a gist; read it before the notes
-  stickypane show <name|path>    put a note on the screen; a path to any file or
+  stickypane note show <name|path>
+                                 put a note on the screen; a path to any file or
                                  folder of the project is linked onto the board
-  stickypane hide <name>         fold a note away
-  stickypane cat <name>          print a note's file
-  stickypane write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]
+  stickypane note hide <name>    fold a note away
+  stickypane note cat <name>     print a note's file
+  stickypane note write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]
                                  create or replace a note from standard input,
                                  or from the shape's create options
-  stickypane todo <name> add|check|uncheck <item>
-  stickypane card <name> add|move <card> [--to <column>]
-  stickypane chart <name> set|add <label> <number>
-  stickypane log <name> [--time] <text>
-  stickypane say <name> [--as <who>] <text>
-  stickypane set <name> key=value ...
+  stickypane todo add|check|uncheck <name> <item>
+  stickypane card add|move <name> <card> [--to <column>]
+  stickypane chart set|add <name> <label> <number>
+  stickypane log add <name> [--time] <text>
+  stickypane chat add <name> [--as <who>] <text>
+  stickypane note set <name> key=value ...
                                  change one thing without reading or rewriting
                                  the note; a missing note is made, and so is the
                                  board in a git repository without one. An item
                                  or card is named by its text, a part of it, or #2
-  stickypane mv <name> <to>      rename a note, or move it: <to> is a new name, a
+  stickypane note mv <name> <to> rename a note, or move it: <to> is a new name, a
                                  folder (deploy/) to move it into that tab or
                                  book, or . for the top level
-  stickypane link <path> [name]  show a file or a folder of the project on the
+  stickypane note link <path> [name]
+                                 show a file or a folder of the project on the
                                  board without copying it (a symbolic link)
-  stickypane rm <name>           move a note, a page or a folder to .trash/
-  stickypane restore <name>      bring back what rm removed last under that name
-  stickypane archive <name>      move a note out of sight into archive/
+  stickypane note rm <name>      move a note, a page or a folder to .trash/
+  stickypane note restore <name> bring back what note rm removed last under that
+                                 name
+  stickypane note archive <name> move a note out of sight into archive/
   stickypane answers <name> [--json]
                                  print what the user answered in a form
   stickypane wait <name> [--timeout 5m] [--json]
@@ -183,9 +187,12 @@ func runCtx(ctx context.Context, args []string, stdin io.Reader, stdout, stderr 
 func runEnv(e env, args []string) int {
 	stderr := e.stderr
 	if len(args) > 0 {
-		if c, ok := lookup(args[0]); ok {
-			e.cmd = args[0]
-			return exitCode(c.run(e, args[1:]), stderr)
+		if c, name, rest, ok := find(args); ok {
+			e.cmd = name
+			return exitCode(c.run(e, rest), stderr)
+		}
+		if args[0] == "note" {
+			return exitCode(usageError{cmd: "note"}, stderr)
 		}
 		if strings.HasPrefix(args[0], "-") || len(args) > 1 {
 			return exitCode(usageSay("", "error.unknownCommand", map[string]any{"Name": args[0]}), stderr)

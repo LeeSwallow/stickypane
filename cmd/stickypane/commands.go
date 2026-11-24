@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -83,7 +84,7 @@ func init() {
 			what:     "Lists the shapes a note can take, or shows one in full: the command that makes it, a file to copy and how it behaves. Needs no board.",
 			syntax:   "stickypane kinds [shape]",
 			examples: []string{"stickypane kinds", "stickypane kinds board", "stickypane kinds checklist"},
-			related:  []string{"write", "guide", "checklist"},
+			related:  []string{"note write", "guide", "checklist"},
 		}},
 		{[]string{"env"}, envCmd, helpText{
 			group: "start", brief: "say what the board found about where it runs",
@@ -113,18 +114,18 @@ func init() {
 		{[]string{"help", "--help", "-h"}, helpCmd, helpText{
 			group: "start", brief: "this help: a command, a shape, or getting started",
 			what:     "Prints a short overview grouped by task, or the help of one command or shape, or the path to start with. An unknown name suggests the closest command.",
-			syntax:   "stickypane help [command|shape|start] [--all]",
-			args:     "--all  every command with every option, in one page",
-			examples: []string{"stickypane help", "stickypane help card", "stickypane help checklist", "stickypane help start"},
+			syntax:   "stickypane help [command|shape|start] [--all] [--json]",
+			args:     "--all   every command with every option, in one page\n--json  every command's name, syntax and examples as JSON, in English",
+			examples: []string{"stickypane help", "stickypane help card", "stickypane help checklist", "stickypane help start", "stickypane help --json"},
 			related:  []string{"kinds", "guide"},
 		}},
-		{[]string{"list"}, listCmd, helpText{
+		{[]string{"note list"}, listCmd, helpText{
 			group: "notes", brief: "list the notes",
 			what:     "Lists the notes: name, title, shape, whether it is open, and its size.",
-			syntax:   "stickypane list [--json]",
+			syntax:   "stickypane note list [--json]",
 			args:     "--json  print the list as JSON",
-			examples: []string{"stickypane list", "stickypane list --json"},
-			related:  []string{"index", "cat", "show"},
+			examples: []string{"stickypane note list", "stickypane note list --json"},
+			related:  []string{"index", "note cat", "note show"},
 		}},
 		{[]string{"index"}, indexCmd, helpText{
 			group: "notes", brief: "every note in a line: title, counts, a gist",
@@ -132,116 +133,116 @@ func init() {
 			syntax:   "stickypane index [--json]",
 			args:     "--json  print the index as JSON",
 			examples: []string{"stickypane index", "stickypane index --json"},
-			related:  []string{"list", "cat"},
+			related:  []string{"note list", "note cat"},
 		}},
-		{[]string{"show"}, manageCmd("show"), helpText{
+		{[]string{"note show"}, manageCmd("note show"), helpText{
 			group: "notes", brief: "put a note, a file or a folder on the screen",
 			what:     "Puts a note on the screen. A path to any file or folder of the project is linked onto the board without copying it.",
-			syntax:   "stickypane show <name|path>",
-			examples: []string{"stickypane show plan", "stickypane show README.md", "stickypane show docs/"},
-			related:  []string{"hide", "link", "write"},
+			syntax:   "stickypane note show <name|path>",
+			examples: []string{"stickypane note show plan", "stickypane note show README.md", "stickypane note show docs/"},
+			related:  []string{"note hide", "note link", "note write"},
 		}},
-		{[]string{"hide"}, manageCmd("hide"), helpText{
+		{[]string{"note hide"}, manageCmd("note hide"), helpText{
 			group: "notes", brief: "fold a note away",
-			what:     "Folds a note away. The file stays; show brings it back.",
-			syntax:   "stickypane hide <name>",
-			examples: []string{"stickypane hide plan"},
-			related:  []string{"show", "archive", "rm"},
+			what:     "Folds a note away. The file stays; note show brings it back.",
+			syntax:   "stickypane note hide <name>",
+			examples: []string{"stickypane note hide plan"},
+			related:  []string{"note show", "note archive", "note rm"},
 		}},
-		{[]string{"cat"}, catCmd, helpText{
+		{[]string{"note cat"}, catCmd, helpText{
 			group: "notes", brief: "print a note's file",
 			what:     "Prints a note's file as it is on disk.",
-			syntax:   "stickypane cat <name>",
-			examples: []string{"stickypane cat plan", "stickypane cat deploy/notes"},
-			related:  []string{"list", "write"},
+			syntax:   "stickypane note cat <name>",
+			examples: []string{"stickypane note cat plan", "stickypane note cat deploy/notes"},
+			related:  []string{"note list", "note write"},
 		}},
-		{[]string{"write"}, writeCmd, helpText{
+		{[]string{"note write"}, writeCmd, helpText{
 			group: "notes", brief: "create or replace a note from standard input",
 			what:     "Creates or replaces a note with what comes on standard input, exactly as overwriting the file would. Read a note before rewriting it.",
-			syntax:   "stickypane write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]",
+			syntax:   "stickypane note write <name> [--type T] [--title X] [--open] [--size S] [--opt k=v]",
 			args:     "--type T   the shape: note, board, checklist, log, chart, form, script\n--title X  the note's title\n--open     put the note on the screen now\n--size S   the width: 1/4, 1/3, 1/2, 2/3, 3/4 or 1 of the screen (or card, half, page)\n--opt k=v  a create option of the shape (stickypane kinds lists them), repeated for more lines; the shape writes the note and standard input is not read",
-			examples: []string{"echo \"- [ ] build\" | stickypane write plan --type checklist --title \"Release\" --open", "stickypane write sprint --type board --opt columns=Backlog --opt columns=Done", "echo \"hello\" | stickypane write hello", "echo \"- [ ] a\" | stickypane write deploy/steps --type checklist"},
-			related:  []string{"kinds", "set", "cat"},
+			examples: []string{"echo \"- [ ] build\" | stickypane note write plan --type checklist --title \"Release\" --open", "stickypane note write sprint --type board --opt columns=Backlog --opt columns=Done", "echo \"hello\" | stickypane note write hello", "echo \"- [ ] a\" | stickypane note write deploy/steps --type checklist"},
+			related:  []string{"kinds", "note set", "note cat"},
 		}},
 		{[]string{"todo"}, editCmd("todo"), helpText{
 			group: "notes", brief: "add, tick or untick a checklist item",
 			what:     "Changes one item of a checklist without reading or rewriting it, and prints where the note stands. An item is named by its text, a part of it, or #2.",
-			syntax:   "stickypane todo <name> add|check|uncheck <item>",
-			examples: []string{"stickypane todo plan add \"write tests\"", "stickypane todo plan check tests", "stickypane todo plan uncheck #1"},
-			related:  []string{"card", "write", "checklist"},
+			syntax:   "stickypane todo add|check|uncheck <name> <item>",
+			examples: []string{"stickypane todo add plan \"write tests\"", "stickypane todo check plan tests", "stickypane todo uncheck plan #1"},
+			related:  []string{"card", "note write", "checklist"},
 		}},
 		{[]string{"card"}, editCmd("card"), helpText{
 			group: "notes", brief: "add or move a card of a board",
 			what:     "Adds a card to a board note, or moves one to another column. A card is named by its text, a part of it, or #2; a missing note is made.",
-			syntax:   "stickypane card <name> add|move <card> [--to <column>]",
+			syntax:   "stickypane card add|move <name> <card> [--to <column>]",
 			args:     "--to C  the column to add to, or to move to (needed to move)",
-			examples: []string{"stickypane card work add \"login API\" --to Doing", "stickypane card work move login --to Done", "stickypane card work add \"docs\""},
-			related:  []string{"todo", "board", "write"},
+			examples: []string{"stickypane card add work \"login API\" --to Doing", "stickypane card move work login --to Done", "stickypane card add work \"docs\""},
+			related:  []string{"todo", "board", "note write"},
 		}},
 		{[]string{"chart"}, editCmd("chart"), helpText{
 			group: "notes", brief: "set or add to a number of a chart",
 			what:     "Sets a number of a chart note, or adds to it, and prints the new value. A negative number is a value.",
-			syntax:   "stickypane chart <name> set|add <label> <number>",
-			examples: []string{"stickypane chart tokens set input 1,200", "stickypane chart tokens add input 800", "stickypane chart tokens add delta -5"},
+			syntax:   "stickypane chart set|add <name> <label> <number>",
+			examples: []string{"stickypane chart set tokens input 1,200", "stickypane chart add tokens input 800", "stickypane chart add tokens delta -5"},
 			related:  []string{"log", "kinds"},
 		}},
 		{[]string{"log"}, editCmd("log"), helpText{
 			group: "notes", brief: "append a line to a log note",
 			what:     "Appends a line to a log note; --time starts it with the time. After -- everything is words.",
-			syntax:   "stickypane log <name> [--time] <text>",
+			syntax:   "stickypane log add <name> [--time] <text>",
 			args:     "--time  start the line with the time",
-			examples: []string{"stickypane log worklog \"tests passed\"", "stickypane log worklog --time \"deploy started\""},
-			related:  []string{"say", "chart", "kinds"},
+			examples: []string{"stickypane log add worklog \"tests passed\"", "stickypane log add worklog --time \"deploy started\""},
+			related:  []string{"chat", "chart", "kinds"},
 		}},
-		{[]string{"say"}, editCmd("say"), helpText{
+		{[]string{"chat"}, editCmd("chat"), helpText{
 			group: "notes", brief: "add a message to a chat note",
 			what:     "Adds a message to a chat note, said by agent unless --as names someone else.",
-			syntax:   "stickypane say <name> [--as <who>] <text>",
+			syntax:   "stickypane chat add <name> [--as <who>] <text>",
 			args:     "--as W  who says it (default: agent)",
-			examples: []string{"stickypane say chat \"41/41 pass\"", "stickypane say chat \"deploy is green\" --as ci"},
+			examples: []string{"stickypane chat add chat \"41/41 pass\"", "stickypane chat add chat \"deploy is green\" --as ci"},
 			related:  []string{"log", "watch"},
 		}},
-		{[]string{"set"}, editCmd("set"), helpText{
+		{[]string{"note set"}, editCmd("note set"), helpText{
 			group: "notes", brief: "change keys of a note or its place on the board",
 			what:     "Changes one thing without reading or rewriting the note: key=value pairs for how it shows (open, size...) or its front matter (title). A missing note is made, and so is the board in a git repository without one.",
-			syntax:   "stickypane set <name> key=value ...",
-			examples: []string{"stickypane set plan open=true size=1/2", "stickypane set plan title=\"The plan\"", "stickypane set plan open=false"},
-			related:  []string{"write", "show", "mv"},
+			syntax:   "stickypane note set <name> key=value ...",
+			examples: []string{"stickypane note set plan open=true size=1/2", "stickypane note set plan title=\"The plan\"", "stickypane note set plan open=false"},
+			related:  []string{"note write", "note show", "note mv"},
 		}},
-		{[]string{"mv"}, manageCmd("mv"), helpText{
+		{[]string{"note mv"}, manageCmd("note mv"), helpText{
 			group: "arrange", brief: "rename a note or move it into a tab or book",
 			what:     "Renames a note, or moves it: <to> is a new name, a folder (deploy/) to move it into that tab or book, or . for the top level.",
-			syntax:   "stickypane mv <name> <to>",
-			examples: []string{"stickypane mv plan roadmap", "stickypane mv plan deploy/", "stickypane mv deploy/plan ."},
-			related:  []string{"link", "archive", "rm"},
+			syntax:   "stickypane note mv <name> <to>",
+			examples: []string{"stickypane note mv plan roadmap", "stickypane note mv plan deploy/", "stickypane note mv deploy/plan ."},
+			related:  []string{"note link", "note archive", "note rm"},
 		}},
-		{[]string{"link"}, manageCmd("link"), helpText{
+		{[]string{"note link"}, manageCmd("note link"), helpText{
 			group: "arrange", brief: "show a file or folder of the project without copying",
 			what:     "Shows a file or a folder of the project on the board without copying it (a symbolic link). A folder becomes a book.",
-			syntax:   "stickypane link <path> [name]",
-			examples: []string{"stickypane link README.md", "stickypane link docs guide", "stickypane link logs/app.log"},
-			related:  []string{"show", "mv"},
+			syntax:   "stickypane note link <path> [name]",
+			examples: []string{"stickypane note link README.md", "stickypane note link docs guide", "stickypane note link logs/app.log"},
+			related:  []string{"note show", "note mv"},
 		}},
-		{[]string{"rm"}, manageCmd("rm"), helpText{
+		{[]string{"note rm"}, manageCmd("note rm"), helpText{
 			group: "arrange", brief: "move a note, a page or a folder to .trash/",
-			what:     "Moves a note, a page or a folder to .trash/. restore brings it back.",
-			syntax:   "stickypane rm <name>",
-			examples: []string{"stickypane rm plan", "stickypane rm deploy/notes"},
-			related:  []string{"restore", "archive"},
+			what:     "Moves a note, a page or a folder to .trash/. note restore brings it back.",
+			syntax:   "stickypane note rm <name>",
+			examples: []string{"stickypane note rm plan", "stickypane note rm deploy/notes"},
+			related:  []string{"note restore", "note archive"},
 		}},
-		{[]string{"restore"}, manageCmd("restore"), helpText{
-			group: "arrange", brief: "bring back what rm removed last",
-			what:     "Brings back what rm removed last under that name.",
-			syntax:   "stickypane restore <name>",
-			examples: []string{"stickypane restore plan"},
-			related:  []string{"rm", "archive"},
+		{[]string{"note restore"}, manageCmd("note restore"), helpText{
+			group: "arrange", brief: "bring back what note rm removed last",
+			what:     "Brings back what note rm removed last under that name.",
+			syntax:   "stickypane note restore <name>",
+			examples: []string{"stickypane note restore plan"},
+			related:  []string{"note rm", "note archive"},
 		}},
-		{[]string{"archive"}, manageCmd("archive"), helpText{
+		{[]string{"note archive"}, manageCmd("note archive"), helpText{
 			group: "arrange", brief: "move a note out of sight into archive/",
 			what:     "Moves a note out of sight into archive/. It is kept; nothing is deleted.",
-			syntax:   "stickypane archive <name>",
-			examples: []string{"stickypane archive plan"},
-			related:  []string{"hide", "rm", "restore"},
+			syntax:   "stickypane note archive <name>",
+			examples: []string{"stickypane note archive plan"},
+			related:  []string{"note hide", "note rm", "note restore"},
 		}},
 		{[]string{"answers"}, answersCmd(false), helpText{
 			group: "agents", brief: "print what the user answered in a form",
@@ -290,6 +291,36 @@ func init() {
 			related:  []string{"start"},
 		}},
 	}
+}
+
+// oldForms are the first words of the forms before every note command
+// was <noun> <verb> <target> (#149), and the words they stand for. They
+// work as ever and are listed nowhere.
+var oldForms = map[string][]string{
+	"list": {"note", "list"}, "show": {"note", "show"}, "hide": {"note", "hide"},
+	"cat": {"note", "cat"}, "write": {"note", "write"}, "set": {"note", "set"},
+	"mv": {"note", "mv"}, "link": {"note", "link"}, "rm": {"note", "rm"},
+	"restore": {"note", "restore"}, "archive": {"note", "archive"},
+	"say": {"chat", "add"},
+}
+
+// find finds the command the first words of args name, two words (note
+// show) or one (todo), an old form read as the words it stands for. It
+// returns the words that named it and the words after them.
+func find(args []string) (c command, name string, rest []string, ok bool) {
+	if len(args) == 0 {
+		return command{}, "", nil, false
+	}
+	if words, old := oldForms[args[0]]; old {
+		args = append(slices.Clone(words), args[1:]...)
+	}
+	if len(args) > 1 {
+		if c, ok := lookup(args[0] + " " + args[1]); ok {
+			return c, args[0] + " " + args[1], args[2:], true
+		}
+	}
+	c, ok = lookup(args[0])
+	return c, args[0], args[1:], ok
 }
 
 // lookup finds the command a word names.
@@ -375,9 +406,10 @@ func viewOf(v string) (string, bool) {
 // changes are the commands that change a board; each one notes its project
 // in the registry, once a minute, as soon as open has found it.
 var changes = map[string]bool{
-	"write": true, "todo": true, "card": true, "chart": true, "log": true,
-	"say": true, "set": true, "mv": true, "link": true, "rm": true,
-	"restore": true, "archive": true, "show": true, "hide": true,
+	"note write": true, "todo": true, "card": true, "chart": true, "log": true,
+	"chat": true, "note set": true, "note mv": true, "note link": true,
+	"note rm": true, "note restore": true, "note archive": true,
+	"note show": true, "note hide": true,
 }
 
 // prune clears the registry of records nobody needs any more: the files of

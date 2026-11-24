@@ -33,8 +33,16 @@ func TestUsageErrorsNameTheCommand(t *testing.T) {
 	if code != exitUsage || out != "" {
 		t.Fatalf("--time on todo: code = %d, out = %q", code, out)
 	}
-	if !strings.Contains(errOut, "stickypane todo <name>") || strings.Contains(errOut, "stickypane mcp") {
+	if !strings.Contains(errOut, "stickypane todo add|check|uncheck <name>") || strings.Contains(errOut, "stickypane mcp") {
 		t.Errorf("only todo's usage:\n%s", errOut)
+	}
+	// An old form's usage is that of what it stands for; note alone, every
+	// note command's.
+	for args, want := range map[string]string{"show": "stickypane note show <name|path>", "note": "stickypane note archive <name>", "chat add x": "stickypane chat add <name>"} {
+		code, _, errOut := exec(t, strings.Fields(args)...)
+		if code != exitUsage || !strings.Contains(errOut, want) || strings.Contains(errOut, "stickypane mcp") {
+			t.Errorf("%s: code = %d, stderr:\n%s", args, code, errOut)
+		}
 	}
 }
 

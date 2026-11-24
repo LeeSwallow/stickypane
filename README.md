@@ -129,7 +129,7 @@ Getting started
    (not sure how in your terminal? stickypane env knows)
 
 Then ask your agent to put something on the board, or pin a note yourself:
-     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+     echo "- [ ] try the board" | stickypane note write plan --type checklist --open
 (stickypane kinds lists the shapes a note can take)
 
 Next: stickypane help, then stickypane help <command>.
@@ -285,7 +285,7 @@ sequenceDiagram
     participant F as .sticky/deploy.md
     participant B as Board
     participant U as You
-    A->>F: stickypane write deploy --type form --open
+    A->>F: stickypane note write deploy --type form --open
     A->>A: stickypane wait deploy --timeout 10m
     F-->>B: the file changed
     B->>U: a form with options and buttons
@@ -302,16 +302,16 @@ sequenceDiagram
 
 | Shape | For | Example |
 | --- | --- | --- |
-| note | anything in Markdown; a `mermaid` block is drawn | `echo "check env" \| stickypane write deploy-notes --open` |
-| board | cards in columns, a kanban | `stickypane card work add "login API" --to Doing` |
-| checklist | steps to tick off, with a progress bar | `stickypane todo plan add "write tests"` |
-| log | one entry per line, the newest in sight | `stickypane log worklog --time "tests passed"` |
-| chat | who said what and when; `say` signs as `agent` unless `--as` names someone | `stickypane say chat "41/41 pass"` |
-| chart | bars, a trend line, or a calendar of days | `stickypane chart tokens add input 1200` |
+| note | anything in Markdown; a `mermaid` block is drawn | `echo "check env" \| stickypane note write deploy-notes --open` |
+| board | cards in columns, a kanban | `stickypane card add work "login API" --to Doing` |
+| checklist | steps to tick off, with a progress bar | `stickypane todo add plan "write tests"` |
+| log | one entry per line, the newest in sight | `stickypane log add worklog --time "tests passed"` |
+| chat | who said what and when; `chat add` signs as `agent` unless `--as` names someone | `stickypane chat add chat "41/41 pass"` |
+| chart | bars, a trend line, or a calendar of days | `stickypane chart add tokens input 1200` |
 | form | options, lines to fill in, buttons | `stickypane wait deploy --timeout 10m` |
-| script | a shell script with a Run button | `stickypane show deploy.sh` |
+| script | a shell script with a Run button | `stickypane note show deploy.sh` |
 | api | REST, WebSocket and gRPC requests (experimental) | `stickypane api api.http "Log in"` |
-| html | a web page; the terminal shows its text | `stickypane show report.html` |
+| html | a web page; the terminal shows its text | `stickypane note show report.html` |
 
 `stickypane kinds` lists them and `stickypane help <shape>` prints one in
 full. [docs/shapes.md](docs/shapes.md) has each format, links between
@@ -345,49 +345,49 @@ The help is in the program, in English or Korean. This is
 stickypane - sticky notes for coding agents. They pin, you glance.
 
 Start
-  [path]    open the board of the project at path (default: here)
-  init      make .sticky/ and tell your agents about it
-  kinds     list the shapes a note can take
-  env       say what the board found about where it runs
-  version   print the version
-  help      this help: a command, a shape, or getting started
+  [path]       open the board of the project at path (default: here)
+  init         make .sticky/ and tell your agents about it
+  kinds        list the shapes a note can take
+  env          say what the board found about where it runs
+  version      print the version
+  help         this help: a command, a shape, or getting started
 
 Notes
-  list      list the notes
-  index     every note in a line: title, counts, a gist
-  show      put a note, a file or a folder on the screen
-  hide      fold a note away
-  cat       print a note's file
-  write     create or replace a note from standard input
-  todo      add, tick or untick a checklist item
-  card      add or move a card of a board
-  chart     set or add to a number of a chart
-  log       append a line to a log note
-  say       add a message to a chat note
-  set       change keys of a note or its place on the board
+  note list    list the notes
+  index        every note in a line: title, counts, a gist
+  note show    put a note, a file or a folder on the screen
+  note hide    fold a note away
+  note cat     print a note's file
+  note write   create or replace a note from standard input
+  todo         add, tick or untick a checklist item
+  card         add or move a card of a board
+  chart        set or add to a number of a chart
+  log          append a line to a log note
+  chat         add a message to a chat note
+  note set     change keys of a note or its place on the board
 
 Arrange
-  mv        rename a note or move it into a tab or book
-  link      show a file or folder of the project without copying
-  rm        move a note, a page or a folder to .trash/
-  restore   bring back what rm removed last
-  archive   move a note out of sight into archive/
+  note mv      rename a note or move it into a tab or book
+  note link    show a file or folder of the project without copying
+  note rm      move a note, a page or a folder to .trash/
+  note restore bring back what note rm removed last
+  note archive move a note out of sight into archive/
 
 Settings
-  config    list, read or change a setting
-  keys      list the board's keys or change them
+  config       list, read or change a setting
+  keys         list the board's keys or change them
 
 Agents
-  setup     install the board plugin for Claude Code and Codex
-  guide     print the agent guide
-  answers   print what the user answered in a form
-  wait      wait for a form's button, then print the answers
-  mcp       serve the notes over MCP
+  setup        install the board plugin for Claude Code and Codex
+  guide        print the agent guide
+  answers      print what the user answered in a form
+  wait         wait for a form's button, then print the answers
+  mcp          serve the notes over MCP
 
 Scripts
-  api       (experimental) send the requests of a .http note
-  watch     print what happens on the board as it happens
-  bridge    serve the board to the desktop app
+  api          (experimental) send the requests of a .http note
+  watch        print what happens on the board as it happens
+  bridge       serve the board to the desktop app
 
 stickypane help <command>   one command, with examples
 stickypane help <shape>     a note's file format and an example

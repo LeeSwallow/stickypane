@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
+	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -25,7 +28,7 @@ func TestHelpOnACommandPrintsThatCommandOnly(t *testing.T) {
 	if code != 0 || errOut != "" {
 		t.Fatalf("code = %d, stderr = %q", code, errOut)
 	}
-	for _, want := range []string{"stickypane card <name> add|move", "Examples:", "stickypane card work move login --to Done", "Related:"} {
+	for _, want := range []string{"stickypane card add|move <name>", "Examples:", "stickypane card move work login --to Done", "Related:"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help card should contain %q:\n%s", want, out)
 		}
@@ -42,7 +45,7 @@ func TestHelpOnACommandPrintsThatCommandOnly(t *testing.T) {
 func TestHelpOnAnUnknownNameSuggests(t *testing.T) {
 	english(t)
 	t.Chdir(t.TempDir())
-	for word, want := range map[string]string{"carb": "card", "lst": "list", "setpu": "setup", "star": "start"} {
+	for word, want := range map[string]string{"carb": "card", "note lst": "note list", "setpu": "setup", "star": "start"} {
 		code, out, errOut := exec(t, "help", word)
 		if code != exitUsage || out != "" || !strings.Contains(errOut, `did you mean "`+want+`"`) {
 			t.Errorf("help %s: code = %d, out = %q, stderr = %q", word, code, out, errOut)
@@ -86,7 +89,7 @@ func TestHelpOnAShapePrintsTheFormat(t *testing.T) {
 func TestHelpPrefersTheCommandOverTheShape(t *testing.T) {
 	english(t)
 	t.Chdir(t.TempDir())
-	if _, out, _ := exec(t, "help", "log"); !strings.Contains(out, "stickypane log <name>") {
+	if _, out, _ := exec(t, "help", "log"); !strings.Contains(out, "stickypane log add <name>") {
 		t.Errorf("help log:\n%s", out)
 	}
 }
@@ -101,7 +104,7 @@ func TestHelpStart(t *testing.T) {
 		t.Fatalf("code = %d", code)
 	}
 	last := -1
-	for _, step := range []string{"stickypane setup", "stickypane init", "stickypane\n", "stickypane write"} {
+	for _, step := range []string{"stickypane setup", "stickypane init", "stickypane\n", "stickypane note write"} {
 		i := strings.Index(start, step)
 		if i < 0 || i < last {
 			t.Errorf("%q should come in order in:\n%s", step, start)
@@ -135,6 +138,27 @@ func TestHelpOverviewNamesEveryCommand(t *testing.T) {
 	for _, c := range commands {
 		if !regexp.MustCompile(`(?m)^  ` + regexp.QuoteMeta(c.names[0]) + ` `).MatchString(out) {
 			t.Errorf("the overview does not list %s", c.names[0])
+		}
+	}
+	// The old forms work and are listed nowhere (#149).
+	for old := range oldForms {
+		if regexp.MustCompile(`(?m)^  ` + old + ` `).MatchString(out) {
+			t.Errorf("the overview lists the old form %s", old)
+		}
+		if strings.Contains(usage, "stickypane "+old+" ") {
+			t.Errorf("the usage text names the old form %s", old)
+		}
+	}
+}
+
+// help on an old form is the help of what it stands for.
+func TestHelpOnAnOldFormIsTheNewOnes(t *testing.T) {
+	english(t)
+	t.Chdir(t.TempDir())
+	for old, now := range map[string][]string{"show": {"note", "show"}, "say": {"chat"}, "write": {"note write"}} {
+		_, want, _ := exec(t, append([]string{"help"}, now...)...)
+		if code, out, errOut := exec(t, "help", old); code != 0 || out != want || want == "" {
+			t.Errorf("help %s: code = %d, stderr = %q\n%s\n---\n%s", old, code, errOut, out, want)
 		}
 	}
 }
@@ -224,7 +248,7 @@ func TestWriteSizeHelpIsWhatItAccepts(t *testing.T) {
 	english(t)
 	project(t)
 	english(t)
-	c, _ := lookup("write")
+	c, _ := lookup("note write")
 	_, line, _ := strings.Cut(c.help.args, "--size S")
 	sizes := regexp.MustCompile(`[0-9]/[0-9]|\b1\b|card|half|page`).FindAllString(line, -1)
 	if len(sizes) != 9 {
@@ -267,14 +291,15 @@ func TestEveryExampleParses(t *testing.T) {
 				t.Errorf("%q does not start with stickypane", ex)
 				continue
 			}
-			if _, ok := lookup(words[1]); !ok {
+			run, name, _, ok := find(words[1:])
+			if !ok {
 				t.Errorf("%q: no command %s", ex, words[1])
 				continue
 			}
-			if words[1] != c.names[0] && !strings.Contains(ex, "| stickypane "+c.names[0]) {
-				t.Errorf("the example of %s runs %s: %q", c.names[0], words[1], ex)
+			if name != c.names[0] || run.names[0] != c.names[0] {
+				t.Errorf("the example of %s runs %s: %q", c.names[0], name, ex)
 			}
-			if notRun[words[1]] {
+			if notRun[name] {
 				continue
 			}
 			if code, _, errOut := execIn(t, stdin, words[1:]...); code == exitUsage {
@@ -327,7 +352,7 @@ func TestHelpInKorean(t *testing.T) {
 		}
 	}
 	_, out, _ := exec(t, "help", "card")
-	for _, want := range []string{"stickypane card <name> add|move", "예시:", "stickypane card work move login --to Done", "--to"} {
+	for _, want := range []string{"stickypane card add|move <name>", "예시:", "stickypane card move work login --to Done", "--to"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("Korean help card should contain %q:\n%s", want, out)
 		}
@@ -395,5 +420,41 @@ func TestKoreanHelpKeysAreReal(t *testing.T) {
 		if !known[k] {
 			t.Errorf("ko.json has the stale key %q", k)
 		}
+	}
+}
+
+var update = flag.Bool("update", false, "rewrite testdata/help.json")
+
+// help --json is stable: the golden file testdata/help.json, in English
+// whatever the language. go test -run HelpJSON -update rewrites it.
+func TestHelpJSONIsTheGoldenFile(t *testing.T) {
+	golden, err := filepath.Abs("testdata/help.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+	t.Setenv("STICKYPANE_LANG", "ko")
+	code, out, errOut := exec(t, "help", "--json")
+	if code != 0 {
+		t.Fatalf("code = %d, stderr = %q", code, errOut)
+	}
+	if *update {
+		if err := os.WriteFile(golden, []byte(out), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != string(want) {
+		t.Errorf("help --json differs from %s (go test -run HelpJSON -update):\n%s", golden, out)
+	}
+	var got struct{ Commands []commandJSON }
+	if err := json.Unmarshal([]byte(out), &got); err != nil || len(got.Commands) != len(commands) {
+		t.Errorf("%d commands, %v", len(got.Commands), err)
+	}
+	if code, _, _ := exec(t, "help", "card", "--json"); code != exitUsage {
+		t.Errorf("help card --json: code = %d", code)
 	}
 }
