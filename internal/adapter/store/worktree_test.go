@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/LeeSwallow/stickypane/internal/core/doc"
 )
 
 // repoWithWorktree makes a repository main and a second worktree of it, wt,
@@ -69,3 +71,55 @@ func TestAWorktreeWithoutAMainBoardFindsNone(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestANewFolderIsSeeded(t *testing.T) {
+	s := newStore(t)
+	var asked []string
+	s.NewFolder = func(folder string) map[string][]byte {
+		asked = append(asked, folder)
+		if folder == "worktrees/a" {
+			return map[string][]byte{"00-about.md": []byte("about\n")}
+		}
+		return nil
+	}
+	if err := s.Write("worktrees/a/notes.md", []byte("x\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, "worktrees/a/00-about.md"); got != "about\n" {
+		t.Fatalf("seed = %q", got)
+	}
+	// A folder that is there is not made, and not asked about again.
+	write(t, s, "worktrees/a/00-about.md", "changed\n")
+	if err := s.Apply("worktrees/a/notes.md", keepOp{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.WriteNew("worktrees/a/more.md", []byte("y\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, s, "worktrees/a/00-about.md"); got != "changed\n" {
+		t.Fatalf("seed rewritten: %q", got)
+	}
+	// Every way a note reaches a new folder asks.
+	if err := s.Rewrite("b/x.md", func([]byte, bool) ([]byte, error) { return []byte("x"), nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.WriteNew("c/x.md", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Move("b/x.md", "d/x.md"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"worktrees/a", "b", "c", "d"}
+	if len(asked) != len(want) {
+		t.Fatalf("asked = %v, want %v", asked, want)
+	}
+	for i := range want {
+		if asked[i] != want[i] {
+			t.Fatalf("asked = %v, want %v", asked, want)
+		}
+	}
+}
+
+type keepOp struct{}
+
+func (keepOp) Apply(d doc.Document) (doc.Document, error) { return d, nil }

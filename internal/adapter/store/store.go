@@ -104,6 +104,11 @@ func (n Note) Book() bool { return n.Pages != nil }
 // Store is a notes folder.
 type Store struct {
 	Dir string
+	// NewFolder, when set, is asked for the first pages of a folder a
+	// write is about to make, by its slash-separated path in the notes
+	// folder ("worktrees/feat-a"); what it returns is made there first,
+	// never over a file that is there.
+	NewFolder func(folder string) map[string][]byte
 
 	mu    sync.Mutex
 	known map[string]readNote // notes read by the last Load, by path
@@ -454,7 +459,7 @@ func (s *Store) rewrite(name string, change func(old []byte, ok bool) ([]byte, e
 		return err
 	}
 	if !ok {
-		if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
+		if err := s.makeDir(path); err != nil {
 			return err // a new page of a new book needs its folder
 		}
 	}
@@ -477,7 +482,7 @@ func (s *Store) write(name string, content []byte) error {
 	path := s.Path(name)
 	if target, err := filepath.EvalSymlinks(path); err == nil {
 		path = target
-	} else if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
+	} else if err := s.makeDir(path); err != nil {
 		return err // a new page of a new book needs its folder
 	}
 	return writeAtomic(path, content)
@@ -489,10 +494,29 @@ func (s *Store) write(name string, content []byte) error {
 // it is not there.
 func (s *Store) WriteNew(name string, content []byte) error {
 	path := s.Path(name)
-	if err := os.MkdirAll(filepath.Dir(path), atomicfile.DirMode); err != nil {
+	if err := s.makeDir(path); err != nil {
 		return err
 	}
 	return atomicfile.Create(path, content, atomicfile.FileMode)
+}
+
+// makeDir makes the folder of the file at path, with the pages NewFolder
+// gives a folder of the notes folder that was not there.
+func (s *Store) makeDir(path string) error {
+	dir := filepath.Dir(path)
+	_, err := os.Stat(dir)
+	if err := os.MkdirAll(dir, atomicfile.DirMode); err != nil {
+		return err
+	}
+	rel, rerr := filepath.Rel(s.Dir, dir)
+	if !errors.Is(err, fs.ErrNotExist) || s.NewFolder == nil || rerr != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return nil
+	}
+	for name, content := range s.NewFolder(filepath.ToSlash(rel)) {
+		// Made, never written over: two writers end with one.
+		_ = atomicfile.Create(filepath.Join(dir, filepath.Base(name)), content, atomicfile.FileMode)
+	}
+	return nil
 }
 
 // writeAtomic replaces the file at path in one step. A new file is

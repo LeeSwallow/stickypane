@@ -9,11 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/LeeSwallow/stickypane/internal/adapter/atomicfile"
 )
 
 // put moves the note called name to dst, a path inside the notes folder.
@@ -46,7 +43,7 @@ func (s *Store) putLocked(name, dst string) (string, error) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return "", err
 		}
-		if err := os.MkdirAll(filepath.Dir(full), atomicfile.DirMode); err != nil {
+		if err := s.makeDir(full); err != nil {
 			return "", err
 		}
 		if err := os.Rename(src, full); err != nil {
@@ -131,7 +128,7 @@ func (s *Store) move(name, to string) error {
 	if _, err := os.Lstat(dst); err == nil {
 		return fmt.Errorf("%s: %w", to, fs.ErrExist)
 	}
-	if err := os.MkdirAll(filepath.Dir(dst), atomicfile.DirMode); err != nil {
+	if err := s.makeDir(dst); err != nil {
 		return err
 	}
 	if err := os.Rename(src, dst); err != nil {
