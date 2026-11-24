@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "06-no-board",
+  "description": "A request that needs no board: does it leave the board alone?",
+  "tags": [
+    "none"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "What is 17 times 23? Answer in one line.",
+    "max_turns": 5,
+    "timeout_seconds": 120,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

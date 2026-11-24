@@ -33,6 +33,7 @@ where a stamp is made.
 | Rank | Packages | Is |
 | --- | --- | --- |
 | 60 | `cmd/stickypane` | the program: one table of commands |
+| 60 | `cmd/stickyeval` | not the program: the experiment that measures whether agents use the board right, over the cases in `plugin/evals/`. It lists them, prints a run's plan, and only with `-run` calls a model; it presses a form's button through `store` as a stand-in user |
 | | **surface** | |
 | 50 | `surface/app`, `surface/mcp`, `surface/bridge` | the front ends: the terminal UI, the MCP server, and the bridge the desktop app talks to over standard input/output |
 | 0 | `surface/editor`, `surface/lineedit` | the terminal's text editor and the one-line editor of its bottom line |

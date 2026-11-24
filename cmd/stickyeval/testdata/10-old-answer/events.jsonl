@@ -1,0 +1,5 @@
+{"at":"2026-11-25T10:00:01+09:00","kind":"skill","text":"approving-a-risky-action"}
+{"at":"2026-11-25T10:00:02+09:00","kind":"command","text":"stickypane answers delete-data"}
+{"at":"2026-11-25T10:00:03+09:00","kind":"command","text":"stickypane note write delete-data-2"}
+{"at":"2026-11-25T10:00:04+09:00","kind":"command","text":"stickypane wait delete-data-2 --timeout 1m","exit":3}
+{"at":"2026-11-25T10:01:05+09:00","kind":"command","text":"stickypane log add worklog --time \"no answer, data/ kept\""}

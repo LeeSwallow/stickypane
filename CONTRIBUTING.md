@@ -180,6 +180,19 @@ is a contribution. The design notes the board was built from are in
 [docs/history/](docs/history/README.md), as they were written; a change
 that contradicts one should say why.
 
+Whether a wording is better is measured, not argued. The cases in
+`plugin/evals/<n-name>/case.yaml` (JSON, which YAML reads too, so
+`claude plugin eval` and `cmd/stickyeval` read the same file) each give an
+agent one situation; the graders in `cmd/stickyeval/grade.go` read what it
+ran and what it left in `.sticky/`, the same for Claude Code and Codex.
+`go run ./cmd/stickyeval` lists the cases, `-plan` prints the runs, the
+models and the ceilings, and runs nothing. A real run (`-run`, with
+`-board DIR` to see the results as a log and charts on a board of their
+own, never your project's) calls the models and costs money: ask the
+maintainer first, start with one case, `-k 1` and one agent, and never
+in CI. A change to a grader shows its pass and its fail in
+`cmd/stickyeval/testdata/`.
+
 By contributing you agree that your contribution is licensed under the
 project's [MIT license](LICENSE), and to follow the
 [Code of Conduct](CODE_OF_CONDUCT.md).

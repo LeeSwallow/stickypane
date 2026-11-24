@@ -1,0 +1,4 @@
+{"at":"2026-11-25T10:00:01+09:00","kind":"skill","text":"choosing-between-options"}
+{"at":"2026-11-25T10:00:02+09:00","kind":"command","text":"stickypane note write license --open <<'EOF' ... EOF"}
+{"at":"2026-11-25T10:00:03+09:00","kind":"command","text":"stickypane wait license --timeout 10m","exit":3}
+{"at":"2026-11-25T10:10:03+09:00","kind":"message","text":"No answer on the board in 10 minutes; I have not added a LICENSE."}

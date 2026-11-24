@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "03-decision",
+  "description": "A decision that is the user's: does it ask with a form and wait, not in the chat?",
+  "tags": [
+    "choosing-between-options"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Add a LICENSE file to this project. Which license it is, is my call.",
+    "max_turns": 30,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}
