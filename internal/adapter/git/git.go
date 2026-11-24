@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -130,10 +131,33 @@ func CommonDir(dir string) (string, error) {
 	return filepath.Clean(p), nil
 }
 
+// Local lists the variables by which git is told which repository it is in
+// (git rev-parse --local-env-vars). git sets them for a hook or a rebase
+// --exec; a git started here must find the repository from its folder.
+var Local = []string{
+	"GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS",
+	"GIT_CONFIG_COUNT", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE",
+	"GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE", "GIT_INDEX_FILE",
+	"GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX",
+	"GIT_SHALLOW_FILE", "GIT_COMMON_DIR",
+}
+
+// Environ is this process's environment without the variables in Local.
+func Environ() []string {
+	var env []string
+	for _, kv := range os.Environ() {
+		if name, _, _ := strings.Cut(kv, "="); !slices.Contains(Local, name) {
+			env = append(env, kv)
+		}
+	}
+	return env
+}
+
 func run(dir string, args ...string) ([]byte, error) {
 	// No fsmonitor: a repository's config must not start a program here.
 	// Paths come back as they are, not with their bytes escaped.
 	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
+	cmd.Env = Environ()
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()

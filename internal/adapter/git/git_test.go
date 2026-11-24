@@ -110,3 +110,27 @@ func TestAForgedDotGitFileLeadsNowhere(t *testing.T) {
 		t.Fatal("the real worktree lost its main")
 	}
 }
+
+// git sets GIT_DIR and its kin for a hook or rebase --exec. A stickypane
+// run from there reads the folder it was given, not the caller's
+// repository.
+func TestTheCallersGitDirIsIgnored(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	dir := t.TempDir()
+	repo, decoy := filepath.Join(dir, "repo"), filepath.Join(dir, "decoy")
+	for _, d := range []string{repo, decoy} {
+		os.Mkdir(d, 0o755)
+		if out, err := exec.Command("git", "-C", d, "init", "-q", "-b", "main").CombinedOutput(); err != nil {
+			t.Fatalf("git init: %v\n%s", err, out)
+		}
+	}
+	t.Setenv("GIT_DIR", filepath.Join(decoy, ".git"))
+	t.Setenv("GIT_WORK_TREE", decoy)
+	common, err := CommonDir(repo)
+	real := func(p string) string { r, _ := filepath.EvalSymlinks(p); return r }
+	if err != nil || real(common) != real(filepath.Join(repo, ".git")) {
+		t.Fatalf("CommonDir = %q, %v; want the repository's own", common, err)
+	}
+}
