@@ -19,9 +19,10 @@ folder are in it.
 | `.agents/plugins/marketplace.json` (root) | the same for Codex |
 | `.claude-plugin/plugin.json` | the Claude Code plugin `board` |
 | `.codex-plugin/plugin.json` | the same for Codex |
-| `skills/<name>/SKILL.md` | a skill: its name, when to use it (the description), then the commands and the rules |
+| `skills/<name>/SKILL.md` | a skill, one situation: its name, when to use it (the description), the use cases it carries (`metadata: cases:`), then the commands, the shapes and its recipes |
+| `skills/<name>/references/<recipe>.md` | a recipe: one use case written out (`case:`, a `description` that starts with "Use when", `Shapes:`, the commands, `Done when:`), read only when needed |
 | `skills/using-the-board/references/kinds.md` | one short entry per shape of note, read only when a shape is needed |
-| `rules/` | each rule an agent keeps to, once: the commands and what the board writes itself (`touching-the-board.md`), how to write and word a note (`writing-notes.md`) |
+| `rules/` | each rule an agent keeps to, once: the commands, what the board writes itself and when to act on a form (`touching-the-board.md`), how to write and word a note (`writing-notes.md`) |
 | `guide.md` | the head of the agent guide `stickypane init` writes |
 | `commands/<name>.md` | the slash commands `/board:<name>`: a line that names the skill to follow |
 | `hooks/` | hook registrations for each agent; both run the scripts below |
@@ -43,8 +44,13 @@ point to it. The guide `stickypane init` writes into `AGENTS.md` is
 without the plugin reads the same words; together they stay at most 55
 lines. Over MCP, a skill comes with the rules it points to, but not its
 references: a shape in full is `stickypane help <shape>` or the guide with
-the shape as its topic. `go test ./test/` checks that the skills
-stay short, name only files that exist and run only real commands.
+the shape as its topic; a recipe is the guide with `skill/recipe` as its
+topic. `go test ./test/` checks that the skills stay short, name only
+files that exist and run only real commands in the `<noun> <verb>` form,
+and that every use case the triage table
+([docs/history/specs/2026-11-23-usecase-triage.md](history/specs/2026-11-23-usecase-triage.md))
+keeps is in its skill: a `topic` case in the skill's `cases:`, an
+`example` case as a recipe.
 
 The slash commands are `/board:status` (what is on the board, or the notes
 that match), `/board:track`, `/board:ask`, `/board:say` and `/board:setup`.
@@ -67,8 +73,10 @@ installed.
 
 1. Make `plugin/skills/<name>/SKILL.md` with `name` and a `description` that
    starts with "Use when". Put the commands first and the rules after, in
-   under 80 lines.
-2. Run `sh scripts/selfcheck.sh` and `go test ./test/ ./internal/usecase/initcmd/`.
+   under 80 lines, and give it a row in `using-the-board`'s table.
+2. A use case it covers in full is a recipe in its `references/`, listed
+   at the end of the skill and kept in the triage table.
+3. Run `sh scripts/selfcheck.sh` and `go test ./test/ ./internal/usecase/initcmd/`.
 
 ## The mod
 
