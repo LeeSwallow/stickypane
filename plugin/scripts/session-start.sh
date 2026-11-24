@@ -14,7 +14,7 @@ context="$("$here/board-context.sh" 2>/dev/null)" || exit 0
 dir="$(printf '%s\n' "$context" | sed -n 's/^BOARD_DIR=//p')"
 notes="$(printf '%s\n' "$context" | sed -n '/^NOTES<<END$/,/^END$/p' | sed '1d;$d' | head -20)"
 printf 'The user keeps a stickypane board open next to you (%s). On it now:\n%s\n' "$dir" "${notes:-(nothing yet)}"
-printf 'Put things there with the board:using-the-board skill: `stickypane show <file>`, `stickypane todo|card|chart|log`, or a Markdown file in that folder.\n'
+printf 'Put things there with the board:using-the-board skill: `stickypane note show <file>`, `stickypane todo|card|chart|log add`, or a Markdown file in that folder.\n'
 # In a linked worktree, its folder on the board, as the board names it.
 if wt="$(stickypane worktree show 2>/dev/null)"; then
   printf '%s\n' "$wt" | sed -n 's/^name: //p;s/^folder: //p' | {

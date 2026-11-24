@@ -205,6 +205,9 @@ func runEnv(e env, args []string) int {
 	stderr := e.stderr
 	if len(args) > 0 {
 		if c, name, rest, ok := find(args); ok {
+			if asksHelp(rest) {
+				return exitCode(helpOn(e.stdout, helpStrings(), name), stderr)
+			}
 			e.cmd = name
 			return exitCode(c.run(e, rest), stderr)
 		}
@@ -220,6 +223,20 @@ func runEnv(e env, args []string) int {
 		start = args[0]
 	}
 	return exitCode(openBoard(e, start), stderr)
+}
+
+// asksHelp says whether the words of a command ask for its help: --help,
+// -help or -h among them, before any "--".
+func asksHelp(words []string) bool {
+	for _, w := range words {
+		switch w {
+		case "--":
+			return false
+		case "--help", "-help", "-h":
+			return true
+		}
+	}
+	return false
 }
 
 // openBoard opens the board of the project at start. In a repository

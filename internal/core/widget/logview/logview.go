@@ -20,7 +20,7 @@ var Kind = widget.Kind{
 	Label:    "Log",
 	Icon:     "≣",
 	Blurb:    "One entry per line. The newest entries stay in sight.",
-	Command:  "stickypane log worklog --time \"tests passed\"",
+	Command:  "stickypane log add worklog --time \"tests passed\"",
 	Usage:    "A note with \"type: log\" or any .log, .txt or .out file. It follows its end as the file grows, until the user scrolls up.",
 	Example:  "14:02 tests passed\n14:10 started on review feedback\n14:31 pushed the fix\n",
 	Tail:     true,

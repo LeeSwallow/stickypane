@@ -15,7 +15,7 @@ printf 'STICKYPANE_INSTALLED=yes\nSTICKYPANE_VERSION=%s\n' "$(stickypane version
 
 found() {
   printf 'BOARD_DIR=%s\n' "$1"
-  printf 'NOTES<<END\n%s\nEND\n' "$(stickypane list 2>/dev/null)"
+  printf 'NOTES<<END\n%s\nEND\n' "$(stickypane note list 2>/dev/null)"
   exit 0
 }
 

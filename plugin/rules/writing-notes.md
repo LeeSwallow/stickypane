@@ -18,5 +18,5 @@ shape and `open: true`. `stickypane help <shape>` shows one in full.
 Write in the user's language. A title is what the user would call it; an
 item or a card is one action, verb first; a log line is one event, with
 the number that matters. One note per thing the user follows: update it,
-do not add a second. Show what to read now and `hide` the rest. Point to a
-file with `stickypane show`; do not paste it.
+do not add a second. Show what to read now and `note hide` the rest. Point
+to a file with `stickypane note show`; do not paste it.
