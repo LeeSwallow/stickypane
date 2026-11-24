@@ -34,7 +34,7 @@ The board's keys are vim's where vim has one.
 | `ctrl+e` / `ctrl+y` (`↓` `↑`) | scroll a line | `enter` | run, after a yes |
 | `ctrl+d` / `ctrl+u` | scroll half a page | | |
 | `pgdn` / `pgup` | scroll a page | **Open form** | |
-| `N` | jot a note | `↑` `↓` (zoomed: `k` `j`) | change control |
+| `N` | jot a note; on a book, a page | `↑` `↓` (zoomed: `k` `j`) | change control |
 | `a` | add by shape | `enter` / `space` | choose, type, press |
 | `p` / `c` / `R` | pin, color, rename | | |
 | `H` `L` | move earlier, later | **Zoomed note** | |
@@ -203,6 +203,8 @@ Nothing you do on the board erases a file.
   `.sticky/archive/` without asking. `u` takes back whichever you did last.
 - `m` lists the folders: pick one and the note becomes a page of that book,
   pick the top level to take a page out of its book, or name a new folder.
+- `N` (or `a`, for a shape) on a book makes the new note a page of it, and
+  the book turns to it; on any other note it is made at the top.
 - `H` and `L` swap the note with its neighbor; the order is kept in
   `sticky.json`.
 - `R` renames what you see, not the file: a Markdown note's `title`, or for
@@ -211,7 +213,9 @@ Nothing you do on the board erases a file.
 From the command line:
 
 ```sh
-stickypane note mv plan deploy/       # into the tab deploy
+stickypane note mv plan deploy/       # into the tab deploy, keeping its place on the screen
+stickypane page add deploy/docs notes # a new page of the book deploy/docs
+stickypane page list deploy/docs      # its pages, in order
 stickypane note mv deploy/plan .      # back to the first tab
 stickypane note mv plan roadmap       # a new name; it keeps its place on the screen
 stickypane note rm roadmap            # to .sticky/.trash/
