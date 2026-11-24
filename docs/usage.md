@@ -291,6 +291,20 @@ answered says who is waiting. Where each worktree is is kept in
 moved or closed one, only where the desktop app keeps its records; a
 path is never written into the board.
 
+### What the worktrees changed
+
+A note with `type: diff` is a book of what each worktree changed: the list
+of worktrees with the files two of them both changed, then a page for each
+file the chosen worktree changed ([docs/shapes.md](shapes.md#diff)). It
+reads git itself, so it works without the `worktrees` tab.
+
+```sh
+stickypane note write changes --type diff --open </dev/null
+stickypane diff list                   # each worktree: base, files, lines; files two changed
+stickypane diff list feat/chart-ui     # the files one worktree changed
+stickypane diff show feat/chart-ui internal/chart/view.go
+```
+
 ## How edits are written
 
 The board never overwrites a file with what it last saw. An edit is an
