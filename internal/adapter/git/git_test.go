@@ -74,3 +74,39 @@ func TestReadsARealRepository(t *testing.T) {
 		t.Fatal("Main outside a repository is not empty")
 	}
 }
+
+// A .git file that git's records do not point back to is not believed: a
+// folder unpacked from an archive must not send the board to another
+// repository.
+func TestAForgedDotGitFileLeadsNowhere(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	dir := t.TempDir()
+	repo, wt, fake := filepath.Join(dir, "repo"), filepath.Join(dir, "wt"), filepath.Join(dir, "fake")
+	os.Mkdir(repo, 0o755)
+	os.Mkdir(fake, 0o755)
+	for _, args := range [][]string{{"init", "-q"}, {"commit", "-q", "--allow-empty", "-m", "first"}, {"worktree", "add", "-q", "-b", "feat", wt}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repo
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	// The fake copies the real worktree's .git line: git reads it, but the
+	// worktree's record names wt/.git, not fake/.git.
+	b, _ := os.ReadFile(filepath.Join(wt, ".git"))
+	os.WriteFile(filepath.Join(fake, ".git"), b, 0o644)
+	if m := Main(fake); m != "" {
+		t.Fatalf("Main of a forged .git = %q, want none", m)
+	}
+	// One that names a folder outside any worktrees/ is not believed either.
+	os.WriteFile(filepath.Join(fake, ".git"), []byte("gitdir: "+filepath.Join(repo, ".git")+"\n"), 0o644)
+	if m := Main(fake); m != "" {
+		t.Fatalf("Main of a .git naming the common dir = %q, want none", m)
+	}
+	if m := Main(wt); m == "" {
+		t.Fatal("the real worktree lost its main")
+	}
+}
