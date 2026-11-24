@@ -56,7 +56,7 @@ Showing a file is `stickypane show`, and a shape is `stickypane help
 | Script | Usage | Does |
 | --- | --- | --- |
 | `plugin/scripts/board-context.sh` | no arguments, in a project | prints `STICKYPANE_INSTALLED`, `STICKYPANE_VERSION`, `BOARD_DIR` and the note list |
-| `plugin/scripts/session-start.sh` | run by the SessionStart hook | tells the agent what is on the board; silent without one |
+| `plugin/scripts/session-start.sh` | run by the SessionStart hook | tells the agent what is on the board, and in a linked worktree its book (`worktree: <name> → worktrees/<name>/`), from the `cwd` of the hook's input; silent without a board |
 | `scripts/selfcheck.sh` | no arguments | checks manifests, scripts, skills and commands |
 
 Exit codes: `0` fine; `1` selfcheck found a problem (listed with ❌); `3`

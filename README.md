@@ -209,7 +209,8 @@ it has a `.sticky/` of its own. Each worktree's work goes in a book,
 `worktrees/<name>/`, named after the worktree's folder: it appears with an
 overview page, `00-개요.md`, at the first write into it, and is marked
 closed, never deleted, when the worktree is removed
-([docs/usage.md](docs/usage.md#git-worktrees)).
+([docs/usage.md](docs/usage.md#git-worktrees)). An agent that starts in a
+worktree is told its book by the plugin's session hook.
 
 ### One path for every change
 

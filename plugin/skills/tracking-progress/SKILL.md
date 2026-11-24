@@ -10,6 +10,7 @@ description: Use when a task has more than a few steps, when it will take long e
 stickypane todo refactor add "find every caller"     # makes refactor.md, open
 stickypane todo refactor add "move the function"
 stickypane card work add "login API" --to "To do"
+stickypane todo add worktrees/feat-chart/todo "fix the axis"   # in a worktree
 
 # while working
 stickypane todo refactor check callers               # a part of the text, or #1

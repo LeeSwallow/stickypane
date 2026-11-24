@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -68,11 +69,11 @@ func worktreeCmd(verb string) func(env, []string) error {
 	return func(e env, args []string) error {
 		fs := newFlags("worktree " + verb)
 		asJSON := fs.Bool("json", false, "print it as JSON")
-		n := 0
+		most := 0
 		if verb == "show" {
-			n = 1
+			most = 1
 		}
-		words, err := parse(fs, "worktree "+verb, args, n, n)
+		words, err := parse(fs, "worktree "+verb, args, 0, most)
 		if err != nil {
 			return err
 		}
@@ -85,7 +86,13 @@ func worktreeCmd(verb string) func(env, []string) error {
 		}
 		_, list := followWorktrees(dir, e.now)
 		if verb == "show" {
-			i := slices.IndexFunc(list, func(w worktree.Worktree) bool { return w.Name == words[0] })
+			i := slices.IndexFunc(list, func(w worktree.Worktree) bool { return len(words) == 1 && w.Name == words[0] })
+			if len(words) == 0 {
+				i = slices.IndexFunc(list, func(w worktree.Worktree) bool { return w.State == registry.StateOpen && inside(w.Path) })
+			}
+			if i < 0 && len(words) == 0 {
+				return i18n.Err("worktree.notHere", nil)
+			}
 			if i < 0 {
 				return i18n.Err("worktree.unknown", map[string]any{"Name": words[0]})
 			}
@@ -106,6 +113,18 @@ func worktreeCmd(verb string) func(env, []string) error {
 		}
 		return tw.Flush()
 	}
+}
+
+// inside says whether the current folder is the folder path or in it.
+func inside(path string) bool {
+	here, err := os.Getwd()
+	if path == "" || err != nil {
+		return false
+	}
+	here, err1 := filepath.EvalSymlinks(here)
+	path, err2 := filepath.EvalSymlinks(path)
+	rel, err3 := filepath.Rel(path, here)
+	return err1 == nil && err2 == nil && err3 == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // shownState is a worktree's state with running for a locked open one.

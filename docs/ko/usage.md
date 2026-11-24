@@ -106,7 +106,11 @@ front matter에 브랜치와 `state: open`이 적힙니다. git이 그 워크트
 ```sh
 stickypane todo add worktrees/chart/todo "막대에 이름 달기"
 stickypane worktree list          # 이름, 상태, 브랜치, 기다리는 form, 경로
+stickypane worktree show          # 지금 폴더가 속한 워크트리
 ```
+
+플러그인의 세션 훅은 에이전트의 세션이 시작한 폴더에서 이 마지막 명령을
+실행해 `worktree: chart → worktrees/chart/` 한 줄을 알려 줍니다.
 
 ## 지우기와 옮기기
 
