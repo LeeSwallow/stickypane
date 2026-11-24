@@ -165,7 +165,7 @@ was ticked or a card moved), and say when they next change as time passes
 **Arranging.** Whether a note is open, its size, height, pin, color and
 title come from three places, in order: the user's choice in `sticky.json`,
 the note's front matter, the note's kind. `internal/usecase/arrange` is the only
-code that decides; the screen and `stickypane list` and `set` ask it.
+code that decides; the screen and `stickypane note list` and `note set` ask it.
 
 **The registry.** `~/.stickypane` has one writer of records, `internal/adapter/registry`,
 and it writes only where the app's `overlay.json` (`registry.AppFile`) is
@@ -222,7 +222,7 @@ To add a shape:
    form: what to ask (text, lines, choice, number, bool), and the whole
    new file written from the answers in the shape's own format.
    `Kind.Make` checks the answers and fills in the defaults; the bridge's
-   `kinds.list` and `note.create` and `stickypane write --opt` use it, so
+   `kinds.list` and `note.create` and `stickypane note write --opt` use it, so
    no screen writes a shape's format itself. An option's label is a key
    of the "labels" in `internal/core/i18n/translations`, and so is each
    line of a default marked `Words`, which `Kind.OptionsIn` and `Make`

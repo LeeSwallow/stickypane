@@ -4,7 +4,7 @@
 자세합니다(인덱스, 노트 옮기기, `stickypane watch`, 편집이 쓰이는 방식).
 [README로 돌아가기](../../README.ko.md)
 
-명령마다 도움말이 프로그램 안에 있습니다. `stickypane help <명령>`은 명령 하나를
+명령마다 도움말이 프로그램 안에 있습니다. `stickypane help <명령>`(또는 `stickypane <명령> --help`)은 명령 하나를
 예시와 함께, `stickypane help --all`은 모든 명령과 옵션을 한 페이지에 보여 줍니다.
 
 ## 키
@@ -119,7 +119,7 @@ stickypane worktree show          # 지금 폴더가 속한 워크트리
 것을 되돌립니다.
 
 ```sh
-stickypane mv plan deploy/       # deploy 탭으로
-stickypane rm plan               # .sticky/.trash/로
-stickypane restore plan          # 되돌리기
+stickypane note mv plan deploy/       # deploy 탭으로
+stickypane note rm plan               # .sticky/.trash/로
+stickypane note restore plan          # 되돌리기
 ```
