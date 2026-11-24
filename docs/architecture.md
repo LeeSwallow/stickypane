@@ -38,6 +38,7 @@ where a stamp is made.
 | 0 | `surface/editor`, `surface/lineedit` | the terminal's text editor and the one-line editor of its bottom line |
 | | **usecase** | |
 | 40 | `usecase/api`, `usecase/initcmd` | the use cases every front end goes through: the terminal, the bridge, MCP and the command line; setting a project up |
+| 35 | `usecase/worktree` | the board in step with the repository's git worktrees: each recorded in the registry, its folder `worktrees/<name>/` made with `00-개요.md` at the first write into it (through `store.Store.NewFolder`), and marked closed, never deleted, when git no longer has it |
 | 30 | `usecase/arrange` | how a note is arranged: the user's choice, the front matter, the kind |
 | 15 | `usecase/prefs` | what a user may change, each with a default |
 | 5 | `usecase/harness` | the plugin's skills, read for MCP and `stickypane guide` |

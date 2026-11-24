@@ -25,6 +25,10 @@ var says = map[string]string{
 	"help.unknown":         "no command or shape is called {{.Name}}; stickypane help lists the commands, stickypane kinds the shapes",
 	"help.all":             "Every command",
 
+	// A worktree's folder: the first lines of its overview page.
+	"worktree.overview":         "Branch `{{.Branch}}`. What this worktree is for goes here.",
+	"worktree.overviewDetached": "A worktree with no branch. What it is for goes here.",
+
 	// stickypane init, and the board it makes.
 	"init.badView":     "--view is terminal, app or both, not {{.Value}}",
 	"init.badStyle":    "--style is doodle or neat, not {{.Value}}",

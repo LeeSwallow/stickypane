@@ -389,6 +389,8 @@
     "init.badLanguage": "--language에는 {{.Languages}}, auto만 쓸 수 있어요: {{.Value}}",
     "init.rootFolder": "루트 폴더({{.Dir}})에는 보드를 만들지 않아요. 프로젝트 안에서 stickypane init을 실행하세요.",
     "init.homeFolder": "홈 폴더({{.Dir}})에는 보드를 만들지 않아요. 그 아래 모든 프로젝트가 이 보드를 쓰게 되니 프로젝트 안에서 stickypane init을 실행하세요.",
+    "worktree.overview": "브랜치 `{{.Branch}}`. 이 워크트리에서 하는 일을 여기에 적는다.",
+    "worktree.overviewDetached": "브랜치 없는 워크트리. 하는 일을 여기에 적는다.",
     "init.made": "{{.Dir}}/ 폴더를 만들고 환영 노트를 넣었어요.",
     "init.exists": "{{.Dir}}/ 폴더가 이미 있어요.",
     "init.added": "{{.Files}}에 에이전트 안내를 넣었어요",
