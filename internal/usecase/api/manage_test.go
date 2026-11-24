@@ -328,13 +328,17 @@ func TestMovingIntoATabTakesTheArrangementAlong(t *testing.T) {
 		}
 	}
 	st := store.Open(dir)
+	// paging (#142) is the whole entry's too: it goes where the rest goes
+	if err := st.SetView("plan.md", func(v *store.View) { v.Paging = store.PagingSingle }); err != nil {
+		t.Fatal(err)
+	}
 	for _, step := range [][2]string{{"plan", "deploy/"}, {"deploy/plan", "deploy/roadmap"}} {
 		if _, err := a.Move(step[0], step[1]); err != nil {
 			t.Fatal(err)
 		}
 	}
 	v, _ := st.Views()
-	if n := v["deploy/roadmap.md"]; n.Open == nil || !*n.Open || n.Size != "1/2" || n.Pin == nil || !*n.Pin || n.Color != "pink" {
+	if n := v["deploy/roadmap.md"]; n.Open == nil || !*n.Open || n.Size != "1/2" || n.Pin == nil || !*n.Pin || n.Color != "pink" || n.Paging != store.PagingSingle {
 		t.Errorf("a note moved into a tab and renamed there keeps its arrangement: %+v", v)
 	}
 	if _, err := a.Move("b", "deploy/docs/"); err != nil {
