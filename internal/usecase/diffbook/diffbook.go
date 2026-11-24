@@ -165,5 +165,6 @@ func PR(path string) *diff.PR {
 	if !ok {
 		return nil
 	}
-	return &diff.PR{Title: pr.Title, State: pr.State, URL: pr.URL}
+	p := diff.PR(pr)
+	return &p
 }
