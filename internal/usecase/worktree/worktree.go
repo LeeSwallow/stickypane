@@ -291,8 +291,7 @@ func (b Board) overview(w registry.Worktree) []byte {
 		text = tr.Say("worktree.overview", map[string]any{"Branch": w.Branch})
 	}
 	d := doc.Parse([]byte("# " + w.Name + "\n\n" + text + "\n"))
-	// Open on the screen, as a note an agent makes is.
-	d = d.Set("branch", w.Branch).Set("state", registry.StateOpen).Set("open", "true").Set("created", b.Now().Format(when.Stamp))
+	d = d.Set("branch", w.Branch).Set("state", registry.StateOpen).Set("created", b.Now().Format(when.Stamp))
 	return d.Bytes()
 }
 
