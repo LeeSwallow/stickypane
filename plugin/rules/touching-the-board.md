@@ -20,7 +20,7 @@ An item, a card or a column is named by its text, a part of it, or `#2`.
 
 - Never edit `sticky.json`: it is how the user arranged the screen.
 - Do not write times, or the numbers of a `from:` chart: the board does.
-- The user edits from the board too. Use the commands, and run
-  `stickypane cat <name>` before you rewrite a note.
+- The user edits too: run `stickypane cat <name>` before rewriting a note.
+- In a worktree, write in the folder the session names: `worktrees/<name>/`.
 - Read a form with `stickypane wait` or `answers`, a chat with `watch`.
 - Run nothing (`watch --exec`) and remove nothing unless the user asks.
