@@ -2,6 +2,7 @@ package initcmd
 
 import (
 	"fmt"
+	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +23,11 @@ func TestMain(m *testing.M) {
 	os.Setenv("CODEX_HOME", filepath.Join(tmp, "codex"))
 	// The tests read the English output, whatever the machine's language.
 	os.Setenv("STICKYPANE_LANG", "en")
+	// git's variables, set when the tests run from a git hook, would send
+	// the git the tests run to the repository being worked on.
+	for _, v := range git.Local {
+		os.Unsetenv(v)
+	}
 	// No pane tool, so the next step a test sees is the plain one.
 	for _, v := range []string{"TMUX", "ZELLIJ", "ORCA_TERMINAL_HANDLE", "WEZTERM_PANE", "TERM_PROGRAM", "WT_SESSION"} {
 		os.Unsetenv(v)
