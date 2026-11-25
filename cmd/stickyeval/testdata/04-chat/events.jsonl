@@ -1,0 +1,4 @@
+{"at":"2026-11-25T10:00:01+09:00","kind":"skill","text":"talking-while-working"}
+{"at":"2026-11-25T10:00:02+09:00","kind":"command","text":"ls"}
+{"at":"2026-11-25T10:00:03+09:00","kind":"command","text":"stickypane chat add chat \"files: README.md, main.go\""}
+{"at":"2026-11-25T10:00:04+09:00","kind":"command","text":"stickypane watch --once --note chat --type message.added --timeout 10m --json","exit":3}

@@ -14,7 +14,7 @@ var Kind = widget.Kind{
 	Label:    "Chart",
 	Icon:     "▤",
 	Blurb:    "Numbers as bars, a trend line, or a calendar of days.",
-	Command:  "stickypane chart tokens add input 1200",
+	Command:  "stickypane chart add tokens input 1200",
 	Usage:    "Each \"label: number\" line is a value; other lines are text above the chart. \"view: spark\" draws a one-line trend and \"view: heat\" a calendar when the labels are dates. `set` replaces a value, `add` counts it up.",
 	Example:  "app: 61\nboard: 31\nchecklist: 21\nstore: 16\n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },

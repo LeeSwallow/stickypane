@@ -5,6 +5,7 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,7 +51,7 @@ func Parse(out []byte) []Worktree {
 }
 
 // Worktrees lists the worktrees of the repository dir is in, the main one
-// first.
+// first. Where dir is in no repository, the error is ErrNoRepository.
 func Worktrees(dir string) ([]Worktree, error) {
 	out, err := run(dir, "worktree", "list", "--porcelain")
 	if err != nil {
@@ -60,37 +61,44 @@ func Worktrees(dir string) ([]Worktree, error) {
 }
 
 // Main is the path of the main worktree of the repository whose worktree
-// is at dir, or "" when there is none: no git, no repository, a bare one,
-// or a .git file that git's own records do not point back to. A .git file
-// is only a line of text, one an archive could carry: it is believed only
+// is at dir, or "" when there is none: no repository, a bare one, or a
+// .git file that git's own records do not point back to. A .git file is
+// only a line of text, one an archive could carry: it is believed only
 // when it names <main>/.git/worktrees/<id> and that folder's gitdir file
-// names this .git again.
+// names this .git again; main is then read from it, without git. A .git
+// folder is asked of git.
 func Main(dir string) string {
 	dotgit := filepath.Join(dir, ".git")
 	fi, err := os.Lstat(dotgit)
-	if err != nil || !(fi.IsDir() || fi.Mode().IsRegular()) {
+	switch {
+	case err != nil:
+		return ""
+	case fi.Mode().IsRegular():
+		return linked(dotgit)
+	case !fi.IsDir():
 		return ""
 	}
 	list, err := Worktrees(dir)
 	if err != nil || len(list) == 0 || list[0].Bare {
 		return ""
 	}
-	main := list[0].Path
-	if fi.Mode().IsRegular() && !linked(dotgit, main) {
-		return ""
-	}
-	return main
+	return list[0].Path
 }
 
-// linked says whether the .git file dotgit names a worktree folder of the
-// repository at main, and that folder names dotgit back.
-func linked(dotgit, main string) bool {
+// linked is the main worktree of the repository whose worktree folder
+// <main>/.git/worktrees/<id> the .git file dotgit names, when that folder
+// names dotgit back; "" otherwise.
+func linked(dotgit string) string {
 	gitdir, ok := pointer(dotgit, "gitdir: ")
-	if !ok || !same(filepath.Dir(gitdir), filepath.Join(main, ".git", "worktrees")) {
-		return false
+	worktrees := filepath.Dir(gitdir)
+	common := filepath.Dir(worktrees)
+	if !ok || filepath.Base(worktrees) != "worktrees" || filepath.Base(common) != ".git" {
+		return ""
 	}
-	back, ok := pointer(filepath.Join(gitdir, "gitdir"), "")
-	return ok && same(back, dotgit)
+	if back, ok := pointer(filepath.Join(gitdir, "gitdir"), ""); !ok || !Same(back, dotgit) {
+		return ""
+	}
+	return filepath.Dir(common)
 }
 
 // pointer reads the path in the one-line file at p after prefix, taken
@@ -110,8 +118,8 @@ func pointer(p, prefix string) (string, bool) {
 	return v, true
 }
 
-// same says whether a and b are the same file or folder.
-func same(a, b string) bool {
+// Same says whether a and b are the same file or folder.
+func Same(a, b string) bool {
 	fa, err1 := os.Stat(a)
 	fb, err2 := os.Stat(b)
 	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
@@ -153,13 +161,27 @@ func Environ() []string {
 	return env
 }
 
-func run(dir string, args ...string) ([]byte, error) {
-	// No fsmonitor: a repository's config must not start a program here.
-	// Paths come back as they are, not with their bytes escaped.
+// ErrNoRepository is git saying the folder is in no repository.
+var ErrNoRepository = errors.New("not a git repository")
+
+// command is git run in dir. No fsmonitor: a repository's config must not
+// start a program here. Paths come back as they are, not with their bytes
+// escaped.
+func command(dir string, args ...string) *exec.Cmd {
 	cmd := exec.Command("git", append([]string{"-c", "core.fsmonitor=false", "-c", "core.quotePath=false", "-C", dir}, args...)...)
 	cmd.Env = Environ()
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	return cmd
+}
+
+func run(dir string, args ...string) ([]byte, error) {
+	// git speaks English (LC_ALL=C), so that its complaint can be read.
+	cmd := command(dir, args...)
+	cmd.Env = append(cmd.Env, "LC_ALL=C")
+	var out, complaint bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &complaint
 	err := cmd.Run()
+	if err != nil && strings.Contains(complaint.String(), "not a git repository") {
+		err = ErrNoRepository
+	}
 	return out.Bytes(), err
 }

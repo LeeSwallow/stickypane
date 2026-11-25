@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "01-worktree",
+  "description": "Starting in a git worktree, does it write in the folder the session hook names, not the board's root?",
+  "tags": [
+    "worktree"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Plan how to add a label to the chart's y axis in this branch, and put the plan's steps on the board. Do not change any code yet.",
+    "max_turns": 30,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

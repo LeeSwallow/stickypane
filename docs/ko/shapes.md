@@ -18,7 +18,7 @@
 | 탭 안의 폴더 | 책. 파일 하나가 페이지 하나, `,` `.`으로 넘김. `v`(또는 `stickypane note set <책> paging=single`)는 한 페이지씩 보기와 모두 보기를 바꿈. 데스크톱 앱도 같이 그림. `N`으로 페이지 추가 |
 
 마크다운 노트 안의 ```` ```mermaid ```` 블록은 그림으로 그려집니다(순서도, 시퀀스,
-ER). `stickypane show README.md`처럼 프로젝트의 어떤 파일이든 복사 없이 보드에
+ER). `stickypane note show README.md`처럼 프로젝트의 어떤 파일이든 복사 없이 보드에
 올릴 수 있습니다(심볼릭 링크).
 
 ## 폼

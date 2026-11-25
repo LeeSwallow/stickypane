@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "11-language",
+  "description": "The user's language: does it write the notes in Korean when asked in Korean?",
+  "tags": [
+    "writing-notes"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "이 저장소에 README를 쓰는 계획을 세 단계로 보드에 올려 줘. 아직 파일은 만들지 마.",
+    "max_turns": 30,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ allowed-tools: Bash(stickypane:*)
 Follow the `board:talking-while-working` skill. Say this in the chat note `chat`:
 $ARGUMENTS
 
-Run `stickypane say chat "<message>"` (it signs as `agent`; add
+Run `stickypane chat add chat "<message>"` (it signs as `agent`; add
 `--as <your name>` to sign as yourself), then wait for a reply with
 `stickypane watch --once --note chat --type message.added --timeout 10m --json`
 and act on it. Exit code 3: no reply came; say so.

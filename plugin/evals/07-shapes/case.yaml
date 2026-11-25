@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "name": "07-shapes",
+  "description": "The shape that fits: a log for what happened, a chart for numbers, a script for a command the user runs.",
+  "tags": [
+    "showing-numbers",
+    "handing-over-a-command"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Three things for the board: record that the nightly build finished with 2 warnings; show the token use of the last three runs, 1200, 1500 and 900; and give me the command that clears the build cache, rm -rf .cache/build, to run myself after I read it.",
+    "max_turns": 40,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

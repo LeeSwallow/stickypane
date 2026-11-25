@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"time"
@@ -31,8 +32,7 @@ type diffState struct {
 	at     time.Time
 	book   diffbook.Book
 	bodies map[string]diffBody // the diffs of the pages drawn since
-	prPath string              // the worktree the pull request was asked for
-	pr     *diff.PR
+	pr     *diff.PR            // the pull request of book.Path
 }
 
 // diffBody is one file's diff as git gave it.
@@ -70,9 +70,7 @@ func (m *Model) diffPages(n store.Note, old map[string]page) []page {
 	var pages []page
 	if pinned == "" {
 		o := st.book.Overview
-		if st.prPath == st.book.Path {
-			o.PR = st.pr
-		}
+		o.PR = st.pr
 		cursor := ""
 		if l, ok := old[n.Name].w.(*diff.List); ok {
 			cursor = l.Cursor()
@@ -107,14 +105,14 @@ func (m *Model) readDiff(note, chosen, base string) *diffState {
 		return prev
 	}
 	book, err := diffbook.Read(filepath.Dir(m.store.Dir), chosen, base)
-	if err != nil && len(book.Overview.Worktrees) == 0 {
-		m.status = say(m.tr.CannotReadNotes, map[string]any{"Err": err.Error()})
+	// Outside a repository the list says there are no worktrees.
+	if err != nil && len(book.Overview.Worktrees) == 0 && !errors.Is(err, git.ErrNoRepository) {
+		m.status = say(m.tr.CannotReadChanges, map[string]any{"Err": err.Error()})
 	}
 	st := &diffState{key: key, at: m.now(), book: book, bodies: map[string]diffBody{}}
-	if prev != nil && prev.prPath == book.Path {
-		st.prPath, st.pr = prev.prPath, prev.pr
+	if prev != nil && prev.book.Path == book.Path {
+		st.pr = prev.pr
 	} else if path := book.Path; path != "" {
-		st.prPath = path
 		m.pending = tea.Batch(m.pending, func() tea.Msg { return prMsg{note, path, diffbook.PR(path)} })
 	}
 	if m.diffs == nil {
@@ -127,7 +125,7 @@ func (m *Model) readDiff(note, chosen, base string) *diffState {
 // gotPR shows the pull request gh found, if the note still shows that
 // worktree.
 func (m *Model) gotPR(msg prMsg) {
-	if st := m.diffs[msg.note]; st != nil && st.prPath == msg.path && msg.pr != nil {
+	if st := m.diffs[msg.note]; st != nil && st.book.Path == msg.path && msg.pr != nil {
 		st.pr = msg.pr
 		m.reload()
 	}

@@ -463,6 +463,13 @@ stickypane help --all     모든 명령과 옵션을 한 페이지에
 [ROADMAP.md](ROADMAP.md), 원칙은 [VISION.md](VISION.md)에 있습니다.
 그 밖의 문서는 [docs/](docs/README.md)에 모여 있습니다.
 
+스킬이 에이전트를 보드를 제대로 쓰게 하는지는 실험으로 잽니다.
+[`plugin/evals/`](plugin/evals/)의 케이스 열한 개를 Claude Code와 Codex에서,
+플러그인이 있을 때와 없을 때 같은 기준으로 채점합니다.
+`go run ./cmd/stickyeval`은 케이스를 보여 주고 `-plan`은 실행 계획과 비용을
+어림할 값을 보여 줍니다. 모델을 부르는 것은 `-run`뿐이고, 메인테이너가 먼저
+승인합니다. 나머지는 CONTRIBUTING.md에 있습니다.
+
 ## 라이선스
 
 [MIT](LICENSE), © 2026 LeeSwallow. 쓰인 라이브러리와 테마 팔레트는

@@ -484,6 +484,13 @@ Coding agents read [AGENTS.md](AGENTS.md) first. The plan is in
 [ROADMAP.md](ROADMAP.md) and the principles in [VISION.md](VISION.md).
 Everything else written down is listed in [docs/](docs/README.md).
 
+Whether the skills make agents use the board right is measured by an
+experiment: eleven cases in [`plugin/evals/`](plugin/evals/), graded the
+same way for Claude Code and Codex, with the plugin and without it.
+`go run ./cmd/stickyeval` lists them and `-plan` shows what a run would
+cost to know; only `-run` calls a model, and the maintainer approves that
+first. CONTRIBUTING.md has the rest.
+
 ## License
 
 [MIT](LICENSE), © 2026 LeeSwallow. The libraries and theme palettes it uses

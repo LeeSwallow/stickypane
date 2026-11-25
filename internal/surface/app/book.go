@@ -21,6 +21,7 @@ type book struct {
 	at     int   // the page the view is on
 	starts []int // the line each page started at in the last Draw
 	single bool  // one page at a time
+	fixed  bool  // single, and v does not change it: the book holds a diff
 	env    widget.Env
 }
 

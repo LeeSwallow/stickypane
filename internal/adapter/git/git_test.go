@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -132,5 +133,17 @@ func TestTheCallersGitDirIsIgnored(t *testing.T) {
 	real := func(p string) string { r, _ := filepath.EvalSymlinks(p); return r }
 	if err != nil || real(common) != real(filepath.Join(repo, ".git")) {
 		t.Fatalf("CommonDir = %q, %v; want the repository's own", common, err)
+	}
+}
+
+// Outside a repository git says so, whatever language it speaks.
+func TestNoWorktreesOutsideARepository(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("no git")
+	}
+	t.Setenv("LANGUAGE", "ko")
+	t.Setenv("LC_ALL", "ko_KR.UTF-8")
+	if list, err := Worktrees(t.TempDir()); list != nil || !errors.Is(err, ErrNoRepository) {
+		t.Fatalf("Worktrees = %v, %v", list, err)
 	}
 }

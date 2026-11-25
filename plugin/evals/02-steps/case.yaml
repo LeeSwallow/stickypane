@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "02-steps",
+  "description": "A task of several steps: does it put them on a checklist and tick each only after its command ran?",
+  "tags": [
+    "tracking-the-work"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Release prep has three steps; run them in this order: sh step1.sh (build), sh step2.sh (test), sh step3.sh (package). I will be away while you do it.",
+    "max_turns": 40,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

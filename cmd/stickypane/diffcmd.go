@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"text/tabwriter"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/git"
-	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/usecase/diffbook"
 )
 
@@ -17,6 +15,10 @@ func diffCmd(verb string) func(env, []string) error {
 	return func(e env, args []string) error {
 		fs := newFlags("diff " + verb)
 		asJSON := fs.Bool("json", false, "print it as JSON")
+		var uncommitted *bool
+		if verb == "show" {
+			uncommitted = fs.Bool("uncommitted", false, "the edits not committed yet, not the commits")
+		}
 		least, most := 0, 1
 		if verb == "show" {
 			least, most = 2, 2
@@ -29,20 +31,8 @@ func diffCmd(verb string) func(env, []string) error {
 		if len(words) > 0 {
 			chosen = words[0]
 		}
-		book, err := diffbook.Read(".", chosen, "")
-		if err != nil {
-			return err
-		}
-		if chosen != "" && book.Overview.Chosen != chosen {
-			return i18n.Err("diff.unknown", map[string]any{"Name": chosen})
-		}
-		switch {
-		case verb == "show":
-			i := slices.IndexFunc(book.Changes, func(c git.Change) bool { return c.Path == words[1] })
-			if i < 0 {
-				return i18n.Err("diff.nofile", map[string]any{"Name": chosen, "File": words[1]})
-			}
-			text, cut, err := book.Diff(book.Changes[i])
+		if verb == "show" {
+			c, text, cut, err := diffbook.Show(".", chosen, words[1], *uncommitted)
 			if err != nil {
 				return err
 			}
@@ -51,11 +41,16 @@ func diffCmd(verb string) func(env, []string) error {
 					git.Change
 					Diff string `json:"diff"`
 					Cut  bool   `json:"cut,omitempty"`
-				}{book.Changes[i], text, cut})
+				}{c, text, cut})
 			}
 			_, err = fmt.Fprint(e.stdout, text)
 			return err
-		case chosen != "":
+		}
+		book, err := diffbook.List(".", chosen)
+		if err != nil {
+			return err
+		}
+		if chosen != "" {
 			if *asJSON {
 				return printJSON(e.stdout, book.Changes)
 			}

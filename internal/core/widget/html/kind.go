@@ -19,7 +19,7 @@ var Kind = widget.Kind{
 	Label:    "HTML (view only)",
 	Icon:     "⌗",
 	Blurb:    "A web page. The terminal shows its text; the app draws it.",
-	Command:  "stickypane show report.html",
+	Command:  "stickypane note show report.html",
 	Usage:    "An .html or .htm file. The terminal shows the text of the page, without tags, scripts or styles; the desktop app draws the page itself. Nothing on it can be changed from a screen.",
 	Example:  "<h1>Benchmark</h1>\n<p>Run took 4.2s, down from 6.1s.</p>\n",
 	Size:     func(doc.Document) string { return widget.SizeHalf },

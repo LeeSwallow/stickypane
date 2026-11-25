@@ -62,13 +62,19 @@ func turnPage(delta int) func(*Model) tea.Cmd {
 	}
 }
 
+// fixedPaging says whether the item is a book whose paging v cannot change.
+func (it item) fixedPaging() bool {
+	b, ok := it.w.(*book)
+	return ok && b.fixed
+}
+
 // togglePaging shows a book's pages one at a time, or all again, and keeps
 // the choice in sticky.json; back to all pages takes the key out. The view
 // stays on its page, at the page's top.
 func togglePaging(m *Model) tea.Cmd {
 	name := m.shownBook()
 	i := m.index(name)
-	if i < 0 || len(m.items[i].pages) == 0 {
+	if i < 0 || len(m.items[i].pages) == 0 || m.items[i].fixedPaging() {
 		return nil
 	}
 	paging := store.PagingSingle
@@ -422,7 +428,11 @@ func (m *Model) moving(pairs ...string) []string {
 		if m.views[m.focus].Paging == store.PagingSingle {
 			mode = "all pages"
 		}
-		pairs = append(append(m.keys.hint("page", "page-prev", "page-next"), m.keys.hint(mode, "page-mode")...), pairs...)
+		turn := m.keys.hint("page", "page-prev", "page-next")
+		if !m.items[i].fixedPaging() {
+			turn = append(turn, m.keys.hint(mode, "page-mode")...)
+		}
+		pairs = append(turn, pairs...)
 	}
 	return pairs
 }

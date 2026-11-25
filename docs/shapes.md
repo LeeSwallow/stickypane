@@ -59,8 +59,8 @@ the screen with its number; the files in the folder are its notes, and the
 root folder is the first tab, named after the project. `1`–`9`, `gt` `gT` or
 a click switch tabs; the active tab is remembered. A tab's folder can hold
 its own `sticky.json` with a `title` and the layout of its notes, so one
-folder is one complete, shareable screen. `stickypane show deploy/run.sh`
-switches to that tab.
+folder is one complete, shareable screen. `stickypane note show
+deploy/run.sh` switches to that tab.
 
 **Books.** A folder inside a tab is shown as one pane that scrolls like one
 long note: its files follow one another, each under a rule with its name,
@@ -73,11 +73,12 @@ scrolls to its own end and no further. `v` again shows every page. The
 board keeps the choice as `"paging": "single"` in the book's entry of
 `sticky.json` and takes it out again; `stickypane note set deploy/docs
 paging=single` (or `paging=`) makes the same choice, and the desktop app
-draws the book the same way. `N` on a book adds a page to it (`a`
+draws the book the same way. A diff note, and a book that holds one, is
+always one page at a time; `v` does nothing there. `N` on a book adds a page to it (`a`
 one of a shape), named after what you type, and `stickypane page add
 deploy/docs notes` does the same; pages follow their file names, so a
-number in front orders them. `stickypane link docs` puts a folder of your project on the
-board as a tab without copying it, and `stickypane link README.md` does the
+number in front orders them. `stickypane note link docs` puts a folder of your project on the
+board as a tab without copying it, and `stickypane note link README.md` does the
 same for a file; both make a symbolic link, so what you change on the board
 is changed in the real file.
 
@@ -199,7 +200,7 @@ graph LR
 A conversation with your agent, kept in the folder. Each message is
 `@name HH:MM text` under a heading for its day; the board writes the time.
 You press `n` to answer, as `$STICKYPANE_USER`, git's `user.name` or your
-login name; the agent says things with `stickypane say` and hears you with
+login name; the agent says things with `stickypane chat add` and hears you with
 `stickypane watch --once --note chat --type message.added`.
 
 ```markdown

@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "name": "04-chat",
+  "description": "Talking on the board: does it add to the chat with chat add and listen with watch, never writing chat.md itself?",
+  "tags": [
+    "talking-while-working"
+  ],
+  "context": {
+    "scaffold_script": "scaffold.sh"
+  },
+  "execution": {
+    "prompt": "Let's talk on the board instead of here. Tell me there which files this project has, then wait there for my reply.",
+    "max_turns": 30,
+    "timeout_seconds": 600,
+    "allowed_tools": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill"
+    ]
+  },
+  "runs": 3,
+  "graders": [
+    {
+      "name": "skill-fired",
+      "type": "tool_used",
+      "tool": "Skill"
+    }
+  ]
+}

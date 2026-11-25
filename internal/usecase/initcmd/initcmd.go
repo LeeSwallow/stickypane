@@ -97,6 +97,10 @@ type Options struct {
 	// the welcome note is written in it. Empty or "auto" leaves it to
 	// Language.
 	Language string
+	// Board is where the notes folder is made when not in root: the main
+	// worktree, for init in a linked one (BoardRoot). It is named in full
+	// in what Run says.
+	Board string
 }
 
 // skillPath is where a project's Claude Code skill for stickypane lives.
@@ -129,26 +133,49 @@ func GuideText() string {
 // would be found from every folder under it. In a second worktree of a
 // repository it is the main worktree, whose board every worktree shares.
 func ProjectRoot(start string) string {
-	dir, err := filepath.Abs(start)
-	if err != nil {
+	dir, fi := top(start)
+	if fi == nil {
 		return ""
 	}
-	home, _ := os.UserHomeDir()
+	if !fi.IsDir() {
+		if main := git.Main(dir); main != "" {
+			dir = main
+		}
+	}
+	if home, _ := os.UserHomeDir(); home != "" && sameDir(dir, home) {
+		return ""
+	}
+	return dir
+}
+
+// BoardRoot is the main worktree when start is in a linked worktree of a
+// repository that has no .sticky/ of its own, else "": the repository has
+// one board, in its main worktree, unless a person made a worktree its own.
+func BoardRoot(start string) string {
+	dir, fi := top(start)
+	if fi == nil || fi.IsDir() {
+		return ""
+	}
+	if _, own := os.Stat(filepath.Join(dir, store.DirName)); own == nil {
+		return ""
+	}
+	return git.Main(dir)
+}
+
+// top is the nearest folder at or above start with a .git, and that .git;
+// nil when there is none.
+func top(start string) (string, os.FileInfo) {
+	dir, err := filepath.Abs(start)
+	if err != nil {
+		return "", nil
+	}
 	for {
 		if fi, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
-			if !fi.IsDir() {
-				if main := git.Main(dir); main != "" {
-					dir = main
-				}
-			}
-			if home != "" && sameDir(dir, home) {
-				return ""
-			}
-			return dir
+			return dir, fi
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return ""
+			return "", nil
 		}
 		dir = parent
 	}
@@ -194,16 +221,24 @@ func MakeBoard(root, lang string) (string, bool, error) {
 // project has a .claude folder but no CLAUDE.md; Codex and other agents get
 // it in AGENTS.md. When no file and no plugin is there, AGENTS.md is made.
 func Run(root string, opts Options, out io.Writer) error {
-	dir, made, err := MakeBoard(root, opts.Language)
+	at := root
+	if opts.Board != "" {
+		at = opts.Board
+	}
+	dir, made, err := MakeBoard(at, opts.Language)
 	if err != nil {
 		return err
+	}
+	name := filepath.Base(dir)
+	if opts.Board != "" {
+		name = dir
 	}
 	// What init says is in the board's language, as its welcome note is.
 	tr := i18n.Pick(Language(dir, opts.Language), env.Detect().Locale)
 	if made {
-		fmt.Fprintln(out, tr.Say("init.made", map[string]any{"Dir": filepath.Base(dir)}))
+		fmt.Fprintln(out, tr.Say("init.made", map[string]any{"Dir": name}))
 	} else {
-		fmt.Fprintln(out, tr.Say("init.exists", map[string]any{"Dir": filepath.Base(dir)}))
+		fmt.Fprintln(out, tr.Say("init.exists", map[string]any{"Dir": name}))
 	}
 	if !opts.NoAgentDocs {
 		var r report

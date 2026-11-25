@@ -16,13 +16,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/usecase/api"
+	"github.com/LeeSwallow/stickypane/internal/usecase/diffbook"
+	"github.com/LeeSwallow/stickypane/internal/usecase/worktree"
 )
 
 // defaultProtocol is answered when the client does not name a version.
@@ -127,25 +132,18 @@ var tools = []tool{
 		}),
 	},
 	{
-		Name:        "index",
-		Description: "Every note of the board in a line, by tab: its title, what it counts (2/5, 7 cards) and a gist (its summary, the next open item, the latest log line). Read this to know what is on the board, instead of every note.",
-		InputSchema: object(nil, map[string]any{}),
-	},
-	{
-		Name:        "read_note",
-		Description: "Read one note's Markdown file, front matter included. Read a note before rewriting it: the user may have changed it from the board.",
-		InputSchema: object([]string{"name"}, map[string]any{"name": str(`The note's file name, such as "plan" or "plan.md".`)}),
-	},
-	{
-		Name:        "write_note",
-		Description: "Create a note or replace its content. The content is Markdown and may start with front matter. How the user arranged an existing note (open, size, color, pin) is kept unless you set it. Call the guide tool for the formats of boards, checklists, logs, charts and forms.",
-		InputSchema: object([]string{"name", "content"}, map[string]any{
-			"name":    str(`The note's file name, such as "plan" or "plan.md". Prefix a number ("10-plan") to control the order.`),
-			"content": str("The whole note as Markdown."),
-			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form", "chat"}, "description": "The note's shape. Omit for a plain note."},
-			"title":   str("Shown in the title bar and the note's border."),
-			"open":    map[string]any{"type": "boolean", "description": "true puts the note on the screen now."},
-			"size":    map[string]any{"type": "string", "enum": []string{"1/4", "1/3", "1/2", "2/3", "3/4", "1", "card"}, "description": "The width as a fraction of the screen: 1 is the whole width, 1/2 half of it; card is the narrowest that fits a small sticky note. The old names half and page are read as 1/2 and 1."},
+		Name:        "note",
+		Description: "One note by its action. read: its Markdown file. write: create or replace it with content (read it first: the user may have changed it; how they arranged it is kept unless you set it). set: change front matter keys only. list: every note in a line, by tab, with what it counts and a gist; read this instead of every note. show: put it, or any file or folder of the project, in front of the user. hide: fold it away. link: show a file or folder of the project as a note. mv: rename it or move it into a tab or book. rm: to the trash. archive: out of sight. restore: back from the trash.",
+		InputSchema: object([]string{"action"}, map[string]any{
+			"action":  map[string]any{"type": "string", "enum": []string{"read", "write", "set", "list", "show", "hide", "link", "mv", "rm", "archive", "restore"}},
+			"name":    str(`The note's file name, such as "plan", "plan.md" or "docs/plan"; for show and link, also a path such as "README.md" or "docs/". Prefix a number ("10-plan") to control the order.`),
+			"content": str("For write: the whole note as Markdown, which may start with front matter. The guide tool gives the formats of boards, checklists, logs, charts and forms."),
+			"type":    map[string]any{"type": "string", "enum": []string{"note", "board", "checklist", "log", "chart", "form", "chat"}, "description": "For write: the note's shape. Omit for a plain note."},
+			"title":   str("For write: shown in the title bar and the note's border."),
+			"open":    map[string]any{"type": "boolean", "description": "For write: true puts the note on the screen now."},
+			"size":    map[string]any{"type": "string", "enum": []string{"1/4", "1/3", "1/2", "2/3", "3/4", "1", "card"}, "description": "For write: the width as a fraction of the screen; card is the narrowest that fits a small sticky note."},
+			"keys":    map[string]any{"type": "object", "description": `For set: keys and their new values, such as {"open": true, "size": "1/2"}: title, open, size, rows, color, pin, view. An empty value removes the key.`},
+			"to":      str(`For mv: a new name ("roadmap"), a folder ending in "/" ("docs/"), or "." for the top level. For link: the note's name (optional).`),
 		}),
 	},
 	{
@@ -181,34 +179,46 @@ var tools = []tool{
 		Name:        "log",
 		Description: "Add one line at the end of a log note. A log that does not exist yet is made.",
 		InputSchema: object([]string{"name", "line"}, map[string]any{
-			"name": str(`The log's file name, such as "worklog".`),
-			"line": str("The entry, one line."),
+			"action": map[string]any{"type": "string", "enum": []string{"add"}, "description": "Default add."},
+			"name":   str(`The log's file name, such as "worklog".`),
+			"line":   str("The entry, one line."),
 		}),
 	},
 	{
-		Name:        "say",
+		Name:        "chat",
 		Description: "Add a message to a chat note, the conversation with the user on the board. A chat that does not exist yet is made. The user answers there; wait_event with type message.added hears it.",
-		InputSchema: object([]string{"name", "text"}, map[string]any{
-			"name": str(`The chat's file name, such as "chat".`),
-			"text": str("The message, one line."),
-			"as":   str(`Who says it, such as "claude". Default "agent".`),
+		InputSchema: object([]string{"action", "name", "text"}, map[string]any{
+			"action": map[string]any{"type": "string", "enum": []string{"add"}},
+			"name":   str(`The chat's file name, such as "chat".`),
+			"text":   str("The message, one line."),
+			"as":     str(`Who says it, such as "claude". Default "agent".`),
 		}),
 	},
 	{
-		Name:        "set_keys",
-		Description: "Change front matter keys of an existing note and nothing else: title, open, size, rows, color, pin, view. An empty value removes the key.",
-		InputSchema: object([]string{"name", "keys"}, map[string]any{
-			"name": str("The note's file name."),
-			"keys": map[string]any{"type": "object", "description": `Keys and their new values, such as {"open": true, "size": "1/2"}.`},
+		Name:        "page",
+		Description: "A book, a folder in a tab, page by page. add: a page named after text, as N on the board makes it; note write fills it. list: its pages in order, as JSON.",
+		InputSchema: object([]string{"action", "name"}, map[string]any{
+			"action": map[string]any{"type": "string", "enum": []string{"add", "list"}},
+			"name":   str(`The book, such as "deploy/docs".`),
+			"text":   str("For add: the page's words, which name it."),
 		}),
 	},
 	{
-		Name:        "arrange_note",
-		Description: "Where a note is: show puts it in front of the user (a path to any file or folder of the project is linked onto the board), hide folds it away, move renames it or moves it into a tab or book, remove moves it to the trash, restore brings back what was removed last under that name.",
-		InputSchema: object([]string{"name", "action"}, map[string]any{
-			"name":   str(`A note's file name, such as "plan", "build.log" or "docs/plan"; for show, also a path such as "README.md" or "docs/".`),
-			"action": map[string]any{"type": "string", "enum": []string{"show", "hide", "move", "remove", "restore"}},
-			"to":     str(`For move: a new name ("roadmap"), a folder ending in "/" ("docs/"), or "." for the top level.`),
+		Name:        "worktree",
+		Description: "The git worktrees the board follows, each with a folder worktrees/<name>/, as JSON. list: all, with state, branch and forms waiting. show: one by name.",
+		InputSchema: object([]string{"action"}, map[string]any{
+			"action": map[string]any{"type": "string", "enum": []string{"list", "show"}},
+			"name":   str("For show: the worktree's folder name."),
+		}),
+	},
+	{
+		Name:        "diff",
+		Description: "What the git worktrees changed, read from git; writes nothing. list: every worktree with the files and lines it changed and the files two of them changed, or with name the files that worktree changed, as JSON. show: one file's diff.",
+		InputSchema: object([]string{"action"}, map[string]any{
+			"action":      map[string]any{"type": "string", "enum": []string{"list", "show"}},
+			"name":        str("The worktree, by its branch. Needed for show."),
+			"file":        str("For show: the file's path in the repository."),
+			"uncommitted": map[string]any{"type": "boolean", "description": "For show: the file's edits not committed yet, where it also has commits since the base."},
 		}),
 	},
 	{
@@ -396,63 +406,84 @@ func (s *Server) handle(ctx context.Context, line []byte) *response {
 	return resp
 }
 
+// args are the arguments of every tool, each reading those it needs.
+type args struct {
+	Name    string         `json:"name"`
+	Content *string        `json:"content"`
+	Type    string         `json:"type"`
+	Title   string         `json:"title"`
+	Size    string         `json:"size"`
+	Open    bool           `json:"open"`
+	Wait    float64        `json:"wait_seconds"`
+	Action  string         `json:"action"`
+	Item    string         `json:"item"`
+	Card    string         `json:"card"`
+	To      string         `json:"to"`
+	Label   string         `json:"label"`
+	Value   any            `json:"value"`
+	Line    string         `json:"line"`
+	Text    string         `json:"text"`
+	As      string         `json:"as"`
+	Keys    map[string]any `json:"keys"`
+	Notes   string         `json:"notes"`
+	Request string         `json:"request"`
+	Env     string         `json:"env"`
+	All     bool           `json:"all"`
+	Types   string         `json:"types"`
+	Topic   string         `json:"topic"`
+	File    string         `json:"file"`
+	// Uncommitted, for diff show, is the file's edits not committed yet.
+	Uncommitted bool `json:"uncommitted"`
+}
+
+// oldTools are the tools before every tool was a <noun> + action (#162),
+// and the tool and action each stands for. They are listed nowhere and
+// work as ever, for a client that calls them by name.
+var oldTools = map[string][2]string{
+	"read_note": {"note", "read"}, "write_note": {"note", "write"}, "set_keys": {"note", "set"},
+	"index": {"note", "list"}, "say": {"chat", "add"},
+}
+
+// arranged are the actions of the old arrange_note and note's for them.
+var arranged = map[string]string{"show": "show", "hide": "hide", "move": "mv", "remove": "rm", "restore": "restore"}
+
 // call runs a tool. A tool that fails returns a result marked isError, which
 // the agent can read and act on; only an unknown tool or unreadable
 // arguments is a protocol error.
 func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult, *rpcError) {
 	var p struct {
 		Name      string `json:"name"`
-		Arguments struct {
-			Name    string         `json:"name"`
-			Content *string        `json:"content"`
-			Type    string         `json:"type"`
-			Title   string         `json:"title"`
-			Size    string         `json:"size"`
-			Open    bool           `json:"open"`
-			Wait    float64        `json:"wait_seconds"`
-			Action  string         `json:"action"`
-			Item    string         `json:"item"`
-			Card    string         `json:"card"`
-			To      string         `json:"to"`
-			Label   string         `json:"label"`
-			Value   any            `json:"value"`
-			Line    string         `json:"line"`
-			Text    string         `json:"text"`
-			As      string         `json:"as"`
-			Keys    map[string]any `json:"keys"`
-			Notes   string         `json:"notes"`
-			Request string         `json:"request"`
-			Env     string         `json:"env"`
-			All     bool           `json:"all"`
-			Types   string         `json:"types"`
-			Topic   string         `json:"topic"`
-		} `json:"arguments"`
+		Arguments args   `json:"arguments"`
 	}
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, &rpcError{codeParams, "cannot read the tool arguments: " + err.Error()}
 	}
-	write, onBoard := boardTools[p.Name]
-	if p.Name == "arrange_note" && p.Arguments.Action == "show" {
-		write = true // as stickypane show, putting a note up makes the board
+	a := &p.Arguments
+	if old, ok := oldTools[p.Name]; ok {
+		p.Name, a.Action = old[0], old[1]
 	}
-	b, err := s.board(onBoard, write)
+	if p.Name == "arrange_note" {
+		action, ok := arranged[a.Action]
+		if !ok {
+			return failed(fmt.Errorf("unknown action %q: show, hide, move, remove or restore", a.Action)), nil
+		}
+		p.Name, a.Action = "note", action
+	}
+	if p.Name == "log" && a.Action == "" {
+		a.Action = "add"
+	}
+	if !slices.ContainsFunc(tools, func(t tool) bool { return t.Name == p.Name }) {
+		return nil, &rpcError{codeParams, "unknown tool " + p.Name}
+	}
+	on, write := onBoard(p.Name, a.Action)
+	b, err := s.board(on, write)
 	if err != nil {
-		return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}, nil
+		return failed(err), nil
 	}
 	text := ""
-	switch a := p.Arguments; p.Name {
-	case "read_note":
-		body, rerr := b.Cat(a.Name)
-		text, err = string(body), rerr
-	case "write_note":
-		if a.Content == nil {
-			// Without this check a call that forgot its content would
-			// replace the note with nothing and report success.
-			err = errors.New("write_note needs content: the whole note as Markdown")
-			break
-		}
-		file, werr := b.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
-		text, err = "wrote "+file, werr
+	switch p.Name {
+	case "note":
+		text, err = noteTool(b, *a)
 	case "todo":
 		text, err = said(b.Todo(a.Name, a.Action, a.Item))(status)
 	case "card":
@@ -460,22 +491,19 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 	case "chart":
 		text, err = said(b.Chart(a.Name, a.Action, a.Label, plain(a.Value)))(valued)
 	case "log":
-		text, err = said(b.Log(a.Name, a.Line))(status)
-	case "say":
-		text, err = said(b.Say(a.Name, a.As, a.Text))(status)
-	case "arrange_note":
-		text, err = arrange(b, a.Name, a.Action, a.To)
-	case "set_keys":
-		keys := make([]string, 0, len(a.Keys))
-		for k := range a.Keys {
-			keys = append(keys, k)
+		if err = only(a.Action, "add"); err == nil {
+			text, err = said(b.Log(a.Name, a.Line))(status)
 		}
-		sort.Strings(keys)
-		pairs := make([]string, len(keys))
-		for i, k := range keys {
-			pairs[i] = k + "=" + plain(a.Keys[k])
+	case "chat":
+		if err = only(a.Action, "add"); err == nil {
+			text, err = said(b.Say(a.Name, a.As, a.Text))(status)
 		}
-		text, err = said(b.Set(a.Name, pairs))(keyed)
+	case "page":
+		text, err = pageTool(b, *a)
+	case "worktree":
+		text, err = worktreeTool(b, *a)
+	case "diff":
+		text, err = diffTool(*a)
 	case toolReadAnswers:
 		wctx, cancel := context.WithTimeout(ctx, time.Duration(min(max(a.Wait, 0), maxWait)*float64(time.Second)))
 		got, aerr := b.Wait(wctx, a.Name, waitEvery)
@@ -486,11 +514,6 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		text, err = got.String(), aerr
 	case "api":
 		text, _, err = b.HTTP(ctx, a.Name, a.Request, a.Env, a.All)
-	case "index":
-		var idx []api.Entry
-		if idx, err = b.Index(); err == nil {
-			text = api.IndexMarkdown(idx, "board")
-		}
 	case toolWaitEvent:
 		wait := a.Wait
 		if wait <= 0 {
@@ -517,8 +540,6 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		}
 	case "guide":
 		text, err = b.Guide(a.Topic, s.Guide)
-	default:
-		return nil, &rpcError{codeParams, "unknown tool " + p.Name}
 	}
 	if err != nil {
 		// What was done before it failed is kept: the logs of the requests
@@ -527,37 +548,157 @@ func (s *Server) call(ctx context.Context, params json.RawMessage) (*toolResult,
 		if strings.TrimSpace(text) != "" {
 			msg = strings.TrimRight(text, "\n") + "\n\n" + msg
 		}
-		return &toolResult{Content: []content{{Type: "text", Text: msg}}, IsError: true}, nil
+		return failed(errors.New(msg)), nil
 	}
 	return &toolResult{Content: []content{{Type: "text", Text: text}}}, nil
 }
 
-// arrange runs the arrange_note tool.
-func arrange(b *api.API, name, action, to string) (string, error) {
-	switch action {
-	case "show":
-		return said(b.Show(name))(shown)
-	case "hide":
-		return said(b.Hide(name))(shown)
-	case "move":
-		if to == "" {
-			return "", errors.New(`move needs "to": a new name, a folder ending in "/", or "."`)
-		}
-		return said(b.Move(name, to))(movedTo)
-	case "remove":
-		return said(b.Remove(name))(removed)
-	case "restore":
-		return said(b.Restore(name))(restored)
-	}
-	return "", fmt.Errorf("unknown action %q: show, hide, move, remove or restore", action)
+// failed is the result of a tool that failed.
+func failed(err error) *toolResult {
+	return &toolResult{Content: []content{{Type: "text", Text: err.Error()}}, IsError: true}
 }
 
-// boardTools are the tools that work on the board, each with whether it
-// changes the board, so that a missing board may be made for it. The guide
-// needs no board.
-var boardTools = map[string]bool{
-	"read_note": false, toolReadAnswers: false, "api": false, "index": false, toolWaitEvent: false, "arrange_note": false,
-	"write_note": true, "todo": true, "card": true, "chart": true, "log": true, "say": true, "set_keys": true,
+// only fails for an action other than the one a tool has.
+func only(action, want string) error {
+	if action != want {
+		return fmt.Errorf("unknown action %q: %s", action, want)
+	}
+	return nil
+}
+
+// noteTool runs the note tool.
+func noteTool(b *api.API, a args) (string, error) {
+	switch a.Action {
+	case "read":
+		body, err := b.Cat(a.Name)
+		return string(body), err
+	case "write":
+		if a.Content == nil {
+			// Without this check a call that forgot its content would
+			// replace the note with nothing and report success.
+			return "", errors.New("write needs content: the whole note as Markdown")
+		}
+		file, err := b.Write(a.Name, api.Options{Type: a.Type, Title: a.Title, Size: a.Size, Open: a.Open}, []byte(*a.Content))
+		return "wrote " + file, err
+	case "set":
+		keys := make([]string, 0, len(a.Keys))
+		for k := range a.Keys {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		pairs := make([]string, len(keys))
+		for i, k := range keys {
+			pairs[i] = k + "=" + plain(a.Keys[k])
+		}
+		return said(b.Set(a.Name, pairs))(keyed)
+	case "list":
+		idx, err := b.Index()
+		if err != nil {
+			return "", err
+		}
+		return api.IndexMarkdown(idx, "board"), nil
+	case "show":
+		return said(b.Show(a.Name))(shown)
+	case "hide":
+		return said(b.Hide(a.Name))(shown)
+	case "link":
+		return said(b.Link(a.Name, a.To))(linked)
+	case "mv":
+		if a.To == "" {
+			return "", errors.New(`mv needs "to": a new name, a folder ending in "/", or "."`)
+		}
+		return said(b.Move(a.Name, a.To))(movedTo)
+	case "rm":
+		return said(b.Remove(a.Name))(removed)
+	case "archive":
+		return said(b.Archive(a.Name))(movedTo)
+	case "restore":
+		return said(b.Restore(a.Name))(restored)
+	}
+	return "", fmt.Errorf("unknown action %q: read, write, set, list, show, hide, link, mv, rm, archive or restore", a.Action)
+}
+
+// pageTool runs the page tool, as stickypane page add and page list.
+func pageTool(b *api.API, a args) (string, error) {
+	switch a.Action {
+	case "add":
+		file, err := b.AddPage(a.Name, a.Text)
+		if err != nil {
+			return "", err
+		}
+		return "added " + file, nil
+	case "list":
+		pages, err := b.Pages(a.Name)
+		if err != nil {
+			return "", err
+		}
+		return asJSON(pages)
+	}
+	return "", fmt.Errorf("unknown action %q: add or list", a.Action)
+}
+
+// worktreeTool runs the worktree tool, as stickypane worktree list and
+// worktree show: the board is brought in step with git first.
+func worktreeTool(b *api.API, a args) (string, error) {
+	if a.Action != "list" && a.Action != "show" {
+		return "", fmt.Errorf("unknown action %q: list or show", a.Action)
+	}
+	list, _ := worktree.Board{Store: b.Store(), Records: registry.Default(), Now: b.Now}.Sync() // best effort, as the command line
+	if a.Action == "list" {
+		return asJSON(list)
+	}
+	i := slices.IndexFunc(list, func(w worktree.Worktree) bool { return w.Name == a.Name })
+	if i < 0 {
+		return "", i18n.Err("worktree.unknown", map[string]any{"Name": a.Name})
+	}
+	return asJSON(list[i])
+}
+
+// diffTool runs the diff tool, as stickypane diff list and diff show.
+func diffTool(a args) (string, error) {
+	if a.Action != "list" && a.Action != "show" {
+		return "", fmt.Errorf("unknown action %q: list or show", a.Action)
+	}
+	if a.Action == "show" && (a.Name == "" || a.File == "") {
+		return "", errors.New(`show needs "name", the worktree, and "file"`)
+	}
+	if a.Action == "show" {
+		_, text, _, err := diffbook.Show(".", a.Name, a.File, a.Uncommitted)
+		return text, err
+	}
+	book, err := diffbook.List(".", a.Name)
+	if err != nil {
+		return "", err
+	}
+	if a.Name != "" {
+		return asJSON(book.Changes)
+	}
+	return asJSON(book.Overview)
+}
+
+// asJSON is v as the command line's --json prints it.
+func asJSON(v any) (string, error) {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(v)
+	return b.String(), err
+}
+
+// onBoard says whether a tool works on the board, and whether this call
+// changes it, so that a missing board may be made for it. The guide and
+// diff need no board.
+func onBoard(tool, action string) (on, write bool) {
+	switch tool {
+	case "guide", "diff":
+		return false, false
+	case "todo", "card", "chart", "log", "chat":
+		return true, true
+	case "note":
+		// as stickypane note show, putting a note up makes the board
+		return true, action == "write" || action == "set" || action == "show" || action == "link"
+	}
+	return true, false
 }
 
 // board is the API a tool works on. Until the server has a board, Open is

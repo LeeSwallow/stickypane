@@ -7,11 +7,12 @@
 package diffbook
 
 import (
-	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/git"
+	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/widget/diff"
 )
 
@@ -67,7 +68,7 @@ func Read(dir, chosen, base string) (Book, error) {
 		if w.Bare {
 			continue
 		}
-		row := diff.Worktree{Name: Name(w), Path: w.Path, Base: base, Closed: w.Prunable, Current: same(w.Path, dir)}
+		row := diff.Worktree{Name: Name(w), Path: w.Path, Base: base, Closed: w.Prunable, Current: git.Same(w.Path, dir)}
 		if row.Current {
 			current = row.Name
 		}
@@ -114,9 +115,47 @@ func Read(dir, chosen, base string) (Book, error) {
 	return b, nil
 }
 
+// List is Read for `diff list` and the diff tool: name, when not "", must
+// be a worktree git still has.
+func List(dir, name string) (Book, error) {
+	b, err := Read(dir, name, "")
+	if err == nil && name != "" && b.Overview.Chosen != name {
+		err = i18n.Err("diff.unknown", map[string]any{"Name": name})
+	}
+	return b, err
+}
+
+// Show is the diff of file in the worktree name, for `diff show` and the
+// diff tool: its commits since the base, or with uncommitted the edits not
+// committed yet.
+func Show(dir, name, file string, uncommitted bool) (c git.Change, text string, cut bool, err error) {
+	b, err := List(dir, name)
+	if err != nil {
+		return c, "", false, err
+	}
+	c, ok := b.Change(file, uncommitted)
+	if !ok {
+		return c, "", false, i18n.Err("diff.nofile", map[string]any{"Name": name, "File": file})
+	}
+	text, cut, err = b.Diff(c)
+	return c, text, cut, err
+}
+
 // Diff is the diff of one of the book's changed files, read only now.
 func (b Book) Diff(c git.Change) (text string, cut bool, err error) {
 	return git.Diff(b.Path, b.Base, c)
+}
+
+// Change is the book's changed file at path: its commits since the base,
+// else its edits not committed yet; with uncommitted, only those edits.
+func (b Book) Change(path string, uncommitted bool) (git.Change, bool) {
+	i := slices.IndexFunc(b.Changes, func(c git.Change) bool {
+		return c.Path == path && (!uncommitted || c.Where != git.Committed)
+	})
+	if i < 0 {
+		return git.Change{}, false
+	}
+	return b.Changes[i], true
 }
 
 // PR is the pull request of the worktree at path, or nil when gh does not
@@ -126,12 +165,6 @@ func PR(path string) *diff.PR {
 	if !ok {
 		return nil
 	}
-	return &diff.PR{Title: pr.Title, State: pr.State, URL: pr.URL}
-}
-
-// same says whether a and b are the same folder.
-func same(a, b string) bool {
-	fa, err1 := os.Stat(a)
-	fb, err2 := os.Stat(b)
-	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
+	p := diff.PR(pr)
+	return &p
 }
