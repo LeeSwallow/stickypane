@@ -3,7 +3,7 @@ module github.com/LeeSwallow/stickypane/desktop
 go 1.26.5
 
 require (
-	github.com/glebarez/go-sqlite v1.21.2
+	github.com/glebarez/go-sqlite v1.23.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/wailsapp/wails/v3 v3.0.0
 	gorm.io/gorm v1.31.2
