@@ -92,14 +92,14 @@ func TestTheKindDecidesLast(t *testing.T) {
 
 func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
 	var v store.View
-	for _, kv := range [][2]string{{"open", "true"}, {"pin", "False"}, {"size", "half"}, {"rows", "12"}, {"color", "Blue"}} {
+	for _, kv := range [][2]string{{"open", "true"}, {"pin", "False"}, {"size", "half"}, {"rows", "12"}, {"color", "Blue"}, {"paging", "Single"}} {
 		change, ok, err := Change(kv[0], kv[1])
 		if !ok || err != nil {
 			t.Fatalf("Change(%q, %q) = %v, %v", kv[0], kv[1], ok, err)
 		}
 		change(&v)
 	}
-	if v.Open == nil || !*v.Open || v.Pin == nil || *v.Pin || v.Size != "1/2" || v.Rows != 12 || v.Color != "blue" {
+	if v.Open == nil || !*v.Open || v.Pin == nil || *v.Pin || v.Size != "1/2" || v.Rows != 12 || v.Color != "blue" || v.Paging != store.PagingSingle {
 		t.Errorf("view = %+v; size=half is written as 1/2", v)
 	}
 	for in, want := range map[string]string{"1/3": "1/3", "3/4": "3/4", "1": "1", "Page": "1", "card": "card"} {
@@ -120,7 +120,7 @@ func TestChangeTurnsAKeyIntoAChangeOfTheView(t *testing.T) {
 	if _, ok, _ := Change("title", "x"); ok {
 		t.Error("title is not about the arrangement")
 	}
-	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"size", "2/5"}, {"rows", "0"}, {"color", "teal"}} {
+	for _, kv := range [][2]string{{"open", "maybe"}, {"size", "huge"}, {"size", "2/5"}, {"rows", "0"}, {"color", "teal"}, {"paging", "two"}} {
 		if _, ok, err := Change(kv[0], kv[1]); !ok || err == nil {
 			t.Errorf("Change(%q, %q) should be refused", kv[0], kv[1])
 		}

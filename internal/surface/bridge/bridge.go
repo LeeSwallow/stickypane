@@ -624,9 +624,10 @@ type drawing struct {
 func (s *server) drawn(b store.Board) drawing {
 	d := drawing{notes: map[string]Note{}, json: map[string][]byte{}}
 	views := b.Settings.Views()
+	wts := s.worktrees(b)
 	for _, t := range b.Tabs {
 		for _, n := range inOrder(t, b.Settings, views) {
-			note := s.note(t.Name, n, views)
+			note := s.note(t.Name, n, views, wts)
 			raw, _ := json.Marshal(note)
 			d.order = append(d.order, n.Name)
 			d.notes[n.Name], d.json[n.Name] = note, raw

@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/LeeSwallow/stickypane/internal/adapter/env"
+	"github.com/LeeSwallow/stickypane/internal/adapter/registry"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
 	"github.com/LeeSwallow/stickypane/internal/core/theme"
 	"github.com/LeeSwallow/stickypane/internal/core/widget"
 	"github.com/LeeSwallow/stickypane/internal/usecase/arrange"
 	"github.com/LeeSwallow/stickypane/internal/usecase/prefs"
+	"github.com/LeeSwallow/stickypane/internal/usecase/worktree"
 )
 
 // Board is what board.load answers: the tabs with their notes, the
@@ -68,6 +70,15 @@ type Note struct {
 	Target  string          `json:"target,omitempty"` // where the link leads
 	Error   string          `json:"error,omitempty"`  // why the file cannot be shown
 	Pages   []Note          `json:"pages,omitempty"`
+	// Paging is a book's "single" when it shows one page at a time, as
+	// the terminal's v sets it; "" shows every page one after another.
+	Paging string `json:"paging,omitempty"`
+	// State is a book of worktrees/ its worktree's, worked out each time
+	// (worktree.List): closed, waiting (forms in it not answered, Waiting
+	// of them), running (git reports it locked) or open. "" for any other
+	// note.
+	State   string `json:"state,omitempty"`
+	Waiting int    `json:"waiting,omitempty"`
 }
 
 // Settings are the board's settings as a screen needs them.
@@ -111,13 +122,14 @@ type Palette struct {
 func (s *server) load(b store.Board) Board {
 	out := Board{Title: filepath.Base(s.project()), Settings: settingsOf(b.Settings), Tabs: []Tab{}}
 	views := b.Settings.Views()
+	wts := s.worktrees(b)
 	for _, t := range b.Tabs {
 		tab := Tab{Name: t.Name, Title: t.Title, Notes: []Note{}}
 		if t.Name == "" && t.Title != "" {
 			out.Title = t.Title
 		}
 		for _, n := range inOrder(t, b.Settings, views) {
-			tab.Notes = append(tab.Notes, s.note(t.Name, n, views))
+			tab.Notes = append(tab.Notes, s.note(t.Name, n, views, wts))
 		}
 		out.Tabs = append(out.Tabs, tab)
 	}
@@ -149,9 +161,40 @@ func inOrder(t store.Tab, set store.Settings, views store.Views) []store.Note {
 	return out
 }
 
+// worktrees are the git worktrees of the board's repository, by folder
+// name, read only when worktrees/ holds a book: git is not asked
+// otherwise.
+func (s *server) worktrees(b store.Board) map[string]worktree.Worktree {
+	i := slices.IndexFunc(b.Tabs, func(t store.Tab) bool { return t.Name == worktree.Tab })
+	if i < 0 || !slices.ContainsFunc(b.Tabs[i].Notes, store.Note.Book) {
+		return nil
+	}
+	wb := worktree.Board{Store: s.api.Store(), Records: registry.Default(), Now: s.api.Now} // List only reads
+	out := map[string]worktree.Worktree{}
+	for _, w := range wb.List() {
+		out[w.Name] = w
+	}
+	return out
+}
+
+// stateOf is the state a worktree's book shows: closed first, then a
+// person waited for, then an agent at work.
+func stateOf(w worktree.Worktree) string {
+	switch {
+	case w.State == registry.StateClosed:
+		return registry.StateClosed
+	case w.Waiting > 0:
+		return "waiting"
+	case w.Running:
+		return "running"
+	}
+	return w.State
+}
+
 // note describes a note, or a book and its pages. Where a page is on the
-// screen is its book's to say, as on the terminal.
-func (s *server) note(tab string, n store.Note, views store.Views) Note {
+// screen is its book's to say, as on the terminal. wts are the worktrees,
+// for a book of worktrees/.
+func (s *server) note(tab string, n store.Note, views store.Views, wts map[string]worktree.Worktree) Note {
 	v := views[n.Name]
 	if !n.Book() {
 		return s.file(tab, n, n, v)
@@ -177,6 +220,12 @@ func (s *server) note(tab string, n store.Note, views store.Views) Note {
 		out.Sized = arrange.Sized(v, n.Doc)
 	}
 	out.Summary = fmt.Sprintf("%d pages", len(n.Pages)) // as the index says
+	if v.Paging == store.PagingSingle {
+		out.Paging = store.PagingSingle
+	}
+	if w, ok := wts[strings.TrimPrefix(n.Name, worktree.Tab+"/")]; ok && tab == worktree.Tab {
+		out.State, out.Waiting = stateOf(w), w.Waiting
+	}
 	return out
 }
 

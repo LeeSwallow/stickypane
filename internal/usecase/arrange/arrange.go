@@ -197,6 +197,12 @@ func Change(key, value string) (func(*store.View), bool, error) {
 			return nil, true, fmt.Errorf("unknown color %q: use %s", value, strings.Join(theme.NoteNames[:], ", "))
 		}
 		return func(v *store.View) { v.Color = strings.ToLower(value) }, true, nil
+	case "paging":
+		value = strings.ToLower(value)
+		if value != "" && value != store.PagingSingle {
+			return nil, true, fmt.Errorf("paging is %s or nothing, not %q", store.PagingSingle, value)
+		}
+		return func(v *store.View) { v.Paging = value }, true, nil
 	}
 	return nil, false, nil
 }

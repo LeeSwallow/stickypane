@@ -312,7 +312,7 @@ func (a *API) Set(name string, pairs []string) (Keyed, error) {
 		case isView:
 			views = append(views, change)
 		case book:
-			return Keyed{}, fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color and pin", file, key)
+			return Keyed{}, fmt.Errorf("%s is a folder: it has no %s, only open, size, rows, color, pin and paging", file, key)
 		case !store.IsMarkdown(file):
 			return Keyed{}, fmt.Errorf("only a Markdown note has front matter to keep %s in", key)
 		case value == "":

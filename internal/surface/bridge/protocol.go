@@ -107,6 +107,8 @@ type (
 		Pin   *bool   `json:"pin"`
 		Color *string `json:"color"`
 		Title *string `json:"title"`
+		// Paging is a book's: "single" or "" (every page), as v sets it.
+		Paging *string `json:"paging"`
 	}
 	orderParams struct {
 		Tab   string   `json:"tab"`

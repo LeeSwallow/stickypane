@@ -21,6 +21,8 @@ mkdir -p "$tmp/home" "$tmp/sphome" "$tmp/proj" "$tmp/www"
 (cd "$root" && go build -o "$tmp/stickypane" ./cmd/stickypane)
 sp="$tmp/stickypane"
 export HOME="$tmp/home" STICKYPANE_HOME="$tmp/sphome" STICKYPANE_USER=min
+# the samples are in English, whatever the machine speaks
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 # the zone the frontend's tests read dates in (frontend/vitest.config.ts):
 # a chat's day is the day where it was said
 export TZ=Asia/Seoul
@@ -67,6 +69,23 @@ printf '%s\n' "@base = http://127.0.0.1:$port" '' '### Hello' 'GET {{base}}/hell
 	"$sp" write api.http >/dev/null
 printf '%s\n' '<h1>Benchmark</h1>' '<p>Run took <b>4.2s</b>, down from 6.1s.</p>' '<script>document.body.dataset.ran = "yes"</script>' |
 	"$sp" write report.html >/dev/null
+
+# the books of a repository's git worktrees (#141), one in each state the
+# board works out: an agent at work (git reports it locked), a form not
+# answered, nothing going on, and a worktree that is gone; the first is
+# shown a page at a time (#142)
+export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+git init -q -b main .
+git commit -q --allow-empty -m first
+for w in fix-login chart idle old; do
+	git worktree add -q -b "$w" "$tmp/wt/$w"
+	printf '%s\n' "- [ ] $w" | "$sp" write "worktrees/$w/plan" --type checklist --title Plan >/dev/null
+done
+git worktree lock "$tmp/wt/fix-login"
+printf '%s\n' '## Merge it?' '- (x) yes' '- ( ) no' '' '[ OK ]' |
+	"$sp" write worktrees/chart/merge --type form --title Merge >/dev/null
+git worktree remove "$tmp/wt/old"
+"$sp" note set worktrees/fix-login paging=single >/dev/null
 
 # the app's calls: run the script, send both requests, submit one form,
 # then load the board

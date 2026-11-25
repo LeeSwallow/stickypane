@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LeeSwallow/stickypane/internal/adapter/git"
 	"github.com/LeeSwallow/stickypane/internal/adapter/store"
 	"github.com/LeeSwallow/stickypane/internal/core/doc"
 	"github.com/LeeSwallow/stickypane/internal/core/i18n"
@@ -31,6 +32,10 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	os.Setenv("STICKYPANE_HOME", filepath.Join(tmp, "no-registry"))
+	// git run from a hook would otherwise work on this repository
+	for _, v := range git.Local {
+		os.Unsetenv(v)
+	}
 	code := m.Run()
 	os.RemoveAll(tmp)
 	os.Exit(code)
@@ -258,6 +263,9 @@ type loaded struct {
 	Linked  bool            `json:"linked"`
 	Target  string          `json:"target"`
 	Error   string          `json:"error"`
+	Paging  string          `json:"paging"`
+	State   string          `json:"state"`
+	Waiting int             `json:"waiting"`
 }
 
 type loadedBoard struct {

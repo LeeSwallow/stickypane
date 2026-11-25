@@ -55,6 +55,15 @@ export interface Note {
   target?: string
   error?: string
   pages?: Note[]
+  /** a book's "single": one page at a time (the terminal's v); none: every page, one after another */
+  paging?: string
+  /**
+   * a book of worktrees/: its worktree's state as the board worked it out
+   * (closed, waiting for the person, running, open); none for other notes
+   */
+  state?: 'open' | 'closed' | 'running' | 'waiting'
+  /** the forms in it not answered yet */
+  waiting?: number
 }
 
 export interface Tab {
@@ -101,6 +110,8 @@ export interface ArrangePatch {
   pin?: boolean
   color?: string
   title?: string
+  /** a book's: "single", or "" for every page */
+  paging?: string
 }
 
 /**
@@ -167,6 +178,7 @@ export function withArrange(b: Board, name: string, p: ArrangePatch): Board {
     if (p.pin !== undefined) out.pinned = p.pin
     if (p.color !== undefined && p.color !== '') out.color = p.color
     if (p.title !== undefined && p.title !== '') out.title = p.title
+    if (p.paging !== undefined) out.paging = p.paging || undefined
     return out
   }
   return { ...b, tabs: b.tabs.map((t) => ({ ...t, notes: t.notes.map(apply) })) }

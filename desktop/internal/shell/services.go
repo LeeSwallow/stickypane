@@ -123,6 +123,8 @@ type (
 		Pin   *bool   `json:"pin,omitempty"`
 		Color *string `json:"color,omitempty"`
 		Title *string `json:"title,omitempty"`
+		// Paging is a book's: "single" or "" (every page).
+		Paging *string `json:"paging,omitempty"`
 	}
 	OrderParams struct {
 		Tab   string   `json:"tab"`
@@ -227,7 +229,7 @@ func (p *ProjectService) Act(ctx context.Context, a ActParams) (json.RawMessage,
 	return p.call(ctx, bridgeclient.MethodAct, a)
 }
 
-// Arrange is note.arrange: open, size, rows, pin, colour, title.
+// Arrange is note.arrange: open, size, rows, pin, colour, title, paging.
 func (p *ProjectService) Arrange(ctx context.Context, a ArrangeParams) (json.RawMessage, error) {
 	return p.call(ctx, bridgeclient.MethodArrange, a)
 }

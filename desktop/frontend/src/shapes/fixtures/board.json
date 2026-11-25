@@ -640,6 +640,345 @@
      "linked": false
     }
    ]
+  },
+  {
+   "name": "worktrees",
+   "title": "worktrees",
+   "notes": [
+    {
+     "name": "worktrees/chart",
+     "tab": "worktrees",
+     "title": "chart",
+     "kind": "book",
+     "icon": "▤",
+     "open": false,
+     "size": "card",
+     "sized": false,
+     "rows": 0,
+     "color": "blue",
+     "pinned": false,
+     "version": "",
+     "summary": "3 pages",
+     "data": null,
+     "modTime": "2026-10-29T03:14:42.69738088+09:00",
+     "linked": false,
+     "pages": [
+      {
+       "name": "worktrees/chart/00-개요.md",
+       "tab": "worktrees",
+       "title": "개요",
+       "kind": "note",
+       "icon": "✎",
+       "open": false,
+       "size": "card",
+       "sized": false,
+       "rows": 0,
+       "color": "blue",
+       "pinned": false,
+       "version": "cb5bd609b6897fc3",
+       "summary": "",
+       "data": {
+        "markdown": "# chart\n\nBranch `chart`. What this worktree is for goes here.\n"
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      },
+      {
+       "name": "worktrees/chart/merge.md",
+       "tab": "worktrees",
+       "title": "Merge",
+       "kind": "form",
+       "icon": "◉",
+       "open": false,
+       "size": "1/2",
+       "sized": false,
+       "rows": 0,
+       "color": "blue",
+       "pinned": false,
+       "version": "5806720d4dc3ee45",
+       "summary": "1/1",
+       "data": {
+        "lines": [
+         {
+          "kind": "text",
+          "text": "## Merge it?"
+         },
+         {
+          "kind": "option",
+          "text": "yes",
+          "group": "Merge it?",
+          "radio": true,
+          "checked": true
+         },
+         {
+          "kind": "option",
+          "text": "no",
+          "group": "Merge it?",
+          "radio": true
+         },
+         {
+          "kind": "text",
+          "text": ""
+         },
+         {
+          "kind": "buttons",
+          "text": "",
+          "labels": [
+           "OK"
+          ]
+         },
+         {
+          "kind": "text",
+          "text": ""
+         }
+        ],
+        "submitted": "",
+        "at": ""
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      },
+      {
+       "name": "worktrees/chart/plan.md",
+       "tab": "worktrees",
+       "title": "Plan",
+       "kind": "checklist",
+       "icon": "☑",
+       "open": false,
+       "size": "1/2",
+       "sized": false,
+       "rows": 0,
+       "color": "blue",
+       "pinned": false,
+       "version": "548f18d8b49f36bf",
+       "summary": "0/1",
+       "data": {
+        "items": [
+         {
+          "text": "chart",
+          "checked": false
+         }
+        ],
+        "prose": [],
+        "done": 0,
+        "total": 1
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      }
+     ],
+     "state": "waiting",
+     "waiting": 1
+    },
+    {
+     "name": "worktrees/fix-login",
+     "tab": "worktrees",
+     "title": "fix-login",
+     "kind": "book",
+     "icon": "▤",
+     "open": false,
+     "size": "card",
+     "sized": false,
+     "rows": 0,
+     "color": "green",
+     "pinned": false,
+     "version": "",
+     "summary": "2 pages",
+     "data": null,
+     "modTime": "2026-10-29T03:14:42.69738088+09:00",
+     "linked": false,
+     "pages": [
+      {
+       "name": "worktrees/fix-login/00-개요.md",
+       "tab": "worktrees",
+       "title": "개요",
+       "kind": "note",
+       "icon": "✎",
+       "open": false,
+       "size": "card",
+       "sized": false,
+       "rows": 0,
+       "color": "green",
+       "pinned": false,
+       "version": "2b908789b12c63b2",
+       "summary": "",
+       "data": {
+        "markdown": "# fix-login\n\nBranch `fix-login`. What this worktree is for goes here.\n"
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      },
+      {
+       "name": "worktrees/fix-login/plan.md",
+       "tab": "worktrees",
+       "title": "Plan",
+       "kind": "checklist",
+       "icon": "☑",
+       "open": false,
+       "size": "1/2",
+       "sized": false,
+       "rows": 0,
+       "color": "green",
+       "pinned": false,
+       "version": "1237570ef82a31ac",
+       "summary": "0/1",
+       "data": {
+        "items": [
+         {
+          "text": "fix-login",
+          "checked": false
+         }
+        ],
+        "prose": [],
+        "done": 0,
+        "total": 1
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      }
+     ],
+     "paging": "single",
+     "state": "running"
+    },
+    {
+     "name": "worktrees/idle",
+     "tab": "worktrees",
+     "title": "idle",
+     "kind": "book",
+     "icon": "▤",
+     "open": false,
+     "size": "card",
+     "sized": false,
+     "rows": 0,
+     "color": "yellow",
+     "pinned": false,
+     "version": "",
+     "summary": "2 pages",
+     "data": null,
+     "modTime": "2026-10-29T03:14:42.69738088+09:00",
+     "linked": false,
+     "pages": [
+      {
+       "name": "worktrees/idle/00-개요.md",
+       "tab": "worktrees",
+       "title": "개요",
+       "kind": "note",
+       "icon": "✎",
+       "open": false,
+       "size": "card",
+       "sized": false,
+       "rows": 0,
+       "color": "yellow",
+       "pinned": false,
+       "version": "4a31fc15d5bf4528",
+       "summary": "",
+       "data": {
+        "markdown": "# idle\n\nBranch `idle`. What this worktree is for goes here.\n"
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      },
+      {
+       "name": "worktrees/idle/plan.md",
+       "tab": "worktrees",
+       "title": "Plan",
+       "kind": "checklist",
+       "icon": "☑",
+       "open": false,
+       "size": "1/2",
+       "sized": false,
+       "rows": 0,
+       "color": "yellow",
+       "pinned": false,
+       "version": "7a7458f31bbce27d",
+       "summary": "0/1",
+       "data": {
+        "items": [
+         {
+          "text": "idle",
+          "checked": false
+         }
+        ],
+        "prose": [],
+        "done": 0,
+        "total": 1
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      }
+     ],
+     "state": "open"
+    },
+    {
+     "name": "worktrees/old",
+     "tab": "worktrees",
+     "title": "old",
+     "kind": "book",
+     "icon": "▤",
+     "open": false,
+     "size": "card",
+     "sized": false,
+     "rows": 0,
+     "color": "orange",
+     "pinned": false,
+     "version": "",
+     "summary": "2 pages",
+     "data": null,
+     "modTime": "2026-10-29T03:14:42.69738088+09:00",
+     "linked": false,
+     "pages": [
+      {
+       "name": "worktrees/old/00-개요.md",
+       "tab": "worktrees",
+       "title": "개요",
+       "kind": "note",
+       "icon": "✎",
+       "open": false,
+       "size": "card",
+       "sized": false,
+       "rows": 0,
+       "color": "orange",
+       "pinned": false,
+       "version": "99a0353101fa438c",
+       "summary": "",
+       "data": {
+        "markdown": "# old\n\nBranch `old`. What this worktree is for goes here.\n"
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      },
+      {
+       "name": "worktrees/old/plan.md",
+       "tab": "worktrees",
+       "title": "Plan",
+       "kind": "checklist",
+       "icon": "☑",
+       "open": false,
+       "size": "1/2",
+       "sized": false,
+       "rows": 0,
+       "color": "orange",
+       "pinned": false,
+       "version": "ff4e09411b1e882e",
+       "summary": "0/1",
+       "data": {
+        "items": [
+         {
+          "text": "old",
+          "checked": false
+         }
+        ],
+        "prose": [],
+        "done": 0,
+        "total": 1
+       },
+       "modTime": "2026-10-29T03:14:42.69738088+09:00",
+       "linked": false
+      }
+     ],
+     "state": "closed"
+    }
+   ]
   }
  ],
  "settings": {
